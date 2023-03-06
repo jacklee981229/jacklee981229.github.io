@@ -120,14 +120,6 @@ tags: [page]
 - **[TreeSize Free](https://www.jam-software.com/treesize_free)**: Disk space analyzer.
 - **[AI online drawing + prompts](https://www.freedidi.com/6738.html)**: AI painting keyword website recommendation.
 - **[Pico](https://github.com/picotorrent/picotorrent)**: A tiny, hackable BitTorrent client.
-- **[Android phone screen mirroring](https://github.com/Genymobile/scrcpy)**: Display and control your Android device.
+- **[ScreenMirror](https://github.com/Genymobile/scrcpy)**: Display and control your Android device.
 
 <br>
-
-### TamperMonkey
-
-##### You all know tampermonkey right?
-
-- **[番号快速搜索](https://sleazyfork.org/zh-CN/scripts/423350-%E6%A0%B9%E6%8D%AE%E7%95%AA%E5%8F%B7%E5%BF%AB%E9%80%9F%E6%90%9C%E7%B4%A2)**
-- **[网页限制解除(改)](https://greasyfork.org/zh-CN/scripts/28497-remove-web-limits-modified)**
-- **[My Novel Reader](https://greasyfork.org/zh-CN/scripts/292-my-novel-reader)**

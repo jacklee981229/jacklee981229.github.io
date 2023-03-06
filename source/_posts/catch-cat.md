@@ -1,10 +1,12 @@
 ---
 title: Play Catch the Cat!
-date: 2023-03-02 23:07:33
-tags: [game]
+tags:
+  - game
 hidden: true
+date: 2023-03-02 23:07:33
+id: game_2
 ---
-<div style="text-align: center; width: 100%; border: 1px solid black;" >
+<div style="text-align: center; width: 100%;" >
     <script src="/javascript/catch-cat/phaser.min.js"></script>
     <script src="/javascript/catch-cat/catch-the-cat.js"></script>
     <div id="catch-the-cat"></div>

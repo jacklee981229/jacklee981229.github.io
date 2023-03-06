@@ -3,6 +3,7 @@ title: click-effect-tutorial
 description: Tutorial of adding click effects to your Hexo.
 date: 2023-03-03 19:07:04
 tags:
+id: blog_5
 ---
 
 You can add some clicking effects in your Hexo project.

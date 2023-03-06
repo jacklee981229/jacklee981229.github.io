@@ -1,8 +1,11 @@
 ---
 title: Sample Heart.js script
-date: 2023-03-03 19:06:08
-tags: [script, javascript]
+tags:
+  - script
+  - javascript
 description: This is used in `Click-Effect-Tutorial` post
+date: 2023-03-03 19:06:08
+id: blog_4
 ---
 
 ```js Heart.js

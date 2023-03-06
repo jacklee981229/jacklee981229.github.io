@@ -3,6 +3,7 @@ title: How to inject scripts in Hexo?
 tags: [blog,hexo,next,script,javascript]
 description: This is a tutorial of how injects works in Hexo - Next.
 date: 2023-03-05 21:22:54
+id: blog_6
 ---
 
 {% centerquote %}Hexo reads scripts that are stored under a `scripts` folder in your root folder.{% endcenterquote %}

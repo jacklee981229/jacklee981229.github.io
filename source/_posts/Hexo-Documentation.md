@@ -1,8 +1,14 @@
 ---
 title: Hexo Documentation
+tags:
+  - hexo
+  - blog
+  - next
+description: >-
+  This article shows on how to create Hexo and errors that you might encounter
+  when using Hexo.
 date: 2023-03-02 09:08:51
-tags: [hexo, blog, next]
-description: This article shows on how to create Hexo and errors that you might encounter when using Hexo.
+id: blog_2
 ---
 
 # How to Hexo?

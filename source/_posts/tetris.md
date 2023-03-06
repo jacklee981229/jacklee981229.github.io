@@ -1,16 +1,19 @@
 ---
 title: tetris
-date: 2023-03-03 21:07:57
-tags: [game, ai]
+tags:
+  - game
+  - ai
 hidden: true
+date: 2023-03-03 21:07:57
+id: game_3
 ---
 
-<iframe src="/javascript/tetris/custom_play.html" width="100%" height="650" style="border:1px solid black;">
+<iframe src="/javascript/tetris/custom_play.html" width="100%" height="650" style="border:0px solid black;">
 </iframe>
 
 <center><h2> Bots Play! </h2></center>
 
-<iframe src="/javascript/tetris/custom_bot_play.html" width="100%" height="650" style="border:1px solid black;">
+<iframe src="/javascript/tetris/custom_bot_play.html" width="100%" height="650" style="border:0px solid black;">
 </iframe>
 
 <center><h3> !!!DISCLAIMER!!!  </h3></center>

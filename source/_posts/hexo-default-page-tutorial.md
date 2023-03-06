@@ -1,8 +1,13 @@
 ---
 title: Hexo Change Default to Page
+tags:
+  - hexo
+  - blog
+description: >-
+  This is to change Hexo default link point to a custom page, instead of the
+  blog.
 date: 2023-03-02 21:54:56
-tags: [hexo, blog]
-description: This is to change Hexo default link point to a custom page, instead of the blog.
+id: blog_3
 ---
 
 ### Concept
