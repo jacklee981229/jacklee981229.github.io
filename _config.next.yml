@@ -677,7 +677,7 @@
     # Disqus
     # For more information: https://disqus.com
     disqus:
-      enable: false
+      enable: true
       shortname:
       count: true
 

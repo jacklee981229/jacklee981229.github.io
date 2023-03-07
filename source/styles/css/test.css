@@ -26,9 +26,40 @@
   height: 200px
 }
 
-body {
-  background-image: url(../images/avatar.png);
+/* body {
+  background-image: url(../../images/avatar.png);
+} */
+
+/* #g-pointer-1,
+#g-pointer-2
+{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    background: #999;
+    border-radius: 50%;
+    background-color: #fff;
+    mix-blend-mode: exclusion;
+    z-index: 1;
 }
+#g-pointer-2 {
+    width: 42px;
+    height: 42px;
+    background: #222;
+    transition: .2s ease-out;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  border: 20px solid black;
+  cursor: none;
+  background-color: #eee;
+  transition: none;
+} */
 
 /* #Useful-Link {
   background-image: linear-gradient(to right, violet 0%, indigo 4%, blue 8%, green 12%, yellow 16%, orange 20%);
