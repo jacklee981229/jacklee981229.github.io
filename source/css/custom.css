@@ -1,0 +1,60 @@
+body {
+    all: unset;
+    background-image: url(/images/background/bg1.jpg);
+    background-size: cover;
+    backdrop-filter: blur(88px);
+    -webkit-backdrop-filter: blur(88px);
+}
+
+body, html {
+    height: 100%;
+}
+
+/* .bg-image {
+    background-image: url(/images/background/bg1.jpg);
+    filter: blur(2px);
+    -webkit-filter: blur(2px);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 100%;
+} */
+
+h1 {
+   color: white;
+   font-family: "Meslo_LG";
+
+}
+
+#center-div {
+    background: rgba( 255, 255, 255, 0.2 );
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 37%);
+    text-align: center;
+    /* backdrop-filter: blur(8px); */
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 15px;
+    /* border: 1px solid rgba( 255, 255, 255, 0.18 ); */
+    margin-top: 20%;
+    margin-left: 38%;
+    margin-right: 38%;
+    transition: 0.3s;
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+}
+
+#center-div:hover {
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 67%);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 15px;
+    margin-top: 20%;
+    margin-left: 30%;
+    margin-right: 30%;
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    cursor: pointer;
+}
+
+#center-div,
+#center-div h1:focus {
+    outline: none;
+}
