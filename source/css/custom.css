@@ -1,14 +1,117 @@
-body {
-    all: unset;
-    background-image: url(/images/background/bg1.jpg);
-    background-size: cover;
-    backdrop-filter: blur(88px);
-    -webkit-backdrop-filter: blur(88px);
+* {
+    padding: 0;
+    margin: 0;
+}
+body, html {
+    height: 100vh;
 }
 
-body, html {
-    height: 100%;
+body {
+    /* all: unset; */
+    background-image: url(/images/background/bg1.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    /* backdrop-filter: blur(88px);
+    -webkit-backdrop-filter: blur(88px); */
 }
+
+@font-face {
+    font-family: "meslo";
+    src: url(/fonts/MesloLGL-Regular.ttf);
+  }
+
+/* body {
+    background: var(--body-bg-color);
+    box-sizing: border-box;
+    color: var(--text-color);
+    font-family: 'Meslo_LG', 'Lato', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 1em;
+    line-height: 2;
+    min-height: 100%;
+    position: relative;
+    transition: padding 0.2s ease-in-out;
+} */
+
+ #center-div {
+    background: rgba( 255, 255, 255, 0.2 );
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 99%);
+    border-radius: 15px;
+    margin:auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 35px;
+    min-height: 20px;
+    width: 7vw;
+    height: 5vh;
+    margin: -2.5vh 0 0 -3.5vw;
+    backdrop-filter: blur(2px);
+    transition: 0.3s;
+
+    /* for text inside div */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+ }
+ 
+ #center-div:hover {
+    width: 10vw;
+    height: 6vh;
+    margin: -3vh 0 0 -5vw;
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 67%);
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+ }
+
+ #center-div p {
+    font-family:"meslo";
+    color: #003b8b;
+    font-size: 15px;
+    font-weight: bold;
+    transition: 0.3s;
+ }
+
+ #center-div:hover p {
+    font-family:"meslo";
+    color: #003b8b;
+    font-size: 18px;
+    font-weight: bold;
+ }
+
+ #center-div:active {
+   transform: translateY(4px);
+ }
+ /* #center-div {
+     background: rgba( 255, 255, 255, 0.2 );
+     box-shadow: 0 8px 32px 0 rgb(0 0 0 / 99%);
+     text-align: center;
+     backdrop-filter: blur(8px);
+     -webkit-backdrop-filter: blur(8px);
+     border-radius: 15px;
+     margin: auto;
+     justify-content: center;
+     align-items: center;
+     border: 1px solid rgba( 255, 255, 255, 0.18 );
+     margin-top: 20%;
+     margin-left: 38%;
+     margin-right: 38%;
+     transition: 0.3s;
+     backdrop-filter: blur(1px);
+     z-index: 10000;
+ } */
+ /* #center-div:hover, */
+ /* #center-div {
+    position: fixed;
+    top:50%;
+    left:50%;
+ } */
+
+ #center-div,
+ #center-div h1:focus {
+     outline: none;
+ }
 
 /* .bg-image {
     background-image: url(/images/background/bg1.jpg);
@@ -20,41 +123,11 @@ body, html {
     height: 100%;
 } */
 
-h1 {
-   color: white;
-   font-family: "Meslo_LG";
-
-}
-
-#center-div {
-    background: rgba( 255, 255, 255, 0.2 );
-    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 37%);
-    text-align: center;
-    /* backdrop-filter: blur(8px); */
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 15px;
-    /* border: 1px solid rgba( 255, 255, 255, 0.18 ); */
-    margin-top: 20%;
-    margin-left: 38%;
-    margin-right: 38%;
-    transition: 0.3s;
-    backdrop-filter: blur(5px);
-    z-index: 10000;
-}
-
-#center-div:hover {
-    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 67%);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 15px;
-    margin-top: 20%;
-    margin-left: 30%;
-    margin-right: 30%;
-    backdrop-filter: blur(5px);
-    z-index: 10000;
-    cursor: pointer;
-}
-
-#center-div,
-#center-div h1:focus {
-    outline: none;
+.column,
+header,
+footer,
+ul,
+.main-menu menu {
+    visibility: collapse;
+    height: 0%;
 }
