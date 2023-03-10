@@ -26,7 +26,7 @@ function generateVisitorsCount() {
     
     const textNode1 = document.createTextNode('This page was visited ');
     const textNode2 = document.createTextNode(' times | 👀Total visits: ');
-    const textNode3 = document.createTextNode(' | 🥷Total visitors: ');
+    const textNode3 = document.createTextNode(' | 🙋‍♂️Total visitors: ');
     
     span.appendChild(textNode1);
     span.appendChild(pageVisitsSpan);

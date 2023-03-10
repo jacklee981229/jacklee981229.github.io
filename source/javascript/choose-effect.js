@@ -1,9 +1,9 @@
 var scripts = [
     // '/javascript/fireworks.js',
-    '/javascript/click-effects/cgpt-snowflake.js',
+    '/javascript/effects/cgpt-snowflake.js',
     // '/javascript/click-effects/cgpt-confetti.js',
-    '/javascript/click-effects/cgpt-firework.js',
-    '/javascript/click-effects/cgpt-heart.js'
+    '/javascript/effects/cgpt-firework.js',
+    '/javascript/effects/cgpt-heart.js'
 ];
 
 //   var script1 = document.createElement('script');

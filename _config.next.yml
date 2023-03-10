@@ -95,6 +95,7 @@
     menu:
       home: / || fa fa-home
       about: /about/ || fa fa-user
+      Writing: /writing/ || fa fa-pen
       Blog: /blog/ || fa fa-blog
       Arsenal: /arsenal/ || fa fa-gun
       archives: /archives/ || fa fa-archive

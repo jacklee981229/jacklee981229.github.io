@@ -11,6 +11,7 @@ date: 2023-03-02 21:53:03
 - [Sample Heart.js Script](/blog_4/)
 - [Click Effect Tutorial](/blog_5/)
 - [Inject Script Tutorial](/blog_6/)
+- [Git Commands](/blog_7/)
 
 ### Mini Games
 
