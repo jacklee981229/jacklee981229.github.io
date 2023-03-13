@@ -11,6 +11,7 @@ date: 2023-03-02 21:53:03
 4. [Click Effect Tutorial](/blog_5/)
 5. [Inject Script Tutorial](/blog_6/)
 6. [Why I switch theme?](/blog_8/)
+7. [Customized Loading Screen](/blog_10/)
 
 ## Git
 
