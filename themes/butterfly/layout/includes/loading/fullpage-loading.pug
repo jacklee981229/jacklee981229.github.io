@@ -1,0 +1,29 @@
+if theme.preloader.enable
+  case theme.preloader.load_style    
+    when 'gear'
+      include ./load_style/gear.pug
+    when 'triangles'
+      include ./load_style/triangles.pug
+    when 'wizard'
+      include ./load_style/wizard.pug
+    default
+      include ./load_style/default.pug
+
+script.
+  const preloader = {
+    endLoading: () => {
+      document.body.style.overflow = 'auto';
+      document.getElementById('loading-box').classList.add("loaded")
+    },
+    initLoading: () => {
+      document.body.style.overflow = '';
+      document.getElementById('loading-box').classList.remove("loaded")
+
+    }
+  }
+  window.addEventListener('load',()=> { preloader.endLoading() })
+
+  if (!{theme.pjax && theme.pjax.enable}) {
+    document.addEventListener('pjax:send', () => { preloader.initLoading() })
+    document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+  }
