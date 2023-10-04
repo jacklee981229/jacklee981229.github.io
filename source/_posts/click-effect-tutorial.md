@@ -1,5 +1,5 @@
 ---
-title: click-effect-tutorial
+title: Click Effect Tutorial
 description: Tutorial of adding click effects to your Hexo.
 date: 2023-03-03 19:07:04
 tags:
