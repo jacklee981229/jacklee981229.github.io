@@ -5,7 +5,7 @@ tags:
   - javascript
 description: This is used in `Click-Effect-Tutorial` post
 date: 2023-03-03 19:06:08
-id: blog_4
+id: 3
 ---
 
 ```js Heart.js

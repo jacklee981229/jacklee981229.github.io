@@ -2,7 +2,7 @@
 title: ChatGPT - Useful Prompts
 date: 2023-03-25 12:21:17
 tags: chatgpt
-id: blog_11
+id: c2
 ---
 
 ChatGPT some useful prompts!

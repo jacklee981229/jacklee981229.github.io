@@ -3,7 +3,7 @@ title: Git Commands
 tags:
   - git
 date: 2023-03-10 09:39:26
-id: blog_7
+id: g1
 description: some git commands.
 ---
 

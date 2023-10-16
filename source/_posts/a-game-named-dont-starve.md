@@ -1,19 +1,18 @@
----
 title: Don't Starve
-tags:
-id: blog_12
+id: 8
 date: 2023-10-04 19:26:20
+tags:
 description:
 ---
-<h1>Don't Starve Together</h1>
+# Don't Starve Together
 
-![upload successful](images/dont-starve-together.png/)
+![dont starve together](/images/dont-starve-together.png)
 
-Well, technically the title should be 'Don't Starve Together' - as this is the game that I owned. But no worries, it is just a multiplayer version compare to the original 'Don't Starve'.
+Well, technically the title should be **'Don't Starve Together'** - as this is the game that I owned. But no worries, it is just a multiplayer version compare to the original **'Don't Starve'**.
 
-3 words to describe the game, <b>Fun</b>, <b>Challenging</b>, <b>Overwhelming Positive</b>.
+3 words to describe the game, **Fun**, **Challenging**, **Overwhelming Positive**.
 
-If you are a gamer you definitely know what <b>'Overwhelmingly Positive'</b> is about.
+If you are a gamer you definitely know what **'Overwhelmingly Positive'** is about.
 
 I actually not the type of person that will constantly challenge a game that is consider 'Hard'. Well, 'Don't Starve Together' is hard.
 
@@ -27,7 +26,10 @@ Daylight's just gone by few seconds, all you see is darkness. Well, if you are l
 
 For your references, your character died after 2 minutes if you don't find a way to respawn yourself. Then you have to restart your game.
 
-Maybe after a few trial, or you are good (lucky) enough, sun raised and you start <b>Day 2</b>.
+Maybe after a few trial, or you are good (lucky) enough, sun raised and you start **Day 2**.
+
+
+![dont starve day 2](/images/dont-starve-together-day2.png)
 
 "This game is interesting." - You thought.
 
@@ -39,7 +41,7 @@ You found some robot horse (or whatever it is), you died.
 
 You got chased by a bunch of big, fat, black wolfs, ofcourse you died.
 
-
+###### What a game.
 
 But you may survive. You started a campfire, "A base it is."
 
@@ -49,4 +51,4 @@ You realized that an armor is the best thing to keep you alive, you realized you
 
 And you look for more, you start to exploring an underworld, a door to nowhere, seasonal boss.
 
-And you look for more. In the end you realized, the only goal is that you don't die, or that you <b>'Don't Starve'</b>.
+And you look for more. In the end you realized, the only goal is that you don't die, or that you **'Don't Starve'**.

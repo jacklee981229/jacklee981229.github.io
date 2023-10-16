@@ -6,7 +6,7 @@ description: >-
   This is to change Hexo default link point to a custom page, instead of the
   blog.
 date: 2023-03-02 21:54:56
-id: blog_3
+id: 2
 ---
 
 ## Concept

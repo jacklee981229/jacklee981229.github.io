@@ -4,7 +4,7 @@ tags:
   - ChatGPT
   - AI
 date: 2023-03-11 17:11:52
-id: blog_9
+id: c1
 ---
 
 

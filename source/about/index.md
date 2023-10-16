@@ -1,9 +1,8 @@
----
 title: About
+tags:
+  - about
 date: 2023-03-02 14:06:02
-tags: [about]
 ---
-
 ## About Me
 
 - Software Engineering Degree in Universiti Tunku Abdul Rahman (UTAR), Malaysia
@@ -14,6 +13,7 @@ tags: [about]
 
 ## About this Site
 
-- I started this website as I want to learn new stuff and to record my coding journey. My very first blog is an Arsenal to save all the useful tools I gathered. Next my first coding journey will be the creation of this website using Hexo.
+Just sharing some of my thoughts, and maybe some tech that I learned.
+And some games to share :D
 
 **Enjoy!**

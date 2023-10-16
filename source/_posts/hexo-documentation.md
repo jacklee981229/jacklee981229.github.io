@@ -7,7 +7,7 @@ description: >-
   This article shows on how to create Hexo and errors that you might encounter
   when using Hexo.
 date: 2023-03-02 09:08:51
-id: blog_2
+id: 1
 ---
 
 # How to Hexo?

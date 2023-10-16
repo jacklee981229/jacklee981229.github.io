@@ -1,8 +1,11 @@
 ---
 title: Talk about Hexo Admin
-id: blog_13
 author: Jack Lee
-date: 2023-10-04 23:47:49
+tags:
+  - Hexo
+categories: []
+date: 2023-10-04 23:47:00
+id: 9
 ---
 <h1>Hexo-Admin</h1>
 
@@ -17,6 +20,9 @@ Well if you checked my old posts' dates, I actually stopped update this blogger 
 After careful consideration, one of the reason is actually the complexity to publish a new post, considering I have to use the command `hexo new <title>`, then create tags, apply markdown format, all done in VS which is quite annoy to do so.
 
 My bad. Because I found the solution long long time ago and just started using - <b>Hexo-Admin</b>.
+
+
+![hexo admin](/images/hexo-admin.png)
 
 Bro, simply just download with this command `npm install --save hexo-admin`, and add a suffix 'admin' to your 'localhost:4000/admin', now, simply modify, paste copied images, a markdown preview is present.
 
