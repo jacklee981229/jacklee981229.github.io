@@ -78,7 +78,7 @@ Expected: the build ends with "32 page(s) built" and "Indexed 14 pages"; the pre
 9. Press Ctrl+K and type `emulator`. Expected: "Flutter Get Started" with the matching words highlighted. Type `zzqqxx`: "No posts match “zzqqxx”. Try a shorter word."
 10. Open http://localhost:4321/atom.xml and http://localhost:4321/sitemap.xml. Expected: the feed has 14 entries, newest "Flutter Get Started"; the sitemap has 29 addresses and no game pages.
 11. On the home page, press Tab repeatedly (not run by Claude: the browser pane wasn't drawing). Expected: every card, topic pill, tag and button shows a blue outline when reached; a card's outline goes round the whole card.
-12. Visitor counts show "–" locally: they only load on jacklee981229.github.io. Check them after go-live (Task 9).
+12. Visitor counts say "live site only" locally: they only load on jacklee981229.github.io. Check them after go-live (Task 9).
 13. Bad fields stop the build. In `src\content\posts\11\index.md` change `topic: flutter` to `topic: flutterx`, then run `npm run build`. Expected: it stops with "posts → 11 data does not match collection schema" and "Expected 'hexo' | 'git' | 'chatgpt' | 'games' | 'flutter', received 'flutterx'". Change it back to `topic: flutter`.
 
 ## Task 8: writing workflow
@@ -172,3 +172,15 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Open a new tab, go to http://localhost:4321/ and click (or press any key, or scroll) while the welcome screen shows. Expected: it fades out at once and the title starts typing straight away.
 5. Open a new tab, go to http://localhost:4321/2/, then click Home in the menu. Expected: no welcome screen, because the visit started on a post.
 6. Make the window about phone width, open a new tab and go to http://localhost:4321/. Expected: "Jack's Space" fits across the screen, and nothing scrolls sideways.
+
+## Site info fixes
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/ and look at the Site info card. Expected: "Running for" shows the days with a normal comma (for example "1,312 days", no gaps around the comma), and Visitors and Page views say "live site only" in grey.
+3. Open https://jacklee981229.github.io/ and wait a few seconds (after this change is pushed). Expected: Visitors and Page views show numbers, never "live site only".

@@ -1,6 +1,6 @@
 # Jack's Space v2: plan
 
-**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check (a second push redeploys by itself) runs with our next push. Next: Task 10, our first new post.
+**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check passed on 27 Sep: the UI tweaks push redeployed the site by itself. Site info fixes (27 Sep): the comma in the running days, and "live site only" in place of the counter on local previews. Next: Task 10, our first new post.
 
 Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new site keeps what the current Hexo site does, lets us write and publish posts together, and goes live on GitHub Pages.
 
@@ -16,6 +16,7 @@ Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new s
 - **D6. Design: A. Commit graph** (picked 26 Sep; B. Code editor set aside). Every post is a rounded card, cover on the side, on its topic's coloured lane. The graph also shows the year, the month and long breaks between posts. Font: Schibsted Grotesk throughout, IBM Plex Mono for code.
 - **D7. Password-protected posts: dropped** (26 Sep). "My Personal Arsenal" was the only one. Task 7 is removed; the feature can be added later if you ever need a private post.
 - **D8. Astro 5's known security issues: accepted for now** (26 Sep). `npm audit` lists 10 Astro 5.18 advisories (one critical) plus two in its build tools; the fixes need Astro 6 or 7 and Node 22 or newer. Most need a server-rendered site or visitor input, so the practical risk for a static blog built from your own posts is low. We upgrade when your system Node moves on.
+- **D9. Visitor counter: keep busuanzi** (27 Sep). A counter of our own (a free Cloudflare Worker with a database, deployed with Wrangler 4.86, the last version for Node 20) was considered. Busuanzi already counts on the live site at no cost and with no upkeep, so it stays. Worth revisiting if busuanzi goes down or you want to own the numbers.
 
 ## Features: current site → new site
 

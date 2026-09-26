@@ -9,9 +9,9 @@ interface Props {
 const { updated } = Astro.props;
 const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`));
 ---
-<dl class="info">
+<dl class="info" data-live-host={Astro.site?.hostname}>
   <div><dt>Running for</dt><dd><span data-running-since={SITE.started}>{days.toLocaleString('en-US')}</span> days</dd></div>
-  <!-- Filled in by the busuanzi visitor counter; the dash shows until it answers. -->
+  <!-- Filled in by the busuanzi visitor counter on the live site; the dash shows until it answers. -->
   <div><dt>Visitors</dt><dd id="busuanzi_value_site_uv">–</dd></div>
   <div><dt>Page views</dt><dd id="busuanzi_value_site_pv">–</dd></div>
   {updated && <div><dt>Last update</dt><dd>{formatDate(updated)}</dd></div>}
@@ -23,11 +23,22 @@ const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`))
     const start = new Date(`${el.dataset.runningSince}T00:00:00+08:00`).getTime();
     el.textContent = Math.floor((Date.now() - start) / 86400000).toLocaleString('en-US');
   });
+
+  // The counter only runs on the live site (Base.astro), so a local preview says so rather than showing a dash forever.
+  const info = document.querySelector<HTMLElement>('[data-live-host]');
+  if (info && location.hostname !== info.dataset.liveHost) {
+    info.querySelectorAll('[id^="busuanzi_value"]').forEach((el) => {
+      el.textContent = 'live site only';
+      el.classList.add('local');
+    });
+  }
 </script>
 
 <style>
   .info { display: grid; gap: var(--space-2); margin: 0; }
   div { display: flex; justify-content: space-between; gap: var(--space-4); }
   dt { color: var(--muted); }
-  dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+  /* No tabular figures here: they give the comma in "1,312" a full digit's width. */
+  dd { margin: 0; font-weight: 650; }
+  .local { color: var(--muted); font-weight: 400; }
 </style>
