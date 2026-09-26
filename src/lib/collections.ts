@@ -31,7 +31,6 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     ...paginate(posts, POSTS_PER_PAGE).slice(1).map((p) => ({ path: homePageUrl(p.page) })),
     { path: '/writing/', lastmod: newest },
     { path: '/archives/', lastmod: newest },
-    { path: '/tags/' },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/about/' },
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),

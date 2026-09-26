@@ -14,13 +14,15 @@ export default defineConfig({
     },
     rehypePlugins: [rehypeCodeFrame],
   },
-  // The old Archives had extra pages (page 2, per year, per month); the new one lists everything on one page.
   redirects: {
+    // The old Archives had extra pages (page 2, per year, per month); the new one lists everything on one page.
     '/archives/page/2': '/archives/',
     '/archives/2023': '/archives/',
     '/archives/2023/page/2': '/archives/',
     '/archives/2023/02': '/archives/',
     '/archives/2023/03': '/archives/',
     '/archives/2023/10': '/archives/',
+    // The Tags page was dropped (26 Sep); the home page's sidebar lists every tag.
+    '/tags': '/',
   },
 });

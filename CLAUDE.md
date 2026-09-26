@@ -24,6 +24,7 @@ Package versions are pinned to ones that run on Node 20.18 (D1 in the plan), inc
 - `src/styles/tokens.css`: every colour, font, size, spacing and radius value. `src/styles/prose.css`: post text and code blocks.
 - `src/site.ts`: site-wide facts (name, author, menu, posts per page).
 - `src/layouts/Base.astro`: the page frame (head, link previews, header, footer, search, visitor counter).
+- `src/components/Welcome.astro`: the welcome screen. A script in Base.astro's head decides whether it plays; the home title's typing waits for it (`--type-start` in `src/pages/index.astro`).
 - `public/fonts/` and `src/styles/fonts.css`: the self-hosted fonts and their licences. `public/games/`: Catch the Cat's scripts.
 - `scratch/migrate-hexo.mjs` and `scratch/check-old-urls.mjs`: the one-off move from the old Hexo site, and the check that every old address still works.
 
@@ -40,7 +41,7 @@ Every task that changes the UI passes these before its report:
 ## Design rules
 
 - Colours, fonts, spacing and radii come only from the design tokens. Components contain no raw colour values.
-- No full-page loaders. No third-party scripts except the ones the plan names.
+- No full-page loaders, except the welcome screen as the plan's feature table describes it. No third-party scripts except the ones the plan names.
 
 ## Writing posts with Jack
 

@@ -1,6 +1,6 @@
 # Jack's Space v2: plan
 
-**Status: approved 26 Sep 2026.** Tasks 1 to 6 and 8 built (you asked for the rest in one go, 26 Sep); waiting for your check. Task 9 prepared (GitHub CLI installed, deploy workflow written); it runs when you've deleted the old repo, signed in to the GitHub CLI and said "go live".
+**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check (a second push redeploys by itself) runs with our next push. Next: Task 10, our first new post.
 
 Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new site keeps what the current Hexo site does, lets us write and publish posts together, and goes live on GitHub Pages.
 
@@ -23,7 +23,7 @@ Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new s
 |---|---|
 | **Pages** | |
 | Home: post list, 10 per page | Keep |
-| Archives; Tags, with a page per tag | Keep |
+| Archives; Tags, with a page per tag | Keep Archives and the page per tag. The Tags page itself is dropped (26 Sep): the home page's sidebar lists every tag, and /tags/ opens the home page |
 | Writing: posts grouped by topic, kept up to date by hand (today the Flutter and game posts are listed under Hexo) | Keep, but built from each post's topic so it's always right |
 | About | Keep |
 | Arsenal (your tools list) and the "My Personal Arsenal" post | Drop. You no longer need them |
@@ -48,7 +48,7 @@ Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new s
 | RSS feed, sitemap, Google Search Console tag | Keep |
 | Link previews when a page is shared (Open Graph tags; missed in the first list) | Keep |
 | Pinned posts (supported, not used today) | Keep |
-| Full-page loading screen | Drop. The site will load fast, and a loader only delays it |
+| Full-page loading screen | Replaced (26 Sep) by a 3 s "Welcome to Jack's Space" screen, shown only when a visit starts on the home page: once per visit, skippable with a click or any key, never with reduce motion. Style B, "Curtain" (picked 26 Sep from the preview in `scratch/mockups/intro/`) |
 | Random wallpaper banners (Bing, demolab) | Replace with post covers: the post's chosen image, else its first image, else a generated cover in its topic colour |
 | Hide-sidebar and settings buttons | Drop. Post pages get a focused reading layout instead |
 

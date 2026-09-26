@@ -9,7 +9,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   <div class="wrap row">
     <a class="brand" href="/">{SITE.title}</a>
     <nav class="nav" aria-label="Main">
-      {NAV.map(({ href, label }) => <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>)}
+      {NAV.map(({ href, label }) => <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}><span>{label}</span></a>)}
     </nav>
     <div class="tools">
       <button type="button" class="icon-btn" data-search-open aria-label="Search posts" title="Search posts (Ctrl K)">
@@ -34,7 +34,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
       b.title = `Switch to ${next} theme`;
     });
   };
-  buttons.forEach((b) => b.addEventListener('click', () => {
+  const switchTheme = () => {
     root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
     try {
       localStorage.setItem('theme', root.dataset.theme);
@@ -42,6 +42,12 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
       // Private browsing can block storage; the choice then lasts until the page reloads.
     }
     label();
+  };
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    // The page cross-fades between themes (its length is set in global.css). Older browsers, and visitors who ask for less motion, switch at once.
+    const fade = 'startViewTransition' in document && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (fade) document.startViewTransition(switchTheme);
+    else switchTheme();
   }));
   label();
 </script>
@@ -54,6 +60,13 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   .nav a { padding-block: 1.25rem; color: var(--muted); font-size: var(--text-ui); font-weight: 500; text-decoration: none; }
   .nav a:hover { color: var(--ink); }
   .nav a[aria-current='page'] { color: var(--ink); box-shadow: inset 0 -2px var(--ink); }
+  /* The word grows rather than the link, so the line under the current page stays put. */
+  .nav span { display: inline-block; transition: transform 0.15s ease; }
+  .nav a:focus-visible span { transform: scale(1.08); }
+  /* Mouse only: on a touch screen, a tapped word would stay enlarged. */
+  @media (hover: hover) {
+    .nav a:hover span { transform: scale(1.08); }
+  }
   .tools { display: flex; gap: var(--space-1); margin-left: auto; }
   .theme-btn .sun { display: none; }
   :global([data-theme='dark']) .theme-btn .sun { display: block; }

@@ -1,11 +1,20 @@
 ---
 import Base from '../layouts/Base.astro';
 import HomeFeed from '../components/HomeFeed.astro';
+import Welcome from '../components/Welcome.astro';
+import { CURSOR_MS, typingTimeline } from '../lib/typing.js';
 import { SITE } from '../site';
+
+const letters = [...SITE.title];
+const at = typingTimeline(SITE.title);
 ---
 <Base>
+  <Welcome slot="top" />
   <section class="wrap intro" aria-labelledby="site-title">
-    <h1 id="site-title">{SITE.title}</h1>
+    <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
+    <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
+      <span aria-hidden="true">{letters.map((ch, i) => <span class="ch" style={`--at: ${at[i]}ms; --for: ${(at[i + 1] ?? at[i]) - at[i]}ms`}>{ch}</span>)}</span>
+    </h1>
     <div>
       <p class="tagline">{SITE.tagline}.</p>
       <p class="lede">{SITE.intro}</p>
@@ -17,6 +26,14 @@ import { SITE } from '../site';
 <style>
   .intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 25rem); align-items: end; gap: 1.25rem var(--space-7); padding-block: clamp(2.5rem, 7vw, var(--space-9)) clamp(var(--space-6), 4vw, var(--space-7)); }
   h1 { margin: 0; font-size: var(--text-display); font-weight: var(--display-weight); line-height: 0.92; letter-spacing: var(--display-tracking); }
+  /* Every letter is laid out from the start, so nothing moves; each only shows from its moment (--at, after
+     --type-start when the welcome screen plays first). The cursor sits after the newest letter, then blinks after the last. */
+  .ch { position: relative; animation: type-in 1ms calc(var(--at) + var(--type-start, 0ms)) both; }
+  .ch::after { content: ''; position: absolute; top: 0.1em; bottom: 0.08em; right: -0.12em; width: 0.05em; background: currentColor; opacity: 0; animation: cursor var(--for) calc(var(--at) + var(--type-start, 0ms)); }
+  .ch:last-child::after { animation: cursor-blink var(--cursor) calc(var(--at) + var(--type-start, 0ms)) step-end; }
+  @keyframes type-in { from { opacity: 0; } }
+  @keyframes cursor { from, to { opacity: 1; } }
+  @keyframes cursor-blink { 0%, 50% { opacity: 1; } 25%, 75%, 100% { opacity: 0; } }
   .tagline { margin: 0 0 var(--space-2); font-size: var(--text-md); font-weight: 650; }
 
   @media (max-width: 719px) {

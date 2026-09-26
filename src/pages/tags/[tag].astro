@@ -22,7 +22,6 @@ const { tag, posts } = Astro.props;
 ---
 <Base title={`Tag: ${tag}`} description={`Posts tagged “${tag}”.`}>
   <div class="wrap page">
-    <p class="up"><a href="/tags/">All tags</a></p>
     <h1 class="page-title">{tag}</h1>
     <p class="lede">{posts.length === 1 ? '1 post' : `${posts.length} posts`} tagged “{tag}”.</p>
     <div class="list"><PostList posts={posts} /></div>
@@ -30,7 +29,5 @@ const { tag, posts } = Astro.props;
 </Base>
 
 <style>
-  .up { margin: 0 0 var(--space-3); font-size: var(--text-ui); }
-  .up a { color: var(--muted); }
   .list { max-width: 44rem; margin-top: var(--space-6); }
 </style>

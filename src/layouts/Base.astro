@@ -62,6 +62,15 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
         document.documentElement.dataset.theme = t;
       })();
     </script>
+    <script is:inline>
+      // The welcome screen (Welcome.astro) greets a visit that starts on the home page: once per tab, never when less motion is asked for.
+      try {
+        if (!sessionStorage.getItem('visited')) {
+          sessionStorage.setItem('visited', '1');
+          if (location.pathname === '/' && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('welcome');
+        }
+      } catch (e) {}
+    </script>
     <script is:inline define:vars={{ liveHost: Astro.site?.hostname }}>
       // Visitor counts (busuanzi), only on the live site so local previews never add to them.
       if (location.hostname === liveHost) {
@@ -73,6 +82,8 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     </script>
   </head>
   <body>
+    <!-- First in the page, so a full-screen layer such as the welcome screen covers it from the first paint. -->
+    <slot name="top" />
     <a class="skip" href="#main">Skip to content</a>
     <Header />
     <main id="main" tabindex="-1">

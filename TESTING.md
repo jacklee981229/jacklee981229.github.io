@@ -29,7 +29,7 @@ The mockups load fonts from Google and images from the live site, so they need i
    npm install
    npm run build
    ```
-   Expected: the build ends with "33 page(s) built", "Complete!" and Pagefind's "Indexed 14 pages" (it was 6 pages before Tasks 3 to 6 added the posts). npm also prints Node-version warnings (EBADENGINE) and "3 vulnerabilities"; both are expected on Node 20 (see D1 and D8 in the plan).
+   Expected: the build ends with "32 page(s) built", "Complete!" and Pagefind's "Indexed 14 pages" (it was 6 pages before Tasks 3 to 6 added the posts). npm also prints Node-version warnings (EBADENGINE) and "3 vulnerabilities"; both are expected on Node 20 (see D1 and D8 in the plan).
 2. Type-check:
    ```powershell
    npm run check
@@ -40,7 +40,7 @@ The mockups load fonts from Google and images from the live site, so they need i
    npm run dev
    ```
    Open http://localhost:4321/. Expected: the big "Jack's Space" title, "My programming journal." with the intro, the post timeline (Task 4), and the footer "© 2023–2026 Jack Lee. Posts are licensed CC BY-NC-SA 4.0." Ignore the "New version of Astro available" message in the terminal.
-4. Click Writing, Archives, Tags and About. Expected: each page opens with its title, and the menu underlines the current page.
+4. Click Writing, Archives and About. Expected: each page opens with its title, and the menu underlines the current page.
 5. Open http://localhost:4321/nope/. Expected: "Page not found" with a "Go to the home page" button.
 6. Click the moon button (top right), then open another page and reload. Expected: the site stays dark, and the button now offers the light theme.
 7. Reload any page and press Tab. Expected: "Skip to content" appears at the top left. Further Tabs move through the name, the menu and the theme button, each with a blue outline.
@@ -57,7 +57,7 @@ npm run build
 npm run preview
 ```
 
-Expected: the build ends with "33 page(s) built" and "Indexed 14 pages"; the preview runs at http://localhost:4321/. Leave it running and use a second terminal for the commands below.
+Expected: the build ends with "32 page(s) built" and "Indexed 14 pages"; the preview runs at http://localhost:4321/. Leave it running and use a second terminal for the commands below.
 
 1. Unit tests:
    ```powershell
@@ -74,9 +74,9 @@ Expected: the build ends with "33 page(s) built" and "Indexed 14 pages"; the pre
 5. Open http://localhost:4321/7/. Expected: a teal line down the left, "On this page" with 13 entries, 19 code blocks labelled with file names such as "fullpage-loading.pug" and with line numbers, the 6 longest folded behind "Show all N lines", and no licence notice (the old post had it turned off).
 6. Open http://localhost:4321/11/. Expected: the finished-app screenshot as the cover. Click the first screenshot in the post: it opens large with the caption "flutter sdk"; Esc closes it.
 7. Open http://localhost:4321/2/ and click Copy on the first code block. Expected: "Copied"; pasting gives the 4 `index_generator` lines. (Not run by Claude: copying needs a real click, and the browser pane wasn't drawing.)
-8. Open /writing/ (5 topics), /archives/ (14 posts under 2023), /tags/ (10 tags) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They still open at /game_1/ and /game_2/, and at phone width only the Catch the Cat box scrolls sideways, not the page.
+8. Open /writing/ (5 topics), /archives/ (14 posts under 2023) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They still open at /game_1/ and /game_2/, and at phone width only the Catch the Cat box scrolls sideways, not the page.
 9. Press Ctrl+K and type `emulator`. Expected: "Flutter Get Started" with the matching words highlighted. Type `zzqqxx`: "No posts match “zzqqxx”. Try a shorter word."
-10. Open http://localhost:4321/atom.xml and http://localhost:4321/sitemap.xml. Expected: the feed has 14 entries, newest "Flutter Get Started"; the sitemap has 30 addresses and no game pages.
+10. Open http://localhost:4321/atom.xml and http://localhost:4321/sitemap.xml. Expected: the feed has 14 entries, newest "Flutter Get Started"; the sitemap has 29 addresses and no game pages.
 11. On the home page, press Tab repeatedly (not run by Claude: the browser pane wasn't drawing). Expected: every card, topic pill, tag and button shows a blue outline when reached; a card's outline goes round the whole card.
 12. Visitor counts show "–" locally: they only load on jacklee981229.github.io. Check them after go-live (Task 9).
 13. Bad fields stop the build. In `src\content\posts\11\index.md` change `topic: flutter` to `topic: flutterx`, then run `npm run build`. Expected: it stops with "posts → 11 data does not match collection schema" and "Expected 'hexo' | 'git' | 'chatgpt' | 'games' | 'flutter', received 'flutterx'". Change it back to `topic: flutter`.
@@ -117,3 +117,58 @@ Expected: the build ends with "33 page(s) built" and "Indexed 14 pages"; the pre
    Expected: the newest "Deploy to GitHub Pages" run shows `completed` and `success`.
 4. On the live home page, wait a few seconds. Expected: the sidebar shows numbers for Visitors and Page views instead of "–", continuing from the old site's counts (719 and 1,036 on 26 Sep, or more).
 5. Press Ctrl+K and search for `terraria`. Expected: the Terraria post.
+
+## UI tweaks 1: Tags page, theme fade, tag hover
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Look at the menu. Expected: Home, Writing, Archives and About. There's no Tags item.
+3. Open http://localhost:4321/tags/. Expected: the home page.
+4. Open http://localhost:4321/tags/hexo/. Expected: the title "hexo", "5 posts tagged “hexo”." and the 5 posts, with no "All tags" link above the title.
+5. Click the theme button (the moon or sun, top right). Expected: the whole page fades to the other theme (0.3 seconds since UI tweaks 2). Click it again: it fades back. Reload: the theme you picked last stays.
+6. Point at "hexo" in the sidebar's Tags card. Expected: it grows a little and turns solid (dark with white text in light mode, light with dark text in dark mode), with no underline, and the other tags stay as they are. Move the mouse away: it shrinks back.
+7. Scroll to the bottom, click an empty spot in the footer (to the right of the licence line), then press Shift+Tab. Expected: "script", the last tag in the sidebar, gets the same solid look, plus a blue outline.
+8. Make the window about phone width. Expected: nothing scrolls sideways.
+
+## UI tweaks 2: faster fade, typing title, menu and card hover, welcome screen preview
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/. Expected: the big "Jack's Space" types itself in about 1.3 seconds, letters at uneven speeds with a short pause before "Space". A cursor follows the newest letter, blinks twice after the "e", then disappears. Nothing else on the page moves while it types. Reload to see it again. (Since the welcome screen, the first open in a tab plays that first; see the next section.)
+3. Click the theme button. Expected: the page fades to the other theme in 0.3 seconds.
+4. Point at "Writing" in the menu, then at "Home". Expected: each word grows a little while pointed at; the line under "Home" stays where it is.
+5. Point at a post card on the home page. Expected: it grows slightly towards the right and its border takes the topic colour; the coloured lane line still touches its left edge.
+6. Open http://localhost:4321/2/, scroll to "Related posts" and point at a card. Expected: that card grows slightly; the other two stay as they are.
+7. Make the window about phone width. Expected: nothing scrolls sideways.
+8. Open the welcome screen preview (needs internet for the font):
+   ```powershell
+   start C:\repos\Jack\jacks-space\scratch\mockups\intro\index.html
+   ```
+   Expected: style A plays over a picture of the home page and clears after 3 seconds. The panel at the bottom left plays A. Reveal, B. Curtain and C. Spotlight (or press 1, 2, 3; R replays). Clicking or pressing a key during an intro skips it. "Light backdrop" switches the picture and the colours to the light theme.
+
+## Welcome screen (style B, Curtain)
+
+It plays once per browser tab, and only when the tab's visit starts on the home page. To see it again, open a new tab.
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open a new tab (Ctrl+T) and go to http://localhost:4321/. Expected: "Welcome to" and "Jack's Space" slide up into view and a thin bar fills; at about 2 seconds the screen lifts away like a curtain, and the big title types itself as it's uncovered. The screen is gone by 3 seconds.
+3. Reload the page. Expected: no welcome screen; the title types at once.
+4. Open a new tab, go to http://localhost:4321/ and click (or press any key, or scroll) while the welcome screen shows. Expected: it fades out at once and the title starts typing straight away.
+5. Open a new tab, go to http://localhost:4321/2/, then click Home in the menu. Expected: no welcome screen, because the visit started on a post.
+6. Make the window about phone width, open a new tab and go to http://localhost:4321/. Expected: "Jack's Space" fits across the screen, and nothing scrolls sideways.

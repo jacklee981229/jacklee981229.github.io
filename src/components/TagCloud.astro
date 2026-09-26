@@ -3,12 +3,11 @@ import { tagUrl } from '../lib/collections';
 
 interface Props {
   tags: { tag: string; count: number }[];
-  large?: boolean;
 }
 
-const { tags, large = false } = Astro.props;
+const { tags } = Astro.props;
 ---
-<ul class:list={['cloud', { large }]}>
+<ul class="cloud">
   {tags.map(({ tag, count }) => (
     <li>
       <a href={tagUrl(tag)}>{tag} <span class="count">{count}</span></a>
@@ -18,9 +17,15 @@ const { tags, large = false } = Astro.props;
 
 <style>
   .cloud { display: flex; flex-wrap: wrap; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
-  a { display: inline-flex; align-items: baseline; gap: 0.375rem; padding: 0.1875rem 0.625rem; border-radius: var(--radius-pill); background: var(--wash); color: var(--ink); font-size: var(--text-sm); text-decoration: none; }
-  a:hover { text-decoration: underline; }
+  a { display: inline-flex; align-items: baseline; gap: 0.375rem; padding: 0.1875rem 0.625rem; border-radius: var(--radius-pill); background: var(--wash); color: var(--ink); font-size: var(--text-sm); text-decoration: none; transition: transform 0.15s ease, background-color 0.15s ease, color 0.15s ease; }
   .count { color: var(--muted); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
-  .large { gap: var(--space-2); }
-  .large a { padding: 0.375rem 0.875rem; font-size: var(--text-base); font-weight: 600; }
+
+  /* The tag being pointed at grows and inverts, so it stands out from the rest. */
+  a:focus-visible { transform: scale(1.1); background: var(--ink); color: var(--surface); }
+  a:focus-visible .count { color: inherit; opacity: 0.75; }
+  /* Mouse only: on a touch screen, a tapped tag would stay enlarged. */
+  @media (hover: hover) {
+    a:hover { transform: scale(1.1); background: var(--ink); color: var(--surface); }
+    a:hover .count { color: inherit; opacity: 0.75; }
+  }
 </style>
