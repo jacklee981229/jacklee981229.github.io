@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jack's Space</title>
+<script>
+  // Apply the saved theme (or the system setting), font and card style before the page paints.
+  (function () {
+    var r = document.documentElement, t, f, c;
+    try { t = localStorage.getItem('jacks-space-theme'); f = localStorage.getItem('jacks-space-font'); c = localStorage.getItem('jacks-space-cards'); } catch (e) {}
+    r.dataset.theme = t || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    r.dataset.font = f || 'schibsted';
+    r.dataset.cards = c || 'side';
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Mockup only: every font option at once. The real site self-hosts just the one you pick. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Funnel+Display:wght@400..800&family=Funnel+Sans:wght@400..800&family=Geist+Mono:wght@400..600&family=Geist:wght@400..800&family=IBM+Plex+Mono:wght@400;500&family=JetBrains+Mono:wght@400..600&family=Mona+Sans:wdth,wght@75..125,400..900&family=Onest:wght@400..800&family=Red+Hat+Mono:wght@400..600&family=Schibsted+Grotesk:wght@400..800&family=Unbounded:wght@400..800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="home">
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a class="brand" href="index.html">Jack's Space</a>
+    <nav class="main-nav" aria-label="Main">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="#">Writing</a>
+      <a href="#">Archives</a>
+      <a href="#">Tags</a>
+      <a href="#">About</a>
+    </nav>
+    <div class="tools">
+      <button type="button" class="icon-btn" data-search-open aria-label="Search posts" title="Search posts (Ctrl K)"><span data-icon="search"></span></button>
+      <button type="button" class="icon-btn theme-btn" data-theme-toggle><span data-icon="moon" class="i i-moon"></span><span data-icon="sun" class="i i-sun"></span></button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <section class="wrap intro" aria-labelledby="site-title">
+    <h1 id="site-title">Jack's Space</h1>
+    <div class="intro-copy">
+      <p class="tagline">My programming journal.</p>
+      <p class="lede" data-intro></p>
+    </div>
+  </section>
+
+  <div class="wrap home-grid">
+    <section class="log-wrap" aria-labelledby="log-title">
+      <h2 id="log-title" class="visually-hidden">Latest posts</h2>
+      <ul class="legend" aria-label="Topics" data-legend></ul>
+      <ol class="log" data-log></ol>
+      <nav class="pager" aria-label="Pages">
+        <span>Page 1 of 2</span>
+        <a href="#">Older posts</a>
+      </nav>
+    </section>
+
+    <aside class="side" aria-label="About this site">
+      <section class="side-block profile">
+        <img class="avatar" src="https://jacklee981229.github.io/images/avatar.png" alt="" width="56" height="56">
+        <div>
+          <h2 class="profile-name">Jack Lee</h2>
+          <p class="profile-role">Software developer in Malaysia</p>
+        </div>
+        <p class="counts"><span><strong data-stat="posts"></strong> posts</span><span><strong data-stat="topics"></strong> topics</span><span><strong data-stat="tags"></strong> tags</span></p>
+        <p class="links"><a href="https://github.com/jacklee981229"><span data-icon="github"></span>GitHub</a><a href="mailto:jackjiunyihlee@gmail.com"><span data-icon="mail"></span>Email</a></p>
+      </section>
+      <section class="side-block">
+        <h2>Tags</h2>
+        <ul class="tag-cloud" data-tags></ul>
+      </section>
+      <section class="side-block">
+        <h2>Site info</h2>
+        <dl class="info">
+          <div><dt>Running for</dt><dd><span data-stat="days"></span> days</dd></div>
+          <div><dt>Visitors</dt><dd data-stat="visitors"></dd></div>
+          <div><dt>Page views</dt><dd data-stat="views"></dd></div>
+          <div><dt>Last update</dt><dd data-stat="updated"></dd></div>
+        </dl>
+      </section>
+    </aside>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <p>© 2023–<span data-stat="year"></span> Jack Lee. Posts are licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p>
+    <p>Built with Astro. <a href="#">RSS feed</a></p>
+  </div>
+</footer>
+
+<button type="button" class="to-top" data-back-to-top aria-label="Back to top"><span data-icon="up"></span></button>
+
+<dialog class="search-dialog" aria-label="Search posts">
+  <div class="search-box">
+    <span data-icon="search"></span>
+    <label class="visually-hidden" for="search-input">Search posts</label>
+    <input id="search-input" type="search" placeholder="Search posts" autocomplete="off">
+    <form method="dialog"><button class="search-close">Esc</button></form>
+  </div>
+  <ul class="search-results"></ul>
+  <p class="search-empty" hidden></p>
+</dialog>
+<p class="visually-hidden" aria-live="polite" data-announcer></p>
+
+<script src="../shared/content.js"></script>
+<script src="../shared/behaviors.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

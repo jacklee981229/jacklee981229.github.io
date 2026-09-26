@@ -1,0 +1,103 @@
+---
+// Post page behaviour: copy buttons, folding long code, click-to-enlarge images and "Copy link".
+import Icon from './Icon.astro';
+---
+<dialog class="lightbox" aria-label="Enlarged image" data-lightbox>
+  <figure>
+    <img alt="" />
+    <figcaption></figcaption>
+  </figure>
+  <form method="dialog"><button class="close"><Icon name="close" />Close</button></form>
+</dialog>
+
+<script>
+  const FOLD_AFTER_LINES = 24;
+
+  function announce(text: string) {
+    const box = document.querySelector<HTMLElement>('[data-announcer]');
+    if (!box) return;
+    box.textContent = '';
+    setTimeout(() => { box.textContent = text; }, 30);
+  }
+
+  // If the clipboard is blocked, select the text instead so Ctrl+C still works.
+  async function copy(text: string, button: HTMLButtonElement, done: string, fallback?: Element | null) {
+    const label = button.querySelector<HTMLElement>('[data-label]') ?? button;
+    label.dataset.original ??= label.textContent ?? '';
+    try {
+      await navigator.clipboard.writeText(text);
+      label.textContent = done;
+    } catch {
+      if (fallback) {
+        getSelection()?.selectAllChildren(fallback);
+        label.textContent = 'Selected: press Ctrl+C';
+      } else {
+        label.textContent = 'Couldn’t copy';
+      }
+    }
+    announce(label.textContent ?? '');
+    setTimeout(() => { label.textContent = label.dataset.original ?? ''; }, 2000);
+  }
+
+  for (const frame of document.querySelectorAll<HTMLElement>('.prose figure.code')) {
+    const code = frame.querySelector('code');
+    const button = frame.querySelector<HTMLButtonElement>('[data-copy-code]');
+    button?.addEventListener('click', () => copy(code?.innerText ?? '', button, 'Copied', code));
+    const lines = frame.querySelectorAll('.line').length;
+    if (lines > FOLD_AFTER_LINES) {
+      frame.classList.add('is-folded');
+      const more = document.createElement('button');
+      more.type = 'button';
+      more.className = 'code-more';
+      more.textContent = `Show all ${lines} lines`;
+      more.addEventListener('click', () => {
+        frame.classList.remove('is-folded');
+        more.remove();
+        frame.querySelector('pre')?.focus();
+      });
+      frame.append(more);
+    }
+  }
+
+  const box = document.querySelector<HTMLDialogElement>('[data-lightbox]');
+  for (const img of document.querySelectorAll<HTMLImageElement>('.prose img')) {
+    const w = img.width || Number(img.getAttribute('width'));
+    const h = img.height || Number(img.getAttribute('height'));
+    if (w && h > w * 1.2) img.classList.add('is-tall');
+    if (w && w < 420) img.classList.add('is-small');
+    if (!box || img.closest('a')) continue;
+    const zoom = document.createElement('button');
+    zoom.type = 'button';
+    zoom.className = 'zoom';
+    zoom.setAttribute('aria-label', `Enlarge image: ${img.alt || 'screenshot'}`);
+    img.replaceWith(zoom);
+    zoom.append(img);
+    zoom.addEventListener('click', () => {
+      const big = box.querySelector('img');
+      if (big) {
+        big.src = img.currentSrc || img.src;
+        big.alt = img.alt;
+      }
+      const caption = box.querySelector('figcaption');
+      if (caption) caption.textContent = img.alt;
+      box.showModal();
+    });
+  }
+  box?.addEventListener('click', (e) => {
+    if (!(e.target instanceof Element) || !e.target.closest('.close')) box.close();
+  });
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy-link]')) {
+    button.addEventListener('click', () => copy(location.href.split('#')[0], button, 'Link copied'));
+  }
+</script>
+
+<style>
+  .lightbox { max-width: min(64rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: visible; border: 0; background: transparent; }
+  .lightbox::backdrop { background: var(--backdrop-dark); }
+  figure { display: grid; justify-items: center; gap: var(--space-3); margin: 0; }
+  img { width: auto; max-width: 100%; max-height: calc(100dvh - 7rem); border-radius: 12px; background: var(--surface); }
+  figcaption { color: var(--on-backdrop); font-size: var(--text-ui); }
+  .close { position: fixed; top: var(--space-4); right: var(--space-4); display: inline-flex; align-items: center; gap: 0.375rem; padding: var(--space-2) 0.875rem; border: 1px solid color-mix(in srgb, var(--on-backdrop) 35%, transparent); border-radius: var(--radius-pill); background: var(--backdrop-dark); color: var(--on-backdrop); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
+  .close :global(.icon) { width: 16px; height: 16px; }
+</style>

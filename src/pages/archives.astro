@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from '../components/PostList.astro';
+import { yearOf } from '../lib/dates.js';
+import { listedPosts } from '../lib/collections';
+
+const posts = await listedPosts();
+const years = [...new Set(posts.map((p) => yearOf(p.data.date)))];
+---
+<Base title="Archives" description="Every post, newest first.">
+  <div class="wrap page">
+    <h1 class="page-title">Archives</h1>
+    <p class="lede">{posts.length} posts, newest first.</p>
+    {posts.length === 0 && <p class="empty">No posts yet.</p>}
+    {years.map((year) => (
+      <section class="year" aria-labelledby={`y${year}`}>
+        <h2 id={`y${year}`}>{year}</h2>
+        <PostList posts={posts.filter((p) => yearOf(p.data.date) === year)} />
+      </section>
+    ))}
+  </div>
+</Base>
+
+<style>
+  .year { max-width: 44rem; margin-top: var(--space-7); }
+  h2 { margin: 0 0 var(--space-2); font-size: var(--text-lg); font-weight: 750; font-variant-numeric: tabular-nums; }
+</style>

@@ -1,0 +1,161 @@
+---
+import { render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Cover from '../components/Cover.astro';
+import Icon from '../components/Icon.astro';
+import MiniCard from '../components/MiniCard.astro';
+import PostList from '../components/PostList.astro';
+import PostScripts from '../components/PostScripts.astro';
+import ProfileCard from '../components/ProfileCard.astro';
+import SiteInfo from '../components/SiteInfo.astro';
+import Toc from '../components/Toc.astro';
+import '../styles/prose.css';
+import { SITE } from '../site';
+import { formatDate, isoDay } from '../lib/dates.js';
+import { lastUpdated, neighbours, recent, related, RESERVED_SLUGS, tagCounts, topicCounts } from '../lib/posts.js';
+import { TOPICS, topicOf } from '../lib/topics.js';
+import { coverOf, listedPosts, pagePosts, postUrl, summaryOf, tagUrl, type Post } from '../lib/collections';
+
+export async function getStaticPaths() {
+  const posts = await pagePosts();
+  for (const post of posts) {
+    if (RESERVED_SLUGS.includes(post.id)) throw new Error(`Post folder "${post.id}" clashes with the site's /${post.id}/ page. Rename the folder in src/content/posts.`);
+    if (!/^[a-z0-9_-]+$/.test(post.id)) throw new Error(`Post folder "${post.id}" can only use lowercase letters, numbers, - and _, because it becomes the address /${post.id}/.`);
+  }
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const listed = await listedPosts();
+const { Content, headings } = await render(post);
+const { newer, older } = neighbours(listed, post);
+const relatedPosts = related(listed, post);
+const topic = topicOf(data.topic);
+const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
+---
+<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
+  <article class="wrap post" style={`--c: var(--lane-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
+    <header>
+      <p class="topic" data-pagefind-ignore><a href={`/writing/#${data.topic}`}>{topic.name}</a></p>
+      <h1 class="title">{data.title}</h1>
+      <div class="meta" data-pagefind-ignore>
+        <span>Published <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time></span>
+        {showUpdated && data.updated && <span>Updated <time datetime={data.updated.toISOString()}>{formatDate(data.updated)}</time></span>}
+        <!-- The busuanzi counter reveals this once it has the number. -->
+        <span class="views" id="busuanzi_container_page_pv" hidden><span id="busuanzi_value_page_pv"></span> views</span>
+      </div>
+      <div class="actions" data-pagefind-ignore>
+        {data.tags.length > 0 && (
+          <ul class="tags" aria-label="Tags">
+            {data.tags.map((tag) => <li><a href={tagUrl(tag)}>{tag}</a></li>)}
+          </ul>
+        )}
+        <button type="button" class="copy-link" data-copy-link><Icon name="link" /><span data-label>Copy link</span></button>
+      </div>
+    </header>
+
+    <Cover post={post} variant="banner" />
+
+    <div class="grid">
+      <Toc headings={headings} />
+      <div class="prose"><Content /></div>
+    </div>
+
+    <footer class="foot" data-pagefind-ignore>
+      {data.license && (
+        <p class="license">Written by {SITE.author}. Licensed under <a href={SITE.license.url}>{SITE.license.name}</a> unless the post says otherwise.</p>
+      )}
+      {!data.hidden && (
+        <nav class="older-newer" aria-label="Newer and older posts">
+          <div>
+            <span class="label">Newer post</span>
+            {newer ? <a href={postUrl(newer)}>{newer.data.title}</a> : <span class="none">None yet</span>}
+          </div>
+          <div>
+            <span class="label">Older post</span>
+            {older ? <a href={postUrl(older)}>{older.data.title}</a> : <span class="none">None</span>}
+          </div>
+        </nav>
+      )}
+    </footer>
+  </article>
+
+  <div class="wrap more">
+    {!data.hidden && (
+      <section aria-labelledby="related-title">
+        <h2 id="related-title">Related posts</h2>
+        {relatedPosts.length > 0 ? (
+          <ul class="related">{relatedPosts.map((p) => <MiniCard post={p} />)}</ul>
+        ) : (
+          <p class="empty">No other {topic.name} posts yet.</p>
+        )}
+      </section>
+    )}
+    <section class="recent" aria-labelledby="recent-title">
+      <h2 id="recent-title">Recent posts</h2>
+      <PostList posts={recent(listed, post)} />
+    </section>
+    <section class="author" aria-label="About the author">
+      <ProfileCard posts={listed.length} topics={topicCounts(listed, TOPICS).filter((t) => t.count > 0).length} tags={tagCounts(listed).length} />
+      <SiteInfo updated={lastUpdated(listed)} />
+    </section>
+  </div>
+
+  <PostScripts />
+</Base>
+
+<style>
+  /* The topic's lane runs down the left of the whole post, from the dot beside the topic name. */
+  .post { --node: 12px; --stroke: 2.5px; --post-pad: clamp(2rem, 5vw, 3.5rem); position: relative; padding-top: var(--post-pad); padding-left: calc(var(--gutter) + 2.25rem); }
+  .post::before { content: ''; position: absolute; top: calc(var(--post-pad) + 0.75rem); bottom: 0; left: calc(var(--gutter) + var(--node) / 2 - var(--stroke) / 2); width: var(--stroke); background: var(--c); }
+  .topic { position: relative; margin: 0 0 var(--space-3); color: var(--c); font-size: var(--text-ui); font-weight: 700; }
+  .topic::before { content: ''; position: absolute; top: 0.75rem; left: -2.25rem; width: var(--node); height: var(--node); margin-top: calc(var(--node) / -2); border-radius: 50%; background: var(--c); }
+  .topic a { padding-block: var(--space-1); text-decoration: none; }
+  .topic a:hover { text-decoration: underline; }
+  .title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
+  .meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin-top: 1.25rem; color: var(--muted); font-size: var(--text-ui); }
+  .meta time, .views span { color: var(--ink); font-weight: 650; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); margin-top: var(--space-4); }
+  .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .tags a { display: inline-block; padding: var(--space-1) var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-pill); font-size: 0.8125rem; font-weight: 650; text-decoration: none; }
+  .tags a:hover { border-color: var(--c); }
+  .copy-link { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0; border: 0; background: none; color: var(--ink); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
+  .copy-link:hover { text-decoration: underline; }
+  .copy-link :global(.icon) { width: 18px; height: 18px; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 40rem) minmax(11rem, 15rem); justify-content: space-between; gap: var(--space-8); margin-top: 2.5rem; }
+  .grid .prose { grid-row: 1; grid-column: 1; }
+
+  .foot { max-width: 40rem; margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--rule); }
+  .license { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-sm); }
+  .older-newer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: 0.875rem var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); }
+  .older-newer > div:last-child { align-items: flex-end; text-align: right; }
+  .label { color: var(--muted); font-size: 0.8125rem; }
+  .older-newer a { font-size: 1.0625rem; font-weight: 650; text-decoration: none; }
+  .older-newer a:hover { text-decoration: underline; }
+  .none { color: var(--muted); }
+
+  .more { display: grid; gap: 2.5rem; margin-top: var(--space-8); padding-bottom: var(--space-9); }
+  .more h2 { margin: 0 0 0.875rem; font-size: var(--text-base); font-weight: 700; }
+  .related { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  .recent { max-width: 40rem; }
+  .author { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-7); padding: 1.25rem; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); font-size: var(--text-ui); }
+
+  @media (max-width: 1099px) {
+    .grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+    .grid .prose { grid-row: auto; }
+  }
+  @media (max-width: 719px) {
+    .post { padding-left: calc(var(--gutter) + 1.5rem); }
+    .topic::before { left: -1.5rem; }
+    .older-newer { grid-template-columns: minmax(0, 1fr); }
+    .older-newer > div:last-child { align-items: flex-start; text-align: left; }
+    .author { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+  }
+</style>

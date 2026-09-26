@@ -1,0 +1,25 @@
+---
+// Home page 2 onwards, at the old Hexo addresses (/page/2/).
+import Base from '../../layouts/Base.astro';
+import HomeFeed from '../../components/HomeFeed.astro';
+import { paginate } from '../../lib/posts.js';
+import { listedPosts } from '../../lib/collections';
+import { POSTS_PER_PAGE } from '../../site';
+
+export async function getStaticPaths() {
+  const pages = paginate(await listedPosts(), POSTS_PER_PAGE);
+  return pages.filter((p) => p.page > 1).map((p) => ({ params: { page: String(p.page) }, props: { page: p.page } }));
+}
+
+const { page } = Astro.props;
+---
+<Base title={`Page ${page}`}>
+  <div class="wrap head">
+    <h1 class="page-title">Page {page}</h1>
+  </div>
+  <HomeFeed page={page} />
+</Base>
+
+<style>
+  .head { padding-block: var(--space-7) var(--space-5); }
+</style>

@@ -1,0 +1,77 @@
+/* Design tokens: the only place colours, fonts, sizes, spacing and radii are defined. */
+
+:root {
+  color-scheme: light;
+
+  --paper: #F5F6F8;
+  --surface: #FFFFFF;
+  --ink: #172030;
+  --muted: #536073;
+  --rule: #D5DBE3;
+  --focus: #1B5FD1;
+  --wash: rgb(23 32 48 / 0.06);
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.2);
+  --shadow-cover: 0 14px 32px rgb(0 0 0 / 0.24);
+  --shadow-dialog: 0 24px 60px rgb(0 0 0 / 0.22);
+  --backdrop: rgb(14 20 29 / 0.45);
+  --backdrop-dark: rgb(8 12 18 / 0.88);
+  --on-backdrop: #E3E8EF;
+
+  /* Topic lanes: colour always means topic, and always sits next to the topic's name. */
+  --lane-hexo: #0A7780;
+  --lane-git: #BF4326;
+  --lane-chatgpt: #7143B5;
+  --lane-games: #2C7A31;
+  --lane-flutter: #1C60C8;
+
+  --font-sans: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+  --display-weight: 800;
+  --display-tracking: -0.045em;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-ui: 0.9375rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: clamp(2.25rem, 6vw, 3.75rem);
+  --text-display: clamp(3.25rem, 9.5vw, 7rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 5rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+  --content-max: 76rem;
+
+  --radius-sm: 6px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #0E141D;
+  --surface: #151D29;
+  --ink: #E3E8EF;
+  --muted: #99A4B5;
+  --rule: #253041;
+  --focus: #7DB0FF;
+  --wash: rgb(227 232 239 / 0.07);
+
+  --lane-hexo: #47C2CB;
+  --lane-git: #FF8C6B;
+  --lane-chatgpt: #BA9CF5;
+  --lane-games: #74C678;
+  --lane-flutter: #7AAAFF;
+}

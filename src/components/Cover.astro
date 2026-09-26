@@ -1,0 +1,62 @@
+---
+// A post's cover: its image (or the topic's icon) in front of the topic name, large and faint, on a tint of the topic colour.
+import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
+import { coverOf, type Post } from '../lib/collections';
+import { topicOf } from '../lib/topics.js';
+
+interface Props {
+  post: Post;
+  variant?: 'card' | 'banner' | 'mini';
+  class?: string;
+}
+
+const { post, variant = 'card', class: className, ...rest } = Astro.props;
+const image = coverOf(post);
+const topic = topicOf(post.data.topic);
+const tall = image ? image.height > image.width * 1.2 : false;
+// About twice the size each variant shows the image at, so it stays sharp on high-density screens.
+const maxWidth = { card: tall ? 240 : 480, mini: tall ? 200 : 400, banner: tall ? 420 : 1400 }[variant];
+---
+<div class:list={['cover', `cover-${variant}`, className]} style={`--c: var(--lane-${post.data.topic})`} aria-hidden="true" data-pagefind-ignore {...rest}>
+  <span class="word">{topic.name}</span>
+  {image ? (
+    <Image src={image} alt="" width={Math.min(image.width, maxWidth)} class:list={['art', { tall }]} loading={variant === 'banner' ? 'eager' : 'lazy'} />
+  ) : (
+    <Icon name={topic.icon} class="topic-icon" />
+  )}
+</div>
+
+<style>
+  .cover {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    aspect-ratio: 2.2 / 1;
+    background:
+      radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--c) 28%, transparent), transparent 70%),
+      linear-gradient(160deg, color-mix(in srgb, var(--c) 7%, var(--surface)), color-mix(in srgb, var(--c) 18%, var(--surface)));
+  }
+  .word { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--c) 22%, transparent); font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 900; line-height: 1; letter-spacing: -0.04em; white-space: nowrap; user-select: none; }
+  /* Absolutely positioned so the percentage limits resolve against the cover's own height. */
+  .cover :global(.art) { position: absolute; top: 50%; left: 50%; width: auto; height: auto; max-width: 74%; max-height: 80%; border-radius: 10px; background: var(--surface); box-shadow: var(--shadow-cover); translate: -50% -50%; }
+  .cover :global(.art.tall) { max-width: 34%; max-height: 90%; border-radius: 14px; }
+  .cover :global(.topic-icon) { position: relative; width: 64px; height: 64px; color: var(--c); stroke-width: 1.5; }
+
+  .cover-banner { aspect-ratio: 3 / 1; margin-top: var(--space-6); border: 1px solid var(--rule); border-radius: var(--radius-xl); }
+  .cover-banner .word { font-size: clamp(4rem, 13vw, 10rem); }
+  .cover-banner :global(.topic-icon) { width: 96px; height: 96px; }
+  .cover-banner :global(.art.tall) { max-width: 24%; }
+
+  .cover-mini { aspect-ratio: 2 / 1; }
+  .cover-mini .word { font-size: 3rem; }
+  .cover-mini :global(.topic-icon) { width: 40px; height: 40px; }
+
+  @media (max-width: 719px) {
+    .cover { aspect-ratio: 16 / 9; }
+    .word { font-size: 3.5rem; }
+    .cover-banner { aspect-ratio: 16 / 10; border-radius: var(--radius-lg); }
+    .cover-banner :global(.art.tall) { max-width: 38%; }
+  }
+</style>

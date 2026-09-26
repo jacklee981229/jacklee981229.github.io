@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import HomeFeed from '../components/HomeFeed.astro';
+import { SITE } from '../site';
+---
+<Base>
+  <section class="wrap intro" aria-labelledby="site-title">
+    <h1 id="site-title">{SITE.title}</h1>
+    <div>
+      <p class="tagline">{SITE.tagline}.</p>
+      <p class="lede">{SITE.intro}</p>
+    </div>
+  </section>
+  <HomeFeed page={1} />
+</Base>
+
+<style>
+  .intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 25rem); align-items: end; gap: 1.25rem var(--space-7); padding-block: clamp(2.5rem, 7vw, var(--space-9)) clamp(var(--space-6), 4vw, var(--space-7)); }
+  h1 { margin: 0; font-size: var(--text-display); font-weight: var(--display-weight); line-height: 0.92; letter-spacing: var(--display-tracking); }
+  .tagline { margin: 0 0 var(--space-2); font-size: var(--text-md); font-weight: 650; }
+
+  @media (max-width: 719px) {
+    .intro { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

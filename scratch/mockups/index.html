@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jack's Space mockups</title>
+<style>
+  :root { color-scheme: light dark; --bg: #F7F7F8; --fg: #1B1F24; --muted: #5A6270; --line: #D8DCE2; --card: #FFFFFF; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111418; --fg: #E6E8EB; --muted: #9AA2AE; --line: #2A3038; --card: #181C21; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 1rem/1.55 system-ui, sans-serif; }
+  main { max-width: 52rem; margin: 0 auto; padding: 3rem 1rem 4rem; }
+  h1 { margin: 0 0 .5rem; font-size: 1.75rem; }
+  p { margin: 0 0 1rem; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 1rem; margin-top: 2rem; }
+  section { padding: 1.25rem 1.5rem; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  h2 { margin: 0 0 .25rem; font-size: 1.25rem; }
+  ul { margin: 1rem 0 0; padding-left: 1.2rem; }
+  li { margin-block: .375rem; }
+  a { color: inherit; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Jack's Space: design mockups</h1>
+  <p>Two directions with the same real content from your blog. In each one, try the moon/sun button, search with Ctrl+K, and a narrow (phone-width) window.</p>
+  <p>Only the two sample posts open; other post links go nowhere in the mockups.</p>
+  <div class="grid">
+    <section>
+      <h2>A. Commit graph (your pick)</h2>
+      <p>Home is a timeline of post cards. Each topic has its own coloured lane. Use the "Try fonts and cards" button (bottom left) to compare 6 fonts and 2 card styles.</p>
+      <ul>
+        <li><a href="a-commit-graph/index.html">Home</a></li>
+        <li><a href="a-commit-graph/post.html?p=11">Post: Flutter Get Started</a> (screenshots)</li>
+        <li><a href="a-commit-graph/post.html?p=2">Post: Hexo Change Default to Page</a> (code blocks)</li>
+      </ul>
+    </section>
+    <section>
+      <h2>B. Code editor (set aside)</h2>
+      <p>Kept for reference. Topics are folders on the left; site info sits in the status bar at the bottom.</p>
+      <ul>
+        <li><a href="b-code-editor/index.html">Home</a></li>
+        <li><a href="b-code-editor/post.html?p=11">Post: Flutter Get Started</a> (screenshots)</li>
+        <li><a href="b-code-editor/post.html?p=2">Post: Hexo Change Default to Page</a> (code blocks)</li>
+      </ul>
+    </section>
+  </div>
+</main>
+</body>
+</html>

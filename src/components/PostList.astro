@@ -1,0 +1,33 @@
+---
+// A compact list of posts: topic dot, title, date. Used by Archives, Writing, tag pages and "Recent posts".
+import { formatDate } from '../lib/dates.js';
+import { topicOf } from '../lib/topics.js';
+import { postUrl, type Post } from '../lib/collections';
+
+interface Props {
+  posts: Post[];
+  showTopic?: boolean;
+}
+
+const { posts, showTopic = true } = Astro.props;
+---
+<ul class="list">
+  {posts.map((post) => (
+    <li style={`--c: var(--lane-${post.data.topic})`}>
+      <a href={postUrl(post)}>
+        {showTopic && <span class="dot" title={topicOf(post.data.topic).name} aria-hidden="true" />}
+        <span class="title">{post.data.title}</span>
+        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+      </a>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .list { display: grid; margin: 0; padding: 0; list-style: none; }
+  a { display: flex; align-items: baseline; gap: var(--space-3); padding-block: 0.625rem; border-bottom: 1px solid var(--rule); text-decoration: none; }
+  a:hover .title { text-decoration: underline; text-decoration-color: var(--c); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+  .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); translate: 0 -1px; }
+  .title { flex: 1; min-width: 0; font-weight: 600; }
+  time { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+</style>

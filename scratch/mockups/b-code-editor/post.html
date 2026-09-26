@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jack's Space</title>
+<script>
+  // Apply the saved theme, or the system setting, before the page paints.
+  (function () { var t; try { t = localStorage.getItem('jacks-space-theme'); } catch (e) {} document.documentElement.dataset.theme = t || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500&family=Atkinson+Hyperlegible+Next:ital,wght@0,400..800;1,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="post">
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="app" data-drawer="closed">
+  <header class="titlebar">
+    <button type="button" class="icon-btn drawer-btn" data-drawer-toggle aria-controls="explorer" aria-expanded="false" aria-label="Show posts and tags"><span data-icon="sidebar"></span></button>
+    <a class="brand" href="index.html"><span class="brand-name">Jack's Space</span><span class="brand-sub">My programming journal</span></a>
+    <button type="button" class="palette" data-search-open aria-label="Search posts"><span data-icon="search"></span><span class="palette-text">Search posts</span><kbd>Ctrl</kbd><kbd>K</kbd></button>
+    <button type="button" class="icon-btn theme-btn" data-theme-toggle><span data-icon="moon" class="i i-moon"></span><span data-icon="sun" class="i i-sun"></span></button>
+  </header>
+
+  <aside id="explorer" class="explorer" aria-label="Posts and tags">
+    <nav class="pane" aria-labelledby="posts-pane">
+      <h2 id="posts-pane" class="pane-title">Posts</h2>
+      <div class="tree" data-tree></div>
+    </nav>
+    <section class="pane" aria-labelledby="tags-pane">
+      <h2 id="tags-pane" class="pane-title">Tags</h2>
+      <ul class="tag-list" data-tags></ul>
+    </section>
+    <section class="pane" aria-labelledby="me-pane">
+      <h2 id="me-pane" class="pane-title">About me</h2>
+      <div class="me">
+        <img class="avatar" src="https://jacklee981229.github.io/images/avatar.png" alt="" width="44" height="44">
+        <div>
+          <p class="me-name">Jack Lee</p>
+          <p class="me-role">Software developer in Malaysia</p>
+        </div>
+      </div>
+      <p class="me-links"><a href="https://github.com/jacklee981229"><span data-icon="github"></span>GitHub</a><a href="mailto:jackjiunyihlee@gmail.com"><span data-icon="mail"></span>Email</a></p>
+    </section>
+  </aside>
+  <button type="button" class="scrim" data-drawer-close aria-label="Close posts and tags" hidden></button>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="index.html"><span data-icon="file"></span>Home</a>
+    <a href="#"><span data-icon="folder"></span>Writing</a>
+    <a href="#"><span data-icon="file"></span>Archives</a>
+    <a href="#"><span data-icon="file"></span>Tags</a>
+    <a href="#"><span data-icon="file"></span>About</a>
+  </nav>
+
+  <main id="main" class="doc" tabindex="-1" data-topic-host>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="#" data-post-topic></a></li>
+        <li aria-current="page"><span data-post-title></span></li>
+      </ol>
+    </nav>
+
+    <div class="post-layout">
+      <article class="page post">
+        <header class="post-head">
+          <h1 class="post-title" data-post-title></h1>
+          <div class="post-meta">
+            <span>Published <time data-post-date></time></span>
+            <span data-post-updated>Updated <time></time></span>
+            <span data-post-views><span data-views-count></span> views</span>
+          </div>
+          <div class="post-actions">
+            <ul class="tags" aria-label="Tags" data-post-tags></ul>
+            <button type="button" class="text-btn" data-copy-link><span data-icon="link"></span><span data-label>Copy link</span></button>
+          </div>
+        </header>
+
+        <details class="toc-inline" data-toc-wrap>
+          <summary>On this page</summary>
+          <ol class="toc-list" data-toc></ol>
+        </details>
+
+        <div class="prose" data-post-body></div>
+
+        <footer class="post-foot">
+          <p class="license">Written by Jack Lee. Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> unless the post says otherwise.</p>
+          <nav class="older-newer" aria-label="Newer and older posts">
+            <div data-newer></div>
+            <div data-older></div>
+          </nav>
+        </footer>
+
+        <div class="more">
+          <section>
+            <h2>Related posts</h2>
+            <ul class="plain-list" data-related></ul>
+          </section>
+          <section>
+            <h2>Recent posts</h2>
+            <ul class="plain-list" data-recent></ul>
+          </section>
+        </div>
+      </article>
+
+      <aside class="outline" aria-labelledby="outline-title" data-toc-wrap>
+        <h2 id="outline-title" class="pane-title">Outline</h2>
+        <ol class="toc-list" data-toc></ol>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="statusbar">
+    <span class="cell"><span data-stat="posts"></span> posts</span>
+    <span class="cell"><span data-stat="tags"></span> tags</span>
+    <span class="cell">Running <span data-stat="days"></span> days</span>
+    <span class="cell"><span data-stat="visitors"></span> visitors</span>
+    <span class="cell"><span data-stat="views"></span> page views</span>
+    <span class="cell">Updated <span data-stat="updated"></span></span>
+    <span class="cell grow">© 2023–<span data-stat="year"></span> Jack Lee. <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a></span>
+    <a class="cell" href="#">RSS feed</a>
+    <button type="button" class="cell" data-back-to-top><span data-icon="up"></span>Top</button>
+  </footer>
+</div>
+
+<dialog class="search-dialog" aria-label="Search posts">
+  <div class="search-box">
+    <span data-icon="search"></span>
+    <label class="visually-hidden" for="search-input">Search posts</label>
+    <input id="search-input" type="search" placeholder="Go to a post by title, topic or tag" autocomplete="off">
+    <form method="dialog"><button class="search-close">Esc</button></form>
+  </div>
+  <ul class="search-results"></ul>
+  <p class="search-empty" hidden></p>
+</dialog>
+<dialog class="lightbox" aria-label="Enlarged image">
+  <figure><img alt=""><figcaption></figcaption></figure>
+  <form method="dialog"><button class="lightbox-close"><span data-icon="close"></span>Close</button></form>
+</dialog>
+<p class="visually-hidden" aria-live="polite" data-announcer></p>
+
+<script src="../shared/content.js"></script>
+<script src="../shared/behaviors.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

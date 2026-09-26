@@ -1,0 +1,19 @@
+---
+import { SITE } from '../site';
+
+const firstYear = SITE.started.slice(0, 4);
+const thisYear = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="wrap row">
+    <p>© {firstYear}–{thisYear} {SITE.author}. Posts are licensed <a href={SITE.license.url}>{SITE.license.name}</a>.</p>
+    <p>Built with Astro.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer { border-top: 1px solid var(--rule); color: var(--muted); font-size: var(--text-sm); }
+  /* The tall bottom padding leaves room for the back-to-top button, so it never covers footer links. */
+  .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--space-6); padding-block: var(--space-5) var(--space-9); }
+  p { margin: 0; }
+</style>

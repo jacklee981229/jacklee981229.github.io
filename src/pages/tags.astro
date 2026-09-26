@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import TagCloud from '../components/TagCloud.astro';
+import { tagCounts } from '../lib/posts.js';
+import { listedPosts } from '../lib/collections';
+
+const tags = tagCounts(await listedPosts());
+---
+<Base title="Tags" description="Every tag used on the blog.">
+  <div class="wrap page">
+    <h1 class="page-title">Tags</h1>
+    <p class="lede">{tags.length} tags. Pick one to see its posts.</p>
+    <div class="cloud">{tags.length > 0 ? <TagCloud tags={tags} large /> : <p class="empty">No tags yet.</p>}</div>
+  </div>
+</Base>
+
+<style>
+  .cloud { max-width: 44rem; margin-top: var(--space-6); }
+</style>

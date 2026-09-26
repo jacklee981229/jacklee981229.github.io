@@ -1,0 +1,134 @@
+---
+// Search box (Ctrl+K or the search button). Uses the Pagefind index that `npm run build` creates.
+import Icon from './Icon.astro';
+---
+<dialog class="search" aria-label="Search posts" data-search>
+  <div class="box">
+    <Icon name="search" />
+    <label class="visually-hidden" for="search-input">Search posts</label>
+    <input id="search-input" type="search" placeholder="Search posts" autocomplete="off" spellcheck="false" />
+    <form method="dialog"><button class="esc">Esc</button></form>
+  </div>
+  <ul class="results" data-results></ul>
+  <p class="status" data-status hidden></p>
+</dialog>
+
+<script>
+  type Result = { url: string; meta: { title?: string }; excerpt: string };
+  type Pagefind = { search: (query: string) => Promise<{ results: { data: () => Promise<Result> }[] }> };
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-search]');
+  const input = dialog?.querySelector('input');
+  const list = dialog?.querySelector<HTMLElement>('[data-results]');
+  const status = dialog?.querySelector<HTMLElement>('[data-status]');
+
+  let pagefind: Promise<Pagefind | null> | null = null;
+  // The index only exists in a built site, so `npm run dev` has no search.
+  const loadIndex = () => {
+    const path = '/pagefind/pagefind.js';
+    pagefind ??= import(/* @vite-ignore */ path).catch(() => null);
+    return pagefind;
+  };
+
+  const say = (text: string) => {
+    if (!status) return;
+    status.hidden = !text;
+    status.textContent = text;
+  };
+
+  let latest = 0;
+  async function run(query: string) {
+    const ticket = ++latest;
+    if (!list) return;
+    if (!query.trim()) {
+      list.replaceChildren();
+      say('');
+      return;
+    }
+    const index = await loadIndex();
+    if (ticket !== latest) return;
+    if (!index) {
+      list.replaceChildren();
+      say('Search works on the built site: run npm run build, then npm run preview.');
+      return;
+    }
+    const found = await index.search(query);
+    const results = await Promise.all(found.results.slice(0, 8).map((r) => r.data()));
+    if (ticket !== latest) return;
+    list.replaceChildren(...results.map((r) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = r.url;
+      const title = document.createElement('span');
+      title.className = 'title';
+      title.textContent = r.meta.title ?? r.url;
+      const excerpt = document.createElement('span');
+      excerpt.className = 'excerpt';
+      // Pagefind escapes the page text and only adds <mark> around the matches.
+      excerpt.innerHTML = r.excerpt;
+      a.append(title, excerpt);
+      li.append(a);
+      return li;
+    }));
+    say(results.length ? '' : `No posts match “${query.trim()}”. Try a shorter word.`);
+  }
+
+  function open() {
+    if (!dialog || !input || dialog.open) return;
+    input.value = '';
+    list?.replaceChildren();
+    say('');
+    dialog.showModal();
+    input.focus();
+    loadIndex();
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  input?.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => run(input.value), 120);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target instanceof Element && e.target.closest('[data-search-open]')) open();
+  });
+  document.addEventListener('keydown', (e) => {
+    const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      open();
+    } else if (e.key === '/' && !typing) {
+      e.preventDefault();
+      open();
+    }
+  });
+  dialog?.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+  // Arrow keys move between results.
+  dialog?.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const links = [...(list?.querySelectorAll('a') ?? [])];
+    if (!links.length) return;
+    e.preventDefault();
+    const i = links.indexOf(document.activeElement as HTMLAnchorElement);
+    const next = e.key === 'ArrowDown' ? (i + 1) % links.length : i <= 0 ? links.length - 1 : i - 1;
+    links[next].focus();
+  });
+</script>
+
+<style>
+  .search { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80dvh); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); }
+  .search::backdrop { background: var(--backdrop); }
+  .box { display: flex; align-items: center; gap: var(--space-3); padding: 0.625rem var(--space-4); border-bottom: 1px solid var(--rule); }
+  .box:focus-within { box-shadow: inset 0 -2px var(--focus); }
+  input { flex: 1; min-width: 0; padding: var(--space-2) 0; border: 0; background: transparent; color: inherit; font-size: var(--text-md); font-weight: 500; }
+  input:focus { outline: none; }
+  .esc { padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
+  .results { max-height: calc(min(34rem, 80dvh) - 4rem); margin: 0; padding: var(--space-2); overflow-y: auto; list-style: none; }
+  .results :global(a) { display: grid; gap: var(--space-1); padding: 0.625rem var(--space-3); border-radius: 12px; text-decoration: none; }
+  .results :global(a:hover), .results :global(a:focus-visible) { background: var(--wash); outline-offset: -2px; }
+  .results :global(.title) { font-weight: 650; }
+  .results :global(.excerpt) { color: var(--muted); font-size: var(--text-sm); line-height: 1.5; }
+  .results :global(mark) { border-radius: 3px; background: color-mix(in srgb, var(--focus) 22%, transparent); color: var(--ink); }
+  .status { margin: 0; padding: 1.25rem var(--space-4); color: var(--muted); }
+</style>

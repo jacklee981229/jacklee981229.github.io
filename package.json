@@ -1,0 +1,26 @@
+{
+  "name": "jacks-space",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --test tests/",
+    "new": "node scripts/new-post.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "5.18.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.9",
+    "pagefind": "1.5.2",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "@astrojs/language-server": "2.16.16"
+  }
+}

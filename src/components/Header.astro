@@ -1,0 +1,68 @@
+---
+import { SITE, NAV } from '../site';
+import Icon from './Icon.astro';
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+---
+<header class="site-header">
+  <div class="wrap row">
+    <a class="brand" href="/">{SITE.title}</a>
+    <nav class="nav" aria-label="Main">
+      {NAV.map(({ href, label }) => <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>)}
+    </nav>
+    <div class="tools">
+      <button type="button" class="icon-btn" data-search-open aria-label="Search posts" title="Search posts (Ctrl K)">
+        <Icon name="search" />
+      </button>
+      <button type="button" class="icon-btn theme-btn" data-theme-toggle aria-label="Switch theme">
+        <Icon name="moon" class="moon" />
+        <Icon name="sun" class="sun" />
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  // The head script already applied the saved or system theme; this keeps the button label and the saved choice in step.
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
+  const label = () => {
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    buttons.forEach((b) => {
+      b.setAttribute('aria-label', `Switch to ${next} theme`);
+      b.title = `Switch to ${next} theme`;
+    });
+  };
+  buttons.forEach((b) => b.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    try {
+      localStorage.setItem('theme', root.dataset.theme);
+    } catch {
+      // Private browsing can block storage; the choice then lasts until the page reloads.
+    }
+    label();
+  }));
+  label();
+</script>
+
+<style>
+  .site-header { border-bottom: 1px solid var(--rule); }
+  .row { display: flex; align-items: center; gap: var(--space-6); min-height: 4rem; }
+  .brand { font-size: var(--text-md); font-weight: var(--display-weight); letter-spacing: -0.015em; text-decoration: none; white-space: nowrap; }
+  .nav { display: flex; gap: var(--space-5); }
+  .nav a { padding-block: 1.25rem; color: var(--muted); font-size: var(--text-ui); font-weight: 500; text-decoration: none; }
+  .nav a:hover { color: var(--ink); }
+  .nav a[aria-current='page'] { color: var(--ink); box-shadow: inset 0 -2px var(--ink); }
+  .tools { display: flex; gap: var(--space-1); margin-left: auto; }
+  .theme-btn .sun { display: none; }
+  :global([data-theme='dark']) .theme-btn .sun { display: block; }
+  :global([data-theme='dark']) .theme-btn .moon { display: none; }
+
+  /* Phones: the menu gets its own row under the name. */
+  @media (max-width: 719px) {
+    .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
+    .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: 1px solid var(--rule); scrollbar-width: none; }
+    .nav a { padding-block: 0.875rem; white-space: nowrap; }
+  }
+</style>

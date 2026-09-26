@@ -1,0 +1,43 @@
+---
+import { Image } from 'astro:assets';
+import avatar from '../assets/avatar.png';
+import Icon from './Icon.astro';
+import { SITE } from '../site';
+
+interface Props {
+  posts: number;
+  topics: number;
+  tags: number;
+}
+
+const { posts, topics, tags } = Astro.props;
+---
+<div class="profile">
+  <Image class="avatar" src={avatar} alt="" width={112} height={112} />
+  <div>
+    <h2 class="name">{SITE.author}</h2>
+    <p class="role">{SITE.role}</p>
+  </div>
+  <p class="counts">
+    <span><strong>{posts}</strong> posts</span>
+    <span><strong>{topics}</strong> topics</span>
+    <span><strong>{tags}</strong> tags</span>
+  </p>
+  <p class="links">
+    <a href={SITE.github}><Icon name="github" />GitHub</a>
+    <a href={`mailto:${SITE.email}`}><Icon name="mail" />Email</a>
+  </p>
+</div>
+
+<style>
+  .profile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-1) var(--space-4); }
+  .profile :global(.avatar) { width: 56px; height: 56px; border-radius: 50%; background: var(--rule); object-fit: cover; }
+  .name { margin: 0; font-size: var(--text-md); font-weight: 700; }
+  .role { margin: 0; color: var(--muted); font-size: var(--text-ui); }
+  .counts { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: var(--space-1) 1.25rem; margin: var(--space-3) 0 0; color: var(--muted); }
+  strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .links { display: flex; grid-column: 1 / -1; gap: 1.25rem; margin: var(--space-1) 0 0; }
+  .links a { display: inline-flex; align-items: center; gap: 0.375rem; padding-block: 0.375rem; font-weight: 650; text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  .links :global(.icon) { width: 18px; height: 18px; }
+</style>

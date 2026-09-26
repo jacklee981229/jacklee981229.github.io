@@ -1,0 +1,27 @@
+---
+import Icon from './Icon.astro';
+---
+<button type="button" class="to-top" data-back-to-top aria-label="Back to top">
+  <Icon name="up" />
+</button>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('[data-back-to-top]');
+  if (button) {
+    const toggle = () => button.classList.toggle('is-visible', scrollY > innerHeight * 0.8);
+    addEventListener('scroll', toggle, { passive: true });
+    toggle();
+    button.addEventListener('click', () => {
+      // Move keyboard focus back to the top too, so the next Tab starts at the page content.
+      document.getElementById('main')?.focus({ preventScroll: true });
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+    });
+  }
+</script>
+
+<style>
+  /* Hidden with visibility (not just opacity) so it can't be tabbed to until it shows. */
+  .to-top { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--rule); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s; }
+  .to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
+</style>

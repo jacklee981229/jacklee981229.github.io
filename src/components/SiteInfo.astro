@@ -1,0 +1,33 @@
+---
+import { SITE } from '../site';
+import { daysBetween, formatDate } from '../lib/dates.js';
+
+interface Props {
+  updated?: Date;
+}
+
+const { updated } = Astro.props;
+const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`));
+---
+<dl class="info">
+  <div><dt>Running for</dt><dd><span data-running-since={SITE.started}>{days.toLocaleString('en-US')}</span> days</dd></div>
+  <!-- Filled in by the busuanzi visitor counter; the dash shows until it answers. -->
+  <div><dt>Visitors</dt><dd id="busuanzi_value_site_uv">–</dd></div>
+  <div><dt>Page views</dt><dd id="busuanzi_value_site_pv">–</dd></div>
+  {updated && <div><dt>Last update</dt><dd>{formatDate(updated)}</dd></div>}
+</dl>
+
+<script>
+  // Recount the days in the visitor's browser: the page itself is only rebuilt when a post is published.
+  document.querySelectorAll<HTMLElement>('[data-running-since]').forEach((el) => {
+    const start = new Date(`${el.dataset.runningSince}T00:00:00+08:00`).getTime();
+    el.textContent = Math.floor((Date.now() - start) / 86400000).toLocaleString('en-US');
+  });
+</script>
+
+<style>
+  .info { display: grid; gap: var(--space-2); margin: 0; }
+  div { display: flex; justify-content: space-between; gap: var(--space-4); }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+</style>
