@@ -199,3 +199,15 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Click Resume. Expected: your current Resume Google Doc opens (Senior Software Engineer at Squarebox Technology), not the old 2023 PDF.
 5. Open http://localhost:4321/. Expected: the profile card shows your name beside the avatar, the same job title under it, and the same four links as icons in one row. Pointing at an icon turns it solid, grows it a little and shows its name.
 6. Make the window about phone width. Expected: the About tiles go 2 by 2, and nothing scrolls sideways.
+
+## Card shadow (light theme)
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Switch to the light theme and open http://localhost:4321/. Expected: the post cards and the three sidebar cards sit on a soft shadow that lifts them off the page. Open http://localhost:4321/2/ and scroll to "Related posts": those cards have it too.
+3. Switch to the dark theme. Expected: no shadows, as before.

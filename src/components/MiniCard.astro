@@ -18,7 +18,7 @@ const { post } = Astro.props;
 </li>
 
 <style>
-  .mini { position: relative; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); transition: border-color 0.2s ease, transform 0.2s ease; }
+  .mini { position: relative; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-card); transition: border-color 0.2s ease, transform 0.2s ease; }
   .mini:hover { border-color: var(--c); }
   .mini:has(.title:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; transform: scale(1.02); }
   /* Mouse only: on a touch screen, a tapped card would stay enlarged. */

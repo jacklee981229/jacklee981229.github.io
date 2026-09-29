@@ -1,6 +1,6 @@
 # Jack's Space v2: plan
 
-**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check passed on 27 Sep: the UI tweaks push redeployed the site by itself. Site info fixes (27 Sep): the comma in the running days, and "live site only" in place of the counter on local previews. About and profile links (29 Sep). Next: Task 10, our first new post.
+**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check passed on 27 Sep: the UI tweaks push redeployed the site by itself. Site info fixes (27 Sep): the comma in the running days, and "live site only" in place of the counter on local previews. About and profile links (29 Sep). A soft card shadow in the light theme (29 Sep). Next: Task 10, our first new post.
 
 Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new site keeps what the current Hexo site does, lets us write and publish posts together, and goes live on GitHub Pages.
 

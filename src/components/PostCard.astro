@@ -32,7 +32,7 @@ const summary = summaryOf(post);
 
 <style>
   /* Grows from its left edge, so the timeline's line into the card stays attached. */
-  .card { position: relative; display: grid; grid-template-columns: minmax(11rem, 36%) minmax(0, 1fr); overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); transform-origin: left center; transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease; }
+  .card { position: relative; display: grid; grid-template-columns: minmax(11rem, 36%) minmax(0, 1fr); overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); transform-origin: left center; transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease; }
   .card:hover { border-color: var(--c); }
   .card:has(.title a:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; transform: scale(1.02); }
   /* Mouse only: on a touch screen, a tapped card would stay enlarged. */
