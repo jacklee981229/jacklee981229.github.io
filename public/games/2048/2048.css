@@ -1,0 +1,56 @@
+/* 2048 on the "Play 2048!" post (game.js). Tiles are shades of the Games topic colour, from faint to full.
+   Every rule starts with .g2048, so the post text's own styles (.prose p and so on) can't win over these. */
+
+.g2048 { --gap: 2.5cqw; container-type: inline-size; max-width: 30rem; margin: var(--space-5) auto var(--space-6); user-select: none; -webkit-user-select: none; }
+.g2048 .g2048-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+.g2048 .g2048-scores { display: flex; gap: var(--space-2); }
+.g2048 .g2048-score { position: relative; min-width: 5rem; margin: 0; padding: 0.375rem var(--space-3); border-radius: var(--radius-md); background: var(--wash); line-height: 1.2; text-align: center; }
+.g2048 .g2048-label { display: block; color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+.g2048 .g2048-score strong { font-size: var(--text-md); font-weight: 800; font-variant-numeric: tabular-nums; }
+.g2048 .g2048-gain { position: absolute; right: 0; bottom: 50%; left: 0; color: var(--lane-games); font-size: var(--text-sm); font-weight: 800; pointer-events: none; animation: g2048-gain 700ms ease-out forwards; }
+.g2048 .button { color: var(--ink); cursor: pointer; }
+
+.g2048 .g2048-board { position: relative; padding: var(--gap); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
+.g2048 .g2048-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.g2048 .g2048-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.g2048 .g2048-cells > div { aspect-ratio: 1; border-radius: var(--radius-md); background: color-mix(in srgb, var(--lane-games) 9%, var(--surface)); }
+.g2048 .g2048-tiles { position: absolute; inset: var(--gap); }
+
+/* A tile is placed by --x and --y; changing them slides it (transform only, so it stays on the GPU). */
+.g2048 .g2048-tile { --fg: var(--ink); position: absolute; top: 0; left: 0; width: calc((100% - 3 * var(--gap)) / 4); aspect-ratio: 1; transform: translate(calc(var(--x) * (100% + var(--gap))), calc(var(--y) * (100% + var(--gap)))); transition: transform var(--slide) ease-in-out; will-change: transform; }
+.g2048 .g2048-tile span { display: grid; place-items: center; width: 100%; height: 100%; border-radius: var(--radius-md); background: color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); color: var(--fg); font-size: 10.5cqw; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.g2048 .d3 span { font-size: 8.5cqw; }
+.g2048 .d4 span { font-size: 6.8cqw; }
+.g2048 .d5 span { font-size: 5.4cqw; }
+.g2048 .is-new { z-index: 1; }
+.g2048 .is-merged { z-index: 2; }
+.g2048 .is-new span { animation: g2048-appear 180ms ease-out both; }
+.g2048 .is-merged span { animation: g2048-pop 180ms ease-out both; }
+
+.g2048 .v2 { --p: 14%; }
+.g2048 .v4 { --p: 24%; }
+.g2048 .v8 { --p: 36%; }
+.g2048 .v16 { --p: 46%; }
+.g2048 .v32 { --p: 56%; }
+.g2048 .v64 { --p: 66%; }
+.g2048 .v128 { --p: 74%; }
+.g2048 .v256 { --p: 82%; }
+.g2048 .v512 { --p: 88%; }
+.g2048 .v1024 { --p: 94%; }
+.g2048 .v2048 { --p: 100%; }
+.g2048 .vbig span { background: var(--ink); color: var(--surface); }
+/* Numbers switch to the page colour once the green behind them is strong: from 512 in the light theme,
+   and from 64 in the dark theme, whose green is light. Measured: every value is at least 3.9:1 in both themes. */
+.g2048 :is(.v512, .v1024, .v2048) { --fg: var(--surface); }
+:root[data-theme='dark'] .g2048 :is(.v64, .v128, .v256) { --fg: var(--surface); }
+
+.g2048 .g2048-message { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: var(--space-3); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 84%, transparent); text-align: center; animation: g2048-fade 300ms ease both; }
+.g2048 .g2048-message[hidden] { display: none; }
+.g2048 .g2048-message p { margin: 0; font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.02em; }
+.g2048 .g2048-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+.g2048 .g2048-help { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }
+
+@keyframes g2048-appear { from { opacity: 0; transform: scale(0.3); } }
+@keyframes g2048-pop { 0% { transform: scale(0.6); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes g2048-gain { from { opacity: 1; transform: translateY(0.5rem); } to { opacity: 0; transform: translateY(-1.25rem); } }
+@keyframes g2048-fade { from { opacity: 0; } }

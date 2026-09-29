@@ -7,16 +7,10 @@ tags: ["game"]
 hidden: true
 ---
 
-<iframe id="myIframe" src="https://play2048.co/" width="100%" height="1700" scrolling="no" title="2048 game"></iframe>
+<div class="g2048" data-game-2048>
+  <noscript>2048 needs JavaScript. Turn it on in your browser to play.</noscript>
+</div>
+<link rel="stylesheet" href="/games/2048/2048.css" />
+<script type="module" src="/games/2048/game.js"></script>
 
-<script>
-        window.onload = function() {
-            // Get a reference to the iframe element
-            var iframe = document.getElementById("myIframe");
-
-            // Give focus to the iframe
-            iframe.focus();
-        };
-</script>
-
-##### Project From [here](https://github.com/gabrielecirulli/2048)
+My own version of 2048, built into this site. The original game is by Gabriele Cirulli ([source](https://github.com/gabrielecirulli/2048)).

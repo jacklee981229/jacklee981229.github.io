@@ -234,3 +234,19 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    Expected: `"/lab/" is already one of the site's own pages. Pick a different title.` and no new draft.
 7. Make the window about phone width. Expected: the Lab cards go one per row; on Count Words the counts sit above the text box; nothing scrolls sideways.
 8. On your phone, after the Lab is pushed (not tested here, since this PC has no real phone): open https://jacklee981229.github.io/lab/count-words/, paste text from another app, and check the counts update.
+
+## 2048, our own version
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_1/ (or the Lab's "Play 2048!" card). Expected: Score and Best, a New game button, and a green 4 by 4 board with two tiles. No "refused to connect".
+3. Press the arrow keys (or W, A, S and D) quickly, several times in a row. Expected: tiles slide smoothly, equal tiles join with a small pop and the score goes up with a floating "+", a new tile fades in after each move, and fast presses never lag behind.
+4. Reload the page. Expected: the same game comes back, and Best keeps your highest score.
+5. Press Ctrl+K, type "a" and press the left arrow in the search box. Expected: the tiles don't move. Press Esc.
+6. On your phone (or the browser's phone view): swipe on the board. Expected: the tiles move with each swipe, and the page doesn't scroll while your finger is on the board.
+7. Keep playing to 2048 if you like. Expected: "You made 2048!" with Keep going and New game. If the board fills up with no moves left: "No more moves." with Try again.
