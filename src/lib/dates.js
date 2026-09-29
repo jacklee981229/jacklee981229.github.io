@@ -1,6 +1,6 @@
 // Dates always show in Malaysia time, whatever time zone the site is built in (GitHub builds in UTC).
 const TIME_ZONE = 'Asia/Kuala_Lumpur';
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const partsFormat = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, year: 'numeric', month: 'numeric', day: 'numeric' });
 
 /** @param {Date} date @returns {{ y: number, m: number, d: number }} */

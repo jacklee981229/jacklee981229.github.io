@@ -1,0 +1,30 @@
+---
+import TextConverter from '../../components/TextConverter.astro';
+import ToolShell from '../../components/ToolShell.astro';
+---
+<ToolShell slug="encode-url" stays="Your text stays in your browser.">
+  <TextConverter swap>
+    <fieldset class="choices">
+      <legend class="visually-hidden">Encode or decode</legend>
+      <div class="pills">
+        <label class="pill"><input class="visually-hidden" type="radio" name="way" value="encode" checked />Encode</label>
+        <label class="pill"><input class="visually-hidden" type="radio" name="way" value="decode" />Decode</label>
+      </div>
+    </fieldset>
+  </TextConverter>
+</ToolShell>
+
+<script>
+  import { decodeUrl, encodeUrl } from '../../lib/lab/url.js';
+  import { setupConverter } from '../../lib/lab/page';
+
+  const decoding = () => document.querySelector<HTMLInputElement>('input[name="way"][value="decode"]')!;
+  const { input, output, run } = setupConverter((text) => (decoding().checked ? decodeUrl(text) : encodeUrl(text)));
+  // Swap: the result becomes your text and the tool turns the other way, so checking a round trip is one click.
+  document.querySelector('[data-swap]')!.addEventListener('click', () => {
+    input.value = output.value;
+    document.querySelector<HTMLInputElement>(`input[name="way"][value="${decoding().checked ? 'encode' : 'decode'}"]`)!.checked = true;
+    run();
+    input.focus();
+  });
+</script>

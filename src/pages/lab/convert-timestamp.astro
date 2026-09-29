@@ -1,0 +1,105 @@
+---
+import ToolShell from '../../components/ToolShell.astro';
+
+// Each result: its label, where the script writes it, and the words its Copy button adds for screen readers.
+const DATES = [['Your time', 'local', 'your time'], ['UTC', 'utc', 'UTC time']] as const;
+const NUMBERS = [['Seconds', 'seconds', 'seconds'], ['Milliseconds', 'milliseconds', 'milliseconds']] as const;
+---
+<ToolShell slug="convert-timestamp" stays="Everything stays in your browser.">
+  <div class="stamp">
+    <section class="panel" aria-labelledby="to-date">
+      <h2 id="to-date">Unix time to date</h2>
+      <div class="field">
+        <label for="unix">Unix time, in seconds or milliseconds</label>
+        <input id="unix" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1727600000" data-unix />
+      </div>
+      <p class="hint" aria-live="polite" data-read></p>
+      <dl>
+        {DATES.map(([label, id, spoken]) => (
+          <div>
+            <dt>{label}{id === 'local' && <span class="zone" data-zone></span>}</dt>
+            <dd><span id={`out-${id}`}></span><button type="button" class="button copy" data-copy={`out-${id}`}><span data-label>Copy</span><span class="visually-hidden"> {spoken}</span></button></dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section class="panel" aria-labelledby="to-unix">
+      <h2 id="to-unix">Date to Unix time</h2>
+      <div class="field">
+        <label for="date">Date and time</label>
+        <input id="date" type="datetime-local" step="1" min="0001-01-01T00:00" max="9999-12-31T23:59:59" data-date />
+      </div>
+      <fieldset class="choices" data-zones>
+        <legend>The date is in</legend>
+        <div class="pills">
+          <label class="pill"><input class="visually-hidden" type="radio" name="zone" value="local" checked />Your time</label>
+          <label class="pill"><input class="visually-hidden" type="radio" name="zone" value="utc" />UTC</label>
+        </div>
+      </fieldset>
+      <dl>
+        {NUMBERS.map(([label, id, spoken]) => (
+          <div>
+            <dt>{label}</dt>
+            <dd><span id={`out-${id}`}></span><button type="button" class="button copy" data-copy={`out-${id}`}><span data-label>Copy</span><span class="visually-hidden"> {spoken}</span></button></dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  </div>
+</ToolShell>
+
+<script>
+  import { dateToUnix, formatInstant, offsetName, readUnixTime } from '../../lib/lab/timestamp.js';
+  import { wireCopyButtons } from '../../lib/lab/page';
+
+  const unix = document.querySelector<HTMLInputElement>('[data-unix]')!;
+  const date = document.querySelector<HTMLInputElement>('[data-date]')!;
+  const read = document.querySelector<HTMLElement>('[data-read]')!;
+  const show = (id: string, text: string) => { document.getElementById(`out-${id}`)!.textContent = text; };
+  const zoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const toDate = () => {
+    const r = readUnixTime(unix.value);
+    const ms = r && 'ms' in r ? r.ms : null;
+    read.textContent = !r ? '' : 'error' in r ? r.error : `Read as ${r.unit}.`;
+    read.classList.toggle('is-error', !!r && 'error' in r);
+    show('local', ms === null ? '' : formatInstant(ms));
+    show('utc', ms === null ? '' : formatInstant(ms, 'UTC'));
+    document.querySelector('[data-zone]')!.textContent = `${zoneName}, ${offsetName(ms ?? Date.now())}`;
+  };
+  const toUnix = () => {
+    const zone = document.querySelector<HTMLInputElement>('input[name="zone"]:checked')!.value as 'local' | 'utc';
+    const r = dateToUnix(date.value, zone);
+    show('seconds', r ? String(r.seconds) : '');
+    show('milliseconds', r ? String(r.milliseconds) : '');
+  };
+
+  unix.addEventListener('input', toDate);
+  date.addEventListener('input', toUnix);
+  document.querySelector('[data-zones]')!.addEventListener('change', toUnix);
+  wireCopyButtons();
+  // The browser may restore what was typed before a reload.
+  toDate();
+  toUnix();
+</script>
+
+<style>
+  .stamp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-5); }
+  h2 { margin: 0 0 var(--space-4); font-size: var(--text-lg); font-weight: 750; letter-spacing: -0.01em; }
+  .hint { min-height: 1.4em; margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); }
+  .hint.is-error { color: var(--ink); font-weight: 600; }
+  .choices { margin-top: var(--space-4); }
+  dl { display: grid; margin: var(--space-4) 0 0; }
+  dl div { padding-block: var(--space-3); border-top: 1px solid var(--rule); }
+  dl div:last-child { padding-bottom: 0; }
+  dt { color: var(--muted); font-size: var(--text-sm); font-weight: 600; }
+  .zone { margin-left: var(--space-2); font-weight: 500; }
+  dd { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 2.25rem; margin: var(--space-1) 0 0; font-size: var(--text-md); font-weight: 650; overflow-wrap: anywhere; }
+  dd > span:empty::before { content: '–'; color: var(--muted); }
+  .copy { flex: none; padding: var(--space-1) var(--space-3); font-size: var(--text-sm); cursor: pointer; color: var(--ink); }
+
+  @media (max-width: 719px) {
+    .stamp { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

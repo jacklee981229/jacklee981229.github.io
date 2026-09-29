@@ -1,0 +1,36 @@
+---
+import TextConverter from '../../components/TextConverter.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import { CASES } from '../../lib/lab/case.js';
+---
+<ToolShell slug="change-case" stays="Your text stays in your browser.">
+  <TextConverter>
+    <fieldset class="choices">
+      <legend>Change to</legend>
+      <div class="pills">
+        {CASES.filter((c) => !c.code).map((c, i) => (
+          <label class="pill"><input class="visually-hidden" type="radio" name="case" value={c.id} checked={i === 0} />{c.name}</label>
+        ))}
+      </div>
+      <div class="pills for-code">
+        <span>For code</span>
+        {CASES.filter((c) => c.code).map((c) => (
+          <label class="pill"><input class="visually-hidden" type="radio" name="case" value={c.id} />{c.name}</label>
+        ))}
+      </div>
+    </fieldset>
+  </TextConverter>
+</ToolShell>
+
+<script>
+  import { changeCase } from '../../lib/lab/case.js';
+  import { setupConverter } from '../../lib/lab/page';
+
+  setupConverter((text) => ({ text: changeCase(text, document.querySelector<HTMLInputElement>('input[name="case"]:checked')!.value) }));
+</script>
+
+<style>
+  .for-code { margin-top: var(--space-2); }
+  .for-code span { margin-right: var(--space-1); color: var(--muted); font-size: var(--text-sm); font-weight: 600; }
+  .for-code .pill { font-family: var(--font-code); font-weight: 400; }
+</style>

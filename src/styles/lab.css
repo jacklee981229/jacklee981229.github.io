@@ -1,8 +1,33 @@
 /* Pieces the Lab's tool pages share: labelled fields and the panel that shows a result. Loaded only on tool pages. */
 
 .field label { display: block; margin-bottom: var(--space-2); font-weight: 650; }
-.field textarea { display: block; width: 100%; min-height: 18rem; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; line-height: 1.6; resize: vertical; }
-.field textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-md); }
+.field :is(textarea, input) { display: block; width: 100%; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; }
+.field :is(textarea, input):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-md); }
+.field textarea { min-height: 18rem; line-height: 1.6; resize: vertical; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0 0; }
 .actions .button { cursor: pointer; color: var(--ink); }
 .panel { padding: var(--space-4) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+
+/* Choices: a legend, then the options as pills. A chosen option (one of a set) is filled in; a checkbox shows its tick. */
+.choices { min-width: 0; margin: 0; padding: 0; border: 0; }
+.choices legend { margin-bottom: var(--space-2); padding: 0; font-weight: 650; }
+.pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.pill { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; cursor: pointer; }
+.pill:hover { border-color: var(--ink); }
+.pill:has(input[type='radio']:checked) { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.pill:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pill input[type='checkbox'] { width: 1rem; height: 1rem; margin: 0; accent-color: var(--ink); }
+
+/* The text tools (TextConverter.astro): the choices on top, then your text and the result side by side. */
+.convert { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.convert-controls { display: grid; gap: var(--space-4); grid-column: 1 / -1; }
+.convert .field textarea { min-height: 16rem; }
+.convert textarea[readonly] { background: var(--wash); }
+.convert-note { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; }
+.convert-note:empty { display: none; }
+
+/* Phones: one column, with shorter boxes so the result is close by. */
+@media (max-width: 719px) {
+  .convert { grid-template-columns: minmax(0, 1fr); }
+  .convert .field textarea { min-height: 10rem; }
+}

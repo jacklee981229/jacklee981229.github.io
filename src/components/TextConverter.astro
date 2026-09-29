@@ -1,0 +1,27 @@
+---
+// The frame the Lab's text tools share: the tool's choices (the slot) above your text and the result, side by side
+// on wide screens. setupConverter() in src/lib/lab/page.ts brings it to life with the page's own conversion.
+interface Props {
+  /** A Swap button that puts the result back in as your text. */
+  swap?: boolean;
+}
+
+const { swap = false } = Astro.props;
+---
+<div class="convert">
+  <div class="convert-controls" data-controls><slot /></div>
+  <div class="field">
+    <label for="convert-in">Your text</label>
+    <textarea id="convert-in" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" data-in></textarea>
+    <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
+  </div>
+  <div class="field">
+    <label for="convert-out">Result</label>
+    <textarea id="convert-out" rows="10" readonly data-out></textarea>
+    <p class="actions">
+      <button type="button" class="button" data-copy="convert-out"><span data-label>Copy</span></button>
+      {swap && <button type="button" class="button" data-swap>Swap</button>}
+    </p>
+    <p class="convert-note" aria-live="polite" data-note></p>
+  </div>
+</div>

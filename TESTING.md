@@ -275,9 +275,28 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run build
    npm run preview
    ```
-   Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+   Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
 2. Open http://localhost:4321/game_2/ and watch the cat for a few seconds. Expected: it sits side-on on its dot, its tail sways, and it blinks every few seconds.
 3. Click a free dot. Expected: the cat turns to face where it's going, hops one dot with its legs moving (leaning up or down when it changes row), and lands sitting. No black box appears around the board.
 4. Click several dots quickly, one after another. Expected: every hop starts cleanly and the cat always ends sitting, never stuck mid-stride.
 5. Keep clicking dots far from the cat until it reaches the edge. Expected: it gallops off the board the same way, fading out, then "The cat got away." Undo brings it back, sitting.
 6. Click New game and trap the cat. Expected: it looks one way, then the other, then hangs its head with its ears down, and then "You trapped the cat in N moves!".
+
+## Lab L2: Change Case, Encode URL, Clean Text, Convert Timestamp
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/. Expected: Count Words, Change Case, Clean Text, Encode URL and Convert Timestamp open; Compare Text and the four image tools still say "Soon".
+3. Open Change Case and type `hello world. HOW are you?`. Expected: UPPERCASE is chosen and Result shows `HELLO WORLD. HOW ARE YOU?`. Click Sentence case: `Hello world. How are you?`. Click snake_case: `hello_world_how_are_you`.
+4. Click Copy and paste into Notepad. Expected: the button says "Copied" for a moment, and the pasted text matches Result. Click Clear: both boxes are empty.
+5. Open Encode URL and type `a b&c 你好`. Expected: Result `a%20b%26c%20%E4%BD%A0%E5%A5%BD`. Click Swap: your text becomes that code, Decode is chosen, and Result is `a b&c 你好` again.
+6. Still on Decode, click Clear and type `100% sure%20thing`. Expected: Result `100% sure thing`, and under it "1 % code couldn’t be read, so it’s left as it was."
+7. Open Clean Text and paste a messy text: extra spaces between words and at line ends, and several empty lines between paragraphs. Expected: Result has single spaces, nothing at line ends, and one empty line between paragraphs. Click "Remove all": no empty lines are left. Untick "Trim lines": the spaces at line starts come back.
+8. Open Convert Timestamp and type `1727600000`. Expected: "Read as seconds.", Your time (Asia/Kuala_Lumpur, GMT+8) `29 Sep 2024, 16:53:20` and UTC `29 Sep 2024, 08:53:20`. Type `123` at the end: "Read as milliseconds." and `.123` after both times. Type a letter: "Type a Unix time in digits, like 1727600000."
+9. Under Date to Unix time, pick 29 Sep 2024, 4:53:20 PM. Expected: Seconds `1727600000` and Milliseconds `1727600000000`. Click UTC: Seconds `1727628800`. The Copy beside Seconds copies just that number.
+10. On your phone (or the browser's phone view), try any of the four. Expected: one column, the choices wrap onto more lines, and nothing scrolls sideways.

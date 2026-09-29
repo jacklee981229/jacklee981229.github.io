@@ -1,0 +1,43 @@
+---
+import TextConverter from '../../components/TextConverter.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import { DEFAULTS } from '../../lib/lab/clean.js';
+
+const STEPS = [['trim', 'Trim lines'], ['spaces', 'Collapse repeated spaces'], ['lineBreaks', 'Normalize line breaks']] as const;
+const EMPTY_LINES = [['one', 'Keep one between paragraphs'], ['none', 'Remove all'], ['keep', 'Keep all']] as const;
+---
+<ToolShell slug="clean-text" stays="Your text stays in your browser.">
+  <TextConverter>
+    <fieldset class="choices">
+      <legend>Clean up</legend>
+      <div class="pills">
+        {STEPS.map(([name, label]) => (
+          <label class="pill"><input type="checkbox" name={name} checked={DEFAULTS[name]} />{label}</label>
+        ))}
+      </div>
+    </fieldset>
+    <fieldset class="choices">
+      <legend>Empty lines</legend>
+      <div class="pills">
+        {EMPTY_LINES.map(([value, label]) => (
+          <label class="pill"><input class="visually-hidden" type="radio" name="emptyLines" value={value} checked={DEFAULTS.emptyLines === value} />{label}</label>
+        ))}
+      </div>
+    </fieldset>
+  </TextConverter>
+</ToolShell>
+
+<script>
+  import { cleanText } from '../../lib/lab/clean.js';
+  import { setupConverter } from '../../lib/lab/page';
+
+  const box = (name: string) => document.querySelector<HTMLInputElement>(`[data-controls] input[name="${name}"]`)!;
+  setupConverter((text) => ({
+    text: cleanText(text, {
+      trim: box('trim').checked,
+      spaces: box('spaces').checked,
+      lineBreaks: box('lineBreaks').checked,
+      emptyLines: document.querySelector<HTMLInputElement>('input[name="emptyLines"]:checked')!.value as 'one' | 'none' | 'keep',
+    }),
+  }));
+</script>
