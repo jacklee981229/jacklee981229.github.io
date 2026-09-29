@@ -74,7 +74,7 @@ Expected: the build ends with "32 page(s) built" and "Indexed 14 pages"; the pre
 5. Open http://localhost:4321/7/. Expected: a teal line down the left, "On this page" with 13 entries, 19 code blocks labelled with file names such as "fullpage-loading.pug" and with line numbers, the 6 longest folded behind "Show all N lines", and no licence notice (the old post had it turned off).
 6. Open http://localhost:4321/11/. Expected: the finished-app screenshot as the cover. Click the first screenshot in the post: it opens large with the caption "flutter sdk"; Esc closes it.
 7. Open http://localhost:4321/2/ and click Copy on the first code block. Expected: "Copied"; pasting gives the 4 `index_generator` lines. (Not run by Claude: copying needs a real click, and the browser pane wasn't drawing.)
-8. Open /writing/ (5 topics), /archives/ (14 posts under 2023) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They still open at /game_1/ and /game_2/, and at phone width only the Catch the Cat box scrolls sideways, not the page.
+8. Open /writing/ (5 topics), /archives/ (14 posts under 2023) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They still open at /game_1/ and /game_2/, and at phone width both games fit the screen without scrolling sideways.
 9. Press Ctrl+K and type `emulator`. Expected: "Flutter Get Started" with the matching words highlighted. Type `zzqqxx`: "No posts match “zzqqxx”. Try a shorter word."
 10. Open http://localhost:4321/atom.xml and http://localhost:4321/sitemap.xml. Expected: the feed has 14 entries, newest "Flutter Get Started"; the sitemap has 29 addresses and no game pages.
 11. On the home page, press Tab repeatedly (not run by Claude: the browser pane wasn't drawing). Expected: every card, topic pill, tag and button shows a blue outline when reached; a card's outline goes round the whole card.
@@ -250,3 +250,19 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 5. Press Ctrl+K, type "a" and press the left arrow in the search box. Expected: the tiles don't move. Press Esc.
 6. On your phone (or the browser's phone view): swipe on the board. Expected: the tiles move with each swipe, and the page doesn't scroll while your finger is on the board.
 7. Keep playing to 2048 if you like. Expected: "You made 2048!" with Keep going and New game. If the board fills up with no moves left: "No more moves." with Try again.
+
+## Catch the Cat, our own version
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_2/ (or the Lab's "Play Catch the Cat!" card). Expected: Moves and Best, Undo and New game buttons, and a green board of 11 rows of dots with the cat in the middle and a few dots already blocked.
+3. Click a free dot. Expected: it turns solid green with a small pop, and the cat glides one dot towards the nearest edge. Moves goes up by one.
+4. Keep clicking dots far from the cat. Expected: when the cat reaches the edge it runs off the board, and "The cat got away." offers Undo and Try again. Undo takes back your last move.
+5. Trap the cat (block all six dots around it). Expected: "You trapped the cat in N moves!", and Best shows your fewest moves, also after a reload.
+6. Press Tab until the board has a blue outline, then use the arrow keys and Enter. Expected: a blue ring moves between dots, and Enter blocks the dot inside it.
+7. On your phone (or the browser's phone view): tap dots. Expected: each tap blocks a dot, and nothing scrolls sideways.

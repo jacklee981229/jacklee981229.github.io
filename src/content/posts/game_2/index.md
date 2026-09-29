@@ -7,21 +7,10 @@ tags: ["game"]
 hidden: true
 ---
 
-<div style="text-align: center; width: 100%; overflow-x: auto;">
-    <script src="/games/catch-the-cat/phaser.min.js"></script>
-    <script src="/games/catch-the-cat/catch-the-cat.js"></script>
-    <div id="catch-the-cat"></div>
-    <script>
-      window.game = new CatchTheCatGame({
-        w: 11,
-        h: 11,
-        r: 20,
-        backgroundColor: 0xffffff,
-        parent: 'catch-the-cat',
-        statusBarAlign: 'center',
-        credit: 'github.com/ganlvtech'
-      });
-    </script>
+<div class="ctc" data-catch-the-cat>
+  <noscript>Catch the Cat needs JavaScript. Turn it on in your browser to play.</noscript>
 </div>
+<link rel="stylesheet" href="/games/catch-the-cat/catch-the-cat.css" />
+<script type="module" src="/games/catch-the-cat/game.js"></script>
 
-##### Project From [here](https://github.com/ganlvtech/phaser-catch-the-cat)
+My own version of Catch the Cat, built into this site. The original game is by ganlvtech ([source](https://github.com/ganlvtech/phaser-catch-the-cat)).
