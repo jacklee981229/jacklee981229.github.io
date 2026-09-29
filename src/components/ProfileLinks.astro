@@ -1,0 +1,40 @@
+---
+// Jack's links as tiles: icons only, 4 in a row, in the profile card; with their names on the About page (`labels`).
+// Icons only still carry the name, for screen readers (hidden text) and as a tooltip on hover.
+import Icon from './Icon.astro';
+import { LINKS } from '../site';
+
+interface Props {
+  labels?: boolean;
+}
+
+const { labels = false } = Astro.props;
+---
+<ul class:list={['links', { labels }]}>
+  {LINKS.map(({ label, href, icon }) => (
+    <li>
+      <a href={href} title={labels ? undefined : label}><Icon name={icon} /><span class:list={[{ 'visually-hidden': !labels }]}>{label}</span></a>
+    </li>
+  ))}
+</ul>
+
+<style>
+  /* Two-class selectors, so post text styles (the About page's list and link rules) can't win over these. */
+  .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .links li { margin: 0; }
+  .links a { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-md); color: var(--ink); font-size: var(--text-ui); font-weight: 650; text-decoration: none; transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+  .links :global(.icon) { width: 18px; height: 18px; }
+  .links:not(.labels) :global(.icon) { width: 20px; height: 20px; }
+  /* Like the sidebar tags: the tile being pointed at turns solid and grows a little (more for the small icon tiles). */
+  .links a:focus-visible { background: var(--ink); border-color: var(--ink); color: var(--surface); transform: scale(1.1); }
+  .links.labels a:focus-visible { transform: scale(1.04); }
+  /* Mouse only: on a touch screen, a tapped tile would stay enlarged. */
+  @media (hover: hover) {
+    .links a:hover { background: var(--ink); border-color: var(--ink); color: var(--surface); transform: scale(1.1); }
+    .links.labels a:hover { transform: scale(1.04); }
+  }
+  /* With names, four across needs room; phones get 2 by 2. */
+  @media (max-width: 559px) {
+    .links.labels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>

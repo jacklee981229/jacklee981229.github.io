@@ -4,12 +4,19 @@ export const SITE = {
   tagline: 'My programming journal',
   intro: 'Just sharing some of my thoughts, and maybe some tech that I learned. And some games to share :D',
   author: 'Jack Lee',
-  role: 'Software developer in Malaysia',
+  role: 'Senior Software Engineer at Squarebox Technology',
   started: '2023-02-23',
-  github: 'https://github.com/jacklee981229',
-  email: 'jackjiunyihlee@gmail.com',
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
 } as const;
+
+// Jack's links, shown the same way on the About page and in the home page's profile card.
+export const LINKS = [
+  // The live resume Doc (the one LinkedIn links to); the old PDF export went out of date.
+  { label: 'Resume', href: 'https://docs.google.com/document/d/1C6nfetX6QgpChFIBkQsq_vUNzDPrA6p36HvRUL9RrZQ/edit?usp=sharing', icon: 'file' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/lee-jiunyih-software-developer/', icon: 'linkedin' },
+  { label: 'GitHub', href: 'https://github.com/jacklee981229', icon: 'github' },
+  { label: 'Email', href: 'mailto:jackjiunyihlee@gmail.com', icon: 'mail' },
+] as const;
 
 export const NAV = [
   { href: '/', label: 'Home' },

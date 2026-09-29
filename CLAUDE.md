@@ -18,11 +18,11 @@ Package versions are pinned to ones that run on Node 20.18 (D1 in the plan), inc
 
 ## Where things live
 
-- `src/content/posts/<address>/index.md`: one folder per post, images beside it. `src/content/pages/about.md`: the About text.
+- `src/content/posts/<address>/index.md`: one folder per post, images beside it. `src/content/pages/about.md`: the About page's text under "About Me" (that part is the role and links from `src/site.ts`).
 - `src/content.config.ts`: the post fields, each with what it does.
 - `src/lib/`: the rules (which posts show where, dates, the timeline graph, summaries). The `.js` files there have unit tests in `tests/`.
 - `src/styles/tokens.css`: every colour, font, size, spacing and radius value. `src/styles/prose.css`: post text and code blocks.
-- `src/site.ts`: site-wide facts (name, author, menu, posts per page).
+- `src/site.ts`: site-wide facts (name, author, job title, Jack's links, menu, posts per page). The links show as tiles (`src/components/ProfileLinks.astro`): with their names on the About page, icons only in the home profile card.
 - `src/layouts/Base.astro`: the page frame (head, link previews, header, footer, search, visitor counter).
 - `src/components/Welcome.astro`: the welcome screen. A script in Base.astro's head decides whether it plays; the home title's typing waits for it (`--type-start` in `src/pages/index.astro`).
 - `public/fonts/` and `src/styles/fonts.css`: the self-hosted fonts and their licences. `public/games/`: Catch the Cat's scripts.

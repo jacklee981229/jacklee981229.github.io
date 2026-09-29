@@ -1,6 +1,6 @@
 # Jack's Space v2: plan
 
-**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check passed on 27 Sep: the UI tweaks push redeployed the site by itself. Site info fixes (27 Sep): the comma in the running days, and "live site only" in place of the counter on local previews. Next: Task 10, our first new post.
+**Status: approved 26 Sep 2026.** Tasks 1 to 6, 8 and 9 done: the new site went live on 26 Sep 2026. Then UI tweaks 1 (26 Sep): the Tags page removed, a theme fade and a new hover for the sidebar tags. UI tweaks 2 (26 Sep): a 0.3 s fade, the typing title, menu and card hover, and the welcome screen. Task 9's last check passed on 27 Sep: the UI tweaks push redeployed the site by itself. Site info fixes (27 Sep): the comma in the running days, and "live site only" in place of the counter on local previews. About and profile links (29 Sep). Next: Task 10, our first new post.
 
 Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new site keeps what the current Hexo site does, lets us write and publish posts together, and goes live on GitHub Pages.
 
@@ -26,7 +26,7 @@ Rebuild https://jacklee981229.github.io from scratch with a modern UI. The new s
 | Home: post list, 10 per page | Keep |
 | Archives; Tags, with a page per tag | Keep Archives and the page per tag. The Tags page itself is dropped (26 Sep): the home page's sidebar lists every tag, and /tags/ opens the home page |
 | Writing: posts grouped by topic, kept up to date by hand (today the Flutter and game posts are listed under Hexo) | Keep, but built from each post's topic so it's always right |
-| About | Keep |
+| About | Keep. Since 29 Sep: "About Me" is just your current job title, with the same links (Resume, LinkedIn, GitHub, Email) as the home profile card, which shows them as icons only |
 | Arsenal (your tools list) and the "My Personal Arsenal" post | Drop. You no longer need them |
 | Games: 2048, Catch the Cat | Keep |
 | Hidden posts (not listed anywhere) | Keep |

@@ -184,3 +184,18 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
 2. Open http://localhost:4321/ and look at the Site info card. Expected: "Running for" shows the days with a normal comma (for example "1,312 days", no gaps around the comma), and Visitors and Page views say "live site only" in grey.
 3. Open https://jacklee981229.github.io/ and wait a few seconds (after this change is pushed). Expected: Visitors and Page views show numbers, never "live site only".
+
+## About and profile links
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/about/. Expected: under "About Me", only "Senior Software Engineer at Squarebox Technology", then four tiles in a row: Resume, LinkedIn, GitHub, Email. "About this Site" is unchanged.
+3. Point at a tile. Expected: it turns solid and grows a little, like the sidebar tags.
+4. Click Resume. Expected: your current Resume Google Doc opens (Senior Software Engineer at Squarebox Technology), not the old 2023 PDF.
+5. Open http://localhost:4321/. Expected: the profile card shows your name beside the avatar, the same job title under it, and the same four links as icons in one row. Pointing at an icon turns it solid, grows it a little and shows its name.
+6. Make the window about phone width. Expected: the About tiles go 2 by 2, and nothing scrolls sideways.
