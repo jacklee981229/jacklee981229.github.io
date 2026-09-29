@@ -1,12 +1,13 @@
 ---
 import { SITE } from '../site';
+import { NEW_TAB } from '../lib/links.js';
 
 const firstYear = SITE.started.slice(0, 4);
 const thisYear = new Date().getFullYear();
 ---
 <footer class="site-footer">
   <div class="wrap row">
-    <p>© {firstYear}–{thisYear} {SITE.author}. Posts are licensed <a href={SITE.license.url}>{SITE.license.name}</a>.</p>
+    <p>© {firstYear}–{thisYear} {SITE.author}. Posts are licensed <a href={SITE.license.url} {...NEW_TAB}>{SITE.license.name}</a>.</p>
     <p>Built with Astro.</p>
   </div>
 </footer>

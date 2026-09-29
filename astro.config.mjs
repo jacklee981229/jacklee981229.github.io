@@ -1,8 +1,11 @@
 import { defineConfig } from 'astro/config';
 import { codeTitleFromMeta, rehypeCodeFrame } from './src/lib/code-frame.js';
+import { rehypeExternalLinks } from './src/lib/links.js';
+
+const site = 'https://jacklee981229.github.io';
 
 export default defineConfig({
-  site: 'https://jacklee981229.github.io',
+  site,
   // Old Hexo links all end in a slash (/11/, /archives/), so every page URL does.
   trailingSlash: 'always',
   build: { format: 'directory' },
@@ -12,7 +15,7 @@ export default defineConfig({
       themes: { light: 'github-light-default', dark: 'github-dark-default' },
       transformers: [codeTitleFromMeta],
     },
-    rehypePlugins: [rehypeCodeFrame],
+    rehypePlugins: [rehypeCodeFrame, [rehypeExternalLinks, { site }]],
   },
   redirects: {
     // The old Archives had extra pages (page 2, per year, per month); the new one lists everything on one page.

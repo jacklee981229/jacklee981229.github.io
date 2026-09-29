@@ -199,6 +199,8 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Click Resume. Expected: your current Resume Google Doc opens (Senior Software Engineer at Squarebox Technology), not the old 2023 PDF.
 5. Open http://localhost:4321/. Expected: the profile card shows your name beside the avatar, the same job title under it, and the same four links as icons in one row. Pointing at an icon turns it solid, grows it a little and shows its name.
 6. Make the window about phone width. Expected: the About tiles go 2 by 2, and nothing scrolls sideways.
+7. Click Resume, LinkedIn or GitHub (on About or in the home card). Expected: it opens in a new tab and the blog stays open. Email opens your mail app.
+8. Open http://localhost:4321/2/ and click "this" in the second point under "Concept" (a link to Hexo's docs), then the licence link in the footer. Expected: each opens in a new tab. Links within the blog (menu, tags, posts) still open in the same tab.
 
 ## Card shadow (light theme)
 

@@ -93,5 +93,7 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     <BackToTop />
     <SearchDialog />
     <p class="visually-hidden" aria-live="polite" data-announcer></p>
+    <!-- Screen readers read this out for links to other sites, which open in a new tab (src/lib/links.js). -->
+    <p id="new-tab" hidden>Opens in a new tab</p>
   </body>
 </html>

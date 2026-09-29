@@ -12,6 +12,7 @@ import Toc from '../components/Toc.astro';
 import '../styles/prose.css';
 import { SITE } from '../site';
 import { formatDate, isoDay } from '../lib/dates.js';
+import { NEW_TAB } from '../lib/links.js';
 import { lastUpdated, neighbours, recent, related, RESERVED_SLUGS, tagCounts, topicCounts } from '../lib/posts.js';
 import { TOPICS, topicOf } from '../lib/topics.js';
 import { coverOf, listedPosts, pagePosts, postUrl, summaryOf, tagUrl, type Post } from '../lib/collections';
@@ -68,7 +69,7 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 
     <footer class="foot" data-pagefind-ignore>
       {data.license && (
-        <p class="license">Written by {SITE.author}. Licensed under <a href={SITE.license.url}>{SITE.license.name}</a> unless the post says otherwise.</p>
+        <p class="license">Written by {SITE.author}. Licensed under <a href={SITE.license.url} {...NEW_TAB}>{SITE.license.name}</a> unless the post says otherwise.</p>
       )}
       {!data.hidden && (
         <nav class="older-newer" aria-label="Newer and older posts">

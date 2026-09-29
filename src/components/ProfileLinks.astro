@@ -3,6 +3,7 @@
 // Icons only still carry the name, for screen readers (hidden text) and as a tooltip on hover.
 import Icon from './Icon.astro';
 import { LINKS } from '../site';
+import { isExternal, NEW_TAB } from '../lib/links.js';
 
 interface Props {
   labels?: boolean;
@@ -13,7 +14,9 @@ const { labels = false } = Astro.props;
 <ul class:list={['links', { labels }]}>
   {LINKS.map(({ label, href, icon }) => (
     <li>
-      <a href={href} title={labels ? undefined : label}><Icon name={icon} /><span class:list={[{ 'visually-hidden': !labels }]}>{label}</span></a>
+      <a href={href} title={labels ? undefined : label} {...(isExternal(href, String(Astro.site)) ? NEW_TAB : {})}>
+        <Icon name={icon} /><span class:list={[{ 'visually-hidden': !labels }]}>{label}</span>
+      </a>
     </li>
   ))}
 </ul>
