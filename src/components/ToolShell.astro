@@ -1,0 +1,32 @@
+---
+// The frame every Lab tool page shares: the way back to the Lab, the tool's name and description (from the tool list),
+// and where the visitor's data stays. The tool itself goes in the slot.
+import Base from '../layouts/Base.astro';
+import Icon from './Icon.astro';
+import { toolBySlug } from '../lib/lab/tools.js';
+import '../styles/lab.css';
+
+interface Props {
+  slug: string;
+  /** For example "Your text stays in your browser." */
+  stays: string;
+}
+
+const { slug, stays } = Astro.props;
+const tool = toolBySlug(slug);
+---
+<Base title={tool.name} description={tool.description}>
+  <div class="wrap page">
+    <a class="back" href="/lab/"><Icon name="back" />Lab</a>
+    <h1 class="page-title">{tool.name}</h1>
+    <p class="lede">{tool.description} {stays}</p>
+    <div class="tool"><slot /></div>
+  </div>
+</Base>
+
+<style>
+  .back { display: inline-flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); color: var(--muted); font-size: var(--text-ui); font-weight: 600; text-decoration: none; }
+  .back:hover { color: var(--ink); }
+  .back :global(.icon) { width: 1.1rem; height: 1.1rem; }
+  .tool { margin-top: var(--space-6); }
+</style>

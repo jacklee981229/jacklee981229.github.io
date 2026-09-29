@@ -1,0 +1,69 @@
+---
+import ToolShell from '../../components/ToolShell.astro';
+---
+<ToolShell slug="count-words" stays="Your text stays in your browser.">
+  <div class="count">
+    <div class="field">
+      <label for="text">Your text</label>
+      <textarea id="text" rows="12" data-text></textarea>
+      <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
+    </div>
+    <section class="panel results" aria-label="Counts">
+      <p class="big"><strong data-count="words">0</strong> <span data-words-label>words</span></p>
+      <dl>
+        <div><dt>Characters</dt><dd data-count="characters">0</dd></div>
+        <div><dt>Without spaces</dt><dd data-count="charactersNoSpaces">0</dd></div>
+        <div><dt>Lines</dt><dd data-count="lines">0</dd></div>
+        <div><dt>Paragraphs</dt><dd data-count="paragraphs">0</dd></div>
+        <div><dt>Reading time</dt><dd data-count="reading">0 min</dd></div>
+      </dl>
+    </section>
+  </div>
+</ToolShell>
+
+<script>
+  import { countText, readingTime } from '../../lib/lab/count.js';
+
+  const text = document.querySelector<HTMLTextAreaElement>('[data-text]')!;
+  const out = (name: string) => document.querySelector<HTMLElement>(`[data-count="${name}"]`)!;
+  const wordsLabel = document.querySelector<HTMLElement>('[data-words-label]')!;
+  let queued = false;
+
+  const show = () => {
+    queued = false;
+    const c = countText(text.value);
+    for (const key of ['words', 'characters', 'charactersNoSpaces', 'lines', 'paragraphs'] as const) out(key).textContent = c[key].toLocaleString('en-US');
+    out('reading').textContent = readingTime(c.minutes);
+    wordsLabel.textContent = c.words === 1 ? 'word' : 'words';
+  };
+  // Counting a long text on every key press can lag, so count at most once per frame.
+  text.addEventListener('input', () => {
+    if (!queued) requestAnimationFrame(show);
+    queued = true;
+  });
+  document.querySelector('[data-clear]')!.addEventListener('click', () => {
+    text.value = '';
+    show();
+    text.focus();
+  });
+  // The browser may restore text typed before a reload.
+  show();
+</script>
+
+<style>
+  .count { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; gap: var(--space-5); }
+  .big { margin: 0 0 var(--space-3); color: var(--muted); font-weight: 600; }
+  .big strong { display: block; color: var(--ink); font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1; letter-spacing: calc(var(--display-tracking) * 0.8); font-variant-numeric: tabular-nums; }
+  dl { display: grid; gap: var(--space-2); margin: 0; }
+  dl div { display: flex; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--rule); }
+  dt { color: var(--muted); }
+  dd { margin: 0; font-weight: 650; }
+
+  /* Phones: the counts come first, so they stay in view above the keyboard while you type. */
+  @media (max-width: 719px) {
+    .count { grid-template-columns: minmax(0, 1fr); }
+    .results { order: -1; }
+    dl { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); }
+    dl div { flex-direction: column; gap: 0.1rem; }
+  }
+</style>

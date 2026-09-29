@@ -3,6 +3,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
+import { TOOLS, toolUrl } from './lab/tools.js';
 import { POSTS_PER_PAGE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -33,6 +34,9 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/archives/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/about/' },
+    // The Lab and its finished tools; /random/ stays out until it does something.
+    { path: '/lab/' },
+    ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
   ];
 }

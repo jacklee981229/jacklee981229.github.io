@@ -1,5 +1,6 @@
 ---
 title: "Play Catch the Cat!"
+description: "Trap the cat before it gets away."
 date: 2023-03-02T23:07:33+08:00
 topic: games
 tags: ["game"]

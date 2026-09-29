@@ -213,3 +213,24 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
 2. Switch to the light theme and open http://localhost:4321/. Expected: the post cards and the three sidebar cards sit on a soft shadow that lifts them off the page. Open http://localhost:4321/2/ and scroll to "Related posts": those cards have it too.
 3. Switch to the dark theme. Expected: no shadows, as before.
+
+## Lab L1: the Lab home, Count Words and Random
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Look at the menu, then open http://localhost:4321/lab/. Expected: Lab sits between Archives and About. The page shows "Jack's Lab" with a flask icon, then Tools in two groups (Text and Images): every card has an icon and an example of what it does, Count Words opens, and the other nine say "Soon". Experiments shows Play 2048! and Play Catch the Cat! with their covers, and Random is a dashed card.
+3. Open Count Words and type or paste some text. Expected: words, characters, characters without spaces, lines, paragraphs and reading time update as you type. "well-known" counts as one word, and 我喜欢写代码 counts as 4 words. Clear empties the box and sets every count back to 0.
+4. Go back to the Lab and open both games. Expected: they play as before.
+5. Open http://localhost:4321/random/. Expected: "Random", a line saying it's coming, and a "Back to the Lab" button.
+6. In a second terminal, in `C:\repos\Jack\jacks-space`:
+   ```powershell
+   npm run new "Lab" hexo
+   ```
+   Expected: `"/lab/" is already one of the site's own pages. Pick a different title.` and no new draft.
+7. Make the window about phone width. Expected: the Lab cards go one per row; on Count Words the counts sit above the text box; nothing scrolls sideways.
+8. On your phone, after the Lab is pushed (not tested here, since this PC has no real phone): open https://jacklee981229.github.io/lab/count-words/, paste text from another app, and check the counts update.

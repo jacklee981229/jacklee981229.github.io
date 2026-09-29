@@ -1,0 +1,57 @@
+---
+// A card on the Lab home. Like a post card it has a cover: a tool's example (what goes in, what comes out),
+// or a post's own cover for experiments. Without an address it's a tool still to come.
+import Icon from './Icon.astro';
+
+interface Props {
+  href?: string;
+  icon: string;
+  name: string;
+  description: string;
+  example?: readonly string[];
+}
+
+const { href, icon, name, description, example } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+<li>
+  <Tag class:list={['lab-card', { soon: !href }]} href={href}>
+    {example ? (
+      <span class="example" aria-hidden="true"><span class="in">{example[0]}</span><span class="out">{example[1]}</span></span>
+    ) : (
+      <slot name="cover" />
+    )}
+    <span class="body">
+      <span class="name"><Icon name={icon} />{name}{!href && <span class="badge">Soon</span>}</span>
+      <span class="description">{description}</span>
+    </span>
+  </Tag>
+</li>
+
+<style>
+  li { display: flex; }
+  .lab-card { display: flex; flex-direction: column; width: 100%; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); text-decoration: none; transition: transform 0.2s ease, border-color 0.2s ease; }
+  a.lab-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; transform: scale(1.02); }
+  /* Mouse only: on a touch screen, a tapped card would stay enlarged. */
+  @media (hover: hover) {
+    a.lab-card:hover { border-color: var(--ink); transform: scale(1.02); }
+  }
+  /* The code font has one weight, so the two lines differ by colour, not boldness. */
+  .example { display: grid; align-content: center; gap: 0.2rem; min-height: 5.5rem; padding: var(--space-3) var(--space-4); background: var(--wash); font-family: var(--font-code); font-size: 0.8125rem; line-height: 1.45; }
+  .in { overflow: hidden; color: var(--muted); white-space: pre; text-overflow: ellipsis; }
+  .out { color: var(--ink); }
+  /* A post's cover, cut to the same height as the examples. */
+  .lab-card :global(.cover) { height: 5.5rem; aspect-ratio: auto; }
+  .body { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4) var(--space-4); }
+  .name { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: 750; }
+  .name :global(.icon) { width: 20px; height: 20px; }
+  .description { color: var(--muted); font-size: var(--text-sm); line-height: 1.45; }
+  .badge { margin-left: auto; padding: 0.0625rem 0.5rem; border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+  .soon { border-style: dashed; box-shadow: none; }
+  .soon .out { color: var(--muted); }
+
+  @media (max-width: 719px) {
+    .example { min-height: 4.5rem; }
+    .lab-card :global(.cover) { height: 4.5rem; }
+  }
+</style>
