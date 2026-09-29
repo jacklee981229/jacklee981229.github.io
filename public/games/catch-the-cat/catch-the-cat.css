@@ -10,7 +10,8 @@
 .ctc .button { color: var(--ink); cursor: pointer; }
 
 .ctc .ctc-board { position: relative; padding: 3%; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 16%, var(--surface)); }
-.ctc svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; }
+/* No outline on a click: the browser's own style for SVG draws a thick ring on any focus, mouse included. */
+.ctc svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; outline: none; }
 .ctc svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 8px; border-radius: 4px; }
 /* Free dots are pale, blocked ones take the full Games colour (at least 3:1 apart in both themes). */
 .ctc .ctc-dot { fill: color-mix(in srgb, var(--lane-games) 36%, var(--surface)); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill 150ms ease; }
@@ -23,12 +24,40 @@
 .ctc .ctc-cursor { fill: none; stroke: var(--focus); stroke-width: 0.07; opacity: 0; pointer-events: none; }
 .ctc svg:focus-visible .ctc-cursor { opacity: 1; }
 
+/* The cat: one pose shows at a time, sitting unless an animation below swaps it (every 70ms in a stride).
+   steps(1, end) holds each keyframe until the next, so the poses swap like sprite frames. */
 .ctc .ctc-cat { pointer-events: none; transition: transform var(--move) ease-in-out, opacity var(--move) ease; }
 .ctc .ctc-cat.is-gone { opacity: 0; }
-.ctc .ctc-cat-body { fill: var(--ink); }
-.ctc .ctc-cat-tail { fill: none; stroke: var(--ink); stroke-width: 0.07; stroke-linecap: round; }
+.ctc .ctc-ink { fill: var(--ink); }
+.ctc .ctc-line { fill: none; stroke: var(--ink); stroke-width: 0.075; stroke-linecap: round; }
 /* The page colour: the opposite of the cat's in both themes, so the eyes always show. */
-.ctc .ctc-cat-eye { fill: var(--paper); }
+.ctc .ctc-eye { fill: var(--paper); }
+.ctc .ctc-pose { visibility: hidden; }
+.ctc .ctc-sit { visibility: visible; }
+/* Sitting still, the tail sways and the cat blinks now and then. */
+.ctc .ctc-tail { transform-box: fill-box; transform-origin: 0 100%; animation: ctc-sway 1.6s ease-in-out infinite alternate; }
+.ctc .ctc-sit .ctc-eye { transform-box: fill-box; transform-origin: center; animation: ctc-blink 4s infinite; }
+
+/* A hop: two stride frames in turn, lifted (and leaning on a diagonal) halfway, landing sitting. */
+.ctc .ctc-cat.is-moving .ctc-hop { animation: ctc-hop var(--move) ease-in-out; }
+.ctc .ctc-cat.is-moving .ctc-pose { animation: var(--move) steps(1, end) both; }
+.ctc .ctc-cat.is-moving .ctc-sit { animation-name: ctc-land; }
+.ctc .ctc-cat.is-moving .ctc-step-a { animation-name: ctc-stride; }
+.ctc .ctc-cat.is-moving .ctc-step-b { animation-name: ctc-stride-other; }
+
+/* Escaping: two dots' gallop off the board, stretched out and gathered in turn, fading as it goes. */
+.ctc .ctc-cat.is-running { transition-duration: calc(var(--move) * 2); transition-timing-function: linear; }
+.ctc .ctc-cat.is-running .ctc-hop { animation: ctc-bound calc(var(--move) / 2) ease-in-out 4 alternate; }
+.ctc .ctc-cat.is-running .ctc-sit { visibility: hidden; }
+.ctc .ctc-cat.is-running .ctc-leap { animation: ctc-stride var(--move) steps(1, end) 2; }
+.ctc .ctc-cat.is-running .ctc-step-b { animation: ctc-stride-other var(--move) steps(1, end) 2; }
+
+/* Trapped: head down, ears back. */
+.ctc .ctc-head, .ctc .ctc-ears { transform-box: fill-box; transition: transform var(--move) ease; }
+.ctc .ctc-head { transform-origin: center; }
+.ctc .ctc-ears { transform-origin: 50% 100%; }
+.ctc .ctc-cat.is-caught .ctc-head { transform: translateY(0.06px) rotate(-20deg); }
+.ctc .ctc-cat.is-caught .ctc-ears { transform: scaleY(0.65); }
 
 .ctc .ctc-message { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 84%, transparent); text-align: center; animation: ctc-fade 300ms ease both; }
 .ctc .ctc-message[hidden] { display: none; }
@@ -38,3 +67,10 @@
 
 @keyframes ctc-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes ctc-fade { from { opacity: 0; } }
+@keyframes ctc-hop { 50% { transform: translateY(-0.16px) rotate(var(--tilt, 0deg)); } }
+@keyframes ctc-bound { to { transform: translateY(-0.08px); } }
+@keyframes ctc-land { 0% { visibility: hidden; } 100% { visibility: visible; } }
+@keyframes ctc-stride { 0%, 50% { visibility: visible; } 25%, 75%, 100% { visibility: hidden; } }
+@keyframes ctc-stride-other { 0%, 50%, 100% { visibility: hidden; } 25%, 75% { visibility: visible; } }
+@keyframes ctc-sway { from { transform: rotate(-6deg); } to { transform: rotate(8deg); } }
+@keyframes ctc-blink { 0%, 95%, 100% { transform: none; } 97.5% { transform: scaleY(0.1); } }

@@ -1,6 +1,6 @@
 // Catch the Cat on the "Play Catch the Cat!" post: draws the dots and the cat, and plays the rules from rules.js.
-// Smoothness: the cat glides between dots with a GPU-friendly transform, a blocked dot pops, and each turn only
-// changes a class or two, so nothing is redrawn from scratch.
+// Smoothness: the cat moves by a GPU-friendly transform and its poses swap by CSS, a blocked dot pops, and each
+// turn only changes a few classes, so nothing is redrawn from scratch.
 import { block, colOf, newGame, rowOf, SIZE } from './rules.js';
 
 const BEST = 'ctc-best';
@@ -10,14 +10,39 @@ const ROW = Math.sqrt(3) / 2;
 const RADIUS = 0.44;
 const WIDTH = SIZE + 0.5;
 const HEIGHT = (SIZE - 1) * ROW + 1;
-// A cat sitting, drawn around its dot's centre, a little bigger than the dot like the original's.
-const CAT = `<g transform="scale(1.2)">
-  <path class="ctc-cat-body" d="M-.2 -.05 -.25 -.38 -.05 -.22ZM.2 -.05 .25 -.38 .05 -.22Z"/>
-  <circle class="ctc-cat-body" cy="-.1" r=".2"/>
-  <ellipse class="ctc-cat-body" cy=".2" rx=".21" ry=".18"/>
-  <path class="ctc-cat-tail" d="M.16 .32C.36 .32 .4 .12 .3 .03"/>
-  <circle class="ctc-cat-eye" cx="-.075" cy="-.12" r=".035"/>
-  <circle class="ctc-cat-eye" cx=".075" cy="-.12" r=".035"/></g>`;
+
+// The cat, side on and facing left like the original's sprites, in dot widths around its dot's centre and scaled a
+// little bigger than the dot like the original's. It has four poses (sitting, two walking frames and a leap);
+// catch-the-cat.css shows one at a time.
+const walk = (frame, legs) => `<g class="ctc-pose ctc-${frame}">
+    <ellipse class="ctc-ink" cx=".02" cy=".08" rx=".27" ry=".14"/>
+    <circle class="ctc-ink" cx="-.27" cy="-.08" r=".14"/>
+    <path class="ctc-ink" d="M-.38 -.12-.37 -.3-.28 -.21ZM-.23 -.2-.16 -.32-.14 -.13Z"/>
+    <path class="ctc-line" d="M.26 .02C.4 -.02.42 -.18.35 -.26"/>
+    <path class="ctc-line" d="${legs}"/>
+    <circle class="ctc-eye" cx="-.32" cy="-.09" r=".024"/>
+  </g>`;
+const CAT = `<g transform="scale(1.2)"><g data-face><g class="ctc-hop">
+  <g class="ctc-pose ctc-sit">
+    <path class="ctc-ink" d="M-.05 .36C-.3 .36-.3 .02-.18 -.08-.1 -.14.08 -.12.16 .02.26 .18.24 .36.05 .36Z"/>
+    <path class="ctc-line ctc-tail" d="M.14 .34C.4 .36.42 .12.33 .03"/>
+    <g class="ctc-head">
+      <circle class="ctc-ink" cx="-.2" cy="-.2" r=".15"/>
+      <path class="ctc-ink ctc-ears" d="M-.33 -.24-.32 -.43-.21 -.33ZM-.16 -.34-.08 -.46-.06 -.26Z"/>
+      <circle class="ctc-eye" cx="-.26" cy="-.21" r=".026"/>
+    </g>
+  </g>
+  ${walk('step-a', 'M-.16 .16-.24 .36M-.1 .17-.06 .36M.14 .16.08 .36M.2 .15.28 .36')}
+  ${walk('step-b', 'M-.16 .16-.1 .36M-.1 .17-.18 .36M.14 .16.22 .36M.2 .15.12 .36')}
+  <g class="ctc-pose ctc-leap">
+    <ellipse class="ctc-ink" cy=".04" rx=".32" ry=".12"/>
+    <circle class="ctc-ink" cx="-.32" cy="-.1" r=".13"/>
+    <path class="ctc-ink" d="M-.42 -.14-.42 -.31-.33 -.22ZM-.28 -.21-.22 -.33-.2 -.15Z"/>
+    <path class="ctc-line" d="M.3 0 .52 -.1"/>
+    <path class="ctc-line" d="M-.22 .1-.46 .2M-.16 .12-.38 .26M.2 .08.44 .2M.24 .06.5 .12"/>
+    <circle class="ctc-eye" cx="-.37" cy="-.11" r=".022"/>
+  </g>
+</g></g></g>`;
 
 const store = {
   get: (key) => { try { return localStorage.getItem(key); } catch { return null; } },
@@ -30,7 +55,7 @@ const root = document.querySelector('[data-catch-the-cat]');
 if (root) play(root);
 
 function play(root) {
-  const moveMs = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180;
+  const moveMs = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280;
   root.style.setProperty('--move', `${moveMs}ms`);
   const dots = [...Array(SIZE * SIZE).keys()].map((i) => {
     const [x, y] = xy(i);
@@ -58,6 +83,7 @@ function play(root) {
   const $ = (sel) => root.querySelector(sel);
   const svg = $('svg');
   const cat = $('[data-cat]');
+  const face = $('[data-face]');
   const cursorEl = $('[data-cursor]');
   const message = $('[data-message]');
   const status = $('[data-status]');
@@ -67,11 +93,16 @@ function play(root) {
   let history = [];
   let best = Number(store.get(BEST)) || 0;
   let cursor = game.cat;
+  let facing = 1; // 1: facing left, as drawn; -1: mirrored to face right
   let timers = [];
 
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const stopTimers = () => { timers.forEach(clearTimeout); timers = []; };
   const placeCat = ([x, y]) => { cat.style.transform = `translate(${x}px, ${y}px)`; };
+  const turnTo = (side) => {
+    facing = side;
+    face.setAttribute('transform', `scale(${side} 1)`);
+  };
   const placeCursor = () => {
     const [x, y] = xy(cursor);
     cursorEl.setAttribute('cx', x);
@@ -84,10 +115,24 @@ function play(root) {
   const draw = () => {
     const blocked = new Set(game.blocked);
     dotEls.forEach((dot, i) => dot.classList.toggle('is-blocked', blocked.has(i)));
-    cat.classList.remove('is-gone');
+    cat.classList.remove('is-moving', 'is-running', 'is-caught', 'is-gone');
     placeCat(xy(game.cat));
     showNumbers();
   };
+
+  // One step to the next dot: turn to face it, hop there in stride (leaning on a diagonal), land sitting.
+  const hop = (from, to) => {
+    turnTo(xy(to)[0] < xy(from)[0] ? 1 : -1);
+    cat.style.setProperty('--tilt', `${(rowOf(from) - rowOf(to)) * 16}deg`);
+    // Off, seen by the browser, then on again: a click mid-hop starts the next hop from its beginning.
+    cat.classList.remove('is-moving');
+    cat.getBoundingClientRect();
+    cat.classList.add('is-moving');
+    placeCat(xy(to));
+  };
+  cat.addEventListener('animationend', (e) => {
+    if (e.animationName === 'ctc-hop') cat.classList.remove('is-moving');
+  });
 
   const say = (words, buttons) => {
     $('[data-message-text]').textContent = words;
@@ -117,6 +162,7 @@ function play(root) {
     history = [];
     cursor = game.cat;
     message.hidden = true;
+    turnTo(1);
     draw();
     placeCursor();
     svg.focus();
@@ -139,19 +185,24 @@ function play(root) {
         store.set(BEST, String(best));
         showNumbers();
       }
-      later(() => say(`You trapped the cat in ${game.moves} move${game.moves === 1 ? '' : 's'}!`, [['New game', restart]]), moveMs);
+      // Trapped: the cat looks one way, then the other, then hangs its head.
+      later(() => turnTo(-facing), moveMs);
+      later(() => turnTo(-facing), moveMs * 2);
+      later(() => cat.classList.add('is-caught'), moveMs * 3);
+      later(() => say(`You trapped the cat in ${game.moves} move${game.moves === 1 ? '' : 's'}!`, [['New game', restart]]), moveMs * 4);
       return;
     }
-    placeCat(xy(r.catTo));
+    hop(before.cat, r.catTo);
     if (game.over === 'lost') {
-      // Once on the edge, the cat keeps going the same way and slips off the board.
+      // From the edge it gallops on the same way, two more dots, off the board.
       const [fx, fy] = xy(before.cat);
       const [tx, ty] = xy(r.catTo);
       later(() => {
-        placeCat([2 * tx - fx, 2 * ty - fy]);
-        cat.classList.add('is-gone');
+        cat.classList.remove('is-moving');
+        cat.classList.add('is-running', 'is-gone');
+        placeCat([tx + 2 * (tx - fx), ty + 2 * (ty - fy)]);
       }, moveMs);
-      later(() => say('The cat got away.', [['Undo', undo], ['Try again', restart]]), moveMs * 2);
+      later(() => say('The cat got away.', [['Undo', undo], ['Try again', restart]]), moveMs * 3);
       return;
     }
     status.textContent = `Blocked ${where(i)}. The cat moved to ${where(r.catTo)}.`;

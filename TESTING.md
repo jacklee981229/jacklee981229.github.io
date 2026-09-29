@@ -266,3 +266,18 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 5. Trap the cat (block all six dots around it). Expected: "You trapped the cat in N moves!", and Best shows your fewest moves, also after a reload.
 6. Press Tab until the board has a blue outline, then use the arrow keys and Enter. Expected: a blue ring moves between dots, and Enter blocks the dot inside it.
 7. On your phone (or the browser's phone view): tap dots. Expected: each tap blocks a dot, and nothing scrolls sideways.
+
+## Catch the Cat, the cat's animation
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_2/ and watch the cat for a few seconds. Expected: it sits side-on on its dot, its tail sways, and it blinks every few seconds.
+3. Click a free dot. Expected: the cat turns to face where it's going, hops one dot with its legs moving (leaning up or down when it changes row), and lands sitting. No black box appears around the board.
+4. Click several dots quickly, one after another. Expected: every hop starts cleanly and the cat always ends sitting, never stuck mid-stride.
+5. Keep clicking dots far from the cat until it reaches the edge. Expected: it gallops off the board the same way, fading out, then "The cat got away." Undo brings it back, sitting.
+6. Click New game and trap the cat. Expected: it looks one way, then the other, then hangs its head with its ears down, and then "You trapped the cat in N moves!".
