@@ -1,0 +1,27 @@
+---
+// "Check these too!" under a Lab tool or experiment: other Lab items as cards, the same kind first (moreLabItems),
+// in the band that closes the page. It goes after the page's .wrap.
+import LabItemCard from './LabItemCard.astro';
+import MoreBand from './MoreBand.astro';
+import { experimentPosts } from '../lib/collections';
+import { moreLabItems, toolBySlug } from '../lib/lab/tools.js';
+
+interface Props {
+  /** The page's own item: a tool's address or an experiment's post. */
+  current: string;
+}
+
+const items = moreLabItems(Astro.props.current);
+const posts = await experimentPosts();
+---
+{items.length > 0 && (
+  <MoreBand title="Check these too!" note="Other tools and games in the Lab.">
+    <ul class="cards">
+      {items.map((item) => (item.kind === 'tool' ? <LabItemCard tool={toolBySlug(item.id)} /> : <LabItemCard post={posts.find((p) => p.id === item.id)!} />))}
+    </ul>
+  </MoreBand>
+)}
+
+<style>
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+</style>

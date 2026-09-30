@@ -3,8 +3,10 @@ import { render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Cover from '../components/Cover.astro';
 import Icon from '../components/Icon.astro';
+import LabHeader from '../components/LabHeader.astro';
+import LabMore from '../components/LabMore.astro';
 import MiniCard from '../components/MiniCard.astro';
-import PostList from '../components/PostList.astro';
+import MoreBand from '../components/MoreBand.astro';
 import PostScripts from '../components/PostScripts.astro';
 import ProfileCard from '../components/ProfileCard.astro';
 import SiteInfo from '../components/SiteInfo.astro';
@@ -13,9 +15,10 @@ import '../styles/prose.css';
 import { SITE } from '../site';
 import { formatDate, isoDay } from '../lib/dates.js';
 import { NEW_TAB } from '../lib/links.js';
-import { lastUpdated, neighbours, recent, related, RESERVED_SLUGS, tagCounts, topicCounts } from '../lib/posts.js';
+import { checkThese, lastUpdated, neighbours, RESERVED_SLUGS, tagCounts, topicCounts } from '../lib/posts.js';
 import { TOPICS, topicOf } from '../lib/topics.js';
 import { coverOf, listedPosts, pagePosts, postUrl, summaryOf, tagUrl, type Post } from '../lib/collections';
+import { EXPERIMENTS } from '../lib/lab/tools.js';
 
 export async function getStaticPaths() {
   const posts = await pagePosts();
@@ -35,11 +38,24 @@ const { data } = post;
 const listed = await listedPosts();
 const { Content, headings } = await render(post);
 const { newer, older } = neighbours(listed, post);
-const relatedPosts = related(listed, post);
+const more = checkThese(listed, post);
 const topic = topicOf(data.topic);
 const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
+// A game (one of the Lab's experiments) is laid out like a Lab tool: its name and description, then the game, in
+// view on arrival, then other Lab items. No date, tags or banner; its cover still shows on cards.
+const isGame = EXPERIMENTS.includes(post.id);
 ---
 <Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
+  {isGame ? (
+    <>
+      <div class="wrap page">
+        <LabHeader title={data.title} description={summaryOf(post)} />
+        <div class="prose"><Content /></div>
+      </div>
+      <LabMore current={post.id} />
+    </>
+  ) : (
+  <>
   <article class="wrap post" style={`--c: var(--lane-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
     <header>
       <p class="topic" data-pagefind-ignore><a href={`/writing/#${data.topic}`}>{topic.name}</a></p>
@@ -86,33 +102,26 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
     </footer>
   </article>
 
-  <div class="wrap more">
-    {!data.hidden && (
-      <section aria-labelledby="related-title">
-        <h2 id="related-title">Related posts</h2>
-        {relatedPosts.length > 0 ? (
-          <ul class="related">{relatedPosts.map((p) => <MiniCard post={p} />)}</ul>
-        ) : (
-          <p class="empty">No other {topic.name} posts yet.</p>
-        )}
-      </section>
+  <MoreBand title="Check these too!" note="More posts from Jack's Space.">
+    {more.length > 0 ? (
+      <ul class="related">{more.map((p) => <MiniCard post={p} />)}</ul>
+    ) : (
+      <p class="empty">No other posts yet.</p>
     )}
-    <section class="recent" aria-labelledby="recent-title">
-      <h2 id="recent-title">Recent posts</h2>
-      <PostList posts={recent(listed, post)} />
-    </section>
     <section class="author" aria-label="About the author">
       <ProfileCard posts={listed.length} topics={topicCounts(listed, TOPICS).filter((t) => t.count > 0).length} tags={tagCounts(listed).length} />
       <SiteInfo updated={lastUpdated(listed)} />
     </section>
-  </div>
+  </MoreBand>
 
   <PostScripts />
+  </>
+  )}
 </Base>
 
 <style>
   /* The topic's lane runs down the left of the whole post, from the dot beside the topic name. */
-  .post { --node: 12px; --stroke: 2.5px; --post-pad: clamp(2rem, 5vw, 3.5rem); position: relative; padding-top: var(--post-pad); padding-left: calc(var(--gutter) + 2.25rem); }
+  .post { --node: 12px; --stroke: 2.5px; --post-pad: clamp(2rem, 5vw, 3.5rem); position: relative; margin-bottom: var(--space-8); padding-top: var(--post-pad); padding-left: calc(var(--gutter) + 2.25rem); }
   .post::before { content: ''; position: absolute; top: calc(var(--post-pad) + 0.75rem); bottom: 0; left: calc(var(--gutter) + var(--node) / 2 - var(--stroke) / 2); width: var(--stroke); background: var(--c); }
   .topic { position: relative; margin: 0 0 var(--space-3); color: var(--c); font-size: var(--text-ui); font-weight: 700; }
   .topic::before { content: ''; position: absolute; top: 0.75rem; left: -2.25rem; width: var(--node); height: var(--node); margin-top: calc(var(--node) / -2); border-radius: 50%; background: var(--c); }
@@ -142,11 +151,9 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .older-newer a:hover { text-decoration: underline; }
   .none { color: var(--muted); }
 
-  .more { display: grid; gap: 2.5rem; margin-top: var(--space-8); padding-bottom: var(--space-9); }
-  .more h2 { margin: 0 0 0.875rem; font-size: var(--text-base); font-weight: 700; }
   .related { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
-  .recent { max-width: 40rem; }
-  .author { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-7); padding: 1.25rem; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); font-size: var(--text-ui); }
+  .empty { margin: 0; color: var(--muted); }
+  .author { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-7); margin-top: var(--space-6); padding: 1.25rem; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); font-size: var(--text-ui); }
 
   @media (max-width: 1099px) {
     .grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }

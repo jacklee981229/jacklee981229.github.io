@@ -18,7 +18,7 @@ The mockups load fonts from Google and images from the live site, so they need i
 6. Click the moon button (top right), then reload. Expected: dark theme, and it stays dark after the reload.
 7. Press Ctrl+K and type `git`. Expected: the search box lists "Git Commands". Type `zzzz`: "No posts match “zzzz”. Try a shorter word." Esc closes it.
 8. Open "Hexo Change Default to Page". Expected: a teal line down the left, a Hexo cover banner with a code icon, "On this page" with 2 entries, three yml code blocks with line numbers, and 3 related-post cards at the bottom. Click Copy on the first block: it changes to "Copied", and pasting gives the 4 `index_generator` lines.
-9. Open "Flutter Get Started". Expected: a cover banner with the app screenshot in front of a faint "Flutter", and "No other Flutter posts yet." under Related posts. Click the first screenshot in the post: it opens large with the caption "flutter sdk", and Esc closes it.
+9. Open "Flutter Get Started". Expected: a cover banner with the app screenshot in front of a faint "Flutter", and "Check these too!" at the bottom shows other posts as cards. Click the first screenshot in the post: it opens large with the caption "flutter sdk", and Esc closes it.
 10. Make the browser window narrow (about phone width). Expected: nothing scrolls sideways, cards show the cover on top, the month labels are hidden (each card shows its date), the year sits beside the lanes, and the lanes stay unbroken.
 
 ## Task 2: skeleton
@@ -148,7 +148,7 @@ Expected: the build ends with "32 page(s) built" and "Indexed 14 pages"; the pre
 3. Click the theme button. Expected: the page fades to the other theme in 0.3 seconds.
 4. Point at "Writing" in the menu, then at "Home". Expected: each word grows a little while pointed at; the line under "Home" stays where it is.
 5. Point at a post card on the home page. Expected: it grows slightly towards the right and its border takes the topic colour; the coloured lane line still touches its left edge.
-6. Open http://localhost:4321/2/, scroll to "Related posts" and point at a card. Expected: that card grows slightly; the other two stay as they are.
+6. Open http://localhost:4321/2/, scroll to "Check these too!" and point at a card. Expected: that card grows slightly; the others stay as they are.
 7. Make the window about phone width. Expected: nothing scrolls sideways.
 8. Open the welcome screen preview (needs internet for the font):
    ```powershell
@@ -211,7 +211,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "32 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Switch to the light theme and open http://localhost:4321/. Expected: the post cards and the three sidebar cards sit on a soft shadow that lifts them off the page. Open http://localhost:4321/2/ and scroll to "Related posts": those cards have it too.
+2. Switch to the light theme and open http://localhost:4321/. Expected: the post cards and the three sidebar cards sit on a soft shadow that lifts them off the page. Open http://localhost:4321/2/ and scroll to "Check these too!": those cards have it too.
 3. Switch to the dark theme. Expected: no shadows, as before.
 
 ## Lab L1: the Lab home, Count Words and Random
@@ -300,3 +300,53 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 8. Open Convert Timestamp and type `1727600000`. Expected: "Read as seconds.", Your time (Asia/Kuala_Lumpur, GMT+8) `29 Sep 2024, 16:53:20` and UTC `29 Sep 2024, 08:53:20`. Type `123` at the end: "Read as milliseconds." and `.123` after both times. Type a letter: "Type a Unix time in digits, like 1727600000."
 9. Under Date to Unix time, pick 29 Sep 2024, 4:53:20 PM. Expected: Seconds `1727600000` and Milliseconds `1727600000000`. Click UTC: Seconds `1727628800`. The Copy beside Seconds copies just that number.
 10. On your phone (or the browser's phone view), try any of the four. Expected: one column, the choices wrap onto more lines, and nothing scrolls sideways.
+
+## 2048: clock and leaderboard
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_1/ and click New game. Expected: Time shows `00:00.00` and waits. Press an arrow key: the time starts running, in hundredths of a second.
+3. Wait a few seconds, then reload the page. Expected: the same game comes back, and its time carries on from where it was, without the moment the page was closed.
+4. Press the arrow keys quickly in any order until no moves are left (a minute or two). Expected: the time stops, and "No more moves." asks for "Your name for the leaderboard". Type a name with W, A, S or D in it and press Enter: the name arrives whole, the message says "Saved for <name>: number 1 on the leaderboard.", and the Leaderboard beside the game (under it on a phone) shows your name, score and time, picked out in green.
+5. Click Try again and play another game to the end. Expected: no name is asked. A lower score says "<name>'s best is still …" and your row stays; a higher score replaces it.
+6. Under the leaderboard, click Change name, type another name and press Enter. Expected: "Playing as <new name>." The next finished game gets its own row.
+7. On your phone (or the browser's phone view). Expected: Score, Best and Time on one line with New game under them, and the leaderboard fits without scrolling sideways.
+
+## 2048: keys anywhere, the game in view, the leaderboard card
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_1/ in a normal desktop window. Expected: no big "Games" banner; the game sits right under the title, and the whole board shows without scrolling. (The Lab's "Play 2048!" card still has its cover.)
+3. Click the page's title, then press an arrow key. Expected: the tiles move. Click the theme button (the sun or moon at the top), then an arrow key: the tiles still move.
+4. Press Ctrl+K, type a letter and press the arrow keys. Expected: they stay in the search box and the tiles don't move. Press Esc twice to close it.
+5. Make the window short, scroll down until the board is out of sight, then press the up arrow. Expected: the page scrolls like any page, and the tiles don't move.
+6. Make the window short enough to cut off the bottom of the board, reload, and press an arrow key. Expected: the page glides just enough to show the whole board.
+7. Look beside the game (under it on a phone). Expected: the leaderboard is a card with a border and rounded corners, times show two decimals (like `00:12.70`), and your latest row is green with rounded ends.
+8. If you reach 2048: "You made 2048!" saves the score straight away, so New game from there keeps it on the leaderboard. (I checked this with a set-up board; reaching 2048 by hand takes a while.)
+
+## Game pages like tools, "Check these too!", and small fixes
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/game_1/. Expected: "‹ Lab", "Play 2048!" and "Slide the tiles and reach 2048.", then the game. No date, tags, Copy link or banner. On a desktop window the leaderboard card sits to the right of the board, level with its top.
+3. Scroll to the bottom. Expected: a full-width band a shade apart, with a line along its top: "Check these too!", "Other tools and games in the Lab.", then Play Catch the Cat! first and Lab tools, as cards. No Recent posts and no author card.
+4. Open http://localhost:4321/game_2/. Expected: the same layout, with Play 2048! first under "Check these too!".
+5. Open http://localhost:4321/lab/count-words/. Expected: the description fits on one line; the text box and the counts card start and end level; "Check these too!" shows the four other tools.
+6. Open http://localhost:4321/lab/change-case/. Expected: "Change to" with two lined-up rows, "Text" (UPPERCASE and the rest) and "Code" (camelCase and the rest).
+7. Open any post, for example http://localhost:4321/11/, and scroll to the bottom. Expected: the same full-width band, with "Check these too!", "More posts from Jack's Space.", up to four post cards (the same topic first) and the author card. No "Related posts" or "Recent posts".
+8. On your phone (or the browser's phone view), open /game_1/ and /lab/count-words/. Expected: the leaderboard under the game; the counts above the text box; nothing scrolls sideways.

@@ -3,7 +3,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
-import { TOOLS, toolUrl } from './lab/tools.js';
+import { EXPERIMENTS, TOOLS, toolUrl } from './lab/tools.js';
 import { POSTS_PER_PAGE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -16,6 +16,16 @@ export const pagePosts = async () => published(await getCollection('posts'), opt
 
 /** The posts that appear in lists, feeds, search and the sitemap, newest first. */
 export const listedPosts = async () => listed(await getCollection('posts'), options);
+
+/** The Lab's experiments (EXPERIMENTS in lab/tools.js) as posts, in the Lab's order. */
+export async function experimentPosts(): Promise<Post[]> {
+  const posts = await pagePosts();
+  return EXPERIMENTS.map((id) => {
+    const post = posts.find((p) => p.id === id);
+    if (!post) throw new Error(`The Lab's experiment "${id}" is not a post. Fix EXPERIMENTS in src/lib/lab/tools.js.`);
+    return post;
+  });
+}
 
 export const postUrl = (post: Post) => `/${post.id}/`;
 export const tagUrl = (tag: string) => `/tags/${slugify(tag)}/`;

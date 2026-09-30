@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EXPERIMENTS, GROUPS, TOOLS, toolBySlug, toolUrl } from '../src/lib/lab/tools.js';
+import { EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -38,6 +38,18 @@ test('experiments are existing posts that stay hidden elsewhere', () => {
     assert.ok(existsSync(file), `${id} is missing`);
     assert.match(readFileSync(file, 'utf8'), /^hidden: true$/m, `${id} should stay hidden outside the Lab`);
   }
+});
+
+test('"check these too" under a Lab page: same kind first, ready tools only, never the page itself, at most 4', () => {
+  const ready = TOOLS.filter((t) => t.status === 'ready').map((t) => t.slug);
+  const underTool = moreLabItems(ready[0]);
+  assert.ok(underTool.length <= 4 && underTool.length > 0);
+  assert.ok(underTool.every((i) => i.id !== ready[0] && (i.kind === 'experiment' || ready.includes(i.id))));
+  assert.equal(underTool[0].kind, 'tool');
+  const underGame = moreLabItems(EXPERIMENTS[0]);
+  assert.deepEqual(underGame[0], { kind: 'experiment', id: EXPERIMENTS[1] });
+  assert.ok(underGame.every((i) => i.id !== EXPERIMENTS[0]));
+  assert.equal(new Set(underGame.map((i) => i.id)).size, underGame.length);
 });
 
 test('the Lab addresses are kept from posts', () => {

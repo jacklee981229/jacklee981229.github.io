@@ -1,0 +1,23 @@
+---
+// The top of a Lab page (a tool or an experiment): the way back to the Lab, the name and a one-line description.
+import Icon from './Icon.astro';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+<div class="lab-header">
+  <a class="back" href="/lab/"><Icon name="back" />Lab</a>
+  <h1 class="page-title">{title}</h1>
+  <p class="lede">{description}</p>
+</div>
+
+<style>
+  .lab-header { margin-bottom: var(--space-6); }
+  .back { display: inline-flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); color: var(--muted); font-size: var(--text-ui); font-weight: 600; text-decoration: none; }
+  .back:hover { color: var(--ink); }
+  .back :global(.icon) { width: 1.1rem; height: 1.1rem; }
+</style>

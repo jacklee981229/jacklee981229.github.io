@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { homePageUrl, lastUpdated, listed, neighbours, paginate, pinned, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
+import { checkThese, homePageUrl, lastUpdated, listed, neighbours, paginate, pinned, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
 
 const post = (id, date, extra = {}) => ({ id, data: { title: id, date: new Date(date), topic: 'hexo', tags: [], ...extra } });
 
@@ -62,6 +62,20 @@ test('related means same topic, never the post itself, at most 3', () => {
 test('recent skips the current post', () => {
   const list = listed(posts);
   assert.deepEqual(recent(list, list[0]).map((p) => p.id), ['mid', 'old']);
+});
+
+test('"check these too" puts the same topic first, then the newest, each once, at most 4', () => {
+  const list = [
+    post('a', '2023-06-01T00:00:00Z', { topic: 'games' }),
+    post('b', '2023-05-01T00:00:00Z', { topic: 'flutter' }),
+    post('c', '2023-04-01T00:00:00Z', { topic: 'games' }),
+    post('d', '2023-03-01T00:00:00Z', { topic: 'hexo' }),
+    post('e', '2023-02-01T00:00:00Z', { topic: 'games' }),
+    post('f', '2023-01-01T00:00:00Z', { topic: 'hexo' }),
+  ];
+  assert.deepEqual(checkThese(list, list[2]).map((p) => p.id), ['a', 'e', 'b', 'd']);
+  assert.deepEqual(checkThese(list, list[5]).map((p) => p.id), ['d', 'a', 'b', 'c']);
+  assert.deepEqual(checkThese(list.slice(0, 2), list[0]).map((p) => p.id), ['b']);
 });
 
 test('tag and topic counts only count listed posts', () => {

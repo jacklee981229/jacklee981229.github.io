@@ -57,6 +57,12 @@ export const related = (listedPosts, post, count = 3) => listedPosts.filter((p) 
 /** @template {PostLike} T @param {T[]} listedPosts @param {T} post */
 export const recent = (listedPosts, post, count = 5) => listedPosts.filter((p) => p.id !== post.id).slice(0, count);
 
+/**
+ * "Check these too!" under a post: the same topic first, then the newest, each once, never the post itself.
+ * @template {PostLike} T @param {T[]} listedPosts @param {T} post
+ */
+export const checkThese = (listedPosts, post, count = 4) => [...new Set([...related(listedPosts, post, count), ...recent(listedPosts, post, count)])].slice(0, count);
+
 /** @param {PostLike[]} listedPosts @returns {{ tag: string, count: number }[]} alphabetical */
 export function tagCounts(listedPosts) {
   const counts = new Map();

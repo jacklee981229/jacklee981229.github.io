@@ -1,18 +1,12 @@
 ---
-import { getEntry } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import Cover from '../../components/Cover.astro';
 import Icon from '../../components/Icon.astro';
-import LabCard from '../../components/LabCard.astro';
-import { EXPERIMENTS, GROUPS, TOOLS, toolUrl } from '../../lib/lab/tools.js';
-import { postUrl, summaryOf } from '../../lib/collections';
+import LabItemCard from '../../components/LabItemCard.astro';
+import { GROUPS, TOOLS } from '../../lib/lab/tools.js';
+import { experimentPosts } from '../../lib/collections';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
-const experiments = await Promise.all(EXPERIMENTS.map(async (id) => {
-  const post = await getEntry('posts', id);
-  if (!post) throw new Error(`The Lab's experiment "${id}" is not a post. Fix EXPERIMENTS in src/lib/lab/tools.js.`);
-  return post;
-}));
+const experiments = await experimentPosts();
 ---
 <Base title="Jack's Lab" description={INTRO}>
   <div class="wrap page">
@@ -30,9 +24,7 @@ const experiments = await Promise.all(EXPERIMENTS.map(async (id) => {
         <>
           <h3>{group.name}</h3>
           <ul class="cards">
-            {TOOLS.filter((t) => t.group === group.id).map((t) => (
-              <LabCard href={t.status === 'ready' ? toolUrl(t.slug) : undefined} icon={t.icon} name={t.name} description={t.description} example={t.example} />
-            ))}
+            {TOOLS.filter((t) => t.group === group.id).map((t) => <LabItemCard tool={t} />)}
           </ul>
         </>
       ))}
@@ -41,11 +33,7 @@ const experiments = await Promise.all(EXPERIMENTS.map(async (id) => {
     <section id="experiments" aria-labelledby="experiments-title">
       <h2 id="experiments-title">Experiments</h2>
       <ul class="cards">
-        {experiments.map((post) => (
-          <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)}>
-            <Cover slot="cover" post={post} variant="mini" />
-          </LabCard>
-        ))}
+        {experiments.map((post) => <LabItemCard post={post} />)}
       </ul>
       <p class="note">More experiments will appear here.</p>
     </section>

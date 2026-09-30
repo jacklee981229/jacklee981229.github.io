@@ -1,0 +1,25 @@
+---
+// The band that closes a page with more to explore: posts under a post, Lab items under a Lab page. A full-width
+// strip a shade apart, with a line along its top, so it reads as the site's suggestions, not the page's own content.
+// It goes after the page's .wrap, never inside it, so it can run edge to edge.
+interface Props {
+  title: string;
+  /** One line under the title, saying what's in the band. */
+  note: string;
+}
+
+const { title, note } = Astro.props;
+---
+<section class="band" aria-labelledby="more-title">
+  <div class="wrap">
+    <h2 id="more-title">{title}</h2>
+    <p class="note">{note}</p>
+    <slot />
+  </div>
+</section>
+
+<style>
+  .band { padding-block: var(--space-6) var(--space-8); border-top: 1px solid var(--rule); background: var(--wash); }
+  h2 { margin: 0; font-size: var(--text-lg); font-weight: 800; letter-spacing: -0.01em; }
+  .note { margin: var(--space-1) 0 var(--space-4); color: var(--muted); font-size: var(--text-sm); }
+</style>

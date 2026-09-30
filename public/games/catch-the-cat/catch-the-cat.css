@@ -1,7 +1,7 @@
 /* Catch the Cat on its post (game.js): dots in shades of the Games topic colour, like 2048.
    Every rule starts with .ctc, so the post text's own styles (.prose p and so on) can't win over these. */
 
-.ctc { max-width: 30rem; margin: var(--space-5) auto var(--space-6); user-select: none; -webkit-user-select: none; }
+.ctc { max-width: 30rem; margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
 .ctc .ctc-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .ctc .ctc-scores, .ctc .ctc-buttons { display: flex; gap: var(--space-2); }
 .ctc .ctc-score { min-width: 5rem; margin: 0; padding: 0.375rem var(--space-3); border-radius: var(--radius-md); background: var(--wash); line-height: 1.2; text-align: center; }

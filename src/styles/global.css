@@ -21,7 +21,7 @@ main:focus { outline: none; }
 /* Simple pages: a big title, an optional lead paragraph, then the content. */
 .page { padding-block: var(--space-8) var(--space-9); }
 .page-title { margin: 0 0 var(--space-4); font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
-.lede { max-width: 40rem; margin: 0; color: var(--muted); font-size: var(--text-md); line-height: 1.6; }
+.lede { max-width: 60rem; margin: 0; color: var(--muted); font-size: var(--text-md); line-height: 1.6; }
 .empty { margin: 0; color: var(--muted); }
 .button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; text-decoration: none; }
 .button:hover { border-color: var(--ink); }

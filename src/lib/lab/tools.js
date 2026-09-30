@@ -29,6 +29,18 @@ export const EXPERIMENTS = ['game_1', 'game_2'];
 /** @param {string} slug */
 export const toolUrl = (slug) => `/lab/${slug}/`;
 
+/**
+ * "Check these too!" under a Lab tool or experiment: the same kind first, in the Lab's order, then the rest; never
+ * the item itself, and only tools that are ready.
+ * @param {string} current a tool's address or an experiment's post
+ * @returns {{ kind: 'tool' | 'experiment', id: string }[]}
+ */
+export function moreLabItems(current, count = 4) {
+  const tools = TOOLS.filter((t) => t.status === 'ready' && t.slug !== current).map((t) => ({ kind: /** @type {const} */ ('tool'), id: t.slug }));
+  const experiments = EXPERIMENTS.filter((id) => id !== current).map((id) => ({ kind: /** @type {const} */ ('experiment'), id }));
+  return (EXPERIMENTS.includes(current) ? [...experiments, ...tools] : [...tools, ...experiments]).slice(0, count);
+}
+
 /** @param {string} slug */
 export function toolBySlug(slug) {
   const tool = TOOLS.find((t) => t.slug === slug);

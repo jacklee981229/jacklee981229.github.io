@@ -1,0 +1,18 @@
+---
+// One Lab item as a card: a tool, with its example as the cover, or an experiment post, with its own cover.
+import Cover from './Cover.astro';
+import LabCard from './LabCard.astro';
+import { postUrl, summaryOf, type Post } from '../lib/collections';
+import { toolUrl, type TOOLS } from '../lib/lab/tools.js';
+
+type Props = { tool: (typeof TOOLS)[number]; post?: never } | { post: Post; tool?: never };
+
+const { tool, post } = Astro.props;
+---
+{tool ? (
+  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} />
+) : post && (
+  <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)}>
+    <Cover slot="cover" post={post} variant="mini" />
+  </LabCard>
+)}

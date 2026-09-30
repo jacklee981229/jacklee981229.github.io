@@ -2,12 +2,10 @@
 import ToolShell from '../../components/ToolShell.astro';
 ---
 <ToolShell slug="count-words" stays="Your text stays in your browser.">
-  <div class="count">
-    <div class="field">
-      <label for="text">Your text</label>
-      <textarea id="text" rows="12" data-text></textarea>
-      <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
-    </div>
+  <div class="count field">
+    <label for="text">Your text</label>
+    <textarea id="text" rows="12" data-text></textarea>
+    <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
     <section class="panel results" aria-label="Counts">
       <p class="big"><strong data-count="words">0</strong> <span data-words-label>words</span></p>
       <dl>
@@ -51,7 +49,12 @@ import ToolShell from '../../components/ToolShell.astro';
 </script>
 
 <style>
-  .count { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; gap: var(--space-5); }
+  /* The text box and the counts share a row, so they start and end level (the box grows with the counts). */
+  .count { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; grid-template-areas: 'label .' 'text results' 'actions .'; column-gap: var(--space-5); }
+  label { grid-area: label; }
+  textarea { grid-area: text; }
+  .actions { grid-area: actions; }
+  .results { grid-area: results; }
   .big { margin: 0 0 var(--space-3); color: var(--muted); font-weight: 600; }
   .big strong { display: block; color: var(--ink); font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1; letter-spacing: calc(var(--display-tracking) * 0.8); font-variant-numeric: tabular-nums; }
   dl { display: grid; gap: var(--space-2); margin: 0; }
@@ -61,8 +64,8 @@ import ToolShell from '../../components/ToolShell.astro';
 
   /* Phones: the counts come first, so they stay in view above the keyboard while you type. */
   @media (max-width: 719px) {
-    .count { grid-template-columns: minmax(0, 1fr); }
-    .results { order: -1; }
+    .count { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'results' 'label' 'text' 'actions'; }
+    .results { margin-bottom: var(--space-5); }
     dl { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); }
     dl div { flex-direction: column; gap: 0.1rem; }
   }
