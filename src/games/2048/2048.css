@@ -2,12 +2,13 @@
    Every rule starts with .g2048, so the post text's own styles (.prose p and so on) can't win over these. */
 
 /* The game on the left and its leaderboard on the right; on narrower screens, the leaderboard goes under it.
-   Sizes inside the game follow its own width (cqw), so the board and its numbers scale together. */
-.g2048 { display: grid; grid-template-columns: minmax(0, 30rem) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
+   The game is as big as the screen's height allows (--game-width). Sizes inside it follow its own width (cqw), so
+   the board and its numbers scale together. */
+.g2048 { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
 .g2048 .g2048-play { --gap: 2.5cqw; container-type: inline-size; min-width: 0; }
 .g2048 .lb.lb-board { margin: 0; }
 @media (max-width: 859px) {
-  .g2048 { grid-template-columns: minmax(0, 30rem); }
+  .g2048 { grid-template-columns: minmax(0, var(--game-width)); }
 }
 .g2048 .g2048-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .g2048 .g2048-scores { display: flex; gap: var(--space-2); }

@@ -52,6 +52,9 @@
   --space-9: 5rem;
   --gutter: clamp(1rem, 4vw, 2.5rem);
   --content-max: 76rem;
+  /* The width a Lab game plays in: as much as the screen's height allows for a square board with its scores above
+     (the page glides to the game when play starts), up to a comfortable size. */
+  --game-width: min(44rem, calc(100svh - 7rem));
 
   --radius-sm: 6px;
   --radius-md: 14px;

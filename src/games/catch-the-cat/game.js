@@ -1,6 +1,7 @@
 // Catch the Cat on the "Jack's Catch the Cat" post: draws the dots and the cat, and plays the rules from rules.js.
 // Smoothness: the cat moves by a GPU-friendly transform and its poses swap by CSS, a blocked dot pops, and each
 // turn only changes a few classes, so nothing is redrawn from scratch.
+import { bringIntoView } from '../controls.js';
 import { block, colOf, newGame, rowOf, SIZE } from './rules.js';
 
 const BEST = 'ctc-best';
@@ -177,6 +178,8 @@ function play(root) {
     const before = game;
     const r = block(game, i);
     if (!r.played) return;
+    // A big board can start below the screen's edge: after a move, the page glides to show it whole.
+    bringIntoView($('.ctc-top'), $('.ctc-board'));
     history.push(before);
     game = r.game;
     const dot = dotEls[i];

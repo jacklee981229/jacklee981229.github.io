@@ -2,11 +2,11 @@
    Every rule starts with .snk, so the post text's own styles (.prose p and so on) can't win over these. */
 
 /* The game on the left and its leaderboard on the right; on narrower screens, the leaderboard goes under it. */
-.snk { display: grid; grid-template-columns: minmax(0, 30rem) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
+.snk { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
 .snk .snk-play { min-width: 0; }
 .snk .lb.lb-board { margin: 0; }
 @media (max-width: 859px) {
-  .snk { grid-template-columns: minmax(0, 30rem); }
+  .snk { grid-template-columns: minmax(0, var(--game-width)); }
 }
 
 .snk .snk-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
@@ -44,14 +44,17 @@
 .snk .snk-food[hidden] { display: none; }
 .snk .is-crashed .is-head { animation: snk-shake 380ms ease-in-out; }
 
-.snk .snk-hint { position: absolute; right: 0; bottom: 14%; left: 0; margin: 0; color: var(--ink); font-weight: 700; text-align: center; pointer-events: none; }
+/* Near the top of the board, as a big board's lower part can start below the screen's edge until play begins. */
+.snk .snk-hint { position: absolute; top: 22%; right: 0; left: 0; margin: 0; color: var(--ink); font-weight: 700; text-align: center; pointer-events: none; }
 .snk .snk-hint[hidden] { display: none; }
 .snk .snk-message { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 84%, transparent); text-align: center; animation: snk-fade 300ms ease both; }
 .snk .snk-message[hidden] { display: none; }
 .snk .snk-message p { margin: 0; font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.02em; }
 .snk .snk-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
-/* The walls switch, under the board; greyed out while a game is on, as the walls only change between games. */
-.snk .snk-mode { display: flex; align-items: center; gap: var(--space-2); width: fit-content; margin: var(--space-3) auto 0; font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
+/* The walls switch, beside New game (short enough to share the scores' row on a laptop, so the game still fits the
+   screen while playing); greyed out while a game is on, as the walls only change between games. */
+.snk .snk-controls { display: flex; align-items: center; gap: var(--space-3); }
+.snk .snk-mode { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
 .snk .snk-mode input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--lane-games); cursor: inherit; }
 .snk .snk-mode:has(input:disabled) { color: var(--muted); cursor: not-allowed; }
 .snk .snk-help { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }

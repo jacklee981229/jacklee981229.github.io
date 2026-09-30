@@ -10,8 +10,8 @@ const KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown:
 const MODE = 'snake-walls';
 // Each mode keeps its own best score and leaderboard: going through walls is easier, so the scores don't compare.
 const MODES = {
-  solid: { best: 'snake-best', board: 'snake', name: 'Solid walls' },
-  open: { best: 'snake-pass-best', board: 'snake-pass', name: 'Pass through walls' },
+  solid: { best: 'snake-best', board: 'snake', name: 'With walls' },
+  open: { best: 'snake-pass-best', board: 'snake-pass', name: 'No walls' },
 };
 
 const store = {
@@ -33,14 +33,16 @@ function play(root) {
           <p class="snk-score"><span class="snk-label">Best</span><strong data-best>0</strong></p>
           <p class="snk-score snk-time"><span class="snk-label">Time</span><strong data-time>00:00.00</strong></p>
         </div>
-        <button type="button" class="button" data-new>New game</button>
+        <div class="snk-controls">
+          <label class="snk-mode"><input type="checkbox" data-wrap>No walls</label>
+          <button type="button" class="button" data-new>New game</button>
+        </div>
       </div>
       <div class="snk-board" tabindex="0" role="application" aria-label="Snake board" aria-describedby="snk-help">
         <div class="snk-field" aria-hidden="true" data-field><div class="snk-grid">${'<i></i>'.repeat(SIZE * SIZE)}</div></div>
         <p class="snk-hint" data-hint>Press an arrow key or swipe to start</p>
         <div class="snk-message" data-message hidden><p data-message-text></p><div data-extra hidden></div><div class="snk-actions" data-actions></div></div>
       </div>
-      <label class="snk-mode"><input type="checkbox" data-wrap>Pass through walls</label>
       <p class="snk-help" id="snk-help">Turn with the arrow keys (or W, A, S and D). Space pauses.</p>
     </div>
     <section data-leaderboard></section>

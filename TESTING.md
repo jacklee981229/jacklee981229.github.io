@@ -326,7 +326,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/lab/game/2048/ in a normal desktop window. Expected: no big "Games" banner; the game sits right under the title, and the whole board shows without scrolling. (The Lab's "Jack's 2048" card still has its cover.)
+2. Open http://localhost:4321/lab/game/2048/ in a normal desktop window. Expected: no big "Games" banner; the game sits right under the title and starts on screen (on a short screen its lower part is below the edge until you play). (The Lab's "Jack's 2048" card still has its cover.)
 3. Click the page's title, then press an arrow key. Expected: the tiles move. Click the theme button (the sun or moon at the top), then an arrow key: the tiles still move.
 4. Press Ctrl+K, type a letter and press the arrow keys. Expected: they stay in the search box and the tiles don't move. Press Esc twice to close it.
 5. Make the window short, scroll down until the board is out of sight, then press the up arrow. Expected: the page scrolls like any page, and the tiles don't move.
@@ -374,15 +374,15 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/lab/game/snake/ (or the Lab's "Jack's Snake" card). Expected: a short green snake with eyes on a faint grid of cells, a dot of food, "Press an arrow key or swipe to start", a "Pass through walls" switch (off) under the board, and the leaderboard to the right, with a "Solid walls" tag under its title.
+2. Open http://localhost:4321/lab/game/snake/ (or the Lab's "Jack's Snake" card). Expected: a short green snake with eyes on a faint grid of cells, a dot of food, "Press an arrow key or swipe to start", a "No walls" switch (off) beside New game, and the leaderboard to the right, with a "With walls" tag under its title.
 3. Press an arrow key. Expected: the snake moves that way a whole cell at a time, jumping from cell to cell with no gliding, and the clock runs. Pressing the way straight back does nothing.
 4. Steer onto the food. Expected: Score goes up, the snake grows by one, new food appears, and the snake speeds up a little (3 ms a step per food, reaching top speed at 27).
 5. Press Space. Expected: "Paused." and everything stops; Space again carries on. Switching to another window pauses it too.
 6. Run into a wall or yourself. Expected: the head shakes, then "Game over." asks for your name (or saves under the name you gave before), and your row shows in the leaderboard.
 7. On your phone (or the browser's phone view), swipe on the board. Expected: it starts and turns with each swipe, the page doesn't scroll under your finger, and the leaderboard sits under the game.
-8. Start a game, then try the "Pass through walls" switch, also while paused. Expected: it's greyed out and doesn't change.
-9. Click New game, then tick "Pass through walls". Expected: a fresh game; the tag under the leaderboard's title says "Pass through walls", its board is separate (empty at first) and Best starts at 0. Steer into a wall: the snake comes back in on the opposite side. Running into yourself still ends the game.
-10. Reload the page. Expected: the switch is still ticked. Untick it: back to "Solid walls", with your earlier scores and Best.
+8. Start a game, then try the "No walls" switch, also while paused. Expected: it's greyed out and doesn't change.
+9. Click New game, then tick "No walls". Expected: a fresh game; the tag under the leaderboard's title says "No walls", its board is separate (empty at first) and Best starts at 0. Steer into a wall: the snake comes back in on the opposite side. Running into yourself still ends the game.
+10. Reload the page. Expected: the switch is still ticked. Untick it: back to "With walls", with your earlier scores and Best.
 
 ## Blocks
 
@@ -393,7 +393,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/lab/game/blocks/ (or the Lab's "Jack's Blocks" card). Expected: the well with "Ready?" and Start, Next, Score, Best, Lines, Level and Time beside it, the leaderboard to the right, and the whole well in view without scrolling.
+2. Open http://localhost:4321/lab/game/blocks/ (or the Lab's "Jack's Blocks" card). Expected: the well with "Ready?" and Start, Next, Score, Best, Lines, Level and Time beside it, the leaderboard to the right, and "Ready?" with Start in view without scrolling. Click Start: the page glides so the whole well fits the window.
 3. Click Start. Expected: pieces fall. Left and right move (holding keeps moving), up turns (Z turns back), down drops faster, Space drops at once, and an outline shows where the piece will land.
 4. Fill a whole row. Expected: it flashes and goes, the rows above come down, Lines goes up, and the score jumps (more for more rows at once: 100, 300, 500 or 800 times the level).
 5. Press P. Expected: "Paused."; P again carries on. Switching to another window pauses it too.
@@ -452,3 +452,17 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. In Catch the Cat, click a dot, then press the down arrow. Expected: the dot is blocked and the page scrolls; the game doesn't take the arrow keys. Press Tab until the board has a blue outline: now the arrow keys move a ring and Enter blocks the dot inside it.
 5. In Blocks, start a game and press R. Expected: it holds the piece, like C.
 6. On any game, click "‹ Lab". Expected: the Lab home opens at Mini Games, not at the top.
+
+## Games fill the screen
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. On a laptop (or a browser window about 1440 by 760), open http://localhost:4321/lab/game/2048/. Expected: the title, then the scores and the top of a big board. Press an arrow key: the page glides so the scores and the whole board fill the window.
+3. Do the same on Snake (an arrow key), Blocks (Start) and Catch the Cat (click a dot). Expected: each glides the same way, and the whole game fits the window. On a MacBook Air-sized window, 2048 and Snake are about 650 pixels wide and the Blocks well about 720 tall.
+4. Make the window shorter or taller and reload. Expected: the games grow and shrink with the window's height, up to a comfortable maximum, and the leaderboard stays in the same place on 2048, Snake and Blocks.
+5. On your phone (or the browser's phone view). Expected: the games fill the width as before, and nothing scrolls sideways.
