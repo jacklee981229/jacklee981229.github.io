@@ -1,0 +1,14 @@
+---
+// Catch the Cat on its post. Astro builds its script and styles, so their file names change whenever they do and a
+// browser never pairs a new page with an old saved copy of the game. The styles are linked here (?url), not
+// bundled, so only this game's page loads them.
+import gameCss from '../../games/catch-the-cat/catch-the-cat.css?url';
+---
+<link rel="stylesheet" href={gameCss} />
+<div class="ctc" data-catch-the-cat>
+  <noscript>Catch the Cat needs JavaScript. Turn it on in your browser to play.</noscript>
+</div>
+
+<script>
+  import '../../games/catch-the-cat/game.js';
+</script>

@@ -101,20 +101,22 @@ function nameForm(value, done, cancel) {
  * Draws a game's leaderboard into `box`, an empty element under the game; `game` is a short id (the board is saved
  * as lb-<game>). Returns `finish(score, time, onSaved)` for when a game ends: it saves the score under the kept
  * name, or asks for a name the first time, and returns an element for the game's end message. When the name has
- * to be asked, `onSaved` runs once it's saved, so the game can move the focus on.
+ * to be asked, `onSaved` runs once it's saved, so the game can move the focus on. A game with more than one board
+ * (Snake's two wall modes) passes a `label` saying which one this is, and calls this again to swap boards.
  */
-export function leaderboard(box, game) {
+export function leaderboard(box, game, label = '') {
   const key = `lb-${game}`;
   let board = readBoard(store.get(key));
   // Whoever saved last, to pick out their row.
   let latest = '';
   box.classList.add('lb', 'lb-board');
-  box.setAttribute('aria-labelledby', `lb-title-${game}`);
+  box.setAttribute('aria-labelledby', label ? `lb-title-${game} lb-label-${game}` : `lb-title-${game}`);
   box.innerHTML = `
     <div class="lb-head">
       <h2 class="lb-title" id="lb-title-${game}">Leaderboard</h2>
       <p class="lb-where">Kept in this browser.</p>
     </div>
+    ${label ? `<p class="lb-label" id="lb-label-${game}">${label}</p>` : ''}
     <table class="lb-table">
       <thead><tr><th scope="col">#</th><th scope="col">Name</th><th scope="col">Score</th><th scope="col">Time</th></tr></thead>
       <tbody></tbody>

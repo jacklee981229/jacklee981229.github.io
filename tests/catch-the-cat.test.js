@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { block, catMove, colOf, isEdge, neighbours, newGame, rowOf, SIZE, START, START_BLOCKS } from '../public/games/catch-the-cat/rules.js';
+import { block, catMove, colOf, isEdge, neighbours, newGame, rowOf, SIZE, START, START_BLOCKS } from '../src/games/catch-the-cat/rules.js';
 
 const at = (row, col) => row * SIZE + col;
 const game = (cat, blocked = []) => ({ blocked: [...blocked].sort((a, b) => a - b), cat, moves: 0, over: null });

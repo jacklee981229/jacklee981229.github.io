@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canMove, emptyCells, move, newGame, spawn } from '../public/games/2048/rules.js';
+import { canMove, emptyCells, move, newGame, spawn } from '../src/games/2048/rules.js';
 
 // A game from rows of numbers (0 is an empty cell).
 const game = (rows, extra = {}) => {

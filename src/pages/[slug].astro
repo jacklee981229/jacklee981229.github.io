@@ -3,8 +3,6 @@ import { render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Cover from '../components/Cover.astro';
 import Icon from '../components/Icon.astro';
-import LabHeader from '../components/LabHeader.astro';
-import LabMore from '../components/LabMore.astro';
 import MiniCard from '../components/MiniCard.astro';
 import MoreBand from '../components/MoreBand.astro';
 import PostScripts from '../components/PostScripts.astro';
@@ -26,7 +24,8 @@ export async function getStaticPaths() {
     if (RESERVED_SLUGS.includes(post.id)) throw new Error(`Post folder "${post.id}" clashes with the site's /${post.id}/ page. Rename the folder in src/content/posts.`);
     if (!/^[a-z0-9_-]+$/.test(post.id)) throw new Error(`Post folder "${post.id}" can only use lowercase letters, numbers, - and _, because it becomes the address /${post.id}/.`);
   }
-  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+  // The Lab's games have their pages under /lab/game/ (src/pages/lab/game/[slug].astro).
+  return posts.filter((post) => !EXPERIMENTS.includes(post.id)).map((post) => ({ params: { slug: post.id }, props: { post } }));
 }
 
 interface Props {
@@ -41,21 +40,8 @@ const { newer, older } = neighbours(listed, post);
 const more = checkThese(listed, post);
 const topic = topicOf(data.topic);
 const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
-// A game (one of the Lab's experiments) is laid out like a Lab tool: its name and description, then the game, in
-// view on arrival, then other Lab items. No date, tags or banner; its cover still shows on cards.
-const isGame = EXPERIMENTS.includes(post.id);
 ---
 <Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
-  {isGame ? (
-    <>
-      <div class="wrap page">
-        <LabHeader title={data.title} description={summaryOf(post)} />
-        <div class="prose"><Content /></div>
-      </div>
-      <LabMore current={post.id} />
-    </>
-  ) : (
-  <>
   <article class="wrap post" style={`--c: var(--lane-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
     <header>
       <p class="topic" data-pagefind-ignore><a href={`/writing/#${data.topic}`}>{topic.name}</a></p>
@@ -115,8 +101,6 @@ const isGame = EXPERIMENTS.includes(post.id);
   </MoreBand>
 
   <PostScripts />
-  </>
-  )}
 </Base>
 
 <style>

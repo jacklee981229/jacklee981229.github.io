@@ -1,0 +1,16 @@
+---
+// 2048 on its post. Astro builds its script and styles, so their file names change whenever they do and a browser
+// never pairs a new page with an old saved copy of the game. The styles are linked here (?url), not bundled, so
+// only this game's page loads them.
+import leaderboardCss from '../../games/leaderboard.css?url';
+import gameCss from '../../games/2048/2048.css?url';
+---
+<link rel="stylesheet" href={gameCss} />
+<link rel="stylesheet" href={leaderboardCss} />
+<div class="g2048" data-game-2048>
+  <noscript>2048 needs JavaScript. Turn it on in your browser to play.</noscript>
+</div>
+
+<script>
+  import '../../games/2048/game.js';
+</script>

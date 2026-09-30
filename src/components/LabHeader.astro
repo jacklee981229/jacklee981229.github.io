@@ -5,12 +5,14 @@ import Icon from './Icon.astro';
 interface Props {
   title: string;
   description: string;
+  /** Where "Lab" goes back to: a game goes back to its section of the Lab home. */
+  back?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, back = '/lab/' } = Astro.props;
 ---
 <div class="lab-header">
-  <a class="back" href="/lab/"><Icon name="back" />Lab</a>
+  <a class="back" href={back}><Icon name="back" />Lab</a>
   <h1 class="page-title">{title}</h1>
   <p class="lede">{description}</p>
 </div>

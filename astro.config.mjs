@@ -27,5 +27,8 @@ export default defineConfig({
     '/archives/2023/10': '/archives/',
     // The Tags page was dropped (26 Sep); the home page's sidebar lists every tag.
     '/tags': '/',
+    // The two games from the old site moved into the Lab (30 Sep), where every game lives at /lab/game/<name>/.
+    '/game_1': '/lab/game/2048/',
+    '/game_2': '/lab/game/catch-the-cat/',
   },
 });

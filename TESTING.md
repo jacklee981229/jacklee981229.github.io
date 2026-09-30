@@ -74,7 +74,7 @@ Expected: the build ends with "32 page(s) built" and "Indexed 14 pages"; the pre
 5. Open http://localhost:4321/7/. Expected: a teal line down the left, "On this page" with 13 entries, 19 code blocks labelled with file names such as "fullpage-loading.pug" and with line numbers, the 6 longest folded behind "Show all N lines", and no licence notice (the old post had it turned off).
 6. Open http://localhost:4321/11/. Expected: the finished-app screenshot as the cover. Click the first screenshot in the post: it opens large with the caption "flutter sdk"; Esc closes it.
 7. Open http://localhost:4321/2/ and click Copy on the first code block. Expected: "Copied"; pasting gives the 4 `index_generator` lines. (Not run by Claude: copying needs a real click, and the browser pane wasn't drawing.)
-8. Open /writing/ (5 topics), /archives/ (14 posts under 2023) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They still open at /game_1/ and /game_2/, and at phone width both games fit the screen without scrolling sideways.
+8. Open /writing/ (5 topics), /archives/ (14 posts under 2023) and /tags/hexo/ (5 posts). Expected: the game pages appear in none of them. They open at /lab/game/2048/ and /lab/game/catch-the-cat/ (the old /game_1/ and /game_2/ forward there), and at phone width both games fit the screen without scrolling sideways.
 9. Press Ctrl+K and type `emulator`. Expected: "Flutter Get Started" with the matching words highlighted. Type `zzqqxx`: "No posts match “zzqqxx”. Try a shorter word."
 10. Open http://localhost:4321/atom.xml and http://localhost:4321/sitemap.xml. Expected: the feed has 14 entries, newest "Flutter Get Started"; the sitemap has 29 addresses and no game pages.
 11. On the home page, press Tab repeatedly (not run by Claude: the browser pane wasn't drawing). Expected: every card, topic pill, tag and button shows a blue outline when reached; a card's outline goes round the whole card.
@@ -223,7 +223,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Look at the menu, then open http://localhost:4321/lab/. Expected: Lab sits between Archives and About. The page shows "Jack's Lab" with a flask icon, then Tools in two groups (Text and Images): every card has an icon and an example of what it does, Count Words opens, and the other nine say "Soon". Experiments shows Play 2048! and Play Catch the Cat! with their covers, and Random is a dashed card.
+2. Look at the menu, then open http://localhost:4321/lab/. Expected: Lab sits between Archives and About. The page shows "Jack's Lab" with a flask icon, then Tools in two groups (Text and Images): every card has an icon and an example of what it does, the ready tools open and the rest say "Soon". Mini Games! shows Jack's 2048, Jack's Catch the Cat, Jack's Snake and Jack's Blocks with their covers, and Random is a dashed card.
 3. Open Count Words and type or paste some text. Expected: words, characters, characters without spaces, lines, paragraphs and reading time update as you type. "well-known" counts as one word, and 我喜欢写代码 counts as 4 words. Clear empties the box and sets every count back to 0.
 4. Go back to the Lab and open both games. Expected: they play as before.
 5. Open http://localhost:4321/random/. Expected: "Random", a line saying it's coming, and a "Back to the Lab" button.
@@ -244,7 +244,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_1/ (or the Lab's "Play 2048!" card). Expected: Score and Best, a New game button, and a green 4 by 4 board with two tiles. No "refused to connect".
+2. Open http://localhost:4321/lab/game/2048/ (or the Lab's "Jack's 2048" card). Expected: Score and Best, a New game button, and a green 4 by 4 board with two tiles. No "refused to connect".
 3. Press the arrow keys (or W, A, S and D) quickly, several times in a row. Expected: tiles slide smoothly, equal tiles join with a small pop and the score goes up with a floating "+", a new tile fades in after each move, and fast presses never lag behind.
 4. Reload the page. Expected: the same game comes back, and Best keeps your highest score.
 5. Press Ctrl+K, type "a" and press the left arrow in the search box. Expected: the tiles don't move. Press Esc.
@@ -260,7 +260,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "35 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_2/ (or the Lab's "Play Catch the Cat!" card). Expected: Moves and Best, Undo and New game buttons, and a green board of 11 rows of dots with the cat in the middle and a few dots already blocked.
+2. Open http://localhost:4321/lab/game/catch-the-cat/ (or the Lab's "Jack's Catch the Cat" card). Expected: Moves and Best, Undo and New game buttons, and a green board of 11 rows of dots with the cat in the middle and a few dots already blocked.
 3. Click a free dot. Expected: it turns solid green with a small pop, and the cat glides one dot towards the nearest edge. Moves goes up by one.
 4. Keep clicking dots far from the cat. Expected: when the cat reaches the edge it runs off the board, and "The cat got away." offers Undo and Try again. Undo takes back your last move.
 5. Trap the cat (block all six dots around it). Expected: "You trapped the cat in N moves!", and Best shows your fewest moves, also after a reload.
@@ -276,7 +276,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_2/ and watch the cat for a few seconds. Expected: it sits side-on on its dot, its tail sways, and it blinks every few seconds.
+2. Open http://localhost:4321/lab/game/catch-the-cat/ and watch the cat for a few seconds. Expected: it sits side-on on its dot, its tail sways, and it blinks every few seconds.
 3. Click a free dot. Expected: the cat turns to face where it's going, hops one dot with its legs moving (leaning up or down when it changes row), and lands sitting. No black box appears around the board.
 4. Click several dots quickly, one after another. Expected: every hop starts cleanly and the cat always ends sitting, never stuck mid-stride.
 5. Keep clicking dots far from the cat until it reaches the edge. Expected: it gallops off the board the same way, fading out, then "The cat got away." Undo brings it back, sitting.
@@ -310,7 +310,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_1/ and click New game. Expected: Time shows `00:00.00` and waits. Press an arrow key: the time starts running, in hundredths of a second.
+2. Open http://localhost:4321/lab/game/2048/ and click New game. Expected: Time shows `00:00.00` and waits. Press an arrow key: the time starts running, in hundredths of a second.
 3. Wait a few seconds, then reload the page. Expected: the same game comes back, and its time carries on from where it was, without the moment the page was closed.
 4. Press the arrow keys quickly in any order until no moves are left (a minute or two). Expected: the time stops, and "No more moves." asks for "Your name for the leaderboard". Type a name with W, A, S or D in it and press Enter: the name arrives whole, the message says "Saved for <name>: number 1 on the leaderboard.", and the Leaderboard beside the game (under it on a phone) shows your name, score and time, picked out in green.
 5. Click Try again and play another game to the end. Expected: no name is asked. A lower score says "<name>'s best is still …" and your row stays; a higher score replaces it.
@@ -326,7 +326,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_1/ in a normal desktop window. Expected: no big "Games" banner; the game sits right under the title, and the whole board shows without scrolling. (The Lab's "Play 2048!" card still has its cover.)
+2. Open http://localhost:4321/lab/game/2048/ in a normal desktop window. Expected: no big "Games" banner; the game sits right under the title, and the whole board shows without scrolling. (The Lab's "Jack's 2048" card still has its cover.)
 3. Click the page's title, then press an arrow key. Expected: the tiles move. Click the theme button (the sun or moon at the top), then an arrow key: the tiles still move.
 4. Press Ctrl+K, type a letter and press the arrow keys. Expected: they stay in the search box and the tiles don't move. Press Esc twice to close it.
 5. Make the window short, scroll down until the board is out of sight, then press the up arrow. Expected: the page scrolls like any page, and the tiles don't move.
@@ -343,10 +343,112 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "39 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/game_1/. Expected: "‹ Lab", "Play 2048!" and "Slide the tiles and reach 2048.", then the game. No date, tags, Copy link or banner. On a desktop window the leaderboard card sits to the right of the board, level with its top.
-3. Scroll to the bottom. Expected: a full-width band a shade apart, with a line along its top: "Check these too!", "Other tools and games in the Lab.", then Play Catch the Cat! first and Lab tools, as cards. No Recent posts and no author card.
-4. Open http://localhost:4321/game_2/. Expected: the same layout, with Play 2048! first under "Check these too!".
+2. Open http://localhost:4321/lab/game/2048/. Expected: "‹ Lab", "Jack's 2048" and "Slide the tiles and reach 2048.", then the game. No date, tags, Copy link or banner. On a desktop window the leaderboard card sits to the right of the board, level with its top.
+3. Scroll to the bottom. Expected: a full-width band a shade apart, with a line along its top: "Check these too!", "Other tools and games in the Lab.", then Jack's Catch the Cat first and Lab tools, as cards. No Recent posts and no author card.
+4. Open http://localhost:4321/lab/game/catch-the-cat/. Expected: the same layout, with Jack's 2048 first under "Check these too!".
 5. Open http://localhost:4321/lab/count-words/. Expected: the description fits on one line; the text box and the counts card start and end level; "Check these too!" shows the four other tools.
 6. Open http://localhost:4321/lab/change-case/. Expected: "Change to" with two lined-up rows, "Text" (UPPERCASE and the rest) and "Code" (camelCase and the rest).
 7. Open any post, for example http://localhost:4321/11/, and scroll to the bottom. Expected: the same full-width band, with "Check these too!", "More posts from Jack's Space.", up to four post cards (the same topic first) and the author card. No "Related posts" or "Recent posts".
-8. On your phone (or the browser's phone view), open /game_1/ and /lab/count-words/. Expected: the leaderboard under the game; the counts above the text box; nothing scrolls sideways.
+8. On your phone (or the browser's phone view), open /lab/game/2048/ and /lab/count-words/. Expected: the leaderboard under the game; the counts above the text box; nothing scrolls sideways.
+
+## The Lab in dark green
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Switch to the dark theme and open http://localhost:4321/lab/. Expected: the whole page, header included, in deep green instead of deep blue.
+3. Open a tool (http://localhost:4321/lab/count-words/), a game (http://localhost:4321/lab/game/2048/) and http://localhost:4321/random/. Expected: the same deep green.
+4. Open the home page or any post. Expected: still deep blue.
+5. Switch to the light theme. Expected: the Lab looks like the rest of the site.
+
+## Snake
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/game/snake/ (or the Lab's "Jack's Snake" card). Expected: a short green snake with eyes on a faint grid of cells, a dot of food, "Press an arrow key or swipe to start", a "Pass through walls" switch (off) under the board, and the leaderboard to the right, with a "Solid walls" tag under its title.
+3. Press an arrow key. Expected: the snake moves that way a whole cell at a time, jumping from cell to cell with no gliding, and the clock runs. Pressing the way straight back does nothing.
+4. Steer onto the food. Expected: Score goes up, the snake grows by one, new food appears, and the snake speeds up a little (3 ms a step per food, reaching top speed at 27).
+5. Press Space. Expected: "Paused." and everything stops; Space again carries on. Switching to another window pauses it too.
+6. Run into a wall or yourself. Expected: the head shakes, then "Game over." asks for your name (or saves under the name you gave before), and your row shows in the leaderboard.
+7. On your phone (or the browser's phone view), swipe on the board. Expected: it starts and turns with each swipe, the page doesn't scroll under your finger, and the leaderboard sits under the game.
+8. Start a game, then try the "Pass through walls" switch, also while paused. Expected: it's greyed out and doesn't change.
+9. Click New game, then tick "Pass through walls". Expected: a fresh game; the tag under the leaderboard's title says "Pass through walls", its board is separate (empty at first) and Best starts at 0. Steer into a wall: the snake comes back in on the opposite side. Running into yourself still ends the game.
+10. Reload the page. Expected: the switch is still ticked. Untick it: back to "Solid walls", with your earlier scores and Best.
+
+## Blocks
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/game/blocks/ (or the Lab's "Jack's Blocks" card). Expected: the well with "Ready?" and Start, Next, Score, Best, Lines, Level and Time beside it, the leaderboard to the right, and the whole well in view without scrolling.
+3. Click Start. Expected: pieces fall. Left and right move (holding keeps moving), up turns (Z turns back), down drops faster, Space drops at once, and an outline shows where the piece will land.
+4. Fill a whole row. Expected: it flashes and goes, the rows above come down, Lines goes up, and the score jumps (more for more rows at once: 100, 300, 500 or 800 times the level).
+5. Press P. Expected: "Paused."; P again carries on. Switching to another window pauses it too.
+5a. Press C (or R, or Shift). Expected: the falling piece goes into the Hold box and the next piece comes in; the Hold box fades, and C does nothing more until that piece sets. After it sets, C swaps the falling piece with the held one, which comes in at the top.
+6. Let the blocks reach the top. Expected: "Game over." with the name form (or saved under your name), and your row in the leaderboard.
+7. On your phone (or the browser's phone view). Expected: two rows of buttons under the well, Hold, Turn and Drop, then Left, Down and Right (holding Left, Right or Down repeats), and nothing runs off the screen. Tapping a button doesn't flash a blue box over it.
+
+## Games load their newest version (no hard refresh)
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/game/2048/, press Ctrl+U to see the page's source and search for `Game2048`. Expected: the script's name has a fingerprint at the end, like `Game2048.astro_astro_type_script_index_0_lang.CW-dTkQx.js`, and no address starts with `/games/`.
+3. Search the source for `2048.` and `leaderboard.`. Expected: both stylesheets are in `/_astro/` with a fingerprint too. Open any post (for example http://localhost:4321/11/) and search its source: no game stylesheets or scripts at all.
+4. After the next deploy that changes a game, open that game's page on the live site with a normal reload (F5). Expected: the new version straight away, no Ctrl+Shift+R needed.
+
+## Games under /lab/game/, "In memories." and no tap flash
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. In a second terminal, in `C:\repos\Jack\jacks-space`:
+   ```powershell
+   node scratch/check-old-urls.mjs
+   ```
+   Expected: `/game_1/` and `/game_2/` say "ok (redirects)", and the last line is "47 old addresses checked, 0 problems."
+3. Open http://localhost:4321/game_1/. Expected: it lands on http://localhost:4321/lab/game/2048/ with "Jack's 2048". http://localhost:4321/game_2/ lands on http://localhost:4321/lab/game/catch-the-cat/.
+4. Open http://localhost:4321/lab/ and open each Mini Games card. Expected: the addresses /lab/game/2048/, /lab/game/catch-the-cat/, /lab/game/snake/ and /lab/game/blocks/, each game with its best score and leaderboard as you left them.
+5. Open http://localhost:4321/lab/game/blocks/. Expected: "In memories." under the game.
+6. Open http://localhost:4321/11/. Expected: the post, at the same address as before.
+7. On your phone (or the browser's phone view), tap a dot in Catch the Cat, then the buttons under Blocks. Expected: the dot turns dark and the piece moves, with no blue patch flashing over what you tapped.
+
+## Game texts, leaderboards lined up, Catch the Cat's keys, back to Mini Games
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open each game from http://localhost:4321/lab/. Expected, under each board:
+   - 2048: "Use the arrow keys (or W, A, S and D), or swipe on the board." and below it "The classic 2048. The original game is by Gabriele Cirulli (source)."
+   - Snake: "Eat and grow!" under the title; "Turn with the arrow keys (or W, A, S and D). Space pauses." under the board; "The classic snake game." below.
+   - Catch the Cat: "Click a dot to block it. Trap the cat before it reaches the edge."
+   - Blocks: "Use the arrow keys (or W, A, S and D): left and right move, up turns, down drops faster. Z turns back, Space drops, C or R holds. P pauses."
+3. In a wide window, open 2048, Snake and Blocks in turn. Expected: the leaderboard starts at the same place to the right of the game on all three, and "Kept in this browser." sits beside "Leaderboard" (Snake's wall tag goes under that line).
+4. In Catch the Cat, click a dot, then press the down arrow. Expected: the dot is blocked and the page scrolls; the game doesn't take the arrow keys. Press Tab until the board has a blue outline: now the arrow keys move a ring and Enter blocks the dot inside it.
+5. In Blocks, start a game and press R. Expected: it holds the piece, like C.
+6. On any game, click "‹ Lab". Expected: the Lab home opens at Mini Games, not at the top.

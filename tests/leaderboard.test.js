@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addScore, cleanName, formatTime, NAME_MAX, readBoard } from '../public/games/leaderboard.js';
+import { addScore, cleanName, formatTime, NAME_MAX, readBoard } from '../src/games/leaderboard.js';
 
 const names = (board) => board.map((e) => `${e.name} ${e.score}`);
 

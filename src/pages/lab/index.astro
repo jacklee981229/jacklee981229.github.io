@@ -8,13 +8,13 @@ import { experimentPosts } from '../../lib/collections';
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
 const experiments = await experimentPosts();
 ---
-<Base title="Jack's Lab" description={INTRO}>
+<Base title="Jack's Lab" description={INTRO} area="lab">
   <div class="wrap page">
     <h1 class="page-title lab-title"><Icon name="flask" />Jack's Lab</h1>
     <p class="lede">{INTRO}</p>
     <nav class="jump" aria-label="Lab sections">
       <a href="#tools">Tools</a>
-      <a href="#experiments">Experiments</a>
+      <a href="#mini-games">Mini Games</a>
       <a href="#random">Random <span>soon</span></a>
     </nav>
 
@@ -30,12 +30,12 @@ const experiments = await experimentPosts();
       ))}
     </section>
 
-    <section id="experiments" aria-labelledby="experiments-title">
-      <h2 id="experiments-title">Experiments</h2>
+    <section id="mini-games" aria-labelledby="mini-games-title">
+      <h2 id="mini-games-title">Mini Games!</h2>
       <ul class="cards">
         {experiments.map((post) => <LabItemCard post={post} />)}
       </ul>
-      <p class="note">More experiments will appear here.</p>
+      <p class="note">More games will appear here.</p>
     </section>
 
     <section id="random" aria-labelledby="random-title">

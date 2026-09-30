@@ -1,0 +1,38 @@
+---
+import { render } from 'astro:content';
+import Base from '../../../layouts/Base.astro';
+import Blocks from '../../../components/games/Blocks.astro';
+import CatchTheCat from '../../../components/games/CatchTheCat.astro';
+import Game2048 from '../../../components/games/Game2048.astro';
+import Snake from '../../../components/games/Snake.astro';
+import LabHeader from '../../../components/LabHeader.astro';
+import LabMore from '../../../components/LabMore.astro';
+import '../../../styles/prose.css';
+import { coverOf, experimentPosts, summaryOf, type Post } from '../../../lib/collections';
+
+// The Lab's games (EXPERIMENTS in lab/tools.js), one page each, laid out like a Lab tool: the name and description,
+// then the game, in view on arrival, then other Lab items. No date, tags or banner; the cover still shows on cards.
+export async function getStaticPaths() {
+  const posts = await experimentPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+const { Content } = await render(post);
+// Each game's own component, which brings its script and styles.
+const GAMES: Record<string, typeof Game2048> = { '2048': Game2048, 'catch-the-cat': CatchTheCat, snake: Snake, blocks: Blocks };
+const Game = GAMES[post.id];
+if (!Game) throw new Error(`The Lab's game "${post.id}" has no game component. Add it to GAMES in src/pages/lab/game/[slug].astro.`);
+---
+<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }} area="lab">
+  <div class="wrap page">
+    <LabHeader title={data.title} description={summaryOf(post)} back="/lab/#mini-games" />
+    <div class="prose"><Game /><Content /></div>
+  </div>
+  <LabMore current={post.id} />
+</Base>

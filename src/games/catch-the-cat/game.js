@@ -1,4 +1,4 @@
-// Catch the Cat on the "Play Catch the Cat!" post: draws the dots and the cat, and plays the rules from rules.js.
+// Catch the Cat on the "Jack's Catch the Cat" post: draws the dots and the cat, and plays the rules from rules.js.
 // Smoothness: the cat moves by a GPU-friendly transform and its poses swap by CSS, a blocked dot pops, and each
 // turn only changes a few classes, so nothing is redrawn from scratch.
 import { block, colOf, newGame, rowOf, SIZE } from './rules.js';
@@ -70,14 +70,15 @@ function play(root) {
       <div class="ctc-buttons"><button type="button" class="button" data-undo>Undo</button><button type="button" class="button" data-new>New game</button></div>
     </div>
     <div class="ctc-board">
-      <svg viewBox="0 0 ${WIDTH} ${HEIGHT}" tabindex="0" role="application" aria-label="Catch the Cat board" aria-describedby="ctc-help">
+      <svg viewBox="0 0 ${WIDTH} ${HEIGHT}" tabindex="0" role="application" aria-label="Catch the Cat board" aria-describedby="ctc-help ctc-keys">
         <g>${dots}</g>
         <circle class="ctc-cursor" r="${RADIUS + 0.06}" data-cursor/>
         <g class="ctc-cat" data-cat>${CAT}</g>
       </svg>
       <div class="ctc-message" data-message hidden><p data-message-text></p><div class="ctc-actions" data-actions></div></div>
     </div>
-    <p class="ctc-help" id="ctc-help">Click a dot to block it, or use the arrow keys and Enter. Trap the cat before it reaches the edge.</p>
+    <p class="ctc-help" id="ctc-help">Click a dot to block it. Trap the cat before it reaches the edge.</p>
+    <p class="visually-hidden" id="ctc-keys">With a keyboard: the arrow keys pick a dot, Enter blocks it.</p>
     <p class="visually-hidden" aria-live="polite" data-status></p>`;
 
   const $ = (sel) => root.querySelector(sel);
@@ -148,15 +149,18 @@ function play(root) {
     status.textContent = words;
     message.querySelector('button').focus();
   };
-  const undo = () => {
+  // The keys play only once the board is reached with Tab. A button pressed from the keyboard (a click with no mouse
+  // behind it) hands the keys back to the board; after a mouse click, the arrow keys keep scrolling the page.
+  const backToBoard = (e) => { if (e.detail === 0) svg.focus(); };
+  const undo = (e) => {
     if (!history.length) return;
     stopTimers();
     game = history.pop();
     message.hidden = true;
     draw();
-    svg.focus();
+    backToBoard(e);
   };
-  const restart = () => {
+  const restart = (e) => {
     stopTimers();
     game = newGame();
     history = [];
@@ -165,7 +169,7 @@ function play(root) {
     turnTo(1);
     draw();
     placeCursor();
-    svg.focus();
+    backToBoard(e);
   };
 
   const turn = (i) => {
@@ -208,6 +212,8 @@ function play(root) {
     status.textContent = `Blocked ${where(i)}. The cat moved to ${where(r.catTo)}.`;
   };
 
+  // A click or tap doesn't select the board, so the keys stay with the page.
+  svg.addEventListener('mousedown', (e) => e.preventDefault());
   svg.addEventListener('click', (e) => {
     const dot = e.target.closest('.ctc-dot');
     if (!dot) return;
@@ -215,7 +221,8 @@ function play(root) {
     placeCursor();
     turn(cursor);
   });
-  // Keyboard: the arrow keys move a ring around the board, Enter or Space blocks the dot inside it.
+  // Keyboard, once the board has been reached with Tab: the arrow keys move a ring around the board, Enter or Space
+  // blocks the dot inside it.
   svg.addEventListener('keydown', (e) => {
     const r = rowOf(cursor);
     const c = colOf(cursor);

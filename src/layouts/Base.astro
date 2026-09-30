@@ -17,9 +17,11 @@ interface Props {
   // The picture shown when the page is shared; the avatar when there is none.
   image?: ImageMetadata;
   article?: { published: Date; updated?: Date; tags: string[] };
+  /** "lab" for the Lab's pages (its home, tools, games and Random), which have their own dark theme colours. */
+  area?: 'lab';
 }
 
-const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, article } = Astro.props;
+const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, article, area } = Astro.props;
 // Same title format as the old site, so search results look the same.
 const pageTitle = title ? `${title} | ${SITE.title}` : `${SITE.title} - ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -27,7 +29,7 @@ const shareImage = await getImage({ src: image ?? avatar, width: image ? Math.mi
 const shareImageUrl = new URL(shareImage.src, Astro.site);
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-area={area}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

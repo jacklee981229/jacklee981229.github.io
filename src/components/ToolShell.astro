@@ -16,7 +16,7 @@ interface Props {
 const { slug, stays } = Astro.props;
 const tool = toolBySlug(slug);
 ---
-<Base title={tool.name} description={tool.description}>
+<Base title={tool.name} description={tool.description} area="lab">
   <div class="wrap page">
     <LabHeader title={tool.name} description={`${tool.description} ${stays}`} />
     <slot />

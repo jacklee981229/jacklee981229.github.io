@@ -23,8 +23,11 @@ export const TOOLS = [
   { slug: 'qr-code', name: 'Make a QR Code', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'soon', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
 ];
 
-/** Posts shown under Experiments. Their titles, descriptions and covers come from the posts themselves. */
-export const EXPERIMENTS = ['game_1', 'game_2'];
+/**
+ * Posts shown under Mini Games! on the Lab home, each played at /lab/game/<post folder>/. Their titles, descriptions
+ * and covers come from the posts themselves.
+ */
+export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
 
 /** @param {string} slug */
 export const toolUrl = (slug) => `/lab/${slug}/`;

@@ -79,3 +79,14 @@
   --lane-games: #74C678;
   --lane-flutter: #7AAAFF;
 }
+
+/* The Lab (its home, tools, games and Random) in the dark theme: the same colours turned from deep blue to deep
+   green, so the Lab feels like a place of its own. Measured: text keeps at least 4.5:1 on every surface. */
+:root[data-theme="dark"][data-area="lab"] {
+  --paper: #0C1812;
+  --surface: #15281F;
+  --ink: #E3EDE8;
+  --muted: #9BB0A6;
+  --rule: #243D30;
+  --wash: rgb(227 237 232 / 0.07);
+}

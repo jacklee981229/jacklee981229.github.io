@@ -27,7 +27,7 @@ export async function experimentPosts(): Promise<Post[]> {
   });
 }
 
-export const postUrl = (post: Post) => `/${post.id}/`;
+export const postUrl = (post: Post) => (EXPERIMENTS.includes(post.id) ? `/lab/game/${post.id}/` : `/${post.id}/`);
 export const tagUrl = (tag: string) => `/tags/${slugify(tag)}/`;
 export const summaryOf = (post: Post) => post.data.description ?? excerpt(post.body ?? '');
 
