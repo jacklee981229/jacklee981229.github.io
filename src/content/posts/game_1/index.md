@@ -11,6 +11,7 @@ hidden: true
   <noscript>2048 needs JavaScript. Turn it on in your browser to play.</noscript>
 </div>
 <link rel="stylesheet" href="/games/2048/2048.css" />
+<link rel="stylesheet" href="/games/leaderboard.css" />
 <script type="module" src="/games/2048/game.js"></script>
 
 My own version of 2048, built into this site. The original game is by Gabriele Cirulli ([source](https://github.com/gabrielecirulli/2048)).
