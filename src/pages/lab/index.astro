@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
-import { GROUPS, TOOLS } from '../../lib/lab/tools.js';
+import { EFFECTS, GROUPS, TOOLS } from '../../lib/lab/tools.js';
 import { experimentPosts, popularLabItems } from '../../lib/collections';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
@@ -16,6 +16,7 @@ const popular = await popularLabItems();
     <nav class="jump" aria-label="Lab sections">
       <a href="#tools">Tools</a>
       <a href="#mini-games">Mini Games</a>
+      <a href="#effects">Effects</a>
       <a href="#random">Random <span>soon</span></a>
     </nav>
 
@@ -46,6 +47,14 @@ const popular = await popularLabItems();
         {experiments.map((post) => <LabItemCard post={post} />)}
       </ul>
       <p class="note">More games will appear here.</p>
+    </section>
+
+    <section id="effects" aria-labelledby="effects-title">
+      <h2 id="effects-title">Effects</h2>
+      <ul class="cards">
+        {EFFECTS.map((effect) => <LabItemCard effect={effect} />)}
+      </ul>
+      <p class="note">No use at all. Just move your mouse.</p>
     </section>
 
     <section id="random" aria-labelledby="random-title">

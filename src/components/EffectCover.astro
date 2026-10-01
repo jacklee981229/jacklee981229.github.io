@@ -1,0 +1,146 @@
+---
+// The picture on an effect's card: a still drawing of what it does, in the site's colours. Each is worked out here
+// from the same idea as the effect itself, so the card looks like what you'll get.
+interface Props {
+  slug: string;
+}
+
+const { slug } = Astro.props;
+// Wider than any card: a card shows the middle of it and trims the sides, so each picture keeps its subject in the middle.
+const W = 360;
+const H = 88;
+const LANES = 5;
+// The same "random" numbers on every build, so the pictures don't change from one publish to the next.
+let seed = 7;
+const random = () => {
+  seed = (seed * 16807) % 2147483647;
+  return seed / 2147483647;
+};
+const round = (n: number) => Math.round(n * 10) / 10;
+
+type Dot = { x: number; y: number; r: number; lane: number; alpha: number };
+type Line = { points: string; lane: number; alpha: number; width: number };
+type Ring = { x: number; y: number; r: number; lane: number; alpha: number; width: number };
+const dots: Dot[] = [];
+const lines: Line[] = [];
+const rings: Ring[] = [];
+
+if (slug === 'dot-grid') {
+  // A grid of dots pushed away from one spot, coloured by the way they went.
+  const at = { x: 180, y: 46 };
+  for (let y = 8; y < H; y += 12) {
+    for (let x = 6; x < W; x += 12) {
+      const dx = x - at.x;
+      const dy = y - at.y;
+      const far = Math.hypot(dx, dy) || 1;
+      const push = far < 46 ? (1 - far / 46) ** 2 * 16 : 0;
+      const moved = Math.min(1, push / 9);
+      const lane = moved < 0.05 ? -1 : Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * LANES) % LANES;
+      dots.push({ x: x + (dx / far) * push, y: y + (dy / far) * push, r: 1.1 + 2.2 * moved, lane, alpha: lane < 0 ? 0.5 : 0.55 + 0.45 * moved });
+    }
+  }
+} else if (slug === 'mouse-trail') {
+  // Ribbons of beads that weave around each other and taper away behind their heads.
+  for (let ribbon = 4; ribbon >= 0; ribbon--) {
+    for (let i = 0; i < 40; i++) {
+      const along = i / 39;
+      const x = 250 - along * 170;
+      const y = 44 + Math.sin(along * 7.5 + ribbon * 1.26) * (7 + 15 * along);
+      dots.push({ x, y, r: 0.5 + (5 - ribbon * 0.6) * (1 - along) ** 1.2, lane: ribbon, alpha: (1 - along) ** 0.9 });
+    }
+  }
+} else if (slug === 'gravity-trail') {
+  // Balls thrown from the top left, falling and bouncing lower each time.
+  let x = 70;
+  let y = 14;
+  let vx = 5.2;
+  let vy = 0;
+  for (let i = 0; i < 46; i++) {
+    dots.push({ x, y, r: 1.4 + random() * 3.2, lane: Math.floor(random() * LANES), alpha: 0.35 + 0.65 * (i / 46) });
+    vy += 1.15;
+    x += vx;
+    y += vy;
+    if (y > H - 8) {
+      y = H - 8;
+      vy = -vy * 0.68;
+      vx *= 0.93;
+    }
+  }
+} else if (slug === 'particles') {
+  // Scattered points, a line between any two close enough.
+  const points = Array.from({ length: 30 }, () => ({ x: 10 + random() * (W - 20), y: 8 + random() * (H - 16) }));
+  points.forEach((a, i) => {
+    points.slice(i + 1).forEach((b) => {
+      const far = Math.hypot(a.x - b.x, a.y - b.y);
+      if (far < 54) lines.push({ points: `${round(a.x)},${round(a.y)} ${round(b.x)},${round(b.y)}`, lane: -1, alpha: (1 - far / 54) * 0.75, width: 1 });
+    });
+    dots.push({ x: a.x, y: a.y, r: 1.6 + random() * 1.8, lane: i % LANES, alpha: 1 });
+  });
+} else if (slug === 'gooey-cursor') {
+  // Blobs overlapping into one shape, with a few drops that got away.
+  for (const [x, y, r, lane] of [[164, 46, 25, 1], [196, 40, 19, 0], [220, 50, 14, 2], [140, 54, 15, 3], [242, 36, 8, 4], [260, 58, 5, 0], [118, 34, 6, 4]]) dots.push({ x, y, r, lane, alpha: 0.92 });
+} else if (slug === 'distortion') {
+  // A net of lines swollen and twisted around one spot.
+  const at = { x: 180, y: 44 };
+  const bend = (x: number, y: number) => {
+    const dx = x - at.x;
+    const dy = y - at.y;
+    const hold = Math.max(0, 1 - Math.hypot(dx, dy) / 66) ** 2;
+    const angle = 1.05 * hold;
+    const grow = 1 + 0.6 * hold;
+    return [at.x + (dx * Math.cos(angle) - dy * Math.sin(angle)) * grow, at.y + (dx * Math.sin(angle) + dy * Math.cos(angle)) * grow, hold];
+  };
+  const add = (across: boolean, fixed: number, length: number) => {
+    const points = [];
+    let hold = 0;
+    for (let along = -4; along <= length + 4; along += 4) {
+      const [x, y, h] = across ? bend(along, fixed) : bend(fixed, along);
+      points.push(`${round(x)},${round(y)}`);
+      hold = Math.max(hold, h);
+    }
+    lines.push({ points: points.join(' '), lane: hold > 0.08 ? Math.floor(fixed / 12) % LANES : -1, alpha: hold > 0.08 ? 0.5 + 0.5 * hold : 0.5, width: 1 + hold * 0.8 });
+  };
+  for (let y = 8; y < H; y += 12) add(true, y, W);
+  for (let x = 6; x < W; x += 12) add(false, x, H);
+} else if (slug === 'ripples') {
+  // Drops left along a path, the oldest spread widest and nearly gone, each with fainter rings inside.
+  ([[112, 50, 0.82], [150, 38, 0.62], [186, 48, 0.42], [218, 38, 0.24], [246, 46, 0.1]] as const).forEach(([x, y, age], lane) => {
+    const reach = 44 * (1 - (1 - age) ** 2.4);
+    for (let k = 0; k < 3 && reach - k * 7 > 1.5; k++) rings.push({ x, y, r: reach - k * 7, lane, alpha: (1 - age) ** 0.8 * (1 - k / 3), width: 2 - 1.1 * age });
+  });
+} else if (slug === 'compass') {
+  // A grid of needles all pointing at one spot, the near ones longer and coloured by the way they point.
+  const at = { x: 180, y: 44 };
+  for (let y = 8; y < H; y += 18) {
+    for (let x = 9; x < W; x += 18) {
+      const angle = Math.atan2(at.y - y, at.x - x);
+      const near = Math.max(0, 1 - Math.hypot(at.x - x, at.y - y) / 70) ** 2;
+      const half = (7 + 7 * near) / 2;
+      const lane = near < 0.06 ? -1 : Math.floor(((angle + Math.PI) / (2 * Math.PI)) * LANES) % LANES;
+      const head = { x: x + Math.cos(angle) * half, y: y + Math.sin(angle) * half };
+      lines.push({ points: `${round(x - Math.cos(angle) * half)},${round(y - Math.sin(angle) * half)} ${round(head.x)},${round(head.y)}`, lane, alpha: lane < 0 ? 0.5 : 0.6 + 0.4 * near, width: 1 + near });
+      dots.push({ x: head.x, y: head.y, r: 1.1 + near, lane, alpha: lane < 0 ? 0.5 : 0.6 + 0.4 * near });
+    }
+  }
+}
+---
+<span class="cover" aria-hidden="true">
+  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+    {lines.map((l) => <polyline class={`c${l.lane}`} points={l.points} fill="none" stroke="currentColor" stroke-width={round(l.width)} stroke-opacity={round(l.alpha)} />)}
+    {dots.map((d) => <circle class={`c${d.lane}`} cx={round(d.x)} cy={round(d.y)} r={round(d.r)} fill="currentColor" fill-opacity={round(d.alpha)} />)}
+    {rings.map((r) => <circle class={`c${r.lane}`} cx={r.x} cy={r.y} r={round(r.r)} fill="none" stroke="currentColor" stroke-width={round(r.width)} stroke-opacity={round(r.alpha)} />)}
+  </svg>
+</span>
+
+<style>
+  /* The same faint backing as a tool card's example. The classes are the colours: c-1 the quiet grey, c0 onward the
+     topic colours, in the stage's own order (EffectStage.astro). */
+  .cover { display: block; background: var(--wash); }
+  svg { display: block; width: 100%; height: 100%; }
+  .c-1 { color: var(--muted); }
+  .c0 { color: var(--lane-flutter); }
+  .c1 { color: var(--lane-games); }
+  .c2 { color: var(--lane-hexo); }
+  .c3 { color: var(--lane-chatgpt); }
+  .c4 { color: var(--lane-git); }
+</style>

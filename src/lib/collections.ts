@@ -4,7 +4,7 @@ import type { ImageMetadata } from 'astro';
 import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
-import { EXPERIMENTS, TOOLS, toolUrl } from './lab/tools.js';
+import { EFFECTS, EXPERIMENTS, TOOLS, effectUrl, toolUrl } from './lab/tools.js';
 import { POSTS_PER_PAGE, SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -32,18 +32,22 @@ export const postUrl = (post: Post) => (EXPERIMENTS.includes(post.id) ? `/lab/ga
 export const tagUrl = (tag: string) => `/tags/${slugify(tag)}/`;
 export const summaryOf = (post: Post) => post.data.description ?? excerpt(post.body ?? '');
 
-/** What a Lab card shows: one of the tools, or a game's post. */
-export type LabItem = { tool: (typeof TOOLS)[number]; post?: never } | { post: Post; tool?: never };
+/** What a Lab card shows: one of the tools, a game's post, or an effect. */
+export type LabItem =
+  | { tool: (typeof TOOLS)[number]; post?: never; effect?: never }
+  | { post: Post; tool?: never; effect?: never }
+  | { effect: (typeof EFFECTS)[number]; tool?: never; post?: never };
 
 // Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
 let popular: Promise<LabItem[]> | undefined;
 
-/** The Lab's Most Popular: its four most visited ready tools and games (lab/popular.js); none while there's no ranking. */
+/** The Lab's Most Popular: its four most visited ready tools, games and effects (lab/popular.js); none while there's no ranking. */
 export function popularLabItems(): Promise<LabItem[]> {
   return (popular ??= (async () => {
     const items = [
       ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem })),
       ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem })),
+      ...EFFECTS.map((effect) => ({ path: effectUrl(effect.slug), item: { effect } as LabItem })),
     ];
     const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
     if (!visits) console.warn("Most Popular: GoatCounter gave no counts, so the Lab home is built without it.");
@@ -64,9 +68,10 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/archives/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/about/' },
-    // The Lab and its finished tools; /random/ stays out until it does something.
+    // The Lab, its finished tools and its effects; /random/ stays out until it does something.
     { path: '/lab/' },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),
+    ...EFFECTS.map((e) => ({ path: effectUrl(e.slug) })),
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
   ];
 }

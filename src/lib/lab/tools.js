@@ -1,8 +1,9 @@
-// The Lab's tools and experiments. The Lab home, each tool's page and the sitemap all read this list.
+// The Lab's tools, games and effects. The Lab home, each tool's page and the sitemap all read this list.
 
 /** The groups on the Lab home, in order. */
 export const GROUPS = [
   { id: 'text', name: 'Text' },
+  { id: 'preview', name: 'Preview' },
   { id: 'image', name: 'Images' },
 ];
 
@@ -17,6 +18,8 @@ export const TOOLS = [
   { slug: 'compare-text', name: 'Compare Text', description: 'See what changed between two versions.', group: 'text', icon: 'compare', status: 'soon', example: ['- the old line', '+ the new line'] },
   { slug: 'encode-url', name: 'Encode URL', description: 'Make text safe for a web address, or read it back.', group: 'text', icon: 'link', status: 'ready', example: ['a b&c', 'a%20b%26c'] },
   { slug: 'convert-timestamp', name: 'Convert Timestamp', description: 'Unix time to a readable date, and back.', group: 'text', icon: 'clock', status: 'ready', example: ['1727600000', '29 Sep 2024, 16:53:20'] },
+  { slug: 'markdown-preview', name: 'Markdown Preview', description: 'See your Markdown as a formatted page, as you type.', group: 'preview', icon: 'markdown', status: 'ready', example: ['# Notes, **done**', 'A heading, with bold'] },
+  { slug: 'json-preview', name: 'JSON Preview', description: 'Tidy JSON you can read, fold and check.', group: 'preview', icon: 'braces', status: 'ready', example: ['{"name":"Jack","lab":true}', 'Tidy, coloured, foldable'] },
   { slug: 'jpg-to-png', name: 'JPG to PNG', description: 'Convert a photo to PNG in your browser.', group: 'image', icon: 'image', status: 'soon', example: ['photo.jpg', 'photo.png'] },
   { slug: 'resize-image', name: 'Resize Image', description: "Change an image's size, keeping its shape.", group: 'image', icon: 'resize', status: 'soon', example: ['4032 × 3024', '1200 × 900'] },
   { slug: 'compress-image', name: 'Compress Image', description: 'Make an image file smaller.', group: 'image', icon: 'compress', status: 'soon', example: ['3.2 MB', '480 KB'] },
@@ -29,19 +32,46 @@ export const TOOLS = [
  */
 export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
 
+/**
+ * Effects: things with no use at all, to look at and play with by moving the mouse. Each has its page at
+ * /lab/effect/<slug>/, its code in src/effects/<slug>.js and its card's picture in src/components/EffectCover.astro.
+ * `hint` says what to do there.
+ */
+export const EFFECTS = [
+  { slug: 'dot-grid', name: 'Dot Grid', description: 'A field of dots that leans away from you.', hint: 'Move the mouse, or drag a finger. Click for a ripple.' },
+  { slug: 'mouse-trail', name: 'Mouse Trail', description: 'Ribbons that chase the pointer.', hint: 'Move the mouse, or drag a finger.' },
+  { slug: 'gravity-trail', name: 'Gravity Trail', description: 'A trail that falls and bounces.', hint: 'Move the mouse, or drag a finger. Click for a burst.' },
+  { slug: 'particles', name: 'Particles', description: 'Drifting points that link up near you.', hint: 'Move the mouse, or drag a finger. Click to push them away.' },
+  { slug: 'gooey-cursor', name: 'Gooey Cursor', description: 'Blobs that stretch, split and melt together.', hint: 'Move the mouse, or drag a finger.' },
+  { slug: 'distortion', name: 'Distortion', description: 'A net that bends and twists around the pointer.', hint: 'Move the mouse, or drag a finger. Click for a wave.' },
+  { slug: 'ripples', name: 'Ripples', description: 'Rings that spread wherever the pointer goes.', hint: 'Move the mouse, or drag a finger. Click for a splash.' },
+  { slug: 'compass', name: 'Compass', description: 'A field of needles that all point at you.', hint: 'Move the mouse, or drag a finger. Click to spin them.' },
+];
+
 /** @param {string} slug */
 export const toolUrl = (slug) => `/lab/${slug}/`;
+/** @param {string} slug */
+export const effectUrl = (slug) => `/lab/effect/${slug}/`;
 
 /**
- * "Check these too!" under a Lab tool or experiment: the same kind first, in the Lab's order, then the rest; never
- * the item itself, and only tools that are ready.
- * @param {string} current a tool's address or an experiment's post
- * @returns {{ kind: 'tool' | 'experiment', id: string }[]}
+ * "Check these too!" under a Lab page: the same kind first, in the Lab's order, then the other kinds; never the page
+ * itself, and only tools that are ready.
+ * @param {string} current a tool's address, a game's post or an effect's address
+ * @returns {{ kind: 'tool' | 'experiment' | 'effect', id: string }[]}
  */
 export function moreLabItems(current, count = 4) {
   const tools = TOOLS.filter((t) => t.status === 'ready' && t.slug !== current).map((t) => ({ kind: /** @type {const} */ ('tool'), id: t.slug }));
   const experiments = EXPERIMENTS.filter((id) => id !== current).map((id) => ({ kind: /** @type {const} */ ('experiment'), id }));
-  return (EXPERIMENTS.includes(current) ? [...experiments, ...tools] : [...tools, ...experiments]).slice(0, count);
+  const effects = EFFECTS.filter((e) => e.slug !== current).map((e) => ({ kind: /** @type {const} */ ('effect'), id: e.slug }));
+  const order = EFFECTS.some((e) => e.slug === current) ? [effects, experiments, tools] : EXPERIMENTS.includes(current) ? [experiments, tools, effects] : [tools, experiments, effects];
+  return order.flat().slice(0, count);
+}
+
+/** @param {string} slug */
+export function effectBySlug(slug) {
+  const item = EFFECTS.find((e) => e.slug === slug);
+  if (!item) throw new Error(`No effect "${slug}". Add it to EFFECTS in src/lib/lab/tools.js.`);
+  return item;
 }
 
 /** @param {string} slug */

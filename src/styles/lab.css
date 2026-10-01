@@ -26,8 +26,24 @@
 .convert-note { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; }
 .convert-note:empty { display: none; }
 
+/* The Preview tools (PreviewTool.astro): what you type and what it makes, side by side and level, each scrolling on
+   its own. Like the games, they are as tall as the window allows with their labels and buttons, and the page glides
+   to them when you go to type. */
+.panes { --pane: clamp(16rem, calc(100svh - 9.5rem), 44rem); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.panes .field textarea { height: var(--pane); min-height: 10rem; font-family: var(--font-code); font-size: var(--text-sm); }
+/* The two labels' rows are one height, whatever sits beside "Preview", so the boxes under them stay level. */
+.panes .field label, .pane-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 2rem; margin: 0 0 var(--space-2); }
+.pane-label { margin: 0; font-weight: 650; }
+.pane-view { height: var(--pane); overflow: auto; }
+.pane-view:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Nothing typed yet: the page gives the box its hint. */
+.pane-view:empty::before { content: attr(data-hint); color: var(--muted); }
+
 /* Phones: one column, with shorter boxes so the result is close by. */
 @media (max-width: 719px) {
   .convert { grid-template-columns: minmax(0, 1fr); }
   .convert .field textarea { min-height: 10rem; }
+  .panes { grid-template-columns: minmax(0, 1fr); }
+  .panes .field textarea { height: 14rem; }
+  .pane-view { height: auto; min-height: 8rem; }
 }

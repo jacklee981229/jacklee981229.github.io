@@ -476,12 +476,69 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/. If the build prints "Most Popular: GoatCounter gave no counts", it couldn't reach the counter; the site still builds, without the section.
-2. Open http://localhost:4321/lab/. Expected: no "Most Popular" yet. It appears once four different Lab items (tools or games) have been visited on the live site.
+2. Open http://localhost:4321/lab/. Expected: no "Most Popular" yet. It appears once four different Lab items (tools, games or effects) have been visited on the live site.
 3. After the next publish, open https://jacklee981229.github.io/ and a few Lab pages, then open https://jacklee981229.goatcounter.com. Expected: your visits listed within a minute, each page under its own address.
 4. In a terminal:
    ```powershell
    curl.exe -s https://jacklee981229.goatcounter.com/counter/TOTAL.json
    ```
    Expected: `{"count_unique":"N", "count":"N"}`, the site's total views. These public numbers can lag up to four hours behind the dashboard.
-5. Once four Lab items have visits, wait for the next publish or the daily refresh (04:17), then open https://jacklee981229.github.io/lab/. Expected: "Most Popular" at the top, under the Tools / Mini Games / Random buttons, with the four most visited items as cards, most visited first, and no numbers.
+5. Once four Lab items have visits, wait for the next publish or the daily refresh (04:17), then open https://jacklee981229.github.io/lab/. Expected: "Most Popular" at the top, under the Tools / Mini Games / Effects / Random buttons, with the four most visited items as cards, most visited first, and no numbers.
 6. To keep your own visits out of the counts on a device, open https://jacklee981229.github.io/#toggle-goatcounter there once. Expected: a message that GoatCounter is now disabled in that browser (the same address switches it back on).
+
+## Lab P1: Markdown Preview
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "51 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/. Expected: a new "Preview" group between Text and Images, with Markdown Preview and JSON Preview.
+3. Open Markdown Preview. Expected: a sample already in the Markdown box, and beside it the same thing as a page: a big heading, a bulleted and a numbered list, two tick boxes (one ticked), a small table, a quote and a code box. On a phone the page sits under the box.
+4. Click in the Markdown box. Expected: on a laptop the page glides so both boxes, Clear and Copy HTML all fit the window.
+5. Change the text, for example add a line `## Hello`. Expected: the page follows as you type.
+6. Type `<b>hi</b>` and `<script>alert(1)</script>` on lines of their own. Expected: both show as plain text in the page; nothing turns bold and no message pops up.
+7. Click a link in the page. Expected: it opens in a new tab, and your text is still there.
+8. Click Copy HTML and paste into Notepad. Expected: "Copied" on the button, and the page's HTML (starting with a heading tag) in Notepad.
+9. Click Clear. Expected: an empty box, "Your formatted page shows here." in the page, and the cursor back in the box.
+10. Press Tab from the box. Expected: Clear, then the page (it scrolls with the arrow keys), then Copy HTML, each with a blue outline.
+
+## Lab P2: JSON Preview
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "51 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/json-preview/. Expected: a sample on one long line in the JSON box, and beside it the same thing tidy: one item a line, names in bold, text green, numbers blue, true/false purple, null grey, with a small triangle beside every { and [. At the top right of Preview, a "Tidy | Compact" switch with Tidy filled in. On a phone the preview sits under the box.
+3. Click the triangle beside "tools". Expected: the list folds to one line, `"tools": [ 3 items ],`; click again and it unfolds.
+4. Replace the text with `{"b":1,"2":12345678901234567890,"1":0.1000}`. Expected: the names stay in that order (b, 2, 1) and the numbers show exactly as typed, the long one not rounded.
+5. Click Compact on the switch. Expected: Compact is filled in, and the preview shows the JSON with no spaces or line breaks, in the same colours (a long one wraps inside the box, after a comma). Click Tidy: the tree is back.
+6. Click Copy and paste into Notepad, once with the switch on Tidy and once on Compact. Expected: the JSON with one item a line, then all of it on one line: Copy gives what's showing.
+7. Type `{"a": 1,}`. Expected: "Not valid JSON yet", "Take out this comma: nothing comes after it." and "Line 1, column 8", whichever side the switch is on. Copy now says "Nothing to copy".
+8. Type `{'name': 'Jack'}`. Expected: a message about double quotes, not single quotes.
+9. Paste a big JSON file (1 MB or so). Expected: it shows within a second, the page stays usable, and a long list shows its first 100 items with a "Show 100 more" button. On Compact, the first part shows with a "Show more" button under it, and Copy still gives the whole file.
+10. Click Clear. Expected: an empty box and "Your JSON shows here."
+
+## Effects: eight of them, and Random back to "coming soon"
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "51 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/ and click Effects at the top. Expected: an Effects section with eight cards, each with a small picture: Dot Grid, Mouse Trail, Gravity Trail, Particles, Gooey Cursor, Distortion, Ripples, Compass. Under it, Random is a dashed box saying it's coming. (On a phone the four buttons at the top take two rows.)
+3. Open http://localhost:4321/random/. Expected: "Random", a line saying it's coming, and a "Back to the Lab" button. No cards.
+4. Open Dot Grid. Expected: the address is /lab/effect/dot-grid/. A small top (‹ Lab, the name and one line of what to do), then a field of dots right across the window, with the top of "Check these too!" in sight under it. Leave the mouse alone: a ring of coloured dots drifts around by itself. Move the mouse: the dots lean away from it. Click: a ripple spreads.
+5. Click "‹ Lab". Expected: the Lab home, at the Effects section.
+6. Open each of the other seven and move the mouse. Expected: Mouse Trail, five coloured ribbons weaving after the pointer; Gravity Trail, little balls falling and bouncing, a burst on a click; Particles, drifting points joined by lines, pushed away on a click; Gooey Cursor, soft blobs that stretch and melt together; Distortion, a net of lines that swells and twists, a wave on a click; Ripples, rings spreading wherever the pointer goes, a big splash on a click; Compass, a field of needles all pointing at the pointer, the near ones bigger and coloured, a spreading ring of spinning on a click.
+7. Click Pause. Expected: everything stops and the button says Play; Play starts it again.
+8. Click the sun or moon at the top right. Expected: the effect redraws in the other theme's colours.
+9. On your phone (or the browser's phone view), drag a finger on the stage. Expected: the effect follows the finger and the page doesn't scroll; drag on the title above the stage, or on what's below it, to scroll the page.
+10. With "reduce motion" switched on in Windows (Settings, Accessibility, Visual effects, Animation effects off), reload. Expected: a still picture and a Play button; nothing moves until you press Play.

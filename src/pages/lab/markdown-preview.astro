@@ -1,0 +1,69 @@
+---
+import PreviewTool from '../../components/PreviewTool.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import '../../styles/prose.css';
+
+// What the box starts with, so the preview has something to show: a taste of what Markdown can do.
+const SAMPLE = [
+  '# Hello, Markdown',
+  '',
+  'Type on this side, and the page shows up on the other.',
+  '',
+  '## What you can write',
+  '',
+  '- **Bold**, _italic_ and ~~crossed out~~',
+  '- A [link](https://jacklee981229.github.io/)',
+  '- `code` inside a line',
+  '',
+  '1. First',
+  '2. Second',
+  '',
+  '- [x] Try it',
+  '- [ ] Clear this and paste your own',
+  '',
+  '| Game | Keys |',
+  '| :-- | :-- |',
+  '| 2048 | Arrow keys |',
+  '| Snake | Arrow keys |',
+  '',
+  '> A quote sits in its own box.',
+  '',
+  '```js',
+  "const hello = 'world';",
+  '```',
+].join('\n');
+---
+<ToolShell slug="markdown-preview" stays="Your text stays in your browser.">
+  <PreviewTool label="Markdown" sample={SAMPLE} hint="Your formatted page shows here." view="prose md-view">
+    <button slot="actions" type="button" class="button" data-copy="md-html"><span data-label>Copy HTML</span></button>
+    <!-- The page's HTML, for the Copy button; out of sight, but selectable if the clipboard is blocked. -->
+    <textarea class="visually-hidden" id="md-html" readonly tabindex="-1" aria-hidden="true"></textarea>
+  </PreviewTool>
+</ToolShell>
+
+<script>
+  import { toHtml } from '../../lib/lab/markdown.js';
+  import { setupPreview } from '../../lib/lab/page.ts';
+
+  const html = document.querySelector<HTMLTextAreaElement>('#md-html')!;
+  setupPreview((text, view) => {
+    html.value = toHtml(text).trim();
+    view.innerHTML = html.value;
+    // A link opens in a new tab, so following one doesn't lose what you typed. Footnote links stay on the page.
+    for (const link of view.querySelectorAll<HTMLAnchorElement>('a[href]:not([href^="#"])')) {
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+</script>
+
+<style is:global>
+  /* What posts never have, so prose.css has no style for it: a top heading, plain code blocks, task lists, and
+     columns set to the right or the middle. */
+  .md-view h1 { margin: 0 0 0.6em; font-size: calc(var(--text-xl) * 1.3); font-weight: var(--display-weight); line-height: 1.1; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
+  .md-view pre { overflow-x: auto; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--wash); font-family: var(--font-code); font-size: var(--text-sm); line-height: 1.6; }
+  .md-view li:has(> input[type='checkbox']) { margin-left: -1.4em; list-style: none; }
+  .md-view li > input[type='checkbox'] { margin: 0 0.4em 0 0; accent-color: var(--ink); }
+  .md-view :is(th, td)[align='right'] { text-align: right; }
+  .md-view :is(th, td)[align='center'] { text-align: center; }
+</style>

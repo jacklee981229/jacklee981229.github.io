@@ -1,0 +1,37 @@
+---
+// The stage an effect plays on: a canvas right across the window. src/effects/stage.js runs it, with the effect's
+// own code (src/effects/<slug>.js), which is fetched only on that effect's page.
+interface Props {
+  slug: string;
+  /** What the moving picture shows, for someone who can't see it. */
+  label: string;
+}
+
+const { slug, label } = Astro.props;
+---
+<div class="stage" data-stage={slug}>
+  <canvas role="img" aria-label={label}></canvas>
+  <button type="button" class="button" data-stage-toggle>Pause</button>
+</div>
+
+<script>
+  import { runStage } from '../effects/stage.js';
+
+  // One file per effect; only the one this page names is fetched.
+  const pieces = import.meta.glob<{ default: Parameters<typeof runStage>[1] }>('../effects/*.js');
+  const root = document.querySelector<HTMLElement>('[data-stage]');
+  if (root) pieces[`../effects/${root.dataset.stage}.js`]?.().then((piece) => runStage(root, piece.default));
+</script>
+
+<style>
+  /* As tall as the window allows under the page's top, leaving a strip of what follows in sight: a finger on the
+     stage moves the effect, not the page, so the page needs somewhere else to be scrolled from.
+     --c1 onward are the colours the effects draw with: the site's topic colours. */
+  .stage { --c1: var(--lane-flutter); --c2: var(--lane-games); --c3: var(--lane-hexo); --c4: var(--lane-chatgpt); --c5: var(--lane-git); position: relative; height: clamp(18rem, calc(100svh - 15.5rem), 64rem); overflow: hidden; border-block: 1px solid var(--rule); }
+  /* Phones: the page's top is taller there (the menu and the description wrap), so the stage gives up more height. */
+  @media (max-width: 719px) {
+    .stage { height: clamp(18rem, calc(100svh - 21.5rem), 40rem); }
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  .button { position: absolute; top: var(--space-3); right: var(--gutter); padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
+</style>

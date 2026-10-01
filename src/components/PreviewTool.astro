@@ -1,0 +1,34 @@
+---
+// The frame the Lab's Preview tools share: what you type on one side, what it makes on the other, level with each
+// other. setupPreview() in src/lib/lab/page.ts brings it to life with the page's own way of showing the text.
+interface Props {
+  /** What's typed: "Markdown", "JSON". */
+  label: string;
+  /** What the box starts with, so the preview has something to show. */
+  sample: string;
+  /** What the empty preview says, such as "Your formatted page shows here." */
+  hint: string;
+  /** Classes for the preview box, such as "prose". */
+  view?: string;
+}
+
+const { label, sample, hint, view } = Astro.props;
+---
+<div class="panes">
+  <div class="field">
+    <label for="pane-in">{label}</label>
+    <textarea id="pane-in" spellcheck="false" autocapitalize="off" autocomplete="off" data-in>{sample}</textarea>
+    <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
+  </div>
+  <div>
+    <div class="pane-head">
+      <p class="pane-label" id="pane-label">Preview</p>
+      <!-- A tool's own choice of how the preview shows, at the box's top right. -->
+      <slot name="switch" />
+    </div>
+    <!-- A box that scrolls must take the keyboard's focus, or its lower part can't be reached without a mouse. -->
+    <div class:list={['panel', 'pane-view', view]} role="region" aria-labelledby="pane-label" tabindex="0" data-hint={hint} data-view></div>
+    <p class="actions"><slot name="actions" /></p>
+    <slot />
+  </div>
+</div>

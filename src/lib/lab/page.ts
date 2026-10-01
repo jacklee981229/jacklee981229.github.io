@@ -1,6 +1,9 @@
-// Browser code the Lab's tool pages share: copy buttons, and wiring the text tools' frame (TextConverter.astro).
+// Browser code the Lab's tool pages share: copy buttons, and wiring the text tools' frame (TextConverter.astro) and
+// the Preview tools' frame (PreviewTool.astro).
+import { bringIntoView } from '../../games/controls.js';
 
-function announce(text: string) {
+/** Says `text` to screen readers, through the page's hidden announcer. */
+export function announce(text: string) {
   const box = document.querySelector<HTMLElement>('[data-announcer]');
   if (!box) return;
   box.textContent = '';
@@ -36,6 +39,46 @@ export function wireCopyButtons() {
       timer = window.setTimeout(() => { label.textContent = original; }, 2000);
     });
   }
+}
+
+/** Longer than this, a text is shown a moment after typing stops instead of on every frame. */
+const LONG_TEXT = 200_000;
+
+/**
+ * Brings the Preview tools' frame (PreviewTool.astro) to life. `show` draws what the text makes into the preview
+ * box; it runs as you type, at most once a frame (a very long text waits until typing pauses). Also wires Clear,
+ * the Copy buttons, and the glide that shows the tall boxes whole when you go to type.
+ */
+export function setupPreview(show: (text: string, view: HTMLElement) => void) {
+  const input = document.querySelector<HTMLTextAreaElement>('[data-in]')!;
+  const view = document.querySelector<HTMLElement>('[data-view]')!;
+  const clear = document.querySelector<HTMLElement>('[data-clear]')!;
+  let queued = false;
+  let timer = 0;
+  const run = () => {
+    queued = false;
+    show(input.value, view);
+  };
+  input.addEventListener('input', () => {
+    if (input.value.length > LONG_TEXT) {
+      clearTimeout(timer);
+      timer = window.setTimeout(run, 250);
+    } else if (!queued) {
+      queued = true;
+      requestAnimationFrame(run);
+    }
+  });
+  clear.addEventListener('click', () => {
+    input.value = '';
+    run();
+    input.focus();
+  });
+  // The tall boxes can start below the screen's edge: once you go to type, the page glides to show them whole.
+  input.addEventListener('focus', () => bringIntoView(document.querySelector<HTMLElement>('label[for="pane-in"]')!, clear));
+  wireCopyButtons();
+  // The browser may restore text typed before a reload.
+  run();
+  return { input, view, run };
 }
 
 export type Converted = { text: string; note?: string };

@@ -1,17 +1,19 @@
 ---
-// The top of a Lab page (a tool or an experiment): the way back to the Lab, the name and a one-line description.
+// The top of a Lab page (a tool, a game or an effect): the way back, the name and a one-line description.
 import Icon from './Icon.astro';
 
 interface Props {
   title: string;
   description: string;
-  /** Where "Lab" goes back to: a game goes back to its section of the Lab home. */
+  /** Where the back link goes: a game or an effect goes back to its section of the Lab home. */
   back?: string;
+  /** A small top, for a page whose whole point is the thing under it (an effect's stage). */
+  compact?: boolean;
 }
 
-const { title, description, back = '/lab/' } = Astro.props;
+const { title, description, back = '/lab/', compact = false } = Astro.props;
 ---
-<div class="lab-header">
+<div class:list={['lab-header', { compact }]}>
   <a class="back" href={back}><Icon name="back" />Lab</a>
   <h1 class="page-title">{title}</h1>
   <p class="lede">{description}</p>
@@ -22,4 +24,10 @@ const { title, description, back = '/lab/' } = Astro.props;
   .back { display: inline-flex; align-items: center; gap: var(--space-1); margin-bottom: var(--space-3); color: var(--muted); font-size: var(--text-ui); font-weight: 600; text-decoration: none; }
   .back:hover { color: var(--ink); }
   .back :global(.icon) { width: 1.1rem; height: 1.1rem; }
+
+  /* Compact: the name and the description share a line, and everything is smaller. */
+  .compact { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-4); margin-bottom: var(--space-3); }
+  .compact .back { flex-basis: 100%; margin-bottom: var(--space-1); }
+  .compact .page-title { margin: 0; font-size: var(--text-xl); line-height: 1.2; letter-spacing: calc(var(--display-tracking) / 2); }
+  .compact .lede { font-size: var(--text-ui); }
 </style>

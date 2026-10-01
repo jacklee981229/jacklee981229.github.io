@@ -1,0 +1,221 @@
+---
+import PreviewTool from '../../components/PreviewTool.astro';
+import ToolShell from '../../components/ToolShell.astro';
+
+// What the box starts with, the way JSON often arrives: everything on one line.
+const SAMPLE = JSON.stringify({
+  name: "Jack's Space",
+  live: true,
+  posts: 14,
+  lab: {
+    tools: ['Count Words', 'Markdown Preview', 'JSON Preview'],
+    games: [{ name: "Jack's 2048", best: 2048 }, { name: "Jack's Snake", best: 23 }],
+  },
+  visitors: null,
+});
+---
+<ToolShell slug="json-preview" stays="Your JSON stays in your browser.">
+  <PreviewTool label="JSON" sample={SAMPLE} hint="Your JSON shows here." view="json-view">
+    <!-- Two ways to show the same JSON: one or the other, so a pair of radio buttons drawn as one switch. -->
+    <div slot="switch" class="shape" role="radiogroup" aria-label="How the JSON is shown">
+      <label><input class="visually-hidden" type="radio" name="shape" value="tidy" checked />Tidy</label>
+      <label><input class="visually-hidden" type="radio" name="shape" value="compact" />Compact</label>
+    </div>
+    <button slot="actions" type="button" class="button" data-copy="json-out"><span data-label>Copy</span></button>
+    <!-- The JSON as text, for the Copy button; out of sight, but selectable if the clipboard is blocked. -->
+    <textarea class="visually-hidden" id="json-out" readonly tabindex="-1" aria-hidden="true"></textarea>
+  </PreviewTool>
+</ToolShell>
+
+<script>
+  import { jsonPieces, leafText, readJson, sizeOf, writeJson } from '../../lib/lab/json.js';
+  import { announce, setupPreview } from '../../lib/lab/page.ts';
+
+  type JsonNode = Extract<ReturnType<typeof readJson>, { ok: true }>['value'];
+
+  /** Items drawn at a time inside one object or list; the rest wait behind a "Show more" button. */
+  const CHUNK = 100;
+  /** Rows drawn unfolded at first. Past this, objects and lists start folded, and draw their insides when opened, so a
+      big file shows at once instead of freezing the page. */
+  const OPEN_ROWS = 1500;
+  /** Characters of compact JSON drawn at a time; the rest wait behind a "Show more" button. */
+  const COMPACT_CHUNK = 40_000;
+
+  const make = (tag: string, cls = '', text = '') => {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text) el.textContent = text;
+    return el;
+  };
+  const KINDS = { key: 'j-key', mark: 'j-mark', string: 'j-str', number: 'j-num', boolean: 'j-bool', null: 'j-null' } as const;
+  const isBranch = (node: JsonNode) => (node.type === 'object' || node.type === 'array') && sizeOf(node) > 0;
+  const brackets = (node: JsonNode) => (node.type === 'object' ? ['{', '}'] : ['[', ']']);
+  const countOf = (node: JsonNode) => `${sizeOf(node).toLocaleString('en-US')} ${sizeOf(node) === 1 ? 'item' : 'items'}`;
+
+  let rows = 0;
+
+  /** One line of the tree: `"name": value,`. An object or a list with something in it folds, and draws its insides when first opened. */
+  function row(name: string | null, node: JsonNode, last: boolean): HTMLElement {
+    rows++;
+    const comma = last ? '' : ',';
+    const label = () => (name === null ? [] : [make('span', 'j-key', JSON.stringify(name)), make('span', 'j-mark', ': ')]);
+    if (!isBranch(node)) {
+      const line = make('div', 'j-row');
+      const text = node.type === 'object' ? '{}' : node.type === 'array' ? '[]' : leafText(node);
+      line.append(...label(), make('span', node.type === 'object' || node.type === 'array' ? 'j-mark' : KINDS[node.type], text), make('span', 'j-mark', comma));
+      return line;
+    }
+    const [open, close] = brackets(node);
+    const branch = document.createElement('details');
+    branch.className = 'j-branch';
+    const summary = document.createElement('summary');
+    // Folded, the line reads `{ 3 items },`; unfolded, the closing bracket moves to its own line under the insides.
+    const folded = make('span', 'j-folded');
+    folded.append(make('span', 'j-count', countOf(node)), make('span', 'j-mark', `${close}${comma}`));
+    summary.append(...label(), make('span', 'j-mark', open), folded);
+    const kids = make('div', 'j-kids');
+    branch.append(summary, kids, make('div', 'j-row j-mark', `${close}${comma}`));
+    const draw = () => { if (!kids.hasChildNodes()) fill(kids, node, 0); };
+    // Opened by hand: its insides get a fresh allowance of unfolded rows.
+    branch.addEventListener('toggle', () => {
+      if (!branch.open) return;
+      rows = 0;
+      draw();
+    });
+    if (rows < OPEN_ROWS) {
+      branch.open = true;
+      draw();
+    }
+    return branch;
+  }
+
+  const moreButton = (text: string, onClick: () => void) => {
+    const more = make('button', 'button j-more', text) as HTMLButtonElement;
+    more.type = 'button';
+    more.addEventListener('click', () => {
+      more.remove();
+      onClick();
+    });
+    return more;
+  };
+
+  /** Draws the next CHUNK of a branch's insides, with a button for the rest. */
+  function fill(kids: HTMLElement, node: JsonNode, from: number) {
+    const size = sizeOf(node);
+    const to = Math.min(size, from + CHUNK);
+    for (let i = from; i < to; i++) {
+      if (node.type === 'object') kids.append(row(node.entries[i].key, node.entries[i].value, i === size - 1));
+      else if (node.type === 'array') kids.append(row(null, node.items[i], i === size - 1));
+    }
+    if (to === size) return;
+    kids.append(moreButton(`Show ${Math.min(CHUNK, size - to).toLocaleString('en-US')} more (${(size - to).toLocaleString('en-US')} left)`, () => {
+      rows = 0;
+      fill(kids, node, to);
+    }));
+  }
+
+  /** The JSON on one line, coloured like the tree. A big file is drawn COMPACT_CHUNK characters at a time. */
+  function compact(node: JsonNode): HTMLElement {
+    const line = make('div', 'j-compact');
+    const pieces = jsonPieces(node, '');
+    let next = pieces.next();
+    const draw = () => {
+      let drawn = 0;
+      while (!next.done && drawn < COMPACT_CHUNK) {
+        // Neighbours of one kind, such as `}]`, share an element, up to a comma.
+        const [kind] = next.value;
+        let text = '';
+        while (!next.done && next.value[0] === kind && !text.endsWith(',')) {
+          text += next.value[1];
+          next = pieces.next();
+        }
+        line.append(make('span', KINDS[kind], text));
+        // The line may wrap after a comma: between two items, rather than through the middle of one.
+        if (kind === 'mark' && text.endsWith(',')) line.append(document.createElement('wbr'));
+        drawn += text.length;
+      }
+      if (!next.done) line.append(moreButton('Show more', draw));
+    };
+    draw();
+    return line;
+  }
+
+  const input = document.querySelector<HTMLTextAreaElement>('[data-in]')!;
+  const shape = () => document.querySelector<HTMLInputElement>('input[name="shape"]:checked')!.value;
+  let current: JsonNode | null = null;
+  let said = 0;
+
+  // The Copy button copies what's showing, tidy or compact. The text is written only when asked: writing a big file
+  // out on every key press would be wasted work.
+  document.querySelector('[data-copy="json-out"]')!.addEventListener('click', () => {
+    document.querySelector<HTMLTextAreaElement>('#json-out')!.value = current ? writeJson(current, shape() === 'compact' ? '' : '  ') : '';
+  });
+
+  const { run, view } = setupPreview((text, view) => {
+    clearTimeout(said);
+    rows = 0;
+    current = null;
+    input.removeAttribute('aria-invalid');
+    if (!text.trim()) return view.replaceChildren();
+    const result = readJson(text);
+    if (result.ok) {
+      current = result.value;
+      if (shape() === 'compact') return view.replaceChildren(compact(result.value));
+      const tree = make('div', 'j-tree');
+      tree.append(row(null, result.value, true));
+      return view.replaceChildren(tree);
+    }
+    input.setAttribute('aria-invalid', 'true');
+    const problem = make('div', 'j-problem');
+    const where = `Line ${result.line.toLocaleString('en-US')}, column ${result.column.toLocaleString('en-US')}`;
+    problem.append(make('p', 'j-problem-title', 'Not valid JSON yet'), make('p', '', result.message), make('p', 'j-where', where));
+    view.replaceChildren(problem);
+    // JSON is wrong most of the time while it's being typed, so a screen reader hears of it only once typing pauses.
+    said = window.setTimeout(() => announce(`Not valid JSON. ${where}. ${result.message}`), 1200);
+  });
+
+  document.querySelector('.shape')!.addEventListener('change', () => {
+    run();
+    view.scrollTop = 0;
+  });
+</script>
+
+<style>
+  /* The switch: both choices in one pill, the chosen one filled in, like a chosen option elsewhere in the Lab. */
+  .shape { display: inline-flex; padding: 2px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); }
+  .shape label { position: relative; padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); color: var(--muted); font-size: var(--text-sm); font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .shape label:hover { color: var(--ink); }
+  .shape label:has(:checked) { background: var(--ink); color: var(--paper); }
+  .shape label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+  /* Phones: taller, for a finger. */
+  @media (max-width: 719px) {
+    .shape label { padding-block: var(--space-1); }
+  }
+</style>
+
+<style is:global>
+  /* The tidy JSON: names in the ink, each kind of value in a colour of its own, guide lines down each level. */
+  .json-view { font-family: var(--font-code); font-size: var(--text-sm); line-height: 1.7; overflow-wrap: anywhere; }
+  .json-view .j-row { padding-left: 1.1rem; }
+  .json-view .j-kids { margin-left: 0.3rem; padding-left: 0.9rem; border-left: 1px solid var(--rule); }
+  .json-view summary { cursor: pointer; }
+  .json-view summary::marker { color: var(--muted); }
+  .json-view summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .json-view details[open] > summary .j-folded { display: none; }
+  .json-view .j-key { font-weight: 650; }
+  .json-view .j-mark { color: var(--muted); }
+  .json-view .j-str { color: var(--lane-games); white-space: pre-wrap; }
+  .json-view .j-num { color: var(--lane-flutter); }
+  .json-view .j-bool { color: var(--lane-chatgpt); }
+  .json-view .j-null { color: var(--muted); font-style: italic; }
+  .json-view .j-count { margin: 0 0.5em; padding: 0 0.5em; border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); }
+  .json-view .j-more { margin: var(--space-2) 0 var(--space-2) 1.1rem; padding: var(--space-1) var(--space-3); color: var(--ink); font-family: var(--font-sans); font-size: var(--text-sm); cursor: pointer; }
+  /* Compact: the button for more sits under the line, not in it. */
+  .json-view .j-compact .j-more { display: flex; width: fit-content; margin-left: 0; }
+
+  /* What's wrong, in the page's own type, not the code's. */
+  .json-view .j-problem { font-family: var(--font-sans); font-size: var(--text-base); line-height: 1.5; overflow-wrap: break-word; }
+  .json-view .j-problem p { margin: 0 0 var(--space-2); }
+  .json-view .j-problem-title { font-size: var(--text-md); font-weight: 800; }
+  .json-view .j-where { color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+</style>

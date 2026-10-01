@@ -1,0 +1,31 @@
+---
+// One effect (EFFECTS in lab/tools.js): a small top, so the stage gets the window, then the stage, then other Lab
+// items.
+import Base from '../../../layouts/Base.astro';
+import EffectStage from '../../../components/EffectStage.astro';
+import LabHeader from '../../../components/LabHeader.astro';
+import LabMore from '../../../components/LabMore.astro';
+import { EFFECTS } from '../../../lib/lab/tools.js';
+
+export function getStaticPaths() {
+  return EFFECTS.map((effect) => ({ params: { slug: effect.slug }, props: { effect } }));
+}
+
+interface Props {
+  effect: (typeof EFFECTS)[number];
+}
+
+const { effect } = Astro.props;
+---
+<Base title={effect.name} description={effect.description} area="lab">
+  <div class="wrap top">
+    <LabHeader compact title={effect.name} description={`${effect.description} ${effect.hint}`} back="/lab/#effects" />
+  </div>
+  <EffectStage slug={effect.slug} label={effect.description} />
+  <LabMore current={effect.slug} />
+</Base>
+
+<style>
+  /* Less room above than other pages: the stage below wants the height. */
+  .top { padding-top: var(--space-5); }
+</style>

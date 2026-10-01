@@ -1,18 +1,24 @@
 ---
-// One Lab item as a card: a tool, with its example as the cover, or an experiment post, with its own cover.
+// One Lab item as a card: a tool, with its example as the cover; a game's post, with its own cover; or an effect,
+// with a drawing of what it does.
 import Cover from './Cover.astro';
+import EffectCover from './EffectCover.astro';
 import LabCard from './LabCard.astro';
 import { postUrl, summaryOf, type LabItem } from '../lib/collections';
-import { toolUrl } from '../lib/lab/tools.js';
+import { effectUrl, toolUrl } from '../lib/lab/tools.js';
 
 type Props = LabItem;
 
-const { tool, post } = Astro.props;
+const { tool, post, effect } = Astro.props;
 ---
 {tool ? (
   <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} />
-) : post && (
+) : post ? (
   <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)}>
     <Cover slot="cover" post={post} variant="mini" />
+  </LabCard>
+) : effect && (
+  <LabCard href={effectUrl(effect.slug)} icon="pointer" name={effect.name} description={effect.description}>
+    <EffectCover slot="cover" slug={effect.slug} />
   </LabCard>
 )}

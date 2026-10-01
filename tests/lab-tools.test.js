@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl } from '../src/lib/lab/tools.js';
+import { EFFECTS, effectBySlug, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -55,4 +55,35 @@ test('"check these too" under a Lab page: same kind first, ready tools only, nev
 test('the Lab addresses are kept from posts', () => {
   assert.ok(RESERVED_SLUGS.includes('lab') && RESERVED_SLUGS.includes('random'));
   assert.throws(() => toolBySlug('no-such-tool'), /No Lab tool "no-such-tool"/);
+});
+
+test('every effect has its code, its card picture, its icon and a web-safe address no other Lab item uses', () => {
+  const cover = readFileSync(new URL('src/components/EffectCover.astro', ROOT), 'utf8');
+  const taken = [...TOOLS.map((t) => t.slug), ...EXPERIMENTS];
+  assert.equal(new Set(EFFECTS.map((e) => e.slug)).size, EFFECTS.length);
+  assert.equal(new Set(EFFECTS.map((e) => e.name)).size, EFFECTS.length);
+  for (const e of EFFECTS) {
+    assert.match(e.slug, /^[a-z0-9]+(-[a-z0-9]+)*$/, e.slug);
+    assert.ok(!taken.includes(e.slug), `${e.slug} is also a tool or a game`);
+    assert.ok(existsSync(new URL(`src/effects/${e.slug}.js`, ROOT)), `${e.slug}: src/effects/${e.slug}.js is missing`);
+    assert.ok(cover.includes(`slug === '${e.slug}'`), `${e.slug}: no picture in EffectCover.astro`);
+    assert.ok(e.description.length <= 70 && e.hint.length <= 70, `${e.slug}: keep the description and the hint short`);
+  }
+  assert.match(icons, /^\s+pointer: '/m, 'the "pointer" icon is missing from Icon.astro');
+  assert.equal(effectUrl('dot-grid'), '/lab/effect/dot-grid/');
+  assert.equal(effectBySlug('dot-grid').name, 'Dot Grid');
+  assert.throws(() => effectBySlug('no-such-thing'), /No effect "no-such-thing"/);
+});
+
+test('no tool takes the address the games or the effects live under', () => {
+  TOOLS.forEach((t) => assert.ok(!['game', 'effect'].includes(t.slug), t.slug));
+});
+
+test('"check these too" under an effect: other effects first, never itself', () => {
+  const under = moreLabItems(EFFECTS[0].slug);
+  assert.equal(under.length, 4);
+  assert.ok(under.every((i) => i.kind === 'effect' && i.id !== EFFECTS[0].slug));
+  // A game's and a tool's own kind still come first; effects only fill what's left.
+  assert.equal(moreLabItems(EXPERIMENTS[0])[0].kind, 'experiment');
+  assert.equal(moreLabItems(TOOLS.find((t) => t.status === 'ready').slug)[0].kind, 'tool');
 });
