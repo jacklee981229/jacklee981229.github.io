@@ -7,6 +7,9 @@ export const SITE = {
   role: 'Senior Software Engineer at Squarebox Technology',
   started: '2023-02-23',
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
+  // GoatCounter counts page views, without cookies. Every page's script reports its view here, and the build reads
+  // the Lab pages' public counts from here to rank Most Popular (D13 in docs/PLAN.md).
+  goatcounter: 'https://jacklee981229.goatcounter.com',
 } as const;
 
 // Jack's links, shown the same way on the About page and in the home page's profile card.

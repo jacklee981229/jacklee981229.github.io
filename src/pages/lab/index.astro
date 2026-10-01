@@ -3,10 +3,11 @@ import Base from '../../layouts/Base.astro';
 import Icon from '../../components/Icon.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
 import { GROUPS, TOOLS } from '../../lib/lab/tools.js';
-import { experimentPosts } from '../../lib/collections';
+import { experimentPosts, popularLabItems } from '../../lib/collections';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
 const experiments = await experimentPosts();
+const popular = await popularLabItems();
 ---
 <Base title="Jack's Lab" description={INTRO} area="lab">
   <div class="wrap page">
@@ -17,6 +18,15 @@ const experiments = await experimentPosts();
       <a href="#mini-games">Mini Games</a>
       <a href="#random">Random <span>soon</span></a>
     </nav>
+
+    {popular.length > 0 && (
+      <section id="popular" aria-labelledby="popular-title">
+        <h2 id="popular-title">Most Popular</h2>
+        <ul class="cards">
+          {popular.map((item) => <LabItemCard {...item} />)}
+        </ul>
+      </section>
+    )}
 
     <section id="tools" aria-labelledby="tools-title">
       <h2 id="tools-title">Tools</h2>

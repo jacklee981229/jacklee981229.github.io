@@ -2,10 +2,10 @@
 // One Lab item as a card: a tool, with its example as the cover, or an experiment post, with its own cover.
 import Cover from './Cover.astro';
 import LabCard from './LabCard.astro';
-import { postUrl, summaryOf, type Post } from '../lib/collections';
-import { toolUrl, type TOOLS } from '../lib/lab/tools.js';
+import { postUrl, summaryOf, type LabItem } from '../lib/collections';
+import { toolUrl } from '../lib/lab/tools.js';
 
-type Props = { tool: (typeof TOOLS)[number]; post?: never } | { post: Post; tool?: never };
+type Props = LabItem;
 
 const { tool, post } = Astro.props;
 ---

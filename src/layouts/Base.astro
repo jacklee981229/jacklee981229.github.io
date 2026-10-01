@@ -73,13 +73,23 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
         }
       } catch (e) {}
     </script>
-    <script is:inline define:vars={{ liveHost: Astro.site?.hostname }}>
-      // Visitor counts (busuanzi), only on the live site so local previews never add to them.
+    <script is:inline define:vars={{ liveHost: Astro.site?.hostname, goatcounter: SITE.goatcounter }}>
+      // The visitor counters, only on the live site so local previews never add to them.
       if (location.hostname === liveHost) {
+        // The numbers shown on the site (busuanzi).
         var counter = document.createElement('script');
         counter.async = true;
         counter.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
         document.head.appendChild(counter);
+        // Page views for the Lab's Most Popular (GoatCounter, no cookies). One fixed version with its fingerprint, so
+        // the browser refuses the script if the file ever differs from the one checked on 1 Oct 2026.
+        var views = document.createElement('script');
+        views.async = true;
+        views.src = 'https://gc.zgo.at/count.v5.js';
+        views.crossOrigin = 'anonymous';
+        views.integrity = 'sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ';
+        views.dataset.goatcounter = goatcounter + '/count';
+        document.head.appendChild(views);
       }
     </script>
   </head>

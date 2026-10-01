@@ -3,8 +3,9 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
+import { mostPopular, pageVisits } from './lab/popular.js';
 import { EXPERIMENTS, TOOLS, toolUrl } from './lab/tools.js';
-import { POSTS_PER_PAGE } from '../site';
+import { POSTS_PER_PAGE, SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
 
@@ -30,6 +31,25 @@ export async function experimentPosts(): Promise<Post[]> {
 export const postUrl = (post: Post) => (EXPERIMENTS.includes(post.id) ? `/lab/game/${post.id}/` : `/${post.id}/`);
 export const tagUrl = (tag: string) => `/tags/${slugify(tag)}/`;
 export const summaryOf = (post: Post) => post.data.description ?? excerpt(post.body ?? '');
+
+/** What a Lab card shows: one of the tools, or a game's post. */
+export type LabItem = { tool: (typeof TOOLS)[number]; post?: never } | { post: Post; tool?: never };
+
+// Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
+let popular: Promise<LabItem[]> | undefined;
+
+/** The Lab's Most Popular: its four most visited ready tools and games (lab/popular.js); none while there's no ranking. */
+export function popularLabItems(): Promise<LabItem[]> {
+  return (popular ??= (async () => {
+    const items = [
+      ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem })),
+      ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem })),
+    ];
+    const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
+    if (!visits) console.warn("Most Popular: GoatCounter gave no counts, so the Lab home is built without it.");
+    return mostPopular(items, visits).map((i) => i.item);
+  })());
+}
 
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/content/posts/*/*.{png,jpg,jpeg,webp,gif,avif}', { eager: true });
 

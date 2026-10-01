@@ -1,9 +1,13 @@
-# Builds the site and publishes it to GitHub Pages on every push to main.
+# Builds the site and publishes it to GitHub Pages on every push to main, and once a day.
 name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
+  # The Lab's Most Popular is ranked while the site is built, so a daily build keeps it fresh (04:17 in Malaysia).
+  # GitHub pauses this timer after 60 days without a push; the next push starts it again.
+  schedule:
+    - cron: '17 20 * * *'
   workflow_dispatch:
 
 permissions:

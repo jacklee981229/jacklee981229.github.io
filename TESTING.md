@@ -466,3 +466,22 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 3. Do the same on Snake (an arrow key), Blocks (Start) and Catch the Cat (click a dot). Expected: each glides the same way, and the whole game fits the window. On a MacBook Air-sized window, 2048 and Snake are about 650 pixels wide and the Blocks well about 720 tall.
 4. Make the window shorter or taller and reload. Expected: the games grow and shrink with the window's height, up to a comfortable maximum, and the leaderboard stays in the same place on 2048, Snake and Blocks.
 5. On your phone (or the browser's phone view). Expected: the games fill the width as before, and nothing scrolls sideways.
+
+## Most Popular (GoatCounter)
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "41 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/. If the build prints "Most Popular: GoatCounter gave no counts", it couldn't reach the counter; the site still builds, without the section.
+2. Open http://localhost:4321/lab/. Expected: no "Most Popular" yet. It appears once four different Lab items (tools or games) have been visited on the live site.
+3. After the next publish, open https://jacklee981229.github.io/ and a few Lab pages, then open https://jacklee981229.goatcounter.com. Expected: your visits listed within a minute, each page under its own address.
+4. In a terminal:
+   ```powershell
+   curl.exe -s https://jacklee981229.goatcounter.com/counter/TOTAL.json
+   ```
+   Expected: `{"count_unique":"N", "count":"N"}`, the site's total views. These public numbers can lag up to four hours behind the dashboard.
+5. Once four Lab items have visits, wait for the next publish or the daily refresh (04:17), then open https://jacklee981229.github.io/lab/. Expected: "Most Popular" at the top, under the Tools / Mini Games / Random buttons, with the four most visited items as cards, most visited first, and no numbers.
+6. To keep your own visits out of the counts on a device, open https://jacklee981229.github.io/#toggle-goatcounter there once. Expected: a message that GoatCounter is now disabled in that browser (the same address switches it back on).
