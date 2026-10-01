@@ -18,7 +18,21 @@
 /* Wide enough for the running time, so the boxes beside it never shift as its digits change. */
 .g2048 .g2048-time { min-width: 7.25rem; }
 .g2048 .g2048-gain { position: absolute; right: 0; bottom: 50%; left: 0; color: var(--lane-games); font-size: var(--text-sm); font-weight: 800; pointer-events: none; animation: g2048-gain 700ms ease-out forwards; }
-.g2048 .button { color: var(--ink); cursor: pointer; }
+.g2048 .g2048-buttons { display: flex; gap: var(--space-2); }
+.g2048 .button { color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Undo with no move to take back. */
+.g2048 .button:disabled { border-color: var(--rule); opacity: 0.45; cursor: default; }
+/* On a narrow board (short laptops, phones) the row above it tightens, so the scores and both buttons still share
+   one line on a laptop, even with a six-figure score in an hour-long game. A second line there would push the
+   board's foot off the screen. */
+@container (max-width: 37.5rem) {
+  .g2048 .g2048-top, .g2048 .g2048-scores { gap: var(--space-2) 0.375rem; }
+  .g2048 .g2048-score { min-width: 4.5rem; padding-inline: var(--space-2); }
+  .g2048 .g2048-score strong { font-size: var(--text-base); }
+  .g2048 .g2048-time { min-width: 6.25rem; }
+  .g2048 .g2048-buttons { gap: 0.375rem; }
+  .g2048 .g2048-buttons .button { padding-inline: var(--space-3); }
+}
 
 .g2048 .g2048-board { position: relative; padding: var(--gap); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
 .g2048 .g2048-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }

@@ -1,10 +1,10 @@
-// 2048 on the "Jack's 2048" post: draws the board and plays the rules from rules.js, with a clock, and the games'
-// leaderboard (../leaderboard.js) for finished games.
+// 2048 on the "Jack's 2048" post: draws the board and plays the rules from rules.js, with a clock, Undo for the
+// move just made, and the games' leaderboard (../leaderboard.js) for finished games.
 // Smoothness: each tile is one element moved by a GPU-friendly transform; joins pop and new tiles appear once
 // the slide ends; a key pressed mid-slide finishes the current step at once, so input never waits for animation.
 import { bringIntoView, onGameKeys, onSwipe } from '../controls.js';
 import { formatTime, leaderboard } from '../leaderboard.js';
-import { move, newGame, SIZE } from './rules.js';
+import { move, newGame, SIZE, undo } from './rules.js';
 
 const KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', a: 'left', d: 'right', w: 'up', s: 'down', A: 'left', D: 'right', W: 'up', S: 'down' };
 const SAVED = 'g2048-game';
@@ -31,14 +31,17 @@ function play(root) {
           <p class="g2048-score"><span class="g2048-label">Best</span><strong data-best>0</strong></p>
           <p class="g2048-score g2048-time"><span class="g2048-label">Time</span><strong data-time>00:00.00</strong></p>
         </div>
-        <button type="button" class="button" data-new>New game</button>
+        <div class="g2048-buttons">
+          <button type="button" class="button" data-undo disabled>Undo</button>
+          <button type="button" class="button" data-new>New game</button>
+        </div>
       </div>
       <div class="g2048-board" tabindex="0" role="application" aria-label="2048 board" aria-describedby="g2048-help">
         <div class="g2048-cells" aria-hidden="true">${'<div></div>'.repeat(SIZE * SIZE)}</div>
         <div class="g2048-tiles" aria-hidden="true" data-tiles></div>
         <div class="g2048-message" data-message hidden><p data-message-text></p><div data-extra hidden></div><div class="g2048-actions" data-actions></div></div>
       </div>
-      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board.</p>
+      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board. Z undoes one move.</p>
     </div>
     <section data-leaderboard></section>
     <p class="visually-hidden" aria-live="polite" data-status></p>`;
@@ -50,6 +53,7 @@ function play(root) {
   const scoreEl = $('[data-score]');
   const bestEl = $('[data-best]');
   const timeEl = $('[data-time]');
+  const undoButton = $('[data-undo]');
   const scores = leaderboard($('[data-leaderboard]'), '2048');
   /** @type {Map<number, HTMLElement>} */
   const tiles = new Map();
@@ -58,7 +62,8 @@ function play(root) {
   let best = Math.max(Number(store.get(BEST)) || 0, game.score);
   let pending = null;
 
-  // The clock runs from a game's first move until no moves are left, and shows the milliseconds as they go.
+  // The clock runs from a game's first move until no moves are left, and shows the milliseconds as they go. It
+  // waits while "You made 2048!" is up, until the game is carried on.
   // It's saved with the game, so a reload carries on from the same time: time with the page closed doesn't count.
   let started = Boolean(saved && store.get(TIME));
   let base = started ? Number(store.get(TIME)) || 0 : 0;
@@ -88,10 +93,11 @@ function play(root) {
   };
 
   function restore() {
+    const ok = (g) => g && Array.isArray(g.tiles) && g.tiles.every((t) => [t.x, t.y].every((n) => Number.isInteger(n) && n >= 0 && n < SIZE) && t.value >= 2);
     try {
       const g = JSON.parse(store.get(SAVED) ?? 'null');
-      const ok = g && Array.isArray(g.tiles) && g.tiles.every((t) => [t.x, t.y].every((n) => Number.isInteger(n) && n >= 0 && n < SIZE) && t.value >= 2);
-      return ok ? g : null;
+      // The move kept for Undo is checked like the game itself; one that isn't right is dropped.
+      return ok(g) ? { ...g, back: ok(g.back) ? { ...g.back, back: null } : null } : null;
     } catch {
       return null;
     }
@@ -151,8 +157,13 @@ function play(root) {
     $('[data-status]').textContent = extra?.dataset.said ? `${words} ${extra.dataset.said}` : words;
     message.querySelector('input, button').focus();
   };
+  // Undo takes back one move, so there's something to undo only straight after a move.
+  const showUndo = () => { undoButton.disabled = !game.back; };
   const keepGoing = () => {
+    // 2048 made with the board's last move: there's nothing to carry on with.
+    if (game.over) return ended();
     message.hidden = true;
+    run();
     board.focus();
   };
   const restart = () => {
@@ -167,6 +178,7 @@ function play(root) {
     message.hidden = true;
     drawAll('new');
     showScore(0);
+    showUndo();
     board.focus();
   };
   // Once a name is typed into a message, the focus goes on to the message's first button.
@@ -187,19 +199,21 @@ function play(root) {
     // A board partly off the screen comes fully into view as you play, with its scores.
     bringIntoView($('.g2048-top'), board);
     finishNow();
-    const before = game;
     const r = move(game, direction);
     if (!r.moved) return;
+    const wonNow = r.game.won && !game.won;
     game = r.game;
     store.set(SAVED, JSON.stringify(game));
     run();
-    if (game.over) halt();
+    // The clock stops when no moves are left, and waits at "You made 2048!" until Keep going.
+    if (game.over || wonNow) halt();
     saveTime();
     for (const s of r.slid) {
       const el = tiles.get(s.id);
       if (el) place(el, s);
     }
     showScore(r.gained);
+    showUndo();
     const finish = () => {
       for (const joined of r.merged) {
         for (const id of joined.from) {
@@ -211,16 +225,51 @@ function play(root) {
       if (r.spawned) make(r.spawned, 'new');
       // Reaching 2048 goes on the leaderboard straight away, so starting a new game from here keeps it; playing
       // on, the final score replaces it when it's higher.
-      if (game.won && !before.won) say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], scores.finish(game.score, elapsed(), toActions));
+      if (wonNow) say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], scores.finish(game.score, elapsed(), toActions));
       else if (game.over) ended();
     };
     if (slideMs) pending = { timer: setTimeout(finishNow, slideMs), finish };
     else finish();
   };
 
+  // Undo: the move just made is taken back, once (rules.js). Tiles still on the board slide back to where they
+  // were, the ones a join used up return, and what the move made (its joins, its new tile) goes. The clock doesn't
+  // go back; it carries on, also when the move had ended the game or made 2048.
+  const takeBack = () => {
+    if (!game.back) return;
+    // A move still sliding is dropped where it is: its joins, new tile and message never show.
+    if (pending) clearTimeout(pending.timer);
+    pending = null;
+    // The focus can't stay on what's going: a button of the message, or Undo itself as it switches off.
+    const refocus = message.contains(document.activeElement) || document.activeElement === undoButton;
+    game = undo(game);
+    store.set(SAVED, JSON.stringify(game));
+    message.hidden = true;
+    const kept = new Set(game.tiles.map((t) => t.id));
+    for (const [id, el] of tiles) {
+      if (kept.has(id)) continue;
+      el.remove();
+      tiles.delete(id);
+    }
+    for (const t of game.tiles) {
+      const el = tiles.get(t.id);
+      if (el) place(el, t);
+      else make(t);
+    }
+    showScore(0);
+    showUndo();
+    run();
+    $('[data-status]').textContent = `Move taken back. Score ${game.score.toLocaleString('en-US')}.`;
+    if (refocus) board.focus();
+  };
+
   // Keys and swipes (../controls.js); a message over the board, where a name may be typed, keeps them.
   onGameKeys(board, {
     down: (e) => {
+      if (e.key === 'z' || e.key === 'Z') {
+        takeBack();
+        return true;
+      }
       const direction = KEYS[e.key];
       if (!direction || !message.hidden) return false;
       step(direction);
@@ -229,6 +278,7 @@ function play(root) {
   });
   onSwipe(board, { swipe: step, ignore: () => !message.hidden });
   $('[data-new]').addEventListener('click', restart);
+  undoButton.addEventListener('click', takeBack);
 
   // Leaving the page stops the clock and saves its time. Coming back with the Back button starts it again; a
   // background tab is still open, so its time goes on counting and is only saved in case the tab gets closed.
@@ -247,6 +297,8 @@ function play(root) {
   drawAll('new');
   showScore(0);
   showTime();
+  showUndo();
   if (game.over) ended();
-  else if (started) run();
+  // A game left at "You made 2048!" still waits: its clock starts again with the next move.
+  else if (started && !(game.won && game.back && !game.back.won)) run();
 }

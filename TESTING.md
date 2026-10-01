@@ -542,3 +542,21 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 8. Click the sun or moon at the top right. Expected: the effect redraws in the other theme's colours.
 9. On your phone (or the browser's phone view), drag a finger on the stage. Expected: the effect follows the finger and the page doesn't scroll; drag on the title above the stage, or on what's below it, to scroll the page.
 10. With "reduce motion" switched on in Windows (Settings, Accessibility, Visual effects, Animation effects off), reload. Expected: a still picture and a Play button; nothing moves until you press Play.
+
+## 2048: Undo, and the clock waits at 2048
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "51 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/game/2048/ and click New game. Expected: an Undo button left of New game, greyed out, and the line under the board ends with "Z undoes one move."
+3. Press an arrow key, then click Undo. Expected: the tiles slide back to where they were and the score goes back; Undo greys out again. Click it again, or press Z: nothing changes.
+4. Press an arrow key, then Z. Expected: that move is taken back too (move, undo, move, undo works).
+5. Make two moves, then click Undo twice. Expected: only the last move comes back.
+6. Make a move and reload the page. Expected: Undo is still there for that one move.
+7. Play until no moves are left, then click Undo. Expected: "No more moves." goes, the last move is taken back, and the time runs again.
+8. If you reach 2048: the time stops while "You made 2048!" is up, at the same time the leaderboard shows. Keep going starts it again. Undo there takes the 2048 back and the game carries on. (I checked this with a set-up board.)
+9. Make the window about 1280 wide and 650 tall. Expected: Score, Best, Time, Undo and New game share one line, and the whole board is on screen while you play. On a phone, the two buttons sit under the scores.

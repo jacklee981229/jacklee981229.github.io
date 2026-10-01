@@ -1,12 +1,13 @@
 // 2048's rules, kept apart from the board on screen so tests can check them (tests/game-2048.test.js).
 // A game is its tiles, score, and whether it has been won or is over. A tile is { id, value, x, y }:
 // x is the column (0 is left), y the row (0 is top). Ids let the screen animate each tile from move to move.
+// A game also carries `back`: the game as it was before its last move, for Undo. Only one move back is kept.
 
 export const SIZE = 4;
 export const GOAL = 2048;
 
 /** @typedef {{ id: number, value: number, x: number, y: number }} Tile */
-/** @typedef {{ tiles: Tile[], score: number, won: boolean, over: boolean, nextId: number }} Game */
+/** @typedef {{ tiles: Tile[], score: number, won: boolean, over: boolean, nextId: number, back?: Game | null }} Game */
 
 /** @param {() => number} [random] */
 export function newGame(random = Math.random) {
@@ -100,5 +101,14 @@ export function move(game, direction, random = Math.random) {
 
   const after = { ...game, tiles, score: game.score + gained, nextId, won: game.won || merged.some((t) => t.value >= GOAL) };
   const { game: next, tile } = spawn(after, random);
-  return { game: { ...next, over: !canMove(next.tiles) }, moved: true, gained, slid, merged, spawned: tile };
+  return { game: { ...next, over: !canMove(next.tiles), back: { ...game, back: null } }, moved: true, gained, slid, merged, spawned: tile };
+}
+
+/**
+ * Takes back the last move: the board, the score, and a win or an end that the move brought. Once only: the game
+ * it returns has nothing to take back until the next move. With nothing to take back, it's the same game.
+ * @param {Game} game @returns {Game}
+ */
+export function undo(game) {
+  return game.back ? { ...game.back, back: null } : game;
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canMove, emptyCells, move, newGame, spawn } from '../src/games/2048/rules.js';
+import { canMove, emptyCells, move, newGame, spawn, undo } from '../src/games/2048/rules.js';
 
 // A game from rows of numbers (0 is an empty cell).
 const game = (rows, extra = {}) => {
@@ -79,4 +79,52 @@ test('the game is over when the board is full and no neighbours match', () => {
 
 test('a new game starts with two tiles', () => {
   assert.equal(newGame().tiles.length, 2);
+});
+
+test('undo takes back the last move, once: move, undo, move, undo works; two undos in a row do not', () => {
+  const start = game([[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+  assert.equal(undo(start), start, 'nothing to take back before the first move');
+  assert.equal(undo(newGame()).tiles.length, 2);
+
+  const one = move(start, 'left', last).game;
+  assert.equal(one.score, 4);
+  const back = undo(one);
+  // The same tiles with the same ids, so the screen can slide them back; the score and the next id too.
+  assert.deepEqual(back.tiles, start.tiles);
+  assert.deepEqual([back.score, back.nextId, back.won, back.over], [0, 100, false, false]);
+  assert.equal(undo(back), back, 'not twice in a row');
+
+  const two = move(back, 'right', last).game;
+  assert.deepEqual(rows(two)[0], [0, 0, 0, 4]);
+  assert.deepEqual(rows(undo(two)), rows(start), 'move, undo, move, undo');
+});
+
+test('undo goes back one move only, however many were made', () => {
+  const start = game([[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+  const afterOne = move(start, 'left', last).game;
+  const afterTwo = move(afterOne, 'down', last).game;
+  const once = undo(afterTwo);
+  assert.deepEqual(rows(once), rows(afterOne));
+  assert.equal(once.score, afterOne.score);
+  assert.equal(undo(once), once);
+  // What's kept (and saved with the game) is one game back, never a chain of them.
+  assert.equal(afterTwo.back.back, null);
+  // A key that moves nothing leaves the move before it there to take back.
+  const stuck = move(afterTwo, 'down', last);
+  assert.equal(stuck.moved, false);
+  assert.deepEqual(rows(undo(stuck.game)), rows(afterOne));
+});
+
+test('undo also takes back a win or an end that the move brought', () => {
+  const won = move(game([[1024, 1024, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]), 'left', first).game;
+  assert.equal(won.won, true);
+  assert.equal(undo(won).won, false);
+  const end = move(game([[2, 4, 2, 4], [4, 2, 4, 2], [2, 4, 2, 4], [0, 4, 2, 4]]), 'left', () => 0.5).game;
+  assert.equal(end.over, true);
+  const again = undo(end);
+  assert.equal(again.over, false);
+  assert.equal(move(again, 'left', () => 0.5).moved, true);
+  // A game already won stays won when a later move is taken back.
+  const later = move(move(game([[1024, 1024, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]), 'left', first).game, 'right', first).game;
+  assert.equal(undo(later).won, true);
 });
