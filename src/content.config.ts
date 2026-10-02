@@ -1,5 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
 
 // One folder per post: src/content/posts/<address>/index.md, with its images beside it.
@@ -39,4 +40,45 @@ const pages = defineCollection({
   schema: z.object({ title: z.string() }),
 });
 
-export const collections = { posts, pages };
+// The Collections page. One folder per collection: src/content/collections/<name>/index.yaml, with its pictures
+// beside it (how to add an item: src/content/collections/README.md). Here they're "shelves", because "collections"
+// is already Astro's word for these folders of content.
+const shelves = defineCollection({
+  loader: glob({
+    pattern: '*/index.yaml',
+    base: './src/content/collections',
+    generateId: ({ entry }) => entry.split('/')[0],
+  }),
+  schema: z.object({
+    name: z.string().min(1),
+    // Collections show lowest number first; ones without a number come after, by name.
+    order: z.number().optional(),
+    // Shown in the order they're listed.
+    items: z.array(
+      z
+        .object({
+          name: z.string().min(1),
+          stars: z.number(),
+          // A picture in the same folder. Without one, the item gets a plain cover with its name.
+          image: z.string().optional(),
+          // Jack's own words on it, shown in the note that opens beside the item.
+          comment: z.string().min(1).optional(),
+        })
+        .superRefine((item, ctx) => {
+          if (!validStars(item.stars)) ctx.addIssue({ code: 'custom', path: ['stars'], message: `"${item.name}" has ${item.stars} stars. Stars go from 1 to 5, in halves: 4 or 4.5, not 4.2.` });
+        }),
+    ),
+  }),
+});
+
+// The Travel Map's one list: src/content/travel/visited.yaml.
+const travel = defineCollection({
+  loader: glob({ pattern: 'visited.yaml', base: './src/content/travel' }),
+  schema: z.object({
+    // Names the map knows (src/lib/travel/places.js). The first is home: the globe starts facing it, and the
+    // colours run from it to the farthest place.
+    visited: z.array(z.string().min(1)),
+  }),
+});
+
+export const collections = { posts, pages, shelves, travel };

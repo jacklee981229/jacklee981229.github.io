@@ -1,0 +1,14 @@
+# The places coloured in on the Travel Map (/travel/), one to a line.
+#
+# Use a country's everyday English name: Malaysia, Japan, South Korea, USA, UK. Capital letters and accents don't
+# matter. A name the map doesn't know stops the build and says which one, with the nearest names it does know.
+# A place too small to see on a world map (Singapore, Hong Kong, Maldives) is named under the map but not drawn.
+#
+# Put home first: the globe starts facing it, and the colours run from home (red) to the farthest place (yellow).
+
+visited:
+  - Malaysia
+  - Singapore
+  - Thailand
+  - China
+  - Taiwan

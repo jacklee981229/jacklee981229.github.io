@@ -1,0 +1,241 @@
+---
+import { getEntry } from 'astro:content';
+import world from 'world-atlas/countries-110m.json';
+import fine from 'world-atlas/countries-50m.json';
+import Base from '../layouts/Base.astro';
+import Switch from '../components/Switch.astro';
+import { HEIGHT, WIDTH, colourSteps, flatMap, middles, namesIn } from '../lib/travel/map.js';
+import { placesFor } from '../lib/travel/places.js';
+
+const list = await getEntry('travel', 'visited');
+if (!list) throw new Error('The Travel Map has no list of places: add src/content/travel/visited.yaml.');
+
+// The map draws the coarse file's countries. A visited place only the finer file has (Singapore) is too small to
+// draw: it's named under the map, in its colour.
+const places = placesFor(list.data.visited, namesIn(world), namesIn(fine));
+const spots = middles(fine, places.map((place) => place.name));
+// Each place's colour: home (the first listed) at one end, the farthest place at the other.
+const steps = colourSteps(spots);
+const stepOf = (name: string) => steps[places.findIndex((place) => place.name === name)];
+const map = flatMap(world, places);
+// The names under the map run the same way as the colours, home first.
+const names = places.map((place) => ({ said: place.said, step: stepOf(place.name) })).sort((a, b) => a.step - b.step);
+const count = names.length === 1 ? '1 place' : `${names.length} places`;
+
+// Each visited country is a small picture of its own laid over the map, just big enough for its shape, so it can
+// breathe and rise by itself. MARGIN is the room around the shape for its outline, in the map's units.
+const MARGIN = 3;
+const share = (n: number, of: number) => `${((n / of) * 100).toFixed(3)}%`;
+const shapes = map.shapes.map((shape, i) => {
+  const [left, top, right, bottom] = shape.box;
+  const box = { x: left - MARGIN, y: top - MARGIN, width: right - left + 2 * MARGIN, height: bottom - top + 2 * MARGIN };
+  return {
+    ...shape,
+    id: `place-${i}`,
+    viewBox: `${box.x} ${box.y} ${box.width} ${box.height}`,
+    // Where the picture sits on the map, its step along the colours, and the shape's middle, which it grows from.
+    style: `left: ${share(box.x, WIDTH)}; top: ${share(box.y, HEIGHT)}; width: ${share(box.width, WIDTH)}; height: ${share(box.height, HEIGHT)}; --step: ${stepOf(shape.name)}; --middle: ${share(shape.middle[0] - box.x, box.width)} ${share(shape.middle[1] - box.y, box.height)}`,
+  };
+});
+
+// What the globe needs: the countries to colour, and where to face at the start (home).
+const globe = {
+  shapes: shapes.map((shape) => ({ name: shape.name, said: shape.said })),
+  facing: spots.length ? spots[0].map((n) => Math.round(n * 100) / 100) : [0, 0],
+};
+---
+<Base title="Jack's Travel Map" description="The places Jack has been, coloured in on a globe you can turn, or on a flat map of the world.">
+  <div class="wrap page">
+    <h1 class="page-title">Jack's Travel Map</h1>
+    <p class="lede">{names.length ? `${count} so far.` : 'Nowhere yet.'}</p>
+    <p class="view"><Switch name="map" label="How the map is shown" choices={[{ value: 'globe', label: 'Globe' }, { value: 'flat', label: 'Flat' }]} /></p>
+    <div class="map">
+      <!-- The globe is what the page opens on. Drawn by src/lib/travel/globe.js on its canvases, bottom to top: the
+           world's lines, the visited places' glow and the places themselves, then the same two again for a place
+           that has risen under the mouse. They reach a little past the globe, so a risen place at its edge isn't cut. -->
+      <div class="globe" data-globe={JSON.stringify(globe)} role="group" aria-label={`Globe with ${count} coloured in, listed below. Drag it, or use the arrow keys, to turn it.`} tabindex="0">
+        <canvas aria-hidden="true"></canvas>
+        <canvas class="glow" aria-hidden="true"></canvas>
+        <canvas class="lit" aria-hidden="true"></canvas>
+        <canvas class="glow hot" aria-hidden="true"></canvas>
+        <canvas class="lit hot" aria-hidden="true"></canvas>
+        <span class="tag" aria-hidden="true" data-tag></span>
+      </div>
+      <!-- The flat map, for when Flat is chosen: drawn while the site is built. It keeps its place under the globe
+           even while it's out of sight (data-off), so the globe knows where to open out to. -->
+      <div class="flat" data-flat data-off>
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Map of the world with ${count} coloured in, listed below`}>
+          <defs>
+            {shapes.map((shape) => <path id={shape.id} class="outline" d={shape.d} />)}
+            <!-- Thin lines across a risen place, which make it look like a picture made of light. -->
+            <pattern id="scan" patternUnits="userSpaceOnUse" width="8" height="3"><rect class="scanline" width="8" height="1" /></pattern>
+          </defs>
+          <path class="sphere" d={map.outline} />
+          <path class="grid" d={map.grid} />
+          <path class="lines" d={map.lines} />
+        </svg>
+        <!-- A visited country, bottom to top: the faint mark it leaves on the map, the part that rises under the
+             mouse (a soft copy that swells and fades, then the country itself), the shape the mouse is checked
+             against (which stays put, so rising can't move the country out from under the mouse), and its name. -->
+        {shapes.map((shape) => (
+          <div class="place" style={shape.style} data-place={shape.name} aria-hidden="true">
+            <svg class="mark" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+            <div class="lift">
+              <svg class="glow" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+              <svg class="lit" viewBox={shape.viewBox}>
+                <use class="shape" href={`#${shape.id}`} />
+                <use class="scan" href={`#${shape.id}`} fill="url(#scan)" />
+              </svg>
+            </div>
+            <svg class="hit" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+            <span class="tag">{shape.said}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+    <ul class="places">{names.map((name) => <li style={`--step: ${name.step}`}>{name.said}</li>)}</ul>
+  </div>
+</Base>
+
+<script>
+  import { runGlobe } from '../lib/travel/globe.js';
+
+  const flat = document.querySelector<HTMLElement>('[data-flat]')!;
+  const stage = document.querySelector<HTMLElement>('[data-globe]')!;
+  const choices = [...document.querySelectorAll<HTMLInputElement>('input[name="map"]')];
+  const chosen = () => (choices.some((choice) => choice.checked && choice.value === 'flat') ? flat : stage);
+
+  // The page opens on the globe, unless the browser brings back Flat from before a reload.
+  let showing = chosen();
+  stage.toggleAttribute('data-off', showing !== stage);
+  flat.toggleAttribute('data-off', showing !== flat);
+  const { shapes, facing } = JSON.parse(stage.dataset.globe!) as { shapes: { name: string; said: string }[]; facing: [number, number] };
+  const globe = runGlobe(stage, {
+    // Each country takes the colour it has on the flat map, so the two can't differ.
+    shapes: shapes.map((shape) => ({ ...shape, like: flat.querySelector(`[data-place="${shape.name}"]`)! })),
+    facing,
+    sheet: () => flat.getBoundingClientRect(),
+    flat: showing === flat,
+  });
+
+  /**
+   * One of the two takes over from the other, in one go: at that moment both show the same picture. (Fading one
+   * into the other dims the colours for a moment, which reads as a blink: two see-through copies, each half there,
+   * don't add up to one whole.)
+   */
+  function handOver(from: HTMLElement, to: HTMLElement) {
+    // The newcomer's breathing is put in step with the one it takes over from.
+    const beat = from.querySelector('.glow')?.getAnimations()[0]?.currentTime;
+    if (beat != null) for (const breath of to.getAnimations({ subtree: true })) if ('animationName' in breath) breath.currentTime = beat;
+    to.removeAttribute('data-off');
+    from.setAttribute('data-off', '');
+    showing = to;
+  }
+
+  let busy = false;
+  async function show() {
+    if (busy) return;
+    busy = true;
+    // A choice made while it's on its way is followed once it has arrived.
+    while (chosen() !== showing) {
+      if (chosen() === stage) {
+        // Flat to globe: the canvases, opened out flat, take over from the flat map's picture, then close up.
+        globe.refresh();
+        handOver(flat, stage);
+        await globe.open(0);
+      } else {
+        // Globe to flat: the globe opens out, then the flat map's own picture takes over from the canvases.
+        await globe.open(1);
+        handOver(stage, flat);
+      }
+    }
+    busy = false;
+  }
+
+  for (const choice of choices) choice.addEventListener('change', show);
+</script>
+
+<style>
+  /* The globe's canvases reach a little past the globe, for a place that rises at its edge. On a phone that is
+     past the edge of the screen: cut there, so the page can't slide sideways. */
+  .page { overflow-x: clip; }
+
+  /* The switch sits under the page's lead, like the Lab's buttons. */
+  .view { margin: var(--space-5) 0 0; }
+
+  /* As big as the window's height allows with the page's top above and the names below, so the whole map is in view.
+     --lift-scale: how much bigger a place is drawn once it has risen under the mouse (the globe reads it too). */
+  .map { --map-height: max(16rem, calc(100svh - 22.5rem)); --lift-scale: 1.07; display: grid; place-items: center; margin-top: var(--space-4); }
+  /* The globe and the flat map share one place, so that one can open out into the other. The one that's not on show
+     keeps its place, unseen and untouchable. */
+  .map > * { grid-area: 1 / 1; }
+  .map > [data-off] { visibility: hidden; pointer-events: none; }
+  .flat { position: relative; width: min(100%, calc(var(--map-height) * 1000 / 520)); }
+  .flat > svg { display: block; width: 100%; height: auto; overflow: visible; }
+  /* Every line keeps its thickness however small the map is drawn (on a phone they would all but vanish), the
+     same thickness as the globe's lines. */
+  .sphere, .grid, .lines, .outline { vector-effect: non-scaling-stroke; }
+  .sphere { fill: none; stroke: var(--rule); stroke-width: 1; }
+  .grid { fill: none; stroke: var(--rule); stroke-width: 0.5; }
+  .lines { fill: none; stroke: var(--muted); stroke-width: 0.6; stroke-linejoin: round; opacity: 0.75; }
+
+  /* A visited place's colour: its step along the way from the first of the two colours to the second. Browsers
+     too old to mix colours use the first for every place. */
+  .place, .places li::before { --colour: var(--visited-near); }
+  @supports (color: color-mix(in oklch, red, blue)) {
+    .place, .places li::before { --colour: color-mix(in oklch, var(--visited-far) calc(var(--step) * 100%), var(--visited-near)); }
+  }
+  /* The colour is the place's text colour, which its shapes are filled with; the globe reads it from here. */
+  .place { position: absolute; color: var(--colour); }
+  .place:hover { z-index: 2; }
+  .place svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .place use:not(.scan) { fill: currentColor; }
+  .place .hit use { fill: transparent; pointer-events: fill; }
+  .mark { opacity: 0.3; }
+  .shape { stroke: var(--paper); stroke-width: 0.5; stroke-linejoin: round; }
+  .scan { opacity: 0; transition: opacity 0.22s ease; }
+  .scanline { fill: var(--paper); opacity: 0.22; }
+
+  /* Under the mouse a place rises out of the map like a picture made of light: a little bigger and higher, a
+     bright edge, thin lines across it, and its name over it. */
+  .lift { position: absolute; inset: 0; transform-origin: var(--middle); transition: transform 0.22s ease; }
+  .place:hover .lift { transform: translateY(-0.35rem) scale(var(--lift-scale)); }
+  .place:hover .shape { stroke: color-mix(in srgb, var(--ink) 60%, var(--colour)); stroke-width: 0.9; }
+  .place:hover .scan { opacity: 1; }
+  .tag { position: absolute; z-index: 3; padding: 0.3em 0.45em 0.3em 0.65em; border-radius: 3px; background: color-mix(in srgb, var(--paper) 78%, transparent); color: var(--ink); font-size: var(--text-xs); font-weight: 700; line-height: 1; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; pointer-events: none; opacity: 0; translate: -50% calc(-100% - 0.9rem); transition: opacity 0.22s ease; }
+  .tag::after { content: ''; position: absolute; top: 100%; left: 50%; width: 1px; height: 0.55rem; background: var(--colour); }
+  .place .tag { top: 0; left: 50%; }
+  .place:hover .tag { opacity: 1; }
+
+  /* The breathing: the soft copy under a place swells and brightens, then draws back in, and the place brightens a
+     little with it. Gentle while the place rests; stronger once it has risen (on the globe, the "hot" layers).
+     Fainter on the light theme, where a glow would smudge the page. What's set on the layer itself is how it stays
+     when less motion is asked for. */
+  .glow, .lit { pointer-events: none; }
+  .glow { --breath-low: 0.1; --breath-high: 0.22; --blur-low: 4px; --blur-high: 7px; opacity: calc((var(--breath-low) + var(--breath-high)) / 2); filter: blur(var(--blur-low)); animation: travel-glow 2.6s ease-in-out infinite alternate; }
+  .lit { --lit-low: 0.93; animation: travel-lit 2.6s ease-in-out infinite alternate; }
+  :global([data-theme='dark']) .glow { --breath-low: 0.28; --breath-high: 0.5; }
+  .place:hover .glow, .glow.hot { --breath-low: 0.28; --breath-high: 0.6; --blur-low: 6px; --blur-high: 13px; }
+  .place:hover .lit, .lit.hot { --lit-low: 0.82; }
+  :global([data-theme='dark']) .place:hover .glow, :global([data-theme='dark']) .glow.hot { --breath-low: 0.55; --breath-high: 1; }
+  @keyframes travel-glow {
+    from { opacity: var(--breath-low); filter: blur(var(--blur-low)); }
+    to { opacity: var(--breath-high); filter: blur(var(--blur-high)); }
+  }
+  @keyframes travel-lit {
+    from { opacity: var(--lit-low); }
+    to { opacity: 1; }
+  }
+
+  /* touch-action: a finger on the globe turns it rather than scrolling the page. --room: the space between the ball
+     and the edge of its box (the globe's code reads it). */
+  .globe { --room: 8px; position: relative; width: min(100%, var(--map-height)); aspect-ratio: 1; border-radius: 50%; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .globe:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+  /* The bare ball, there from the first moment, until the globe's code has arrived and draws its own (data-live). */
+  .globe:not([data-live])::before { content: ''; position: absolute; inset: var(--room); border: 1px solid var(--rule); border-radius: 50%; background: radial-gradient(ellipse 75% 75% at 35% 30%, var(--surface), var(--paper)); }
+  /* The globe's code sizes and places its canvases: over the globe, and as far as the flat map it opens out into. */
+  canvas { position: absolute; display: block; pointer-events: none; }
+
+  .places { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2) var(--space-4); margin: var(--space-4) 0 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--text-ui); }
+  .places li::before { content: ''; display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.4rem; border-radius: 50%; background: var(--colour); }
+</style>

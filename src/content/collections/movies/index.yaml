@@ -1,0 +1,30 @@
+# How to add an item or a collection: ../README.md
+
+name: Movies
+order: 1
+
+items:
+  - name: Stranger Things
+    stars: 5
+    image: stranger-things.jpg
+  - name: The Uncanny Counter
+    stars: 5
+    image: the-uncanny-counter.jpg
+  - name: Wednesday
+    stars: 4
+    image: wednesday.jpg
+  - name: Happiness
+    stars: 5
+    image: happiness.jpg
+  - name: 难哄
+    stars: 4
+    image: nan-hong.jpg
+  - name: Howl's Moving Castle
+    stars: 4
+    image: howls-moving-castle.jpg
+  - name: 逐玉
+    stars: 5
+    image: zhu-yu.jpg
+  - name: Teach You a Lesson
+    stars: 4
+    image: teach-you-a-lesson.jpg

@@ -1,0 +1,27 @@
+# How to add an item or a collection: ../README.md
+
+name: Games
+order: 2
+
+items:
+  - name: Terraria
+    stars: 5
+    image: terraria.jpg
+  - name: Shape of Dreams
+    stars: 5
+    image: shape-of-dreams.jpg
+  - name: "Black Myth: Wukong"
+    stars: 4
+    image: black-myth-wukong.jpg
+  - name: Persona 5 Royal
+    stars: 5
+    image: persona-5-royal.jpg
+  - name: Death Stranding
+    stars: 5
+    image: death-stranding.jpg
+  - name: Palworld
+    stars: 5
+    image: palworld.jpg
+  - name: V Rising
+    stars: 5
+    image: v-rising.jpg

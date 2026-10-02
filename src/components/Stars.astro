@@ -1,0 +1,37 @@
+---
+// An item's stars on the Collections page: five of them, filled from the left as far as the rating goes, half a
+// star included.
+import { starFills, starsLabel } from '../lib/shelves.js';
+
+interface Props {
+  /** 1 to 5, in halves. */
+  stars: number;
+}
+
+const { stars } = Astro.props;
+/** A star's own size, in its drawing's units. */
+const SIZE = 20;
+const STAR = 'M10 1.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.6 7.7l5.8-.8z';
+---
+<span class="stars" role="img" aria-label={starsLabel(stars)}>
+  {starFills(stars).map((fill) => (
+    <svg class="star" viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
+      <path class="empty" d={STAR} />
+      {/* A part-filled star is the full one seen through a narrower window: an inner drawing shows only what fits
+          inside it, which every browser does the same way. */}
+      {fill > 0 && (
+        <svg width={SIZE * fill} height={SIZE} viewBox={`0 0 ${SIZE * fill} ${SIZE}`}>
+          <path class="full" d={STAR} />
+        </svg>
+      )}
+    </svg>
+  ))}
+</span>
+
+<style>
+  .stars { display: inline-flex; gap: 1px; }
+  .star { width: 0.95rem; height: 0.95rem; }
+  /* An unfilled star is a faint shadow of one. --star-shadow lets a darker or lighter backing keep it as faint. */
+  .empty { fill: var(--star-shadow, var(--rule)); }
+  .full { fill: var(--ink); }
+</style>

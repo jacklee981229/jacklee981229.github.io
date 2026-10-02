@@ -560,3 +560,34 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 7. Play until no moves are left, then click Undo. Expected: "No more moves." goes, the last move is taken back, and the time runs again.
 8. If you reach 2048: the time stops while "You made 2048!" is up, at the same time the leaderboard shows. Keep going starts it again. Undo there takes the 2048 back and the game carries on. (I checked this with a set-up board.)
 9. Make the window about 1280 wide and 650 tall. Expected: Score, Best, Time, Undo and New game share one line, and the whole board is on screen while you play. On a phone, the two buttons sit under the scores.
+
+## Collections and the Travel Map
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "63 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Look at the menu. Expected: Home, Writing, Archives, Lab, Collection, Travel, About. On a phone the menu slides sideways, and opens with the current page's word in view.
+3. Open http://localhost:4321/collections/. Expected: "Jack's Collection" as big as "Jack's Lab" on the Lab page, "Things I like, kept where I can look at them." under it, and under that two tabs, "Movies 8" (filled in) and "Games 7". Then a board with the eight movies: five in a row, the other three in the middle under them, 48 px apart. Each has its poster, its name in the middle under it, and its stars under that. One thin line runs between the two rows, under the first row's stars: none between a poster and its own name.
+4. Rest the mouse on an item. Expected: it grows a little at once. After about two seconds a small note opens on its right with its name, its stars and "No comment yet." (for the last item of a row, on its left). Move to the item beside it: that one's note comes at once. Move the mouse away: the note closes. The note's stars are the same as the ones under the name: on a four-star item, four filled and the fifth a faint shadow.
+5. Click an item. Expected: its note opens without the wait. Esc, or a click somewhere else, closes it.
+6. Click "Games 7". Expected: the tab fills in at once, and the board turns like two cards on a round table, clockwise seen from above: Movies swings away to the left and round to the back, the back of the Games card shows on the right, and Games comes round to the front. It takes about a second. Then the seven games: five in a row, two in the middle under them.
+7. Click "Movies 8". Expected: the table turns back the other way.
+8. Open http://localhost:4321/collections/#games. Expected: the page opens on Games, without a turn.
+9. A comment shows in the note. With `npm run dev` running, add a line `    comment: Testing the note.` under an item's `image:` line in `src\content\collections\games\index.yaml`, reload http://localhost:4321/collections/#games and rest the mouse on that item. Expected: the note says "Testing the note." in place of "No comment yet." Take the line out again.
+10. Open http://localhost:4321/travel/. Expected: "Jack's Travel Map" as big as "Jack's Lab", "5 places so far." under it, and under that a Globe | Flat switch with Globe filled in. The page opens on a globe facing Malaysia, turning slowly by itself, with four countries coloured: Malaysia red, Thailand orange, Taiwan amber, China yellow. No dot. Under it the five names with their colours, from home outward: Malaysia, Singapore, Thailand, Taiwan, China. (Singapore is too small to draw on a map of the world, so it's only named.) The whole globe and the names fit in the window, and the pointer over the globe is the ordinary arrow.
+11. Watch the coloured countries for ten seconds. Expected: they breathe gently: a faint glow around them swells and fades, about five seconds for a breath in and out.
+12. Move the mouse onto a coloured country. Expected: the globe holds still, and the country rises from its surface like a picture made of light: a little bigger, thin lines across it, a brighter edge, a faint mark left where it was, and its name over it in capitals ("CHINA"). Its glow breathes harder while the others stay gentle. Move away: it settles, and the globe turns on.
+13. Drag the globe. Expected: it turns with the mouse, any way you drag, and stops turning by itself. Flick it: it keeps turning for a moment, then rests. It never rolls upside down.
+14. Press Tab until the globe has a ring around it, then press the arrow keys. Expected: left and right look west and east, up and down look north and south, and the page doesn't scroll.
+15. Click Flat. Expected: the globe opens out into the flat map, in a little over a second: it turns towards the middle of the map as it widens, the far side of the earth comes into view, the ball's filling fades, and it settles as the world laid flat in thin lines, the same four countries in the same colours, breathing gently. Nothing jumps or blinks at the end, and the names under it don't move.
+16. Move the mouse onto a coloured country on the flat map. Expected: it rises the same way, a little bigger and higher, with its name over it. With the mouse at the very edge of a country, it doesn't flicker. Move away: it settles back.
+17. Click the sun or moon at the top right. Expected: the map and the globe redraw in the other theme's colours (on the light theme, dark red through burnt orange to mustard, with a fainter glow).
+18. Click Globe. Expected: the flat map closes up into the globe again, facing where you left it, and it carries on as before (it turns by itself if you never touched it). Click Flat and, while it's still opening, Globe: it finishes opening, then closes up again.
+19. A wrong star number stops the build. In `src\content\collections\movies\index.yaml`, change the first `stars: 5` to `stars: 4.2` and run `npm run build`. Expected: it stops with the item's name, then `has 4.2 stars. Stars go from 1 to 5, in halves: 4 or 4.5, not 4.2.` Put the 5 back.
+20. A missing picture stops the build. In the same file, change the first `image:` line to `image: missing.jpg` and run `npm run build`. Expected: it stops with `Collections:`, the item's name, then `in movies asks for the picture "missing.jpg", but there is no file of that name in src/content/collections/movies/`. Put it back.
+21. A misspelt place stops the build. In `src\content\travel\visited.yaml`, change `Malaysia` to `Malaysa` and run `npm run build`. Expected: it stops with `Travel Map: "Malaysa" isn't a place the map knows. Did you mean Malaysia? Fix it in src/content/travel/visited.yaml.` Put it back.
+22. Add an item of your own, following `src\content\collections\README.md`, with `npm run dev` running. Expected: it shows at http://localhost:4321/collections/ after a reload.

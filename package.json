@@ -14,8 +14,11 @@
   },
   "dependencies": {
     "astro": "5.18.2",
+    "d3-geo": "3.1.1",
     "micromark": "4.0.2",
-    "micromark-extension-gfm": "3.0.0"
+    "micromark-extension-gfm": "3.0.0",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
   },
   "devDependencies": {
     "@astrojs/check": "0.9.9",

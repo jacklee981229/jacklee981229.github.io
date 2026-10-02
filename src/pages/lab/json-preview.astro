@@ -1,5 +1,6 @@
 ---
 import PreviewTool from '../../components/PreviewTool.astro';
+import Switch from '../../components/Switch.astro';
 import ToolShell from '../../components/ToolShell.astro';
 
 // What the box starts with, the way JSON often arrives: everything on one line.
@@ -16,11 +17,7 @@ const SAMPLE = JSON.stringify({
 ---
 <ToolShell slug="json-preview" stays="Your JSON stays in your browser.">
   <PreviewTool label="JSON" sample={SAMPLE} hint="Your JSON shows here." view="json-view">
-    <!-- Two ways to show the same JSON: one or the other, so a pair of radio buttons drawn as one switch. -->
-    <div slot="switch" class="shape" role="radiogroup" aria-label="How the JSON is shown">
-      <label><input class="visually-hidden" type="radio" name="shape" value="tidy" checked />Tidy</label>
-      <label><input class="visually-hidden" type="radio" name="shape" value="compact" />Compact</label>
-    </div>
+    <Switch slot="switch" name="shape" label="How the JSON is shown" choices={[{ value: 'tidy', label: 'Tidy' }, { value: 'compact', label: 'Compact' }]} />
     <button slot="actions" type="button" class="button" data-copy="json-out"><span data-label>Copy</span></button>
     <!-- The JSON as text, for the Copy button; out of sight, but selectable if the clipboard is blocked. -->
     <textarea class="visually-hidden" id="json-out" readonly tabindex="-1" aria-hidden="true"></textarea>
@@ -174,24 +171,13 @@ const SAMPLE = JSON.stringify({
     said = window.setTimeout(() => announce(`Not valid JSON. ${where}. ${result.message}`), 1200);
   });
 
-  document.querySelector('.shape')!.addEventListener('change', () => {
-    run();
-    view.scrollTop = 0;
-  });
-</script>
-
-<style>
-  /* The switch: both choices in one pill, the chosen one filled in, like a chosen option elsewhere in the Lab. */
-  .shape { display: inline-flex; padding: 2px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); }
-  .shape label { position: relative; padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); color: var(--muted); font-size: var(--text-sm); font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .shape label:hover { color: var(--ink); }
-  .shape label:has(:checked) { background: var(--ink); color: var(--paper); }
-  .shape label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-  /* Phones: taller, for a finger. */
-  @media (max-width: 719px) {
-    .shape label { padding-block: var(--space-1); }
+  for (const choice of document.querySelectorAll('input[name="shape"]')) {
+    choice.addEventListener('change', () => {
+      run();
+      view.scrollTop = 0;
+    });
   }
-</style>
+</script>
 
 <style is:global>
   /* The tidy JSON: names in the ink, each kind of value in a colour of its own, guide lines down each level. */

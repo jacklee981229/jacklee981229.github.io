@@ -1,0 +1,17 @@
+---
+// One thing shown one of two ways (Tidy or Compact, Globe or Flat). Neither way is "on" or "off", so it's a pair of
+// radio buttons drawn as one switch, the chosen side filled in like a chosen option elsewhere in the Lab. The first
+// choice starts chosen. Its looks are `.switch` in global.css, which the collections' tabs share.
+interface Props {
+  /** The radio buttons' shared name: the page's script reads the choice from `input[name="..."]`. */
+  name: string;
+  /** What's being chosen, for a screen reader: "How the JSON is shown". */
+  label: string;
+  choices: { value: string; label: string }[];
+}
+
+const { name, label, choices } = Astro.props;
+---
+<div class="switch" role="radiogroup" aria-label={label}>
+  {choices.map((choice, i) => <label><input class="visually-hidden" type="radio" name={name} value={choice.value} checked={i === 0} />{choice.label}</label>)}
+</div>

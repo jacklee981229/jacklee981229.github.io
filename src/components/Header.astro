@@ -24,6 +24,11 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
 </header>
 
 <script>
+  // On a phone the menu row slides sideways: it starts with the current page's word in the middle of what shows.
+  const current = document.querySelector<HTMLElement>('.nav [aria-current]');
+  const nav = current?.parentElement;
+  if (current && nav) nav.scrollLeft += current.getBoundingClientRect().left - nav.getBoundingClientRect().left - (nav.clientWidth - current.offsetWidth) / 2;
+
   // The head script already applied the saved or system theme; this keeps the button label and the saved choice in step.
   const root = document.documentElement;
   const buttons = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
@@ -72,8 +77,9 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   :global([data-theme='dark']) .theme-btn .sun { display: block; }
   :global([data-theme='dark']) .theme-btn .moon { display: none; }
 
-  /* Phones: the menu gets its own row under the name. */
-  @media (max-width: 719px) {
+  /* Phones and narrow windows, where the name, the menu and the buttons no longer fit side by side: the menu gets its
+     own row under the name. */
+  @media (max-width: 859px) {
     .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
     .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: 1px solid var(--rule); scrollbar-width: none; }
     .nav a { padding-block: 0.875rem; white-space: nowrap; }

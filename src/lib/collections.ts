@@ -67,6 +67,8 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/writing/', lastmod: newest },
     { path: '/archives/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
+    { path: '/collections/' },
+    { path: '/travel/' },
     { path: '/about/' },
     // The Lab, its finished tools and its effects; /random/ stays out until it does something.
     { path: '/lab/' },

@@ -23,6 +23,18 @@ main:focus { outline: none; }
 .page-title { margin: 0 0 var(--space-4); font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
 .lede { max-width: 60rem; margin: 0; color: var(--muted); font-size: var(--text-md); line-height: 1.6; }
 .empty { margin: 0; color: var(--muted); }
+
+/* A choice between a few things, drawn as one pill with the chosen one filled in: a pair of radio buttons
+   (Switch.astro: Tidy or Compact, Globe or Flat) or tabs (the collections). */
+.switch { display: inline-flex; padding: 2px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); }
+.switch label, .switch button { position: relative; padding: 0.125rem var(--space-3); border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: var(--text-sm); font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.switch label:hover, .switch button:hover { color: var(--ink); }
+.switch label:has(:checked), .switch button[aria-selected='true'] { background: var(--ink); color: var(--paper); }
+.switch label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Phones: taller, for a finger. */
+@media (max-width: 719px) {
+  .switch label, .switch button { padding-block: var(--space-1); }
+}
 .button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; text-decoration: none; }
 .button:hover { border-color: var(--ink); }
 

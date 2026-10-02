@@ -1,0 +1,306 @@
+---
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Stars from '../components/Stars.astro';
+import { pictureOf } from '../lib/shelves.js';
+
+// Every picture in the collections' folders, of the kinds a collection takes: PICTURE_TYPES in shelves.js, in small
+// letters and in capitals. They're spelt out because the build reads this line as it stands; a test keeps the two
+// in step.
+const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/content/collections/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true });
+/** The widest a cover is drawn, doubled for sharp screens. */
+const COVER_WIDTH = 400;
+
+const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
+---
+<Base title="Jack's Collection" description="Things Jack likes, kept where he can look at them, each with its stars.">
+  <!-- The cabinet is a turntable: each collection is a card standing on it, one facing the visitor. A tab turns the
+       table half-way round to bring another card to the front. -->
+  <div class="room">
+    <div class="wrap page">
+      <h1 class="page-title">Jack's Collection</h1>
+      <p class="lede">Things I like, kept where I can look at them.</p>
+      <div class="switch tabs" role="tablist" aria-label="Collections">
+        {shelves.map((shelf, i) => (
+          <button type="button" role="tab" id={`tab-${shelf.id}`} aria-controls={`shelf-${shelf.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={shelf.id}>
+            {shelf.data.name} <span class="count">{shelf.data.items.length}<span class="visually-hidden"> items</span></span>
+          </button>
+        ))}
+      </div>
+
+      <div class="stage">
+        <div class="table" data-table>
+          {shelves.map((shelf, i) => (
+            <section class="card" id={`shelf-${shelf.id}`} role="tabpanel" aria-labelledby={`tab-${shelf.id}`} hidden={i !== 0}>
+              <div class="board">
+                <ul class="items">
+                  {shelf.data.items.map((item, n) => {
+                    const picture = pictureOf(pictures, shelf.id, item)?.default;
+                    const id = `${shelf.id}-${n + 1}`;
+                    return (
+                      <li>
+                        <div class="item" tabindex="0" role="group" aria-labelledby={`${id}-name`} aria-describedby={item.comment ? `${id}-comment` : undefined} data-item>
+                          {/* The name is right under the cover, so the picture needs no words of its own. */}
+                          {picture ? (
+                            <span class="cover"><Image class="picture" src={picture} alt="" width={Math.min(picture.width, COVER_WIDTH)} /></span>
+                          ) : (
+                            <span class="cover plain" aria-hidden="true"><b>{item.name}</b></span>
+                          )}
+                          <strong class="name" id={`${id}-name`}><span>{item.name}</span></strong>
+                          <Stars stars={item.stars} />
+                          {item.comment && <span class="visually-hidden" id={`${id}-comment`} data-comment>{item.comment}</span>}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+
+      <!-- An item's note: one box, filled and moved beside whichever item asks for it. A screen reader already has
+           the name, the stars and the comment from the item itself. -->
+      <div class="note" aria-hidden="true" hidden data-note>
+        <strong data-note-name></strong>
+        <span data-note-stars></span>
+        <p data-note-comment></p>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { placeNote, turnFrames } from '../lib/shelves.js';
+
+  /** How long half a turn of the table takes, in milliseconds. */
+  const TURN_MS = 950;
+  /** How far each card stands from the table's middle: this share of the table's width, up to so many pixels. */
+  const RADIUS_SHARE = 0.3;
+  const MOST_RADIUS = 340;
+  /** How long the pointer rests on an item before its note opens; sooner when a note was open a moment ago. */
+  const HOVER_WAIT = 2000;
+  const WARM_WAIT = 300;
+  const STAYS_WARM = 800;
+  /** The same for an item reached with the Tab key. */
+  const FOCUS_WAIT = 500;
+  /** How long after the pointer leaves the note closes: time to cross the gap from the item to its note. */
+  const LEAVE_WAIT = 160;
+
+  const table = document.querySelector<HTMLElement>('[data-table]')!;
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  const cards = tabs.map((tab) => document.getElementById(tab.getAttribute('aria-controls')!)!);
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const chosen = () => tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+  /** The card facing the visitor. */
+  let front = 0;
+  let turning = false;
+
+  /** Brings a tab's card to the front: at once, or with half a turn of the table. */
+  async function show(index: number, turn = true) {
+    tabs.forEach((tab, i) => {
+      tab.setAttribute('aria-selected', String(i === index));
+      tab.tabIndex = i === index ? 0 : -1;
+    });
+    // A turn under way finishes first; it then follows the tabs again.
+    if (turning || index === front) return;
+    closeNote();
+    const from = cards[front];
+    const to = cards[index];
+    to.hidden = false;
+    if (turn && !still.matches) {
+      turning = true;
+      const radius = Math.min(MOST_RADIUS, table.offsetWidth * RADIUS_SHARE);
+      const heights = [from.offsetHeight, to.offsetHeight].map((height) => `${height}px`);
+      table.classList.add('turning');
+      from.style.transform = `translateZ(${radius}px)`;
+      to.style.transform = `rotateY(180deg) translateZ(${radius}px)`;
+      // A tab further along turns the table clockwise (seen from above); a tab back turns it the other way.
+      const turned = table.animate(turnFrames(index > front ? 1 : -1, radius), { duration: TURN_MS, fill: 'forwards' });
+      const grown = table.animate({ height: heights }, { duration: TURN_MS, easing: 'ease-in-out', fill: 'forwards' });
+      await turned.finished.catch(() => {});
+      from.style.transform = to.style.transform = '';
+      table.classList.remove('turning');
+      turned.cancel();
+      grown.cancel();
+      turning = false;
+    }
+    from.hidden = true;
+    front = index;
+    if (chosen() !== front) show(chosen());
+  }
+
+  const choose = (index: number) => {
+    show(index);
+    // The address remembers the tab, so a link can open the page on it.
+    history.replaceState(null, '', `#${tabs[index].dataset.tab}`);
+  };
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => choose(i));
+    tab.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      const next = (i + step + tabs.length) % tabs.length;
+      tabs[next].focus();
+      choose(next);
+    });
+  });
+  // The note that opens beside an item.
+  const note = document.querySelector<HTMLElement>('[data-note]')!;
+  const noteName = note.querySelector('[data-note-name]')!;
+  const noteStars = note.querySelector('[data-note-stars]')!;
+  const noteComment = note.querySelector('[data-note-comment]')!;
+  let noted: HTMLElement | null = null;
+  let wait = 0;
+  let warmUntil = 0;
+
+  function openNote(item: HTMLElement) {
+    clearTimeout(wait);
+    if (noted === item) return;
+    noted?.classList.remove('noted');
+    noted = item;
+    item.classList.add('noted');
+    noteName.textContent = item.querySelector('.name')!.textContent;
+    noteStars.replaceChildren(item.querySelector('.stars')!.cloneNode(true));
+    const comment = item.querySelector('[data-comment]')?.textContent;
+    noteComment.textContent = comment ?? 'No comment yet.';
+    noteComment.classList.toggle('none', !comment);
+    note.hidden = false;
+    const cover = item.querySelector('.cover')!.getBoundingClientRect();
+    const place = placeNote(cover, item.getBoundingClientRect().bottom, { width: note.offsetWidth, height: note.offsetHeight }, { width: document.documentElement.clientWidth, height: innerHeight });
+    note.dataset.side = place.side;
+    note.style.left = `${place.left}px`;
+    note.style.top = `${place.top}px`;
+    note.style.setProperty('--pointer', `${place.pointer}px`);
+  }
+
+  function closeNote() {
+    clearTimeout(wait);
+    if (!noted) return;
+    noted.classList.remove('noted');
+    noted = null;
+    note.hidden = true;
+    warmUntil = performance.now() + STAYS_WARM;
+  }
+
+  const later = (run: () => void, ms: number) => {
+    clearTimeout(wait);
+    wait = window.setTimeout(run, ms);
+  };
+
+  for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) {
+    // A mouse resting on the item opens its note. A finger has no resting: a tap does it (the click below).
+    item.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'mouse') later(() => openNote(item), noted || performance.now() < warmUntil ? WARM_WAIT : HOVER_WAIT);
+    });
+    item.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'mouse') later(closeNote, LEAVE_WAIT);
+    });
+    item.addEventListener('click', () => (noted === item ? closeNote() : openNote(item)));
+    item.addEventListener('focus', () => {
+      if (item.matches(':focus-visible')) later(() => openNote(item), FOCUS_WAIT);
+    });
+    item.addEventListener('blur', closeNote);
+    item.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      if (noted === item) closeNote();
+      else openNote(item);
+    });
+  }
+  // The pointer may cross onto the note itself, to read or copy it.
+  note.addEventListener('pointerenter', () => clearTimeout(wait));
+  note.addEventListener('pointerleave', () => later(closeNote, LEAVE_WAIT));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNote();
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!(e.target as Element).closest('[data-item], [data-note]')) closeNote();
+  });
+  // The note is fixed to the window, so it would be left behind by the page moving under it.
+  addEventListener('scroll', closeNote, { passive: true });
+  addEventListener('resize', closeNote);
+
+  // A link to a tab (/collections/#games) opens the page on it, without the turn.
+  const linked = tabs.findIndex((tab) => `#${tab.dataset.tab}` === location.hash);
+  if (linked > 0) show(linked, false);
+</script>
+
+<style>
+  /* The cards swing out past the page's edges while the table turns: cut there, not scrolled to. */
+  .room { overflow-x: clip; }
+
+  /* The tabs: the site's switch (global.css), under the page's lead like the Lab's buttons. */
+  .tabs { display: flex; width: fit-content; margin-top: var(--space-5); }
+  .tabs .count { font-weight: 500; }
+
+  /* The turntable. At rest it's an ordinary flat page; only while it turns are its cards set out in depth: each
+     with a plain back, seen while it faces away. */
+  .stage { margin-top: var(--space-5); perspective: 2400px; }
+  .table { display: grid; }
+  .card { position: relative; grid-area: 1 / 1; align-self: start; min-width: 0; }
+  .board { overflow: clip; padding: var(--space-6) var(--space-6) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .turning { pointer-events: none; }
+  .turning, .turning .card { transform-style: preserve-3d; }
+  .turning .board, .turning .card::after { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+  .turning .card::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--surface); transform: rotateY(180deg); }
+
+  /* The items, a fixed number to a row, a short last row in the middle. */
+  .items { --cols: 5; --gap: var(--space-7); --row-gap: var(--space-7); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--row-gap) var(--gap); margin: 0; padding: 0; list-style: none; }
+  .items li { position: relative; flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.01px); min-width: 0; }
+  /* A line between one row and the next, so each row's covers stay with their own names. Every item after the
+     first row draws it above itself, right across the board (which cuts it at its edges): the pieces make one line
+     however many items the row has. Which item starts the second row goes with --cols. */
+  .items li::before { content: var(--line, none); position: absolute; top: calc(var(--row-gap) / -2); right: -100vw; left: -100vw; height: 1px; background: var(--rule); }
+  .items li:nth-child(n + 6) { --line: ''; }
+  .item { display: grid; justify-items: center; border-radius: var(--radius-sm); outline-offset: 6px; text-align: center; -webkit-tap-highlight-color: transparent; }
+  /* Every cover is a poster's shape, whatever the picture's own: a wider picture loses its sides. */
+  .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-sm); background: var(--wash); box-shadow: var(--shadow-cover); transform-origin: 50% 100%; transition: transform 0.2s ease; }
+  .picture { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .plain { display: grid; align-content: end; padding: var(--space-3); border: 1px solid var(--rule); text-align: left; }
+  .plain b { font-size: var(--text-md); font-weight: var(--display-weight); line-height: 1.05; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+  /* Room for two lines of name, a shorter name in the middle of it; a longer one is cut at two (its note has it whole). */
+  .name { display: grid; align-items: center; height: 2.6em; margin-top: var(--space-3); font-size: var(--text-ui); font-weight: 700; line-height: 1.3; }
+  .name span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
+  .item :global(.stars) { margin-top: var(--space-1); }
+  /* An item grows a little, upwards so it never covers its name, like the cards on the home page: under the mouse,
+     under the keyboard's focus, and while its note is open. */
+  .item:focus-visible .cover, .noted .cover { transform: scale(1.05); }
+  @media (hover: hover) {
+    .item:hover .cover { transform: scale(1.05); }
+  }
+
+  @media (max-width: 999px) {
+    .items { --cols: 4; --gap: var(--space-6); }
+    .items li:nth-child(n + 5) { --line: ''; }
+  }
+  @media (max-width: 719px) {
+    .board { padding: var(--space-5) var(--space-4) var(--space-4); }
+    .items { --cols: 3; --gap: var(--space-5); --row-gap: var(--space-6); }
+    .items li:nth-child(n + 4) { --line: ''; }
+  }
+  @media (max-width: 519px) {
+    .items { --cols: 2; }
+    .items li:nth-child(n + 3) { --line: ''; }
+  }
+
+  /* The note: a small card beside the item, with a pointer towards it. On the dark theme, where a shadow doesn't
+     show, it's a shade lighter than the board it floats over. */
+  .note { --lift: var(--surface); position: fixed; z-index: 20; width: min(18rem, calc(100vw - 2 * var(--space-3))); padding: var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--lift); box-shadow: var(--shadow-float); font-size: var(--text-sm); line-height: 1.55; animation: note-in 0.16s ease; }
+  :global([data-theme='dark']) .note { --lift: color-mix(in srgb, var(--ink) 9%, var(--surface)); --star-shadow: color-mix(in srgb, var(--ink) 9%, var(--lift)); border-color: color-mix(in srgb, var(--ink) 22%, var(--surface)); }
+  .note::before { content: ''; position: absolute; width: 10px; height: 10px; border: 0 solid; border-color: inherit; background: var(--lift); transform: rotate(45deg); }
+  .note[data-side='right']::before { top: calc(var(--pointer) - 5px); left: -6px; border-width: 0 0 1px 1px; }
+  .note[data-side='left']::before { top: calc(var(--pointer) - 5px); right: -6px; border-width: 1px 1px 0 0; }
+  .note[data-side='below']::before { top: -6px; left: calc(var(--pointer) - 5px); border-width: 1px 0 0 1px; }
+  .note[data-side='above']::before { bottom: -6px; left: calc(var(--pointer) - 5px); border-width: 0 1px 1px 0; }
+  .note strong { display: block; margin-bottom: 0.2rem; font-size: var(--text-base); line-height: 1.3; }
+  .note p { margin: var(--space-2) 0 0; }
+  .note .none { color: var(--muted); }
+  @keyframes note-in {
+    from { opacity: 0; }
+  }
+</style>
