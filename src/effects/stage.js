@@ -14,8 +14,10 @@ const MAX_DENSITY = 2;
  *   pointer: { x: number, y: number, vx: number, vy: number, down: boolean, pressed: boolean },
  *   colors: { paper: Rgb, ink: Rgb, muted: Rgb, rule: Rgb, lanes: Rgb[] },
  *   rgba: (color: Rgb, alpha?: number) => string,
+ *   playing: boolean,
  * }} Stage
- * `pointer.pressed` is true for the one frame after a click or a tap. Sizes are in CSS pixels.
+ * `pointer.pressed` is true for the one frame after a click or a tap. Sizes are in CSS pixels. `playing` is false
+ * while the stage is paused, off screen or in a hidden tab: an effect that makes sound keeps quiet then.
  * @typedef {{ frame: (dt: number) => void, resize?: () => void }} Piece
  */
 
@@ -51,6 +53,7 @@ export function runStage(root, create) {
     pointer: { x: 0, y: 0, vx: 0, vy: 0, down: false, pressed: false },
     colors: { paper: [255, 255, 255], ink: [0, 0, 0], muted: [120, 120, 120], rule: [200, 200, 200], lanes: [] },
     rgba: ([r, g, b], alpha = 1) => `rgba(${r}, ${g}, ${b}, ${alpha})`,
+    playing: false,
   };
 
   // The colours come from the page's own tokens (the stage's --c1, --c2... are the topic colours), read again
@@ -146,6 +149,7 @@ export function runStage(root, create) {
       running = false;
       cancelAnimationFrame(handle);
     }
+    stage.playing = running;
     if (toggle) toggle.textContent = wanted ? 'Pause' : 'Play';
   };
   // A paused stage still needs a picture after its size or colours change.

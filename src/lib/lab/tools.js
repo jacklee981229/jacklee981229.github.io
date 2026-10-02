@@ -33,9 +33,9 @@ export const TOOLS = [
 export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
 
 /**
- * Effects: things with no use at all, to look at and play with by moving the mouse. Each has its page at
- * /lab/effect/<slug>/, its code in src/effects/<slug>.js and its card's picture in src/components/EffectCover.astro.
- * `hint` says what to do there.
+ * Effects: things with no use at all, to look at and play with. Most follow the mouse; Key Jam answers the keyboard,
+ * with sounds. Each has its page at /lab/effect/<slug>/, its code in src/effects/<slug>.js and its card's picture in
+ * src/components/EffectCover.astro. `hint` says what to do there.
  */
 export const EFFECTS = [
   { slug: 'dot-grid', name: 'Dot Grid', description: 'A field of dots that leans away from you.', hint: 'Move the mouse, or drag a finger. Click for a ripple.' },
@@ -46,6 +46,17 @@ export const EFFECTS = [
   { slug: 'distortion', name: 'Distortion', description: 'A net that bends and twists around the pointer.', hint: 'Move the mouse, or drag a finger. Click for a wave.' },
   { slug: 'ripples', name: 'Ripples', description: 'Rings that spread wherever the pointer goes.', hint: 'Move the mouse, or drag a finger. Click for a splash.' },
   { slug: 'compass', name: 'Compass', description: 'A field of needles that all point at you.', hint: 'Move the mouse, or drag a finger. Click to spin them.' },
+  { slug: 'spotlight', name: 'Spotlight', description: 'A torch in the dark. Somewhere, a cat is hiding.', hint: 'Move the mouse, or drag a finger. Click to light it all up.' },
+  { slug: 'sand', name: 'Sand', description: 'Sand that pours from the pointer and piles up.', hint: 'Move the mouse, or drag a finger. Click for a heap.' },
+  { slug: 'kaleidoscope', name: 'Kaleidoscope', description: 'What you draw repeats into a pattern.', hint: 'Move the mouse, or drag a finger. Click to change the mirrors.' },
+  { slug: 'starfield', name: 'Starfield', description: 'Stars rushing past as you fly.', hint: 'Move the mouse to steer, or drag a finger. Click to speed up.' },
+  { slug: 'strings', name: 'Strings', description: 'Strings you can pluck like a harp.', hint: 'Sweep the mouse across them, or a finger. Click to strum them all.' },
+  { slug: 'stained-glass', name: 'Stained Glass', description: 'Coloured panes that make room for you.', hint: 'Move the mouse, or drag a finger. Click to shove them.' },
+  { slug: 'flock', name: 'Flock', description: 'A shoal of fish that follows you.', hint: 'Move the mouse, or drag a finger. Click to scare them.' },
+  { slug: 'orbits', name: 'Orbits', description: 'Little planets circling your pointer.', hint: 'Move the mouse, or drag a finger. Click to fling them out.' },
+  { slug: 'moire', name: 'Moiré', description: 'Two patterns crossing to make a third.', hint: 'Move the mouse, or drag a finger. Click to change the pattern.' },
+  { slug: 'garden', name: 'Garden', description: 'Plants that grow and lean your way.', hint: 'Move the mouse to bend them, or drag a finger. Click to plant one.' },
+  { slug: 'key-jam', name: 'Key Jam', description: 'Every key plays a sound and a little show.', hint: 'Press letter keys, or tap the stage. Space changes the set. Sound on!' },
 ];
 
 /** @param {string} slug */
