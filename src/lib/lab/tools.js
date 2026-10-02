@@ -54,7 +54,6 @@ export const EFFECTS = [
   { slug: 'stained-glass', name: 'Stained Glass', description: 'Coloured panes that make room for you.', hint: 'Move the mouse, or drag a finger. Click to shove them.' },
   { slug: 'flock', name: 'Flock', description: 'A shoal of fish that follows you.', hint: 'Move the mouse, or drag a finger. Click to scare them.' },
   { slug: 'orbits', name: 'Orbits', description: 'Little planets circling your pointer.', hint: 'Move the mouse, or drag a finger. Click to fling them out.' },
-  { slug: 'moire', name: 'Moiré', description: 'Two patterns crossing to make a third.', hint: 'Move the mouse, or drag a finger. Click to change the pattern.' },
   { slug: 'garden', name: 'Garden', description: 'Plants that grow and lean your way.', hint: 'Move the mouse to bend them, or drag a finger. Click to plant one.' },
   { slug: 'key-jam', name: 'Key Jam', description: 'Every key plays a sound and a little show.', hint: 'Press letter keys, or tap the stage. Space changes the set. Sound on!' },
 ];

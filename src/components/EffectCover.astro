@@ -212,9 +212,6 @@ if (slug === 'dot-grid') {
     lines.push({ points: pts(Array.from({ length: 9 }, (_, k) => at(where - k * 0.07))), lane, alpha: 0.7, width: 2 });
     dots.push({ x: at(where)[0], y: at(where)[1], r: 3 + i * 0.6, lane, alpha: 1 });
   });
-} else if (slug === 'moire') {
-  // Two sets of rings, a little apart: the bands between them are in neither set.
-  for (const [x, lane] of [[166, 0], [196, 4]]) for (let r = 5; r < 150; r += 8) rings.push({ x, y: 44, r, lane, alpha: 0.75, width: 2.6 });
 } else if (slug === 'garden') {
   // Three plants, each forking as it goes up, with a flower at every tip.
   const branch = (x: number, y: number, angle: number, length: number, depth: number, lane: number) => {
