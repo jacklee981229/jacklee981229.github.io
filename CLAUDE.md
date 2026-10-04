@@ -52,6 +52,8 @@ Every task that changes the UI passes these in the sweep: after Jack confirms th
 
 ## Design rules
 
+- Before proposing any UI, read [docs/design-ideas.md](docs/design-ideas.md): an idea bank from two reference blogs (its Principles and Avoid sections first). Suggest ideas by their ID, and record what's adopted or rejected in its Decisions section.
+
 - Colours, fonts, spacing and radii come only from the design tokens. Components contain no raw colour values.
 - No full-page loaders, except the welcome screen as the plan's feature table describes it. No third-party scripts except the ones the plan names.
 - Scripts and styles go through Astro's build (import them from `src/`), never `public/`. Built files get a fingerprint in their names that changes when they do; files in `public/` keep their names, and GitHub Pages lets browsers reuse a saved copy for up to 10 minutes, so right after a deploy a visitor would get the new page with the old script until a hard refresh.
