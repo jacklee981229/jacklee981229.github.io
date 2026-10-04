@@ -1,0 +1,23 @@
+<!-- One line per change, like "- 2026-09-26 new: Rebuilt Jack's Space from scratch with Astro". The kind is new, improved, design or fix. Any order; the page sorts them. -->
+- 2023-02-23 new: Started Jack's Space on Hexo
+- 2023-03-10 design: Added background pictures and a typing title
+- 2023-10-04 new: Added confetti, fireworks and hearts wherever you click
+- 2023-10-05 design: Gave the site a fresh look and added two mini games
+- 2026-09-26 new: Rebuilt Jack's Space from scratch with Astro
+- 2026-09-27 new: Added a welcome screen to the home page
+- 2026-09-29 improved: Refreshed the [About](/about/) page with my job and links
+- 2026-09-30 new: Opened the [Lab](/lab/) with five little text tools
+- 2026-09-30 new: Made my own 2048 and Catch the Cat
+- 2026-09-30 new: Added Snake and Blocks, with leaderboards
+- 2026-10-01 new: Added Most Popular to the Lab
+- 2026-10-02 new: Added Markdown Preview and JSON Preview to the Lab
+- 2026-10-02 new: Added Effects to the Lab: toys that follow your mouse
+- 2026-10-02 improved: Gave 2048 an Undo button
+- 2026-10-03 new: Opened my [Collection](/collections/) and a [Travel Map](/travel/)
+- 2026-10-04 improved: Livened up Orbits, Garden, Flock, Spotlight and Sand
+- 2026-10-04 new: Added a [Now](/now/) page about what I'm up to
+- 2026-10-04 new: Started this Changelog
+- 2026-10-04 improved: Made search find pages, Lab tools, games and effects
+- 2026-10-04 new: Added Surprise me: one click to something at random
+- 2026-10-04 new: Hid a little surprise somewhere
+- 2026-10-04 improved: Folded Archives into [Writing](/writing/), which lists every post

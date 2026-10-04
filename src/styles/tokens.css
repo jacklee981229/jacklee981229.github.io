@@ -60,7 +60,11 @@
      (the page glides to the game when play starts), up to a comfortable size. */
   --game-width: min(44rem, calc(100svh - 7rem));
 
+  --radius-2xs: 3px;
+  --radius-xs: 4px;
   --radius-sm: 6px;
+  --radius-art: 10px;
+  --radius-image: 12px;
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 22px;
@@ -98,4 +102,25 @@
   --muted: #9BB0A6;
   --rule: #243D30;
   --wash: rgb(227 237 232 / 0.07);
+}
+
+/* Starry Night (NightSky.astro): the dark theme turned into a near-black night with faint aurora curtains, and the
+   aurora's mint for focus and highlights. Comes after the Lab's colours, so it wins over them. */
+:root[data-theme="dark"][data-sky="night"] {
+  --paper: #020509;
+  --surface: #08121A;
+  --ink: #E4F2EF;
+  --muted: #8FADAA;
+  --rule: #142530;
+  --focus: #6EF0C2;
+  --wash: rgb(228 242 239 / 0.07);
+  /* The sky behind the page, top to bottom; the aurora's colours, greens into violet; the stars. */
+  --sky-top: #010306;
+  --sky-bottom: #030B12;
+  --aurora-1: #22D894;
+  --aurora-2: #2EE3BE;
+  --aurora-3: #1AB8C9;
+  --aurora-4: #6F5FE0;
+  --aurora-5: #8EF0AE;
+  --star: #F4F1FF;
 }

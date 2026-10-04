@@ -1,0 +1,125 @@
+---
+// Starry Night: the sky behind every page while the night is on (data-sky="night" on <html>; src/lib/theme.ts turns
+// it on and off): a near-black sky, faint aurora curtains swaying high up, and stars. Stars are placed here, while
+// the site is built, from a fixed seed, so the sky doesn't jump between pages. It's CSS apart from one small timer
+// that makes a star blink now and then; while the night is off none of it is shown, and the timer does nothing.
+
+// The same numbers every build, so every page has the same sky.
+let seed = 20230223;
+const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const at = () => `${(random() * 100).toFixed(2)}vw ${(random() * 100).toFixed(2)}vh`;
+
+/** Many faint stars, fewer bright ones: each a shadow of one tiny dot. */
+const faint = Array.from({ length: 190 }, () => `${at()} 0 0 rgb(244 241 255 / ${(0.25 + random() * 0.4).toFixed(2)})`).join(', ');
+const bright = Array.from({ length: 34 }, () => `${at()} 0 0 rgb(244 241 255 / ${(0.7 + random() * 0.3).toFixed(2)})`).join(', ');
+/** A handful twinkle slowly, each at its own pace. */
+const twinkles = Array.from({ length: 7 }, () => ({ left: (random() * 96 + 2).toFixed(1), top: (random() * 80 + 2).toFixed(1), period: (3.5 + random() * 4).toFixed(1), delay: (-random() * 6).toFixed(1) }));
+---
+<div class="sky" aria-hidden="true">
+  <div class="aurora"><i></i><i></i><i></i></div>
+  <span class="stars faint" style={`box-shadow: ${faint}`}></span>
+  <span class="stars bright" style={`box-shadow: ${bright}`}></span>
+  {twinkles.map((t) => <span class="twinkle" style={`left: ${t.left}%; top: ${t.top}%; animation-duration: ${t.period}s; animation-delay: ${t.delay}s`}></span>)}
+  <span class="blink" data-blink></span>
+  <span class="shoot" style="top: 12%; left: 78%; --period: 21s; --delay: 4s"></span>
+  <span class="shoot" style="top: 26%; left: 58%; --period: 34s; --delay: 15s"></span>
+  <span class="shoot once" data-shoot-now></span>
+</div>
+<p class="night-note" data-night-note hidden></p>
+
+<script>
+  // Finding the night sky (the command palette's secret row): one shooting star across at once, and a note saying
+  // what happened and how to leave. The announcer reads the note out (SearchDialog.astro).
+  const now = document.querySelector<HTMLElement>('[data-shoot-now]');
+  const note = document.querySelector<HTMLElement>('[data-night-note]');
+  let hide = 0;
+  const replay = (el: HTMLElement) => {
+    el.classList.remove('go');
+    void el.offsetWidth;
+    el.classList.add('go');
+  };
+  document.addEventListener('nightfound', () => now && replay(now));
+  document.addEventListener('nightnote', (e) => {
+    if (!note) return;
+    note.textContent = (e as CustomEvent<string>).detail;
+    note.hidden = false;
+    clearTimeout(hide);
+    hide = window.setTimeout(() => (note.hidden = true), 9000);
+  });
+  note?.addEventListener('click', () => (note.hidden = true));
+
+  // Now and then, somewhere new, one star blinks with a soft glow: every 10 to 20 seconds, only while the night is
+  // on, the tab is in front and motion is welcome.
+  const blink = document.querySelector<HTMLElement>('[data-blink]');
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const next = () => window.setTimeout(() => {
+    if (blink && document.documentElement.dataset.sky === 'night' && !document.hidden && !still.matches) {
+      blink.style.left = `${(3 + Math.random() * 94).toFixed(1)}%`;
+      blink.style.top = `${(3 + Math.random() * 85).toFixed(1)}%`;
+      replay(blink);
+    }
+    next();
+  }, 10000 + Math.random() * 10000);
+  next();
+</script>
+
+<style>
+  /* Nothing of the night shows (or runs) until it's on. */
+  .sky { display: none; }
+  .night-note[hidden] { display: none; }
+
+  :global([data-sky='night']) .sky { position: fixed; inset: 0; z-index: -1; display: block; overflow: hidden; background: linear-gradient(var(--sky-top), var(--sky-bottom)); pointer-events: none; }
+  /* The menu row stays plain sky, so no star sits between its words. */
+  :global([data-sky='night'] .site-header) { background: var(--sky-top); }
+
+  /* The aurora: faint green veils, one edged with violet, high in the sky, swaying slowly. */
+  .aurora { position: absolute; inset: -12% -20% 45%; filter: blur(42px); opacity: 0.42; }
+  .aurora i { position: absolute; display: block; border-radius: 50%; mix-blend-mode: screen; animation: sway 16s ease-in-out infinite alternate; }
+  .aurora i:nth-child(1) { left: 5%; top: 22%; width: 72%; height: 22%; background: linear-gradient(90deg, transparent, var(--aurora-1) 30%, var(--aurora-2) 60%, transparent); transform: rotate(-7deg); }
+  .aurora i:nth-child(2) { left: 32%; top: 36%; width: 62%; height: 15%; background: linear-gradient(90deg, transparent, var(--aurora-3) 40%, var(--aurora-4) 85%, transparent); transform: rotate(5deg); animation-duration: 21s; }
+  .aurora i:nth-child(3) { left: 14%; top: 10%; width: 46%; height: 11%; background: linear-gradient(90deg, transparent, var(--aurora-5), transparent); opacity: 0.55; animation-duration: 12s; }
+  @keyframes sway {
+    from { translate: -3% 0; scale: 1 1; }
+    to { translate: 4% 2%; scale: 1.08 1.15; }
+  }
+
+  .stars { position: absolute; top: 0; left: 0; display: block; width: 1px; height: 1px; border-radius: 50%; }
+  .bright { width: 2px; height: 2px; }
+  .twinkle { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: var(--star); box-shadow: 0 0 6px 1px rgb(244 241 255 / 0.5); animation: twinkle ease-in-out infinite alternate; }
+  @keyframes twinkle {
+    from { opacity: 0.2; }
+    to { opacity: 0.95; }
+  }
+
+  /* The blinking star: unseen until the timer moves it and lights it for a moment. */
+  .blink { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: var(--star); opacity: 0; }
+  .blink:global(.go) { animation: blink 1.6s ease-in-out; }
+  @keyframes blink {
+    0%, 100% { opacity: 0; box-shadow: 0 0 0 0 rgb(244 241 255 / 0); }
+    40% { opacity: 1; box-shadow: 0 0 8px 2px rgb(244 241 255 / 0.55); }
+  }
+
+  /* A shooting star: a short streak that crosses part of the sky and fades, then waits out the rest of its period. */
+  .shoot { position: absolute; width: 140px; height: 1.5px; border-radius: 1px; background: linear-gradient(90deg, rgb(244 241 255 / 0.9), transparent); opacity: 0; transform-origin: left center; animation: shoot var(--period) linear var(--delay) infinite; }
+  @keyframes shoot {
+    0% { opacity: 0; transform: rotate(-28deg) translateX(0); }
+    1% { opacity: 1; }
+    5% { opacity: 0; transform: rotate(-28deg) translateX(-38vw); }
+    100% { opacity: 0; transform: rotate(-28deg) translateX(-38vw); }
+  }
+  .once { top: 18%; left: 70%; animation: none; }
+  .once:global(.go) { animation: shoot-once 1.4s ease-out; }
+  @keyframes shoot-once {
+    0% { opacity: 0; transform: rotate(-24deg) translateX(0); }
+    10% { opacity: 1; }
+    100% { opacity: 0; transform: rotate(-24deg) translateX(-55vw); }
+  }
+
+  .night-note { position: fixed; left: 50%; bottom: var(--space-5); z-index: 40; width: min(30rem, calc(100vw - 2rem)); margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); font-size: var(--text-sm); translate: -50% 0; cursor: pointer; }
+
+  /* Less motion: the stars and the aurora stay still; nothing twinkles, blinks or shoots. */
+  @media (prefers-reduced-motion: reduce) {
+    .aurora i, .twinkle, .shoot, .once:global(.go), .blink:global(.go) { animation: none; }
+    .twinkle { opacity: 0.7; }
+  }
+</style>

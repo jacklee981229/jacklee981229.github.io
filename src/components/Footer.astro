@@ -8,7 +8,7 @@ const thisYear = new Date().getFullYear();
 <footer class="site-footer">
   <div class="wrap row">
     <p>© {firstYear}–{thisYear} {SITE.author}. Posts are licensed <a href={SITE.license.url} {...NEW_TAB}>{SITE.license.name}</a>.</p>
-    <p>Built with Astro.</p>
+    <p class="made"><a href="/changelog/">Changelog</a><span>Built with Astro.</span></p>
   </div>
 </footer>
 
@@ -17,4 +17,5 @@ const thisYear = new Date().getFullYear();
   /* The tall bottom padding leaves room for the back-to-top button, so it never covers footer links. */
   .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2) var(--space-6); padding-block: var(--space-5) var(--space-9); }
   p { margin: 0; }
+  .made { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 </style>

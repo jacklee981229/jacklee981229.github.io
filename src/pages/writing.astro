@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
 import PostList from '../components/PostList.astro';
 import { topicCounts } from '../lib/posts.js';
 import { TOPICS } from '../lib/topics.js';
@@ -10,8 +11,7 @@ const topics = topicCounts(posts, TOPICS).filter((t) => t.count > 0);
 ---
 <Base title="Writing" description="Posts grouped by topic.">
   <div class="wrap page">
-    <h1 class="page-title">Writing</h1>
-    <p class="lede">Posts grouped by topic.</p>
+    <PageTop title="Writing" lead="Posts grouped by topic." />
     {topics.length === 0 && <p class="empty">No posts yet.</p>}
     {topics.map((t) => (
       <section class="topic" id={t.id} style={`--c: var(--lane-${t.id})`} aria-labelledby={`topic-${t.id}`}>

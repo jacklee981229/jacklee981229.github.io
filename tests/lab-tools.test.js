@@ -5,7 +5,7 @@ import { EFFECTS, effectBySlug, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TO
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
-const icons = readFileSync(new URL('src/components/Icon.astro', ROOT), 'utf8');
+const icons = readFileSync(new URL('src/lib/icons.js', ROOT), 'utf8');
 
 test('every tool has a unique, web-safe address and a unique name', () => {
   assert.equal(new Set(TOOLS.map((t) => t.slug)).size, TOOLS.length);
@@ -19,7 +19,7 @@ test('every tool has a known group, status, icon and a two-line example', () => 
   for (const t of TOOLS) {
     assert.ok(groups.includes(t.group), `${t.slug}: group ${t.group}`);
     assert.ok(['ready', 'soon'].includes(t.status), `${t.slug}: status ${t.status}`);
-    assert.match(icons, new RegExp(`^\\s+'?${t.icon}'?: '`, 'm'), `${t.slug}: icon "${t.icon}" is missing from Icon.astro`);
+    assert.match(icons, new RegExp(`^\\s+'?${t.icon}'?: '`, 'm'), `${t.slug}: icon "${t.icon}" is missing from src/lib/icons.js`);
     assert.equal(t.example.length, 2, t.slug);
     assert.ok(t.description.length <= 70, `${t.slug}: keep the description to one short line`);
   }
@@ -69,7 +69,7 @@ test('every effect has its code, its card picture, its icon and a web-safe addre
     assert.ok(cover.includes(`slug === '${e.slug}'`), `${e.slug}: no picture in EffectCover.astro`);
     assert.ok(e.description.length <= 70 && e.hint.length <= 70, `${e.slug}: keep the description and the hint short`);
   }
-  assert.match(icons, /^\s+pointer: '/m, 'the "pointer" icon is missing from Icon.astro');
+  assert.match(icons, /^\s+pointer: '/m, 'the "pointer" icon is missing from src/lib/icons.js');
   assert.equal(effectUrl('dot-grid'), '/lab/effect/dot-grid/');
   assert.equal(effectBySlug('dot-grid').name, 'Dot Grid');
   assert.throws(() => effectBySlug('no-such-thing'), /No effect "no-such-thing"/);

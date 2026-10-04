@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
 ---
 <Base title="Page not found">
   <script is:inline>
@@ -10,8 +11,7 @@ import Base from '../layouts/Base.astro';
     })();
   </script>
   <div class="wrap page">
-    <h1 class="page-title">Page not found</h1>
-    <p class="lede">This page doesn't exist. It may have moved or been removed when the blog was rebuilt.</p>
+    <PageTop title="Page not found" lead="This page doesn't exist. It may have moved or been removed when the blog was rebuilt." />
     <p class="home"><a class="button" href="/">Go to the home page</a></p>
   </div>
 </Base>

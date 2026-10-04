@@ -96,7 +96,7 @@ import Icon from './Icon.astro';
   .lightbox { max-width: min(64rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: visible; border: 0; background: transparent; }
   .lightbox::backdrop { background: var(--backdrop-dark); }
   figure { display: grid; justify-items: center; gap: var(--space-3); margin: 0; }
-  img { width: auto; max-width: 100%; max-height: calc(100dvh - 7rem); border-radius: 12px; background: var(--surface); }
+  img { width: auto; max-width: 100%; max-height: calc(100dvh - 7rem); border-radius: var(--radius-image); background: var(--surface); }
   figcaption { color: var(--on-backdrop); font-size: var(--text-ui); }
   .close { position: fixed; top: var(--space-4); right: var(--space-4); display: inline-flex; align-items: center; gap: 0.375rem; padding: var(--space-2) 0.875rem; border: 1px solid color-mix(in srgb, var(--on-backdrop) 35%, transparent); border-radius: var(--radius-pill); background: var(--backdrop-dark); color: var(--on-backdrop); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
   .close :global(.icon) { width: 16px; height: 16px; }

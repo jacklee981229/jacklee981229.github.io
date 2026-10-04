@@ -6,7 +6,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--t
 img { max-width: 100%; height: auto; }
 a { color: inherit; }
 button, input { font: inherit; }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-2xs); }
 main:focus { outline: none; }
 
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

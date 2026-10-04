@@ -413,11 +413,11 @@ export function runGlobe(root, places) {
     if (onScreen) run();
     else if (!opening) rest();
   }).observe(root);
-  // The site's theme button changes this attribute.
+  // The site's theme button changes these: the theme, and the night sky (which keeps the dark theme, in its own colours).
   new MutationObserver(() => {
     readColors();
     draw();
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-sky'] });
 
   readColors();
   refresh();

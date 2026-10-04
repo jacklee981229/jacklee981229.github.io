@@ -3,6 +3,7 @@ import { SITE } from '../site';
 import { daysBetween, formatDate } from '../lib/dates.js';
 
 interface Props {
+  /** The newest post's date or the newest change in the Changelog, whichever is later. */
   updated?: Date;
 }
 
@@ -14,7 +15,7 @@ const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`))
   <!-- Filled in by the busuanzi visitor counter on the live site; the dash shows until it answers. -->
   <div><dt>Visitors</dt><dd id="busuanzi_value_site_uv">–</dd></div>
   <div><dt>Page views</dt><dd id="busuanzi_value_site_pv">–</dd></div>
-  {updated && <div><dt>Last update</dt><dd>{formatDate(updated)}</dd></div>}
+  {updated && <div><dt>Last update</dt><dd><a href="/changelog/">{formatDate(updated)}</a></dd></div>}
 </dl>
 
 <script>

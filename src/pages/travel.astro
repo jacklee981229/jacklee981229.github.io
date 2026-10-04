@@ -1,5 +1,6 @@
 ---
 import { getEntry } from 'astro:content';
+import PageTop from '../components/PageTop.astro';
 import world from 'world-atlas/countries-110m.json';
 import fine from 'world-atlas/countries-50m.json';
 import Base from '../layouts/Base.astro';
@@ -46,10 +47,10 @@ const globe = {
 ---
 <Base title="Jack's Travel Map" description="The places Jack has been, coloured in on a globe you can turn, or on a flat map of the world.">
   <div class="wrap page">
-    <h1 class="page-title">Jack's Travel Map</h1>
-    <p class="lede">{names.length ? `${count} so far.` : 'Nowhere yet.'}</p>
-    <p class="view"><Switch name="map" label="How the map is shown" choices={[{ value: 'globe', label: 'Globe' }, { value: 'flat', label: 'Flat' }]} /></p>
-    <div class="map">
+    <PageTop title="Jack's Travel Map" lead={names.length ? `${count} so far.` : 'Nowhere yet.'}>
+      <Switch name="map" label="How the map is shown" choices={[{ value: 'globe', label: 'Globe' }, { value: 'flat', label: 'Flat' }]} />
+    </PageTop>
+    <div class="map" data-fullscreen="Show the map on the whole screen">
       <!-- The globe is what the page opens on. Drawn by src/lib/travel/globe.js on its canvases, bottom to top: the
            world's lines, the visited places' glow and the places themselves, then the same two again for a place
            that has risen under the mouse. They reach a little past the globe, so a risen place at its edge isn't cut. -->
@@ -161,11 +162,12 @@ const globe = {
   .page { overflow-x: clip; }
 
   /* The switch sits under the page's lead, like the Lab's buttons. */
-  .view { margin: var(--space-5) 0 0; }
 
   /* As big as the window's height allows with the page's top above and the names below, so the whole map is in view.
      --lift-scale: how much bigger a place is drawn once it has risen under the mouse (the globe reads it too). */
   .map { --map-height: max(16rem, calc(100svh - 22.5rem)); --lift-scale: 1.07; display: grid; place-items: center; margin-top: var(--space-4); }
+  /* The command palette's Fullscreen: the map alone, as big as the screen allows. */
+  .map:fullscreen { --map-height: calc(100svh - 4rem); align-content: center; margin: 0; background: var(--paper); }
   /* The globe and the flat map share one place, so that one can open out into the other. The one that's not on show
      keeps its place, unseen and untouchable. */
   .map > * { grid-area: 1 / 1; }
@@ -202,7 +204,7 @@ const globe = {
   .place:hover .lift { transform: translateY(-0.35rem) scale(var(--lift-scale)); }
   .place:hover .shape { stroke: color-mix(in srgb, var(--ink) 60%, var(--colour)); stroke-width: 0.9; }
   .place:hover .scan { opacity: 1; }
-  .tag { position: absolute; z-index: 3; padding: 0.3em 0.45em 0.3em 0.65em; border-radius: 3px; background: color-mix(in srgb, var(--paper) 78%, transparent); color: var(--ink); font-size: var(--text-xs); font-weight: 700; line-height: 1; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; pointer-events: none; opacity: 0; translate: -50% calc(-100% - 0.9rem); transition: opacity 0.22s ease; }
+  .tag { position: absolute; z-index: 3; padding: 0.3em 0.45em 0.3em 0.65em; border-radius: var(--radius-2xs); background: color-mix(in srgb, var(--paper) 78%, transparent); color: var(--ink); font-size: var(--text-xs); font-weight: 700; line-height: 1; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; pointer-events: none; opacity: 0; translate: -50% calc(-100% - 0.9rem); transition: opacity 0.22s ease; }
   .tag::after { content: ''; position: absolute; top: 100%; left: 50%; width: 1px; height: 0.55rem; background: var(--colour); }
   .place .tag { top: 0; left: 50%; }
   .place:hover .tag { opacity: 1; }

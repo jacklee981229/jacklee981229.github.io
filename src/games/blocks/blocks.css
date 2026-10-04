@@ -16,7 +16,7 @@
 .blk .blk-board { position: relative; flex: none; padding: 6px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
 .blk .blk-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .blk .blk-grid { display: grid; grid-template-columns: repeat(10, var(--cell)); grid-auto-rows: var(--cell); gap: 2px; }
-.blk .blk-cell { border-radius: 4px; background: color-mix(in srgb, var(--lane-games) 7%, var(--surface)); }
+.blk .blk-cell { border-radius: var(--radius-xs); background: color-mix(in srgb, var(--lane-games) 7%, var(--surface)); }
 /* One shade of the Games colour for each piece, from full to light. */
 .blk .p-I { --p: 100%; }
 .blk .p-O { --p: 86%; }

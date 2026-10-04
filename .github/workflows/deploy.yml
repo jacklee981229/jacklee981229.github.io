@@ -25,6 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        # The whole history, so Now's date (the last commit that changed src/content/now.md) is the real one: in a
+        # shallow clone every file looks changed in the newest commit.
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           # The same Node as Jack's PC (D1 in docs/PLAN.md), so the site builds the same way here.

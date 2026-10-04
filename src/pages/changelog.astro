@@ -1,0 +1,28 @@
+---
+// The Changelog: src/content/changelog.md, newest first, a card for each day, under its year. In the sitemap, not
+// in the menu; the footer, Site info and the fold at the bottom of the home page link here.
+import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
+import ChangelogDays from '../components/ChangelogDays.astro';
+import { byYear } from '../lib/changelog.js';
+import { changelogFile } from '../lib/changelog-file.js';
+
+const years = byYear(changelogFile());
+---
+<Base title="Changelog" description="What changed on Jack's Space, newest first.">
+  <div class="wrap page">
+    <PageTop title="Changelog" lead="What changed on this site, newest first." />
+    {years.length === 0 && <p class="empty">No changes listed yet.</p>}
+    {years.map(({ year, days }) => (
+      <section class="year" aria-labelledby={`y${year}`}>
+        <h2 id={`y${year}`}>{year}</h2>
+        <ChangelogDays days={days} />
+      </section>
+    ))}
+  </div>
+</Base>
+
+<style>
+  .year { max-width: 52rem; margin-top: var(--space-7); }
+  h2 { margin: 0 0 var(--space-3); font-size: var(--text-lg); font-weight: 750; font-variant-numeric: tabular-nums; }
+</style>

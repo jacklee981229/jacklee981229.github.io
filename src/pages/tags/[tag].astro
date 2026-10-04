@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import PageTop from '../../components/PageTop.astro';
 import PostList from '../../components/PostList.astro';
 import { tagCounts } from '../../lib/posts.js';
 import { slugify } from '../../lib/text.js';
@@ -22,8 +23,7 @@ const { tag, posts } = Astro.props;
 ---
 <Base title={`Tag: ${tag}`} description={`Posts tagged “${tag}”.`}>
   <div class="wrap page">
-    <h1 class="page-title">{tag}</h1>
-    <p class="lede">{posts.length === 1 ? '1 post' : `${posts.length} posts`} tagged “{tag}”.</p>
+    <PageTop title={tag} lead={`${posts.length === 1 ? '1 post' : `${posts.length} posts`} tagged “${tag}”.`} />
     <div class="list"><PostList posts={posts} /></div>
   </div>
 </Base>

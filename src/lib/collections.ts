@@ -5,6 +5,7 @@ import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from
 import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
 import { EFFECTS, EXPERIMENTS, TOOLS, effectUrl, toolUrl } from './lab/tools.js';
+import { nowFile } from './now-file.js';
 import { POSTS_PER_PAGE, SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -65,14 +66,16 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/', lastmod: newest },
     ...paginate(posts, POSTS_PER_PAGE).slice(1).map((p) => ({ path: homePageUrl(p.page) })),
     { path: '/writing/', lastmod: newest },
-    { path: '/archives/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/collections/' },
     { path: '/travel/' },
     { path: '/about/' },
-    // The Lab, its finished tools and its effects; /random/ stays out until it does something.
+    { path: '/now/', lastmod: nowFile().updated },
+    { path: '/changelog/' },
+    // The Lab: its finished tools, its games and its effects. /random/ stays out (it's marked noindex).
     { path: '/lab/' },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),
+    ...(await experimentPosts()).map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
     ...EFFECTS.map((e) => ({ path: effectUrl(e.slug) })),
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
   ];

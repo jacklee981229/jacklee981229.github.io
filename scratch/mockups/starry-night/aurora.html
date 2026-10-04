@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" data-option="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora mockups</title>
+<style>
+  @font-face { font-family: 'Schibsted Grotesk'; font-weight: 400 900; src: url('../../../public/fonts/schibsted-grotesk-normal-400-900-latin.woff2') format('woff2'); }
+
+  /* Three takes on a dark aurora night, no land. They share the colours; the aurora is what differs. */
+  :root {
+    --paper: #020509; --surface: #08121A; --ink: #E4F2EF; --muted: #8FADAA; --rule: #142530; --focus: #6EF0C2;
+    --sky-top: #010306; --sky-bottom: #030B12;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font: 400 1rem/1.55 'Schibsted Grotesk', system-ui, sans-serif; }
+
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
+  .stars { position: absolute; top: 0; left: 0; width: 1px; height: 1px; border-radius: 50%; }
+  .stars.big { width: 2px; height: 2px; }
+  .twinkle { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 1px rgb(255 255 255 / 0.5); animation: twinkle 4s ease-in-out infinite alternate; }
+  @keyframes twinkle { from { opacity: 0.2; } to { opacity: 0.95; } }
+  .shoot { position: absolute; top: 12%; left: 76%; width: 150px; height: 1.5px; background: linear-gradient(90deg, #fff, transparent); opacity: 0; transform-origin: left; animation: shoot 9s linear 2s infinite; }
+  @keyframes shoot { 0% { opacity: 0; transform: rotate(-26deg) translateX(0); } 2% { opacity: 1; } 10% { opacity: 0; transform: rotate(-26deg) translateX(-40vw); } 100% { opacity: 0; } }
+
+  .aurora { position: absolute; display: none; pointer-events: none; }
+  .aurora i { position: absolute; display: block; }
+  [data-option='1'] .curtains, [data-option='2'] .glow, [data-option='3'] .rays { display: block; }
+
+  /* 1. Curtains: faint green veils high in the sky, swaying slowly. */
+  .curtains { inset: -12% -20% 45%; filter: blur(42px); opacity: 0.42; }
+  .curtains i { border-radius: 50%; mix-blend-mode: screen; animation: sway 16s ease-in-out infinite alternate; }
+  .curtains i:nth-child(1) { left: 5%; top: 22%; width: 72%; height: 22%; background: linear-gradient(90deg, transparent, #22D894 30%, #2EE3BE 60%, transparent); transform: rotate(-7deg); }
+  .curtains i:nth-child(2) { left: 32%; top: 36%; width: 62%; height: 15%; background: linear-gradient(90deg, transparent, #1AB8C9 40%, #6F5FE0 85%, transparent); transform: rotate(5deg); animation-duration: 21s; }
+  .curtains i:nth-child(3) { left: 14%; top: 10%; width: 46%; height: 11%; background: linear-gradient(90deg, transparent, #8EF0AE, transparent); opacity: 0.55; animation-duration: 12s; }
+  @keyframes sway { from { translate: -3% 0; scale: 1 1; } to { translate: 4% 2%; scale: 1.08 1.15; } }
+
+  /* 2. Low glow: the aurora rising from the bottom of the screen, green under violet, breathing slowly. */
+  .glow { inset: 45% -10% -10%; filter: blur(46px); }
+  .glow i { border-radius: 50%; animation: breathe 12s ease-in-out infinite alternate; }
+  .glow i:nth-child(1) { left: 0; right: 0; bottom: 0; height: 70%; background: radial-gradient(ellipse at 50% 100%, rgb(34 216 148 / 0.55), transparent 70%); }
+  .glow i:nth-child(2) { left: 15%; right: 30%; bottom: 25%; height: 55%; background: radial-gradient(ellipse at 40% 100%, rgb(46 227 190 / 0.35), transparent 70%); animation-duration: 16s; }
+  .glow i:nth-child(3) { left: 45%; right: 0; bottom: 35%; height: 55%; background: radial-gradient(ellipse at 60% 100%, rgb(124 95 224 / 0.35), transparent 70%); animation-duration: 19s; }
+  @keyframes breathe { from { opacity: 0.6; translate: -2% 4%; } to { opacity: 1; translate: 3% 0; } }
+
+  /* 3. Rays: one ribbon across the sky made of fine upright rays, green at the foot, pink at the top, drifting. */
+  .rays { left: -10%; right: -10%; top: 6%; height: 42%; transform: skewY(-6deg); }
+  .rays i { inset: 0; background: repeating-linear-gradient(90deg, transparent 0 7px, rgb(110 240 194 / 0.55) 7px 9px, transparent 9px 15px, rgb(110 240 194 / 0.3) 15px 16px); -webkit-mask-image: linear-gradient(transparent, #000 45%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 20%, #000 75%, transparent); -webkit-mask-composite: source-in; mask-image: linear-gradient(transparent, #000 45%, #000 70%, transparent), linear-gradient(90deg, transparent, #000 20%, #000 75%, transparent); mask-composite: intersect; filter: blur(2.5px); opacity: 0.6; animation: drift 30s linear infinite; }
+  .rays i:nth-child(2) { background: linear-gradient(rgb(255 110 199 / 0.5), rgb(124 95 224 / 0.35) 35%, rgb(34 216 148 / 0.5) 75%, transparent); filter: blur(30px); opacity: 0.5; animation: none; }
+  @keyframes drift { from { background-position: 0 0; } to { background-position: 240px 0; } }
+
+  header { border-bottom: 1px solid var(--rule); background: var(--sky-top); }
+  .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+  .bar { display: flex; align-items: center; gap: 1.5rem; min-height: 4rem; }
+  .brand { font-weight: 800; letter-spacing: -0.015em; color: inherit; text-decoration: none; }
+  nav { display: flex; align-self: stretch; gap: 1.25rem; color: var(--muted); font-size: 0.9375rem; font-weight: 500; }
+  nav > * { display: flex; align-items: center; }
+  nav b { color: var(--ink); font-weight: 500; box-shadow: inset 0 -2px var(--ink); }
+  .tools { display: flex; gap: 0.25rem; margin-left: auto; }
+  .tools span { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; }
+  svg.i { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  .hero { display: grid; grid-template-columns: 1fr 22rem; gap: 2rem; align-items: center; padding: 4rem 0 2rem; }
+  h1 { margin: 0; font-size: clamp(3rem, 9vw, 6.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+  .tag { margin: 0; font-weight: 700; }
+  .intro { margin: 0.5rem 0 0; color: var(--muted); font-size: 1.15rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+  .chip { display: inline-flex; gap: 0.4rem; align-items: center; padding: 0.35rem 0.8rem; border: 1px solid var(--rule); border-radius: 99px; background: color-mix(in srgb, var(--surface) 85%, transparent); font-size: 0.875rem; font-weight: 650; }
+  .chip i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--c); }
+  .chip em { color: var(--muted); font-style: normal; }
+  .body { display: grid; grid-template-columns: 1fr 17rem; gap: 3.5rem; }
+  .card { display: grid; grid-template-columns: 15rem 1fr; overflow: hidden; border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); }
+  .card + .card { margin-top: 1rem; }
+  .cover { display: grid; place-items: center; min-height: 12rem; background: color-mix(in srgb, var(--c) 18%, var(--surface)); color: color-mix(in srgb, var(--c) 30%, transparent); font-size: 4rem; font-weight: 900; }
+  .card .text { padding: 1.25rem 1.5rem; }
+  .topic { color: var(--c); font-size: 0.875rem; font-weight: 650; }
+  .card h3 { margin: 0.25rem 0 0.5rem; font-size: 1.4rem; font-weight: 800; }
+  .card p { margin: 0; color: var(--muted); }
+  .card .date { margin-top: 1rem; font-weight: 700; text-align: right; }
+  .side { display: grid; gap: 1rem; align-content: start; font-size: 0.9375rem; }
+  .block { padding: 1.25rem; border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); }
+  .block h4 { margin: 0 0 0.75rem; }
+  .muted { color: var(--muted); }
+  .block a { color: var(--focus); font-weight: 650; outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 3px; }
+  footer { margin-top: 6rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.875rem; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem 1rem 3rem; }
+
+  .picker { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; display: flex; gap: 0.25rem; padding: 0.25rem; border: 1px solid var(--rule); border-radius: 99px; background: var(--surface); box-shadow: 0 10px 30px rgb(0 0 0 / 0.5); }
+  .picker button { padding: 0.4rem 0.9rem; border: 0; border-radius: 99px; background: none; color: var(--muted); font: 650 0.875rem 'Schibsted Grotesk', sans-serif; cursor: pointer; }
+  .picker button[aria-pressed='true'] { background: var(--focus); color: var(--paper); }
+  html.shot .picker { display: none; }
+
+  @media (max-width: 760px) {
+    nav { display: none; }
+    .hero, .body { grid-template-columns: 1fr; gap: 1.25rem; }
+    .hero { padding-top: 2rem; }
+    .card { grid-template-columns: 1fr; }
+    .cover { min-height: 9rem; }
+    footer .wrap { flex-direction: column; }
+  }
+  @media (prefers-reduced-motion: reduce) { .twinkle, .shoot, .aurora i { animation: none; } }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <div class="aurora curtains"><i></i><i></i><i></i></div>
+  <div class="aurora glow"><i></i><i></i><i></i></div>
+  <div class="aurora rays"><i></i><i></i></div>
+  <span class="stars" data-stars="faint"></span><span class="stars big" data-stars="bright"></span><div data-twinkles></div>
+  <span class="shoot"></span>
+</div>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#">Jack's Space</a>
+    <nav><b>Home</b><span>Writing</span><span>Archives</span><span>Lab</span><span>Collection</span><span>Travel</span><span>About</span></nav>
+    <div class="tools">
+      <span><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+      <span><svg class="i" viewBox="0 0 24 24"><path d="m12 3.2 2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Jack's Space</h1>
+    <div><p class="tag">My programming journal.</p><p class="intro">Just sharing some of my thoughts, and maybe some tech that I learned. And some games to share :D</p></div>
+  </section>
+  <div class="chips">
+    <span class="chip" style="--c:#47C2CB"><i></i>Hexo <em>8</em></span>
+    <span class="chip" style="--c:#FF8C6B"><i></i>Git <em>1</em></span>
+    <span class="chip" style="--c:#BA9CF5"><i></i>ChatGPT <em>2</em></span>
+    <span class="chip" style="--c:#74C678"><i></i>Games <em>2</em></span>
+    <span class="chip" style="--c:#7AAAFF"><i></i>Flutter <em>1</em></span>
+  </div>
+  <div class="body">
+    <div>
+      <article class="card" style="--c:#7AAAFF"><div class="cover">Flutter</div><div class="text"><span class="topic">Flutter</span><h3>Flutter Get Started</h3><p>Here is some Flutter installation steps, as I feel that some part still missing in the official flutter…</p><p class="date">16 Oct 2023</p></div></article>
+      <article class="card" style="--c:#74C678"><div class="cover">Games</div><div class="text"><span class="topic">Games</span><h3>Terraria</h3><p>For my whole life (25 years in exact) I don't play a lot of games. During my teenage days I have…</p><p class="date">10 Oct 2023</p></div></article>
+    </div>
+    <aside class="side">
+      <div class="block"><h4>Jack Lee</h4><span class="muted">Senior Software Engineer</span><p><b>14</b> posts &nbsp; <b>5</b> topics &nbsp; <b>10</b> tags</p></div>
+      <div class="block"><h4>Now</h4><p class="muted" style="margin:0">🎮 Playing</p><b>Shape of Dreams</b><p class="muted" style="margin:.6rem 0 0">💻 Building</p><b>Jack's Space</b><p style="margin:.9rem 0 0"><a href="#">See the Now page</a></p></div>
+    </aside>
+  </div>
+</main>
+<footer><div class="wrap"><span>© 2023–2026 Jack Lee. Posts are licensed CC BY-NC-SA 4.0.</span><span>Changelog &nbsp; Built with Astro.</span></div></footer>
+
+<div class="picker" role="group" aria-label="Choose a mockup">
+  <button type="button" data-pick="1">1. Curtains</button>
+  <button type="button" data-pick="2">2. Low glow</button>
+  <button type="button" data-pick="3">3. Rays</button>
+</div>
+
+<script>
+  let seed = 20230223;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const dots = (n, lo, hi) => Array.from({ length: n }, () => `${(rnd() * 100).toFixed(2)}vw ${(rnd() * 100).toFixed(2)}vh 0 0 rgb(244 241 255 / ${(lo + rnd() * (hi - lo)).toFixed(2)})`).join(',');
+  document.querySelector('[data-stars=faint]').style.boxShadow = dots(190, 0.25, 0.65);
+  document.querySelector('[data-stars=bright]').style.boxShadow = dots(34, 0.7, 1);
+  document.querySelector('[data-twinkles]').innerHTML = Array.from({ length: 7 }, () => `<span class="twinkle" style="left:${(rnd() * 96 + 2).toFixed(1)}%;top:${(rnd() * 80 + 2).toFixed(1)}%;animation-duration:${(3.5 + rnd() * 4).toFixed(1)}s;animation-delay:-${(rnd() * 5).toFixed(1)}s"></span>`).join('');
+  const pick = (o) => {
+    document.documentElement.dataset.option = o;
+    document.querySelectorAll('[data-pick]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pick === o)));
+  };
+  document.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.pick)));
+  const params = new URLSearchParams(location.search);
+  if (params.has('shot')) document.documentElement.classList.add('shot');
+  pick(params.get('o') ?? '1');
+</script>
+</body>
+</html>

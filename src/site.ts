@@ -24,7 +24,6 @@ export const LINKS = [
 export const NAV = [
   { href: '/', label: 'Home' },
   { href: '/writing/', label: 'Writing' },
-  { href: '/archives/', label: 'Archives' },
   { href: '/lab/', label: 'Lab' },
   { href: '/collections/', label: 'Collection' },
   { href: '/travel/', label: 'Travel' },

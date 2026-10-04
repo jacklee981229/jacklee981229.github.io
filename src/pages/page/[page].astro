@@ -1,6 +1,7 @@
 ---
 // Home page 2 onwards, at the old Hexo addresses (/page/2/).
 import Base from '../../layouts/Base.astro';
+import PageTop from '../../components/PageTop.astro';
 import HomeFeed from '../../components/HomeFeed.astro';
 import { paginate } from '../../lib/posts.js';
 import { listedPosts } from '../../lib/collections';
@@ -15,7 +16,7 @@ const { page } = Astro.props;
 ---
 <Base title={`Page ${page}`}>
   <div class="wrap head">
-    <h1 class="page-title">Page {page}</h1>
+    <PageTop title={`Page ${page}`} />
   </div>
   <HomeFeed page={page} />
 </Base>

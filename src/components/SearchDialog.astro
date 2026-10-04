@@ -1,29 +1,52 @@
 ---
-// Search box (Ctrl+K or the search button). Uses the Pagefind index that `npm run build` creates.
+// The command palette (Ctrl/⌘+K, "/", or the search button): actions, pages and the Lab's tools, games and effects,
+// matched as you type (src/lib/palette.js), then posts from the Pagefind index that `npm run build` makes. The
+// pages and the Lab come from lists the site already keeps (src/lib/palette-items.ts), so new ones show up by
+// themselves. The list is drawn in the browser, with the site's own icons (src/lib/icons.js) as a hidden sprite.
 import Icon from './Icon.astro';
+import { ICONS } from '../lib/icons.js';
+import { openables, paletteItems } from '../lib/palette-items';
+
+const items = await paletteItems();
+const things = (await openables()).map(({ title, href }) => ({ title, href }));
+/** Every icon the list can show: the items' own and the actions'. */
+const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file'])];
 ---
-<dialog class="search" aria-label="Search posts" data-search>
+<dialog class="search" aria-label="Search or run a command" data-search>
   <div class="box">
     <Icon name="search" />
-    <label class="visually-hidden" for="search-input">Search posts</label>
-    <input id="search-input" type="search" placeholder="Search posts" autocomplete="off" spellcheck="false" />
+    <label class="visually-hidden" for="search-input">Search or run a command</label>
+    <input id="search-input" type="search" role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" placeholder="Search or run a command" autocomplete="off" spellcheck="false" />
     <form method="dialog"><button class="esc">Esc</button></form>
   </div>
-  <ul class="results" data-results></ul>
+  <div class="results" id="palette-list" role="listbox" aria-label="Results" data-results></div>
   <p class="status" data-status hidden></p>
+  <script is:inline type="application/json" data-palette set:html={JSON.stringify({ items, things })} />
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    {used.map((name) => <symbol id={`pi-${name}`} viewBox="0 0 24 24" set:html={ICONS[name as keyof typeof ICONS]} />)}
+  </svg>
 </dialog>
 
 <script>
+  import { fingerprint, pickOne, search } from '../lib/palette.js';
+  import { isNight, nightFound, setNight, switchTheme, themeLabel } from '../lib/theme';
+  import { announce } from '../lib/lab/page';
+
+  type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void };
   type Result = { url: string; meta: { title?: string }; excerpt: string };
   type Pagefind = { search: (query: string) => Promise<{ results: { data: () => Promise<Result> }[] }> };
+
+  /** The secret word's fingerprint (fingerprint() in palette.js). The word itself is in no file. */
+  const SECRET = 'cea02fc9';
 
   const dialog = document.querySelector<HTMLDialogElement>('[data-search]');
   const input = dialog?.querySelector('input');
   const list = dialog?.querySelector<HTMLElement>('[data-results]');
   const status = dialog?.querySelector<HTMLElement>('[data-status]');
+  const data = JSON.parse(dialog?.querySelector('[data-palette]')?.textContent ?? '{}') as { items: Option[]; things: { title: string; href: string }[] };
 
   let pagefind: Promise<Pagefind | null> | null = null;
-  // The index only exists in a built site, so `npm run dev` has no search.
+  // The index only exists in a built site, so `npm run dev` finds no posts (everything else works there).
   const loadIndex = () => {
     const path = '/pagefind/pagefind.js';
     pagefind ??= import(/* @vite-ignore */ path).catch(() => null);
@@ -36,57 +59,224 @@ import Icon from './Icon.astro';
     status.textContent = text;
   };
 
-  let latest = 0;
-  async function run(query: string) {
-    const ticket = ++latest;
-    if (!list) return;
-    if (!query.trim()) {
-      list.replaceChildren();
-      say('');
-      return;
-    }
-    const index = await loadIndex();
-    if (ticket !== latest) return;
-    if (!index) {
-      list.replaceChildren();
-      say('Search works on the built site: run npm run build, then npm run preview.');
-      return;
-    }
-    const found = await index.search(query);
-    const results = await Promise.all(found.results.slice(0, 8).map((r) => r.data()));
-    if (ticket !== latest) return;
-    list.replaceChildren(...results.map((r) => {
-      const li = document.createElement('li');
-      const a = document.createElement('a');
-      a.href = r.url;
-      const title = document.createElement('span');
-      title.className = 'title';
-      title.textContent = r.meta.title ?? r.url;
+  /** The thing that shows full screen on this page (the Travel Map, a game, an effect), if the browser can. */
+  const fullscreenTarget = () => (document.fullscreenEnabled ? document.querySelector<HTMLElement>('[data-fullscreen]') : null);
+
+  /** The actions, as they stand right now: their labels change with the theme and the full screen. */
+  function actions(): Option[] {
+    const target = fullscreenTarget();
+    const night = isNight();
+    return [
+      { title: themeLabel(), group: 'Actions', icon: night ? 'star' : document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', words: ['theme', 'dark', 'light', 'mode', 'colours', 'colors'], run: switchTheme },
+      { title: 'Surprise me', group: 'Actions', icon: 'dice', description: 'Open something at random', words: ['random', 'lucky', 'anything'], run: surprise },
+      ...(target ? [{ title: document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen', group: 'Actions', icon: document.fullscreenElement ? 'shrink' : 'expand', description: document.fullscreenElement ? undefined : target.dataset.fullscreen, words: ['full', 'screen', 'big', 'expand'], run: toggleFullscreen }] : []),
+      // Once found, the night sky can be gone back to; while it's on, the theme item above leaves it.
+      ...(nightFound() && !night ? [{ title: 'Starry Night', group: 'Actions', icon: 'star', description: 'Turn the site into a night sky', words: ['night', 'sky', 'stars', 'space'], run: () => setNight(true) }] : []),
+    ];
+  }
+
+  function surprise() {
+    const pick = pickOne(data.things ?? [], location.pathname);
+    if (pick) location.href = pick.href;
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else fullscreenTarget()?.requestFullscreen().catch(() => {});
+  }
+
+  /** The secret word typed exactly: one row and nothing else, saying nothing. */
+  function secretRow(query: string): Option[] {
+    return query.trim() && fingerprint(query) === SECRET ? [{ title: '???', group: 'Actions', icon: 'sparkles', run: findNight }] : [];
+  }
+
+  function findNight() {
+    setNight(true);
+    document.dispatchEvent(new CustomEvent('nightfound'));
+    const note = 'You found the night sky. It stays on until you press the star at the top, or pick “Leave the night sky” here.';
+    announce(note);
+    document.dispatchEvent(new CustomEvent('nightnote', { detail: note }));
+  }
+
+  let options: Option[] = [];
+  let posts: Option[] = [];
+  let active = 0;
+
+  /** The short list for an empty box. */
+  function suggestions(): Option[] {
+    const [theme, surpriseMe, ...rest] = actions();
+    const home = data.items.find((i) => i.href === '/');
+    const lab = data.items.find((i) => i.href === '/lab/');
+    return [theme, ...(home ? [home] : []), ...(lab ? [lab] : []), surpriseMe, ...rest].map((o) => ({ ...o, group: '' }));
+  }
+
+  function draw() {
+    if (!list || !input) return;
+    const all = [...options, ...posts];
+    active = Math.min(active, Math.max(0, all.length - 1));
+    const groups = new Map<string, number[]>();
+    all.forEach((o, i) => groups.set(o.group, [...(groups.get(o.group) ?? []), i]));
+    list.replaceChildren(
+      ...[...groups].map(([group, indexes], g) => {
+        const box = document.createElement('div');
+        box.setAttribute('role', 'group');
+        if (group) {
+          const title = document.createElement('div');
+          title.className = 'group-title';
+          title.id = `pg-${g}`;
+          title.textContent = group;
+          title.setAttribute('role', 'presentation');
+          box.setAttribute('aria-labelledby', title.id);
+          box.append(title);
+        }
+        box.append(...indexes.map((i) => optionElement(all[i], i)));
+        return box;
+      }),
+    );
+    const current = list.querySelector<HTMLElement>(`#po-${active}`);
+    if (current) {
+      input.setAttribute('aria-activedescendant', current.id);
+      current.scrollIntoView({ block: 'nearest' });
+    } else input.removeAttribute('aria-activedescendant');
+  }
+
+  function optionElement(option: Option, index: number) {
+    const el = document.createElement('div');
+    el.className = 'option';
+    el.id = `po-${index}`;
+    el.setAttribute('role', 'option');
+    el.setAttribute('aria-selected', String(index === active));
+    el.dataset.index = String(index);
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const icon = document.createElementNS(svgNs, 'svg');
+    icon.setAttribute('class', 'icon');
+    icon.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS(svgNs, 'use');
+    use.setAttribute('href', `#pi-${option.icon}`);
+    icon.append(use);
+    const text = document.createElement('span');
+    text.className = 'text';
+    const title = document.createElement('span');
+    title.className = 'title';
+    title.textContent = option.title;
+    text.append(title);
+    if (option.excerpt) {
       const excerpt = document.createElement('span');
       excerpt.className = 'excerpt';
       // Pagefind escapes the page text and only adds <mark> around the matches.
-      excerpt.innerHTML = r.excerpt;
-      a.append(title, excerpt);
-      li.append(a);
-      return li;
-    }));
-    say(results.length ? '' : `No posts match “${query.trim()}”. Try a shorter word.`);
+      excerpt.innerHTML = option.excerpt;
+      text.append(excerpt);
+    } else if (option.description) {
+      const description = document.createElement('span');
+      description.className = 'excerpt';
+      description.textContent = option.description;
+      text.append(description);
+    }
+    el.append(icon, text);
+    return el;
   }
+
+  let latest = 0;
+  async function update(query: string) {
+    const ticket = ++latest;
+    posts = [];
+    active = 0;
+    if (!query.trim()) {
+      options = suggestions();
+      say('');
+      draw();
+      return;
+    }
+    const secret = secretRow(query);
+    options = secret.length ? secret : search([...actions(), ...data.items], query);
+    draw();
+    if (secret.length) return say('');
+    const index = await loadIndex();
+    if (ticket !== latest) return;
+    if (index) {
+      const found = await index.search(query);
+      const results = await Promise.all(found.results.slice(0, 8).map((r) => r.data()));
+      if (ticket !== latest) return;
+      posts = results.map((r) => ({ title: r.meta.title ?? r.url, group: 'Posts', icon: 'file', excerpt: r.excerpt, href: r.url }));
+      draw();
+    }
+    if (options.length + posts.length === 0) say(`Nothing matches “${query.trim()}”. Try a shorter word.`);
+    else if (!index) say('Posts can only be searched on the built site.');
+    else say('');
+  }
+
+  function runOption(index: number) {
+    const option = [...options, ...posts][index];
+    if (!option || !dialog) return;
+    dialog.close();
+    if (option.run) option.run();
+    else if (option.href) location.href = option.href;
+  }
+
+  /** Whatever opened the palette gets the focus back when it closes. */
+  let opener: HTMLElement | null = null;
 
   function open() {
     if (!dialog || !input || dialog.open) return;
+    opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     input.value = '';
-    list?.replaceChildren();
-    say('');
+    update('');
     dialog.showModal();
     input.focus();
     loadIndex();
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /** True between a keystroke and the list catching up with it. */
+  let pending = false;
   input?.addEventListener('input', () => {
     clearTimeout(timer);
-    timer = setTimeout(() => run(input.value), 120);
+    pending = true;
+    timer = setTimeout(() => {
+      pending = false;
+      update(input.value);
+    }, 100);
+  });
+  input?.addEventListener('keydown', (e) => {
+    const count = options.length + posts.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!count) return;
+      active = e.key === 'ArrowDown' ? (active + 1) % count : (active - 1 + count) % count;
+      draw();
+    } else if (e.key === 'Escape') {
+      // A search box's own Esc only empties it; here it closes the palette in one press.
+      e.preventDefault();
+      dialog?.close();
+    } else if (e.key === 'Enter') {
+      // A Chinese or Japanese word still being put together: Enter is choosing it, not running anything.
+      if (e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      // The list may lag a keystroke behind; catch it up first (everything but the posts is worked out at once).
+      if (pending) {
+        clearTimeout(timer);
+        pending = false;
+        update(input.value);
+      }
+      runOption(active);
+    }
+  });
+  list?.addEventListener('click', (e) => {
+    const option = e.target instanceof Element ? e.target.closest<HTMLElement>('[role="option"]') : null;
+    if (option) runOption(Number(option.dataset.index));
+  });
+  list?.addEventListener('pointermove', (e) => {
+    const option = e.target instanceof Element ? e.target.closest<HTMLElement>('[role="option"]') : null;
+    if (option && Number(option.dataset.index) !== active) {
+      active = Number(option.dataset.index);
+      list.querySelectorAll('[aria-selected="true"]').forEach((o) => o.setAttribute('aria-selected', 'false'));
+      option.setAttribute('aria-selected', 'true');
+      input?.setAttribute('aria-activedescendant', option.id);
+    }
+  });
+  dialog?.addEventListener('close', () => {
+    if (opener?.isConnected) opener.focus();
+    opener = null;
   });
   document.addEventListener('click', (e) => {
     if (e.target instanceof Element && e.target.closest('[data-search-open]')) open();
@@ -104,16 +294,6 @@ import Icon from './Icon.astro';
   dialog?.addEventListener('click', (e) => {
     if (e.target === dialog) dialog.close();
   });
-  // Arrow keys move between results.
-  dialog?.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    const links = [...(list?.querySelectorAll('a') ?? [])];
-    if (!links.length) return;
-    e.preventDefault();
-    const i = links.indexOf(document.activeElement as HTMLAnchorElement);
-    const next = e.key === 'ArrowDown' ? (i + 1) % links.length : i <= 0 ? links.length - 1 : i - 1;
-    links[next].focus();
-  });
 </script>
 
 <style>
@@ -124,11 +304,18 @@ import Icon from './Icon.astro';
   input { flex: 1; min-width: 0; padding: var(--space-2) 0; border: 0; background: transparent; color: inherit; font-size: var(--text-md); font-weight: 500; }
   input:focus { outline: none; }
   .esc { padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
-  .results { max-height: calc(min(34rem, 80dvh) - 4rem); margin: 0; padding: var(--space-2); overflow-y: auto; list-style: none; }
-  .results :global(a) { display: grid; gap: var(--space-1); padding: 0.625rem var(--space-3); border-radius: 12px; text-decoration: none; }
-  .results :global(a:hover), .results :global(a:focus-visible) { background: var(--wash); outline-offset: -2px; }
+  .results { max-height: calc(min(34rem, 80dvh) - 4rem); padding: var(--space-2); overflow-y: auto; }
+  .results:empty { display: none; }
+  .results :global(.group-title) { padding: var(--space-2) var(--space-3) var(--space-1); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
+  .results :global(.option) { display: flex; align-items: flex-start; gap: var(--space-3); padding: 0.625rem var(--space-3); border-radius: var(--radius-image); cursor: pointer; }
+  .results :global(.option[aria-selected='true']) { background: var(--wash); box-shadow: inset 2px 0 var(--focus); }
+  .results :global(.option .icon) { margin-top: 0.1rem; color: var(--muted); }
+  .results :global(.option[aria-selected='true'] .icon) { color: var(--ink); }
+  .results :global(.text) { display: grid; gap: var(--space-1); min-width: 0; }
   .results :global(.title) { font-weight: 650; }
   .results :global(.excerpt) { color: var(--muted); font-size: var(--text-sm); line-height: 1.5; }
-  .results :global(mark) { border-radius: 3px; background: color-mix(in srgb, var(--focus) 22%, transparent); color: var(--ink); }
+  .results :global(mark) { border-radius: var(--radius-2xs); background: color-mix(in srgb, var(--focus) 22%, transparent); color: var(--ink); }
   .status { margin: 0; padding: 1.25rem var(--space-4); color: var(--muted); }
+  .results:not(:empty) + .status { padding-top: var(--space-2); font-size: var(--text-sm); }
+  .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 </style>

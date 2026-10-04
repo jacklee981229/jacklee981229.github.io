@@ -15,7 +15,7 @@
 /* No outline on a click: the browser's own style for SVG draws a thick ring on any focus, mouse included. */
 /* No tap highlight: phones would flash a blue patch over each dot tapped, and the dot turning dark already shows it. */
 .ctc svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; outline: none; -webkit-tap-highlight-color: transparent; }
-.ctc svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 8px; border-radius: 4px; }
+.ctc svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 8px; border-radius: var(--radius-xs); }
 /* Free dots are pale, blocked ones take the full Games colour (at least 3:1 apart in both themes). */
 .ctc .ctc-dot { fill: color-mix(in srgb, var(--lane-games) 36%, var(--surface)); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill 150ms ease; }
 .ctc .ctc-dot.is-blocked { fill: var(--lane-games); cursor: default; }

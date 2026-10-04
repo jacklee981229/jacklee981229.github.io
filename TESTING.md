@@ -570,7 +570,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "63 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Look at the menu. Expected: Home, Writing, Archives, Lab, Collection, Travel, About. On a phone the menu slides sideways, and opens with the current page's word in view.
+2. Look at the menu. Expected: Home, Writing, Lab, Collection, Travel, About (Archives was removed on 4 Oct). On a phone the menu slides sideways, and opens with the current page's word in view.
 3. Open http://localhost:4321/collections/. Expected: "Jack's Collection" as big as "Jack's Lab" on the Lab page, "Things I like, kept where I can look at them." under it, and under that two tabs, "Movies 8" (filled in) and "Games 7". Then a board with the eight movies: five in a row, the other three in the middle under them, 48 px apart. Each has its poster, its name in the middle under it, and its stars under that. One thin line runs between the two rows, under the first row's stars: none between a poster and its own name.
 4. Rest the mouse on an item. Expected: it grows a little at once. After about two seconds a small note opens on its right with its name, its stars and "No comment yet." (for the last item of a row, on its left). Move to the item beside it: that one's note comes at once. Move the mouse away: the note closes. The note's stars are the same as the ones under the name: on a four-star item, four filled and the fifth a faint shadow.
 5. Click an item. Expected: its note opens without the wait. Esc, or a click somewhere else, closes it.
@@ -606,3 +606,62 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 5. Open http://localhost:4321/lab/effect/flock/. Expected: a shoal of small fish (a body and a forked tail), some bigger, some slimmer or rounder, each beating its tail, faster when it swims faster. Click near them: they dart off with quicker tails, then gather again.
 6. Open http://localhost:4321/lab/effect/spotlight/ and hold the mouse still. Expected: the faint shapes in the dark drift and turn very slightly, each at its own pace; the shapes in the light stay perfectly still. Move the light over a drifting shape: it settles into place as the light reaches it. Click: the light opens over everything and the drifting stops until it closes again.
 7. Open http://localhost:4321/lab/effect/sand/ and click several times high up. Expected: each click bursts out a heap of a different size and shape: lumpy, stretched one way or another, with small clumps and loose grains thrown beyond it, never a neat circle. Look closely at the sand: the grains are a mix of sizes, some a little smaller and some a little bigger than the rest, and the coloured stripes are of different widths.
+
+## Foundation check: sitemap, robots.txt, one page top, radii
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "65 page(s) built" with no "Sitemap check failed", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/sitemap.xml. Expected: the four games are listed (`/lab/game/2048/`, `/lab/game/catch-the-cat/`, `/lab/game/snake/`, `/lab/game/blocks/`), and so are `/now/` and `/changelog/`. `/random/` is not.
+3. Open http://localhost:4321/robots.txt. Expected: `User-agent: *`, `Allow: /`, then `Sitemap: https://jacklee981229.github.io/sitemap.xml`.
+4. A forgotten page stops the build. Stop the preview (Ctrl+C), and in `src\lib\collections.ts` put `//` in front of the line `{ path: '/now/', lastmod: nowFile().updated },`. Run `npm run build`. Expected: it stops with `Sitemap check failed.` and `Built but not in the sitemap (...): /now/`. Take the `//` out again.
+5. Open Writing, the Lab, Collection, Travel, About, a tag (click one in the home sidebar) and http://localhost:4321/page/2/. Expected: every top looks as before: the big title, the lead, and Collection's tabs, Travel's switch and the Lab's buttons under it, nothing moved.
+
+## Now
+
+1. With the built site running (above), open http://localhost:4321/. Expected: in the sidebar, right under the profile card, a "Now" box: "🎮 Playing" with Shape of Dreams and its small cover, "💻 Building" with Jack's Space, the words lined up on the left and the cover at the right, and "See the Now page". On a phone the sidebar comes after the posts.
+2. Click Shape of Dreams. Expected: Jack's Collection opens on the Games tab.
+3. Open http://localhost:4321/now/. Expected: "Now", "What I'm up to at the moment.", both items, a little bigger.
+4. The date. Once `now.md` is committed and the site rebuilt, both the box and the page end with "Updated today" (or "yesterday", "3 days ago"…). Hover it: the full date shows. Until the file is committed there's no date.
+5. Change it from your phone: on github.com open `src/content/now.md` in the repo, edit a line (say `- 🎬 Watching: something new`), commit. Expected: after the deploy (about two minutes) the home box and `/now/` show the new line and "Updated today".
+6. Nothing breaks it: with `npm run dev` running, put a line without a colon (`- Taking it easy`) and some text under the list in `src\content\now.md`. Expected: the line shows as it is, the text shows only on `/now/`. Empty the file: the box goes away and `/now/` says "Nothing here right now." Put the two lines back.
+
+## Changelog
+
+1. With the built site running, scroll to the bottom of the home page. Expected: a thin line right across the page with "Changelog ⌄" in the middle, then the footer.
+2. Click it (or Tab to it and press Enter). Expected: it opens: "Latest changes" with "See all changes" on the right, then a card for each of the latest three days: the date, and each change with a coloured label (New, Improved, Design or Fix) and its text. Click it again: it closes.
+3. Click "See all changes" (or the footer's Changelog link). Expected: http://localhost:4321/changelog/: 2026 with a card per day, then 2023 ending with "Started Jack's Space on Hexo". Collection, Travel Map, About, Lab, Now and Writing are links.
+4. On the home page, Site info's "Last update" says 4 Oct 2026 and is a link to the Changelog.
+5. A bad line stops the build: in `src\content\changelog.md`, on line 6 (`- 2026-09-26 new: Rebuilt Jack's Space from scratch with Astro`), change `new` to `tweak` and run `npm run build`. Expected: it stops with `Changelog: line 6 of src/content/changelog.md (...) needs a date, a kind and the change…`. Put it back.
+
+## Archives removed
+
+1. With the built site running, look at the menu. Expected: Home, Writing, Lab, Collection, Travel, About.
+2. Open http://localhost:4321/archives/. Expected: it goes straight to Writing. The same for an old address, http://localhost:4321/archives/2023/.
+
+## Command palette and Random
+
+1. With the built site running, open http://localhost:4321/writing/ and press Ctrl+K (or `/`, or click the magnifier, whose label now says "Search or run a command"). Expected: the box says "Search or run a command"; under it Switch to dark theme, Home, Lab, Surprise me, each with an icon.
+2. Type `json`. Expected: "Lab" with JSON Preview, then "Posts" with posts that mention JSON. Type `preview markdown`: Markdown Preview. Type `orbits`: the effect. Type `snake`: the game. Type `dark`: the theme switch.
+3. Keys: type `git`, press ↓ and ↑. Expected: the highlight moves through the list while the cursor stays in the box; Enter opens the highlighted post. Esc closes the palette in one press, even with text in it, and the focus is back on what opened it.
+4. Type something with a Chinese input method and press Enter to pick the word. Expected: the word goes into the box; nothing opens.
+5. Press Ctrl+K, then Enter on "Switch to dark theme". Expected: the page fades to dark, and the header's button now says (on hover) "Switch to light theme". Press the header's button: back to light, and the palette's first item says "Switch to dark theme" again.
+6. Type `xyzq`. Expected: "Nothing matches “xyzq”. Try a shorter word."
+7. Surprise me: on any page, Ctrl+K, Enter on Surprise me. Expected: some other page opens (a post, a tool, a game or an effect), never the one you were on.
+8. Open http://localhost:4321/random/. Expected: "You got a post:" (or a tool, a game, an effect), its name and what it is, Open it and Pick again. Pick again shows something else. The Lab home's Random box says "Feeling lucky?" with Surprise me, and its button row no longer says "soon".
+9. Fullscreen: on http://localhost:4321/travel/, Ctrl+K, Enter on Fullscreen. Expected: only the globe (or flat map) fills the screen. Ctrl+K again: the item says "Exit fullscreen". Do the same on a game (http://localhost:4321/lab/game/2048/, the game in the middle of the screen) and an effect (http://localhost:4321/lab/effect/orbits/, edge to edge). On Writing there's no Fullscreen item. On an iPhone there's none anywhere (its browser can't).
+10. Phone: tap the magnifier, type `clean`, tap Clean Text. Expected: it opens.
+11. Dev too: with `npm run dev` running, Ctrl+K and `json` still finds JSON Preview; posts aren't searched there, and it says "Posts can only be searched on the built site."
+
+## Starry Night
+
+1. With the built site running, press Ctrl+K and type the secret word (the one from chat). Expected: a single row, "???", with a sparkle, and nothing else. Typing only part of the word shows nothing of it.
+2. Press Enter. Expected: the palette closes, the page fades into a near-black night sky with stars and faint green aurora curtains high up, one shooting star crosses at once, and a note at the bottom says you found the night sky and how to leave it (it goes after a few seconds, or on a click). The header's button shows a star.
+3. Look around: stars behind every page (the same sky on every page), a few twinkling, the aurora swaying slowly, now and then a shooting star, and every 10 to 20 seconds one star somewhere blinking with a soft glow. The menu row stays plain dark. Nothing at the bottom of the page but the footer. Check the home page, a post with code (http://localhost:4321/7/), a game, an effect, the Travel Map and Collection, on a desktop and a phone.
+4. Close the browser tab and open the site again. Expected: still night, from the first moment, without a flash of the old theme.
+5. Ctrl+K: the first item says "Leave the night sky". Or press the star button. Expected: back to the theme you had before (light or dark), or the system's if you never chose. Ctrl+K again: "Starry Night" is offered from now on.
+6. Less motion: in Windows, Settings → Accessibility → Visual effects → Animation effects off, then turn the night on. Expected: the stars and the aurora stand still, nothing twinkles, blinks or shoots, and the switch is instant.

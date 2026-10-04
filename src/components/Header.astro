@@ -12,49 +12,29 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
       {NAV.map(({ href, label }) => <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}><span>{label}</span></a>)}
     </nav>
     <div class="tools">
-      <button type="button" class="icon-btn" data-search-open aria-label="Search posts" title="Search posts (Ctrl K)">
+      <button type="button" class="icon-btn" data-search-open aria-label="Search or run a command" title="Search or run a command (Ctrl K)">
         <Icon name="search" />
       </button>
       <button type="button" class="icon-btn theme-btn" data-theme-toggle aria-label="Switch theme">
         <Icon name="moon" class="moon" />
         <Icon name="sun" class="sun" />
+        <Icon name="star" class="star" />
       </button>
     </div>
   </div>
 </header>
 
 <script>
+  import { labelThemeButtons, switchTheme } from '../lib/theme';
+
   // On a phone the menu row slides sideways: it starts with the current page's word in the middle of what shows.
   const current = document.querySelector<HTMLElement>('.nav [aria-current]');
   const nav = current?.parentElement;
   if (current && nav) nav.scrollLeft += current.getBoundingClientRect().left - nav.getBoundingClientRect().left - (nav.clientWidth - current.offsetWidth) / 2;
 
-  // The head script already applied the saved or system theme; this keeps the button label and the saved choice in step.
-  const root = document.documentElement;
-  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
-  const label = () => {
-    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    buttons.forEach((b) => {
-      b.setAttribute('aria-label', `Switch to ${next} theme`);
-      b.title = `Switch to ${next} theme`;
-    });
-  };
-  const switchTheme = () => {
-    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    try {
-      localStorage.setItem('theme', root.dataset.theme);
-    } catch {
-      // Private browsing can block storage; the choice then lasts until the page reloads.
-    }
-    label();
-  };
-  buttons.forEach((b) => b.addEventListener('click', () => {
-    // The page cross-fades between themes (its length is set in global.css). Older browsers, and visitors who ask for less motion, switch at once.
-    const fade = 'startViewTransition' in document && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (fade) document.startViewTransition(switchTheme);
-    else switchTheme();
-  }));
-  label();
+  // The switching itself is shared with the command palette (src/lib/theme.ts), so the two always agree.
+  document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((b) => b.addEventListener('click', switchTheme));
+  labelThemeButtons();
 </script>
 
 <style>
@@ -73,9 +53,12 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
     .nav a:hover span { transform: scale(1.08); }
   }
   .tools { display: flex; gap: var(--space-1); margin-left: auto; }
-  .theme-btn .sun { display: none; }
+  .theme-btn .sun, .theme-btn .star { display: none; }
   :global([data-theme='dark']) .theme-btn .sun { display: block; }
   :global([data-theme='dark']) .theme-btn .moon { display: none; }
+  /* In the night sky the button shows a star: pressing it leaves the night. */
+  :global([data-sky='night']) .theme-btn .sun { display: none; }
+  :global([data-sky='night']) .theme-btn .star { display: block; }
 
   /* Phones and narrow windows, where the name, the menu and the buttons no longer fit side by side: the menu gets its
      own row under the name. */

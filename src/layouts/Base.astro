@@ -8,6 +8,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
 import SearchDialog from '../components/SearchDialog.astro';
+import NightSky from '../components/NightSky.astro';
 import avatar from '../assets/avatar.png';
 import { SITE } from '../site';
 
@@ -19,9 +20,11 @@ interface Props {
   article?: { published: Date; updated?: Date; tags: string[] };
   /** "lab" for the Lab's pages (its home, tools, games and Random), which have their own dark theme colours. */
   area?: 'lab';
+  /** Keeps the page out of search engines and out of the sitemap (the build's sitemap check skips it). */
+  noindex?: boolean;
 }
 
-const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, article, area } = Astro.props;
+const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, article, area, noindex } = Astro.props;
 // Same title format as the old site, so search results look the same.
 const pageTitle = title ? `${title} | ${SITE.title}` : `${SITE.title} - ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -36,6 +39,7 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="author" content={SITE.author} />
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/atom+xml" title={SITE.title} href="/atom.xml" />
@@ -56,11 +60,16 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     <meta name="google-site-verification" content="jSWL6ULyDHu6BWdCYblWse_SuDVpLxTjWvooOx0Xgpw" />
 
     <script is:inline>
-      // Apply the saved theme, or the system setting, before the page paints.
+      // Apply the saved theme, or the system setting, before the page paints; and the night sky over it, if it's on
+      // (it keeps the dark theme, in colours of its own: NightSky.astro, src/lib/theme.ts).
       (function () {
-        var t;
-        try { t = localStorage.getItem('theme'); } catch (e) {}
+        var t, sky;
+        try { t = localStorage.getItem('theme'); sky = localStorage.getItem('sky'); } catch (e) {}
         if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        if (sky === 'night') {
+          document.documentElement.dataset.sky = 'night';
+          t = 'dark';
+        }
         document.documentElement.dataset.theme = t;
       })();
     </script>
@@ -101,6 +110,7 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     <main id="main" tabindex="-1">
       <slot />
     </main>
+    <NightSky />
     <Footer />
     <BackToTop />
     <SearchDialog />

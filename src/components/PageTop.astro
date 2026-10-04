@@ -1,0 +1,25 @@
+---
+// The top of every main page: the big title, an optional lead, and an optional slot for what sits under them (the
+// Collections tabs, the Travel Map's switch, the Lab's buttons). The sizes and the spacing live here and in
+// global.css's .page-title and .lede, so pages can't drift apart. The home page, posts and the Lab's own pages
+// (LabHeader) have tops of their own.
+import Icon, { type IconName } from './Icon.astro';
+
+interface Props {
+  title: string;
+  lead?: string;
+  /** An icon before the title, as on the Lab home. */
+  icon?: IconName;
+}
+
+const { title, lead, icon } = Astro.props;
+---
+<h1 class:list={['page-title', { 'has-icon': icon }]}>{icon && <Icon name={icon} />}{title}</h1>
+{lead && <p class="lede">{lead}</p>}
+{Astro.slots.has('default') && <div class="under"><slot /></div>}
+
+<style>
+  .has-icon { display: flex; align-items: center; gap: 0.18em; }
+  .has-icon :global(.icon) { width: 0.78em; height: 0.78em; stroke-width: 2.2; }
+  .under { margin-top: var(--space-5); }
+</style>

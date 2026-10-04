@@ -41,3 +41,19 @@ export function localTimestamp(date) {
   const f = new Intl.DateTimeFormat('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   return `${isoDay(date)}T${f.format(date)}+08:00`;
 }
+
+/**
+ * How long ago, in Malaysia calendar days, said the way a person would: "today", "yesterday", "3 days ago",
+ * "2 weeks ago", "5 months ago", "1 year ago". A date still to come counts as today.
+ * @param {Date} then @param {Date} now
+ */
+export function timeAgo(then, now) {
+  const days = daysBetween(now, then);
+  const say = (n, unit) => `${n} ${unit}${n === 1 ? '' : 's'} ago`;
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return say(days, 'day');
+  if (days < 30) return say(Math.floor(days / 7), 'week');
+  if (days < 365) return say(Math.max(1, Math.floor(days / 30)), 'month');
+  return say(Math.floor(days / 365), 'year');
+}

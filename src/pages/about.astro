@@ -1,5 +1,6 @@
 ---
 import { getEntry, render } from 'astro:content';
+import PageTop from '../components/PageTop.astro';
 import Base from '../layouts/Base.astro';
 import ProfileLinks from '../components/ProfileLinks.astro';
 import { SITE } from '../site';
@@ -11,7 +12,7 @@ const { Content } = await render(about);
 ---
 <Base title={about.data.title} description="About Jack Lee and this site.">
   <div class="wrap page">
-    <h1 class="page-title">{about.data.title}</h1>
+    <PageTop title={about.data.title} />
     <!-- "About Me" comes from src/site.ts (the same role and links as the home page's profile card); the rest is about.md. -->
     <div class="prose text">
       <h2 id="about-me">About Me</h2>

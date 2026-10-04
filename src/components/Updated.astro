@@ -1,0 +1,24 @@
+---
+// "Updated 3 days ago": the plain date as the page is built, turned into how long ago in the visitor's browser
+// (timeAgo in src/lib/dates.js), so it doesn't freeze at build time. Without JavaScript the date shows.
+import { formatDate } from '../lib/dates.js';
+
+interface Props {
+  date: Date;
+}
+
+const { date } = Astro.props;
+---
+<p class="updated">Updated <time datetime={date.toISOString()} title={formatDate(date)} data-ago>{formatDate(date)}</time></p>
+
+<script>
+  import { timeAgo } from '../lib/dates.js';
+
+  document.querySelectorAll<HTMLTimeElement>('time[data-ago]').forEach((el) => {
+    el.textContent = timeAgo(new Date(el.dateTime), new Date());
+  });
+</script>
+
+<style>
+  .updated { margin: 0; color: var(--muted); }
+</style>

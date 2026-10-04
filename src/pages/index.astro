@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import HomeFeed from '../components/HomeFeed.astro';
+import ChangelogFold from '../components/ChangelogFold.astro';
 import Welcome from '../components/Welcome.astro';
 import { CURSOR_MS, typingTimeline } from '../lib/typing.js';
 import { SITE } from '../site';
@@ -21,6 +22,7 @@ const at = typingTimeline(SITE.title);
     </div>
   </section>
   <HomeFeed page={1} />
+  <ChangelogFold />
 </Base>
 
 <style>

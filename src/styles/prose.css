@@ -15,8 +15,8 @@
 .prose li::marker { color: var(--muted); font-size: 0.9em; font-weight: 650; }
 .prose strong { font-weight: 700; }
 .prose hr { margin: 2.5em 0; border: 0; border-top: 1px solid var(--rule); }
-.prose :not(pre) > code { padding: 0.1em 0.35em; border-radius: 4px; background: var(--wash); font-family: var(--font-code); font-size: 0.86em; overflow-wrap: anywhere; }
-.prose blockquote { margin-left: 0; padding: 0.5em 1em; border-left: 3px solid var(--c, var(--rule)); border-radius: 0 10px 10px 0; background: var(--wash); color: var(--muted); }
+.prose :not(pre) > code { padding: 0.1em 0.35em; border-radius: var(--radius-xs); background: var(--wash); font-family: var(--font-code); font-size: 0.86em; overflow-wrap: anywhere; }
+.prose blockquote { margin-left: 0; padding: 0.5em 1em; border-left: 3px solid var(--c, var(--rule)); border-radius: 0 var(--radius-art) var(--radius-art) 0; background: var(--wash); color: var(--muted); }
 .prose blockquote > :last-child { margin-bottom: 0; }
 .prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: var(--text-ui); }
 .prose th, .prose td { padding: var(--space-2) var(--space-3); border: 1px solid var(--rule); text-align: left; vertical-align: top; }
@@ -24,10 +24,10 @@
 .prose iframe { max-width: 100%; border: 1px solid var(--rule); border-radius: var(--radius-md); }
 
 /* Images: framed, and a button once the page script makes them enlargeable. */
-.prose img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); }
+.prose img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: var(--radius-image); background: var(--surface); }
 .prose img.is-small { width: auto; border-radius: var(--radius-sm); }
 .prose img.is-tall { max-width: min(20rem, 100%); }
-.prose .zoom { display: block; max-width: 100%; margin-block: 0.5em; padding: 0; border: 0; border-radius: 12px; background: none; cursor: zoom-in; }
+.prose .zoom { display: block; max-width: 100%; margin-block: 0.5em; padding: 0; border: 0; border-radius: var(--radius-image); background: none; cursor: zoom-in; }
 
 /* Code blocks: frame (from the code-frame plugin), line numbers, and folding for long ones. */
 .prose figure.code { margin: 1.25em 0; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); font-size: var(--text-base); line-height: 1.55; }

@@ -39,8 +39,8 @@ test('a picture that is not there, or of another type, is a plain message naming
   assert.throws(() => pictureOf(pictures, 'movies', { name: 'My Film', image: 'poster' }), /only \.jpg/);
 });
 
-test("the page looks for exactly the picture types a collection takes, in small letters and capitals", () => {
-  const page = readFileSync(new URL('../src/pages/collections.astro', import.meta.url), 'utf8');
+test("the pictures are looked for in exactly the types a collection takes, in small letters and capitals", () => {
+  const page = readFileSync(new URL('../src/lib/shelf-pictures.ts', import.meta.url), 'utf8');
   const looked = page.match(/collections\/\*\/\*\.\{([^}]+)\}/)?.[1].split(',');
   assert.deepEqual(looked, [...PICTURE_TYPES, ...PICTURE_TYPES.map((type) => type.toUpperCase())]);
 });

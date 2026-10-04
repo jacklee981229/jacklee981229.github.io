@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import Icon from '../../components/Icon.astro';
+import PageTop from '../../components/PageTop.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
 import { EFFECTS, GROUPS, TOOLS } from '../../lib/lab/tools.js';
 import { experimentPosts, popularLabItems } from '../../lib/collections';
@@ -11,14 +11,14 @@ const popular = await popularLabItems();
 ---
 <Base title="Jack's Lab" description={INTRO} area="lab">
   <div class="wrap page">
-    <h1 class="page-title lab-title"><Icon name="flask" />Jack's Lab</h1>
-    <p class="lede">{INTRO}</p>
-    <nav class="jump" aria-label="Lab sections">
-      <a href="#tools">Tools</a>
-      <a href="#mini-games">Mini Games</a>
-      <a href="#effects">Effects</a>
-      <a href="#random">Random <span>soon</span></a>
-    </nav>
+    <PageTop title="Jack's Lab" lead={INTRO} icon="flask">
+      <nav class="jump" aria-label="Lab sections">
+        <a href="#tools">Tools</a>
+        <a href="#mini-games">Mini Games</a>
+        <a href="#effects">Effects</a>
+        <a href="#random">Random</a>
+      </nav>
+    </PageTop>
 
     {popular.length > 0 && (
       <section id="popular" aria-labelledby="popular-title">
@@ -60,26 +60,23 @@ const popular = await popularLabItems();
     <section id="random" aria-labelledby="random-title">
       <h2 id="random-title">Random</h2>
       <div class="random">
-        <p><strong>Random is coming.</strong> There isn't enough here yet to make it fun. I'm collecting more.</p>
-        <a class="button" href="/random/">See what's planned</a>
+        <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game or an effect.</p>
+        <a class="button" href="/random/">Surprise me</a>
       </div>
     </section>
   </div>
 </Base>
 
 <style>
-  .lab-title { display: flex; align-items: center; gap: 0.18em; }
-  .lab-title :global(.icon) { width: 0.78em; height: 0.78em; stroke-width: 2.2; }
-  .jump { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-5); }
+  .jump { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .jump a { padding: 0.375rem 0.875rem; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
   .jump a:hover { border-color: var(--ink); }
-  .jump span { color: var(--muted); font-weight: 500; }
   section { margin-top: var(--space-8); scroll-margin-top: var(--space-5); }
   h2 { margin: 0 0 var(--space-2); font-size: var(--text-xl); font-weight: var(--display-weight); letter-spacing: calc(var(--display-tracking) / 2); }
   h3 { margin: var(--space-5) 0 var(--space-3); color: var(--muted); font-size: var(--text-ui); font-weight: 650; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
   .note { margin: var(--space-3) 0 0; color: var(--muted); }
-  .random { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); max-width: 44rem; padding: var(--space-4) var(--space-5); border: 1px dashed var(--rule); border-radius: var(--radius-lg); }
+  .random { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); max-width: 44rem; padding: var(--space-4) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); }
   .random p { max-width: 30rem; margin: 0; color: var(--muted); }
   .random strong { color: var(--ink); }
 </style>

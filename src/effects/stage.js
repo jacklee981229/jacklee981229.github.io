@@ -169,8 +169,8 @@ export function runStage(root, create) {
     readColors();
     redraw();
   };
-  // The site's theme button changes this attribute.
-  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  // The site's theme button changes these: the theme, and the night sky (which keeps the dark theme, in its own colours).
+  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-sky'] });
   toggle?.addEventListener('click', () => {
     wanted = !wanted;
     sync();

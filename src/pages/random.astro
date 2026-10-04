@@ -1,15 +1,60 @@
 ---
-// Random is planned, not built (see docs/lab-brief.md): it needs more things to pick from first. Keep this address when it arrives.
+// Random: something from the site, picked in the visitor's browser out of everything that can be opened (openables
+// in src/lib/palette-items.ts: posts, tools, games, effects). The palette's "Surprise me" goes straight to one;
+// this page shows what came up first. Different on every visit, so it's kept out of search engines and the sitemap.
+import PageTop from '../components/PageTop.astro';
 import Base from '../layouts/Base.astro';
+import { openables } from '../lib/palette-items';
+
+const things = await openables();
 ---
-<Base title="Random" description="A future surprise-me button for Jack's Space." area="lab">
+<Base title="Random" description="One click to something random on Jack's Space: a post, a tool, a game or an effect." area="lab" noindex>
   <div class="wrap page">
-    <h1 class="page-title">Random</h1>
-    <p class="lede">Random is coming. There isn't enough stuff here yet, so I'm collecting more. One day this page will pick something for you: an old post, a tool or a game.</p>
-    <p class="back"><a class="button" href="/lab/">Back to the Lab</a></p>
+    <PageTop title="Random" lead={`Something from Jack's Space, picked out of ${things.length} posts, tools, games and effects.`} />
+    <div class="pick" data-pick hidden>
+      <p class="got" data-got>You got</p>
+      <h2 class="title" data-title></h2>
+      <p class="about" data-about></p>
+      <p class="actions">
+        <a class="button" href="/" data-open>Open it</a>
+        <button type="button" class="button" data-again>Pick again</button>
+      </p>
+    </div>
+    <noscript><p class="empty">Random picks with JavaScript, which is off here. Try the <a href="/lab/">Lab</a> or <a href="/writing/">Writing</a> instead.</p></noscript>
   </div>
+  <script is:inline type="application/json" data-things set:html={JSON.stringify(things)} />
 </Base>
 
+<script>
+  import { pickOne } from '../lib/palette.js';
+
+  type Thing = { title: string; href: string; kind: string; description?: string };
+  const things = JSON.parse(document.querySelector('[data-things]')?.textContent ?? '[]') as Thing[];
+  const box = document.querySelector<HTMLElement>('[data-pick]');
+  const a = (kind: string) => (/^[aeiou]/i.test(kind) ? 'an' : 'a');
+  let current = '';
+
+  function show() {
+    const thing = pickOne(things, current);
+    if (!box || !thing) return;
+    current = thing.href;
+    box.querySelector('[data-got]')!.textContent = `You got ${a(thing.kind)} ${thing.kind.toLowerCase()}:`;
+    box.querySelector('[data-title]')!.textContent = thing.title;
+    box.querySelector('[data-about]')!.textContent = thing.description ?? '';
+    box.querySelector<HTMLAnchorElement>('[data-open]')!.href = thing.href;
+    box.hidden = false;
+  }
+
+  document.querySelector('[data-again]')?.addEventListener('click', show);
+  show();
+</script>
+
 <style>
-  .back { margin: var(--space-6) 0 0; }
+  .pick { max-width: 40rem; margin-top: var(--space-6); padding: var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+  .got { margin: 0; color: var(--muted); }
+  .title { margin: var(--space-1) 0 var(--space-2); font-size: var(--text-xl); font-weight: var(--display-weight); line-height: 1.15; }
+  .about { margin: 0; color: var(--muted); }
+  .about:empty { display: none; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-5) 0 0; }
+  noscript p { margin-top: var(--space-6); }
 </style>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en" data-option="a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starry Night mockups</title>
+<style>
+  @font-face { font-family: 'Schibsted Grotesk'; font-weight: 400 900; src: url('../../../public/fonts/schibsted-grotesk-normal-400-900-latin.woff2') format('woff2'); }
+
+  /* Three directions for the same night: each sets the same tokens the site uses, plus its own sky. */
+  /* A. Aurora: a far-north night, green-cyan curtains over a pine ridge. */
+  [data-option='a'] {
+    --paper: #050D14; --surface: #0D1B25; --ink: #E6F4F1; --muted: #94B3B0; --rule: #1B3240; --focus: #6EF0C2;
+    --sky-top: #03080E; --sky-bottom: #0B2433; --ground: #040A0F; --lane: #6EF0C2;
+  }
+  /* B. Dusk ridges: the first stars over layered mountains, the last warm light on the horizon. */
+  [data-option='b'] {
+    --paper: #170E2A; --surface: #23163A; --ink: #FBEFF3; --muted: #CDB0C6; --rule: #3A2752; --focus: #FFB38A;
+    --sky-top: #110A22; --sky-bottom: #6A2D52; --ground: #12091D; --lane: #FFB38A;
+  }
+  /* C. Planetarium: a star chart, with constellation lines, a faint grid and a compass horizon; astronomer's red. */
+  [data-option='c'] {
+    --paper: #04070E; --surface: #0B111C; --ink: #E8ECF4; --muted: #8E99AE; --rule: #1A2333; --focus: #FF7A6B;
+    --sky-top: #02040A; --sky-bottom: #0A1222; --ground: #060A12; --lane: #FF7A6B;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { margin: 0; color: var(--ink); font: 400 1rem/1.55 'Schibsted Grotesk', system-ui, sans-serif; }
+  a { color: inherit; }
+
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(var(--sky-top), var(--sky-top) 35%, var(--sky-bottom)); }
+  .stars { position: absolute; top: 0; left: 0; width: 1px; height: 1px; border-radius: 50%; }
+  .stars.big { width: 2px; height: 2px; }
+  [data-option='b'] .stars { -webkit-mask-image: none; }
+  /* In B the stars thin out towards the warm horizon. */
+  [data-option='b'] .starfield { -webkit-mask-image: linear-gradient(#000 0%, #000 45%, transparent 85%); mask-image: linear-gradient(#000 0%, #000 45%, transparent 85%); position: absolute; inset: 0; }
+  .twinkle { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px 1px rgb(255 255 255 / 0.55); animation: twinkle 4s ease-in-out infinite alternate; }
+  @keyframes twinkle { from { opacity: 0.25; } to { opacity: 1; } }
+  .shoot { position: absolute; top: 14%; left: 74%; width: 150px; height: 1.5px; background: linear-gradient(90deg, #fff, transparent); opacity: 0; transform-origin: left; animation: shoot 9s linear 2s infinite; }
+  @keyframes shoot { 0% { opacity: 0; transform: rotate(-26deg) translateX(0); } 2% { opacity: 1; } 10% { opacity: 0; transform: rotate(-26deg) translateX(-40vw); } 100% { opacity: 0; } }
+
+  /* A: aurora curtains, swaying slowly. */
+  .aurora { display: none; position: absolute; inset: -10% -20% 30%; filter: blur(38px); opacity: 0.75; }
+  [data-option='a'] .aurora { display: block; }
+  .aurora i { position: absolute; border-radius: 50%; mix-blend-mode: screen; animation: sway 14s ease-in-out infinite alternate; }
+  .aurora i:nth-child(1) { left: 5%; top: 18%; width: 70%; height: 22%; background: linear-gradient(90deg, transparent, #2BE6A0 30%, #3CF0C8 60%, transparent); transform: rotate(-8deg); }
+  .aurora i:nth-child(2) { left: 30%; top: 30%; width: 65%; height: 16%; background: linear-gradient(90deg, transparent, #1FC7D9 40%, #7C6CF0 80%, transparent); transform: rotate(6deg); animation-duration: 18s; }
+  .aurora i:nth-child(3) { left: 15%; top: 8%; width: 50%; height: 12%; background: linear-gradient(90deg, transparent, #9BF5B5, transparent); opacity: 0.6; animation-duration: 11s; }
+  @keyframes sway { from { translate: -3% 0; scale: 1 1; } to { translate: 4% 2%; scale: 1.08 1.15; } }
+
+  /* B: a low moon. */
+  .moon { display: none; position: absolute; right: 24%; top: 9.5%; width: 46px; height: 46px; border-radius: 50%; background: #FFE9D6; box-shadow: 0 0 40px 8px rgb(255 214 180 / 0.25); }
+  .moon::after { content: ''; position: absolute; inset: -4px -4px 6px 12px; border-radius: 50%; background: var(--sky-top); }
+  [data-option='b'] .moon { display: block; }
+
+  /* C: the chart's grid and constellations. */
+  .chart { display: none; position: absolute; inset: 0; width: 100%; height: 100%; }
+  [data-option='c'] .chart { display: block; }
+  .chart .grid { fill: none; stroke: rgb(142 153 174 / 0.12); stroke-width: 1; }
+  .chart .figure { fill: none; stroke: rgb(255 122 107 / 0.3); stroke-width: 1; }
+  .chart .dot { fill: #F2F5FF; }
+  .chart text { fill: rgb(255 122 107 / 0.55); font: 600 11px 'Schibsted Grotesk', sans-serif; letter-spacing: 0.08em; }
+
+  header { border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--sky-top) 92%, transparent); }
+  .wrap { max-width: 72rem; margin: 0 auto; padding: 0 1rem; }
+  .bar { display: flex; align-items: center; gap: 1.5rem; min-height: 4rem; }
+  .brand { font-weight: 800; letter-spacing: -0.015em; text-decoration: none; }
+  nav { display: flex; align-self: stretch; gap: 1.25rem; color: var(--muted); font-size: 0.9375rem; font-weight: 500; }
+  nav > * { display: flex; align-items: center; }
+  nav b { color: var(--ink); font-weight: 500; box-shadow: inset 0 -2px var(--ink); }
+  .tools { display: flex; gap: 0.25rem; margin-left: auto; }
+  .tools span { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 99px; }
+  svg.i { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+  .hero { display: grid; grid-template-columns: 1fr 22rem; gap: 2rem; align-items: center; padding: 4rem 0 2rem; }
+  h1 { margin: 0; font-size: clamp(3rem, 9vw, 6.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.04em; }
+  .tag { margin: 0; font-weight: 700; }
+  .intro { margin: 0.5rem 0 0; color: var(--muted); font-size: 1.15rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem; }
+  .chip { display: inline-flex; gap: 0.4rem; align-items: center; padding: 0.35rem 0.8rem; border: 1px solid var(--rule); border-radius: 99px; background: color-mix(in srgb, var(--surface) 80%, transparent); font-size: 0.875rem; font-weight: 650; }
+  .chip i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--c); }
+  .chip em { color: var(--muted); font-style: normal; }
+
+  .body { display: grid; grid-template-columns: 1fr 17rem; gap: 3.5rem; }
+  .card { display: grid; grid-template-columns: 15rem 1fr; overflow: hidden; border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); }
+  .card + .card { margin-top: 1rem; }
+  .cover { display: grid; place-items: center; min-height: 12rem; background: color-mix(in srgb, var(--c) 22%, var(--surface)); color: color-mix(in srgb, var(--c) 30%, transparent); font-size: 4rem; font-weight: 900; }
+  .card .text { padding: 1.25rem 1.5rem; }
+  .topic { color: var(--c); font-size: 0.875rem; font-weight: 650; }
+  .card h3 { margin: 0.25rem 0 0.5rem; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.01em; }
+  .card p { margin: 0; color: var(--muted); }
+  .card .date { margin-top: 1rem; font-weight: 700; text-align: right; }
+  .side { display: grid; gap: 1rem; align-content: start; font-size: 0.9375rem; }
+  .block { padding: 1.25rem; border: 1px solid var(--rule); border-radius: 18px; background: var(--surface); }
+  .block h4 { margin: 0 0 0.75rem; }
+  .muted { color: var(--muted); }
+  .block a { color: var(--focus); font-weight: 650; }
+  .focus-demo { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 3px; }
+
+  /* The horizon at the bottom of the page, and the footer as the ground under it. */
+  .horizon { display: block; width: 100%; height: 11rem; margin-top: 4rem; }
+  footer { background: var(--ground); color: var(--muted); font-size: 0.875rem; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 1rem; padding: 1.25rem 1rem 3rem; }
+
+  .picker { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; display: flex; gap: 0.25rem; padding: 0.25rem; border: 1px solid var(--rule); border-radius: 99px; background: var(--surface); box-shadow: 0 10px 30px rgb(0 0 0 / 0.4); }
+  .picker button { padding: 0.4rem 0.9rem; border: 0; border-radius: 99px; background: none; color: var(--muted); font: 650 0.875rem 'Schibsted Grotesk', sans-serif; cursor: pointer; }
+  .picker button[aria-pressed='true'] { background: var(--focus); color: var(--paper); }
+  html.shot .picker { display: none; }
+
+  @media (max-width: 760px) {
+    nav { display: none; }
+    .hero, .body { grid-template-columns: 1fr; gap: 1.25rem; }
+    .hero { padding-top: 2rem; }
+    .card { grid-template-columns: 1fr; }
+    .cover { min-height: 9rem; }
+    .horizon { height: 8rem; }
+    footer .wrap { flex-direction: column; }
+    .moon { right: 5%; top: 8.5%; width: 30px; height: 30px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .twinkle, .shoot, .aurora i { animation: none; } }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <div class="aurora"><i></i><i></i><i></i></div>
+  <div class="moon"></div>
+  <svg class="chart" data-chart></svg>
+  <div class="starfield"><span class="stars" data-stars="faint"></span><span class="stars big" data-stars="bright"></span><div data-twinkles></div></div>
+  <span class="shoot"></span>
+</div>
+
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="#">Jack's Space</a>
+    <nav><b>Home</b><span>Writing</span><span>Archives</span><span>Lab</span><span>Collection</span><span>Travel</span><span>About</span></nav>
+    <div class="tools">
+      <span><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+      <span><svg class="i" viewBox="0 0 24 24"><path d="m12 3.2 2.6 5.5 6 .8-4.4 4.1 1.1 6L12 16.7l-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Jack's Space</h1>
+    <div><p class="tag">My programming journal.</p><p class="intro">Just sharing some of my thoughts, and maybe some tech that I learned. And some games to share :D</p></div>
+  </section>
+  <div class="chips">
+    <span class="chip" style="--c:#47C2CB"><i></i>Hexo <em>8</em></span>
+    <span class="chip" style="--c:#FF8C6B"><i></i>Git <em>1</em></span>
+    <span class="chip" style="--c:#BA9CF5"><i></i>ChatGPT <em>2</em></span>
+    <span class="chip" style="--c:#74C678"><i></i>Games <em>2</em></span>
+    <span class="chip" style="--c:#7AAAFF"><i></i>Flutter <em>1</em></span>
+  </div>
+  <div class="body">
+    <div>
+      <article class="card" style="--c:#7AAAFF">
+        <div class="cover">Flutter</div>
+        <div class="text"><span class="topic">Flutter</span><h3>Flutter Get Started</h3><p>Here is some Flutter installation steps, as I feel that some part still missing in the official flutter…</p><p class="date">16 Oct 2023</p></div>
+      </article>
+      <article class="card" style="--c:#74C678">
+        <div class="cover">Games</div>
+        <div class="text"><span class="topic">Games</span><h3>Terraria</h3><p>For my whole life (25 years in exact) I don't play a lot of games. During my teenage days I have…</p><p class="date">10 Oct 2023</p></div>
+      </article>
+    </div>
+    <aside class="side">
+      <div class="block"><h4>Jack Lee</h4><span class="muted">Senior Software Engineer</span><p><b>14</b> posts &nbsp; <b>5</b> topics &nbsp; <b>10</b> tags</p></div>
+      <div class="block"><h4>Now</h4><p class="muted" style="margin:0">🎮 Playing</p><b>Shape of Dreams</b><p class="muted" style="margin:.6rem 0 0">💻 Building</p><b>Jack's Space</b><p style="margin:.9rem 0 0"><a href="#" class="focus-demo">See the Now page</a></p></div>
+    </aside>
+  </div>
+</main>
+
+<svg class="horizon" data-horizon preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+<footer><div class="wrap"><span>© 2023–2026 Jack Lee. Posts are licensed CC BY-NC-SA 4.0.</span><span>Changelog &nbsp; Built with Astro.</span></div></footer>
+
+<div class="picker" role="group" aria-label="Choose a mockup">
+  <button type="button" data-pick="a">A. Aurora</button>
+  <button type="button" data-pick="b">B. Dusk ridges</button>
+  <button type="button" data-pick="c">C. Planetarium</button>
+</div>
+
+<script>
+  // The same sky every load: a fixed seed.
+  let seed = 20230223;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const dots = (n, lo, hi) => Array.from({ length: n }, () => `${(rnd() * 100).toFixed(2)}vw ${(rnd() * 100).toFixed(2)}vh 0 0 rgb(244 241 255 / ${(lo + rnd() * (hi - lo)).toFixed(2)})`).join(',');
+  document.querySelector('[data-stars=faint]').style.boxShadow = dots(170, 0.3, 0.7);
+  document.querySelector('[data-stars=bright]').style.boxShadow = dots(32, 0.75, 1);
+  document.querySelector('[data-twinkles]').innerHTML = Array.from({ length: 7 }, () => `<span class="twinkle" style="left:${(rnd() * 96 + 2).toFixed(1)}%;top:${(rnd() * 60 + 2).toFixed(1)}%;animation-duration:${(3.5 + rnd() * 4).toFixed(1)}s;animation-delay:-${(rnd() * 5).toFixed(1)}s"></span>`).join('');
+
+  const W = 1440, H = 176;
+  const wave = (base, amp, steps, phase) => Array.from({ length: steps + 1 }, (_, i) => { const x = (i / steps) * W; return [x, base - amp * (Math.sin(x / 140 + phase) * 0.6 + Math.sin(x / 57 + phase * 2) * 0.3 + Math.sin(x / 23 + phase) * 0.1)]; });
+  const path = (pts) => `M0 ${H} ` + pts.map(([x, y]) => `L${x.toFixed(1)} ${y.toFixed(1)}`).join(' ') + ` L${W} ${H} Z`;
+
+  const horizons = {
+    // A: a ridge of pines, a few close and tall at the edges.
+    a: () => {
+      let svg = `<path d="${path(wave(150, 14, 60, 1.3))}" fill="#06111A"/>`;
+      for (let x = 0; x < W; x += 10 + rnd() * 14) {
+        const near = x < 260 || x > 1180;
+        const h = (near ? 70 : 30) + rnd() * (near ? 70 : 34);
+        const base = 152 - 12 * Math.sin(x / 140 + 1.3);
+        const w = h * 0.32;
+        svg += `<path d="M${x} ${base} L${x + w / 2} ${base - h} L${x + w} ${base} Z" fill="${near ? '#030A10' : '#071520'}"/>`;
+      }
+      return svg + `<rect y="${H - 10}" width="${W}" height="10" fill="#040A0F"/>`;
+    },
+    // B: four ridges, lighter and warmer the further away.
+    b: () => [['#5A2A55', 70, 34, 0.4], ['#3D1E45', 100, 30, 2.1], ['#28153A', 128, 26, 3.6], ['#12091D', 156, 18, 5.2]].map(([c, base, amp, ph]) => `<path d="${path(wave(base, amp, 90, ph))}" fill="${c}"/>`).join(''),
+    // C: a flat horizon with compass points and ticks, like a planetarium's.
+    c: () => {
+      let svg = `<rect y="120" width="${W}" height="${H - 120}" fill="#060A12"/><line x1="0" y1="120" x2="${W}" y2="120" stroke="#FF7A6B" stroke-opacity="0.5"/>`;
+      for (let x = 0; x <= W; x += 24) svg += `<line x1="${x}" y1="120" x2="${x}" y2="${x % 120 === 0 ? 108 : 114}" stroke="#FF7A6B" stroke-opacity="0.45"/>`;
+      ['W', 'NW', 'N', 'NE', 'E', 'SE'].forEach((d, i) => { svg += `<text x="${120 + i * 240}" y="100" text-anchor="middle" fill="#FF7A6B" fill-opacity="0.8" font-family="Schibsted Grotesk" font-weight="700" font-size="13" letter-spacing="1.5">${d}</text>`; });
+      return svg;
+    },
+  };
+
+  function chart() {
+    const el = document.querySelector('[data-chart]');
+    const w = innerWidth, h = innerHeight;
+    el.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    let svg = '';
+    // Altitude rings and meridians around a pole below the horizon.
+    const cx = w / 2, cy = h * 1.6;
+    for (let r = h * 0.75; r < h * 2.2; r += h * 0.22) svg += `<circle class="grid" cx="${cx}" cy="${cy}" r="${r}"/>`;
+    for (let a = -60; a <= 60; a += 15) { const t = (a - 90) * Math.PI / 180; svg += `<line class="grid" x1="${cx}" y1="${cy}" x2="${cx + Math.cos(t) * h * 2.4}" y2="${cy + Math.sin(t) * h * 2.4}"/>`; }
+    const figures = [
+      ['CASSIOPEIA', [[0.44, 0.105], [0.48, 0.15], [0.52, 0.11], [0.56, 0.155], [0.60, 0.115]]],
+      ['ORION', [[0.945, 0.50], [0.96, 0.58], [0.95, 0.66], [0.97, 0.74]], [[0.96, 0.58], [0.985, 0.62]]],
+      ['LYRA', [[0.03, 0.47], [0.045, 0.52], [0.04, 0.58], [0.02, 0.57], [0.03, 0.47]]],
+    ];
+    for (const [name, ...lines] of figures) {
+      for (const line of lines) {
+        svg += `<polyline class="figure" points="${line.map(([x, y]) => `${x * w},${y * h}`).join(' ')}"/>`;
+        svg += line.map(([x, y]) => `<circle class="dot" cx="${x * w}" cy="${y * h}" r="2.2"/>`).join('');
+      }
+      const [lx, ly] = lines[0][0];
+      svg += `<text x="${lx * w + 8}" y="${ly * h - 10}">${name}</text>`;
+    }
+    el.innerHTML = svg;
+  }
+
+  function pick(option) {
+    document.documentElement.dataset.option = option;
+    document.querySelectorAll('[data-pick]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pick === option)));
+    seed = 99 + option.charCodeAt(0);
+    const horizon = document.querySelector('[data-horizon]');
+    horizon.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    horizon.innerHTML = horizons[option]();
+    chart();
+  }
+  document.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => pick(b.dataset.pick)));
+  const params = new URLSearchParams(location.search);
+  if (params.has('shot')) document.documentElement.classList.add('shot');
+  pick(params.get('o') ?? 'a');
+  addEventListener('resize', chart);
+</script>
+</body>
+</html>

@@ -1,15 +1,11 @@
 ---
-import type { ImageMetadata } from 'astro';
+import PageTop from '../components/PageTop.astro';
 import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
 import { pictureOf } from '../lib/shelves.js';
-
-// Every picture in the collections' folders, of the kinds a collection takes: PICTURE_TYPES in shelves.js, in small
-// letters and in capitals. They're spelt out because the build reads this line as it stands; a test keeps the two
-// in step.
-const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/content/collections/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true });
+import { pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
 
@@ -20,15 +16,15 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
        table half-way round to bring another card to the front. -->
   <div class="room">
     <div class="wrap page">
-      <h1 class="page-title">Jack's Collection</h1>
-      <p class="lede">Things I like, kept where I can look at them.</p>
-      <div class="switch tabs" role="tablist" aria-label="Collections">
-        {shelves.map((shelf, i) => (
-          <button type="button" role="tab" id={`tab-${shelf.id}`} aria-controls={`shelf-${shelf.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={shelf.id}>
-            {shelf.data.name} <span class="count">{shelf.data.items.length}<span class="visually-hidden"> items</span></span>
-          </button>
-        ))}
-      </div>
+      <PageTop title="Jack's Collection" lead="Things I like, kept where I can look at them.">
+        <div class="switch tabs" role="tablist" aria-label="Collections">
+          {shelves.map((shelf, i) => (
+            <button type="button" role="tab" id={`tab-${shelf.id}`} aria-controls={`shelf-${shelf.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={shelf.id}>
+              {shelf.data.name} <span class="count">{shelf.data.items.length}<span class="visually-hidden"> items</span></span>
+            </button>
+          ))}
+        </div>
+      </PageTop>
 
       <div class="stage">
         <div class="table" data-table>
@@ -235,7 +231,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
   .room { overflow-x: clip; }
 
   /* The tabs: the site's switch (global.css), under the page's lead like the Lab's buttons. */
-  .tabs { display: flex; width: fit-content; margin-top: var(--space-5); }
+  .tabs { display: flex; width: fit-content; }
   .tabs .count { font-weight: 500; }
 
   /* The turntable. At rest it's an ordinary flat page; only while it turns are its cards set out in depth: each
