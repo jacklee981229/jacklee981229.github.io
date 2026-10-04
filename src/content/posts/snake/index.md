@@ -5,6 +5,7 @@ date: 2026-09-30T20:00:00+08:00
 topic: games
 tags: ["game"]
 hidden: true
+cover: ./cover.png
 ---
 
 The classic snake game.

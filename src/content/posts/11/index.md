@@ -4,6 +4,7 @@ date: 2023-10-16T11:46:00+08:00
 topic: flutter
 tags: ["flutter"]
 cover: ./flutter_first_app_showcase.png
+featured: true
 ---
 
 Here is some Flutter installation steps, as I feel that some part still missing in the [official flutter documentation](https://docs.flutter.dev/get-started/install/windows).

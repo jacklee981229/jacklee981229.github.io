@@ -1060,3 +1060,32 @@ The goal is for someone visiting Jack's Space to think:
 and then:
 
 > "Wait, what else is on this site?"
+
+---
+
+## Decisions and tasks
+
+Approved 29 Sep 2026. The brief above says what the Lab is, its tools, and what V1 must not have. This part adds only how it fits this site, the decisions and the tasks.
+
+**How it fits:** pages `/lab/` (the Lab home: Tools, Experiments and a Random teaser), `/lab/<tool>/` (one per tool) and `/random/` (coming soon). "Lab" joins the menu: Home, Writing, Archives, Lab, About. `/lab/` and `/random/` are reserved, so no post can take them. One tool list in `src/lib/tools.js` feeds the Lab home, each tool's heading and the sitemap. One shared tool frame (back link, name, description, "stays in your browser" note) plus only the shared pieces the tools use. Tool rules live in plain JavaScript with unit tests; canvas, clipboard and downloads are checked in headless Edge. Each page loads only its own script. Tools keep your text colour (colour means topic on this site) and use the names from the brief.
+
+**Defaults:** tool addresses `/lab/count-words/`, `/lab/change-case/`, `/lab/encode-url/`, `/lab/convert-timestamp/`, `/lab/clean-text/`, `/lab/qr-code/`, `/lab/jpg-to-png/`, `/lab/resize-image/`, `/lab/compress-image/`, `/lab/compare-text/`. Experiments is a section on the Lab home. `/random/` says it's coming, with a "Back to the Lab" button, and stays out of the menu and the sitemap. Tools stay out of site search for now. A flask icon instead of the 🧪 emoji. Clean Text moves up to the other text tools. Tool input never goes into the page address.
+
+**Differences from the brief:** fewer shared components than it lists (only what the tools use). Real iPhone Safari and Android phones can't be tested on this PC: I test with phone emulation, and TESTING.md lists phone steps for you. Very large iPhone photos can go over Safari's image-size limit (about 16 megapixels); the image tools say so.
+
+- **D10. QR codes: the `qrcode-generator` package** (MIT, no dependencies), loaded only on the QR page.
+- **D11. Experiments shows your two games**, Play 2048! and Play Catch the Cat!, which stay hidden everywhere else.
+- **D12. One Lab task at a time**, L1 first, starting with a mockup.
+- **D13. Most Popular counts come from GoatCounter** (approved 30 Sep): free for personal sites, no cookies. busuanzi can't give other pages' counts without adding a view to each. Jack made the account (1 Oct, `jacklee981229.goatcounter.com`, public counts switched on); its script loads only on the live site, like busuanzi, and counts every page. Changed on 1 Oct, with Jack's OK: the top 4 is worked out while the site is built, on every publish and once a day, not in each visitor's browser, so it shows at once, nothing jumps and ad-blockers can't hide it. It sits at the top of the Lab home, shows no numbers, and appears once four Lab items have been visited at all.
+- **D14. Games live at `/lab/game/<name>/`** (approved 30 Sep): `/lab/game/2048/`, `/lab/game/catch-the-cat/`, `/lab/game/snake/` and `/lab/game/blocks/`. The old `/game_1/` and `/game_2/` forward to the new addresses. Posts stay at `/<folder>/`: moving them would restart every post's view count and turn every old link into a forwarding hop.
+
+Tasks:
+
+- **L1. Foundation, plus Count Words.** A mockup of the Lab home and a tool page for your OK, then the Lab home, the tool list, the shared frame, `/random/`, the Experiments section and the menu item, and the first tool, Count Words (characters, characters without spaces, words, lines, paragraphs and reading time, live as you type; Chinese counted properly). *Done when:* unit tests pass, the new pages pass the UI checks, and a post can't use `/lab/` or `/random/`.
+- **L2. Text tools:** Change Case, Encode URL, Convert Timestamp, Clean Text. *Done when:* unit tests cover each rule (Unicode, broken % codes, seconds and milliseconds, local time and UTC, each cleaning option), copy, swap and reset work in headless Edge, and errors are plain words.
+- **L3. Make a QR Code.** *Done when:* a link and a long message decode back correctly in the test, three sizes download as PNG, and text too long for a QR code gets a clear message.
+- **L4. Image tools:** JPG to PNG, Resize Image, Compress Image, sharing the file drop area, preview, download and phone Share. *Done when:* a test photo converts at the same size, resize keeps proportions when locked, compression shows before and after sizes (and says so if the file grew), wrong files get a clear message, and the network log shows nothing uploaded.
+- **L5. Compare Text.** *Done when:* unit tests cover added, removed and changed lines with word highlights, and very large inputs get a clear limit message instead of freezing.
+- **L6. Finish.** A consistency and page-weight pass, and direct links checked on GitHub Pages; push when you say.
+
+L3 to L6 are paused by phase 2 ([lab-phase-2.md](lab-phase-2.md)); their "Soon" cards stay on the Lab home.

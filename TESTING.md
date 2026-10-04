@@ -29,7 +29,7 @@ The mockups load fonts from Google and images from the live site, so they need i
    npm install
    npm run build
    ```
-   Expected: the build ends with "32 page(s) built", "Complete!" and Pagefind's "Indexed 14 pages" (it was 6 pages before Tasks 3 to 6 added the posts). npm also prints Node-version warnings (EBADENGINE) and "3 vulnerabilities"; both are expected on Node 20 (see D1 and D8 in the plan).
+   Expected: the build ends with "32 page(s) built", "Complete!" and Pagefind's "Indexed 14 pages" (it was 6 pages before Tasks 3 to 6 added the posts). npm also prints Node-version warnings (EBADENGINE) and "3 vulnerabilities"; both are expected on Node 20 (see D1 and D8 in [site-v2.md](docs/plan/done/site-v2.md)).
 2. Type-check:
    ```powershell
    npm run check
@@ -670,3 +670,63 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 
 1. Open `CLAUDE.md` and find `docs/design-ideas.md`. Expected: it says to read the idea bank only when Jack asks for design ideas or inspiration.
 2. Open `docs/design-ideas.md`, "How to use this file". Expected: steps 1 and 4 say the same: only when asked.
+
+## Old Hexo posts and Start here
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "64 page(s) built" with no error, then "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/writing/. Expected: "Start here" first, with Flutter Get Started, Terraria and Git Commands; then the topics, Hexo last.
+3. On the home page, the topic row ends with Hexo.
+4. Open a Hexo post (http://localhost:4321/7/). Expected: a note above the text: "I wrote this in 2023 for the old version of this site, which ran on Hexo. It runs on Astro now, so these steps may no longer apply." A non-Hexo post (http://localhost:4321/g1/) has no note.
+
+## About
+
+1. Open http://localhost:4321/about/. Expected: the intro, then cards: What I work with (Languages, Frameworks, Tools), Things I like (five covers from the Collection, then a line to My Collection and one to My Travel Map with the five places), Find me (Resume, LinkedIn, GitHub, Email) and This site (running since 23 Feb 2023, and a link to the Changelog). Two cards side by side on a desktop; one under another on a phone.
+2. Add your work: in `src\content\pages\about.md`, replace `work: []` with entries like
+   ```yaml
+   work:
+     - role: Senior Software Engineer
+       place: Squarebox Technology
+       years: 2022 – now
+   ```
+   With `npm run dev` running, reload http://localhost:4321/about/. Expected: a Work card with each entry: the role, the place under it, the years on the right.
+3. Change the intro or the tools in the same file: the page follows after a reload.
+
+## Visitor counter: GoatCounter only
+
+1. With the built site running locally, open http://localhost:4321/. Expected: Site info shows Running for, "Visitors: live site only" (one row, no Page views) and Last update. A post shows no views locally.
+2. After the deploy, open https://jacklee981229.github.io/. Expected: Site info's Visitors shows a number (counting since 1 Oct 2026). Open a post: "N views" beside its date.
+3. Search the repo for busuanzi: only the plans in `docs/plan/` mention it.
+
+## Game covers
+
+1. Open http://localhost:4321/lab/ and scroll to Mini Games. Expected: each game shows its own cover, a game in play: a 2048 board with tiles up to 64, the cat between blocked dots, a long snake, a stack of blocks. Check in light, dark and the night sky.
+
+## Share pictures
+
+1. With the built site, open http://localhost:4321/og/index.png, http://localhost:4321/og/about.png and http://localhost:4321/og/lab/effect/orbits.png. Expected: 1200 by 630 pictures: the section label with a coloured dot, the title, the description, and "Jack's Space jacklee981229.github.io" at the bottom; Lab pages in the Lab's green.
+2. A post with a cover and the games share their covers: in the page source of http://localhost:4321/lab/game/2048/, `og:image` points to the game's cover.
+3. After the deploy, paste a few addresses (the home page, a tool, a game, About) into LinkedIn's Post Inspector (https://www.linkedin.com/post-inspector/). Expected: each shows its picture, large.
+
+## Home bento
+
+1. Open http://localhost:4321/ at full width. Expected: the big two-line "Jack's / Space" types in; tiles in four columns: the hero and Now on the left, Travel and This site stacked on the right, Lab and Latest changes under them, Collection and Writing at the bottom. Edges line up in every row.
+2. The Lab tile: an effect is moving in the dark green box, its name in the corner ("Today's toy"). Move the mouse over it: it follows. Click the name: that effect's page opens.
+3. Back home, click Surprise me. Expected: something on the site opens (a post, tool, game or effect).
+4. Travel shows the number of places and a small globe with them coloured. This site shows the days running and "updated 4 Oct 2026" (visitors only on the live site).
+5. Make the window narrower than 1100 px: two columns, no gaps. Narrower than 720 px (or on a phone): one column in the order Hero, Now, Lab, Latest changes, Collection, Travel, Writing, This site. Nothing scrolls sideways.
+6. Open http://localhost:4321/page/2/. Expected: it forwards to Writing.
+7. Switch to light, then type the secret word in the palette for the night sky. Expected: the page reads well in each; the Lab box stays green.
+
+## Links without underlines
+
+1. Open http://localhost:4321/ and point at a tile's title (Lab), "See all", "See the Now page" and "All posts". Expected: no underline; a soft pill comes up behind the words and an arrow slides out. Nothing beside them moves.
+2. Point at a Lab row and a cover. Expected: the row tints; the cover grows a little.
+3. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
+4. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
+5. Press Tab through the home page. Expected: each of these links shows its pill and arrow along with the focus ring.

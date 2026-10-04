@@ -1,17 +1,24 @@
 import { defineConfig } from 'astro/config';
 import { codeTitleFromMeta, rehypeCodeFrame } from './src/lib/code-frame.js';
 import { rehypeExternalLinks } from './src/lib/links.js';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { compareSitemap, sitemapProblem } from './src/lib/sitemap-check.js';
+import { missingPictures, picturesToMake } from './src/lib/share.js';
+import { sharePicture } from './src/lib/share-image.js';
 
 const site = 'https://jacklee981229.github.io';
 
-/** Stops the build when the built pages and sitemap.xml disagree (src/lib/sitemap-check.js), so the deploy stops too. */
-const sitemapCheck = {
-  name: 'sitemap-check',
+/**
+ * When the build is done: stop it if the built pages and sitemap.xml disagree (src/lib/sitemap-check.js); make the
+ * share pictures pages ask for (src/lib/share.js, share-image.js); and stop it if any page's share picture isn't
+ * there. Stopping the build stops the deploy too.
+ */
+const siteChecks = {
+  name: 'site-checks',
   hooks: {
-    'astro:build:done': ({ dir }) => {
+    'astro:build:done': async ({ dir }) => {
       const root = fileURLToPath(dir);
       const pages = readdirSync(root, { recursive: true })
         .map(String)
@@ -19,6 +26,14 @@ const sitemapCheck = {
         .map((file) => ({ file, html: readFileSync(`${root}/${file}`, 'utf8') }));
       const problem = sitemapProblem(compareSitemap(pages, readFileSync(`${root}/sitemap.xml`, 'utf8'), site));
       if (problem) throw new Error(problem);
+      const css = readFileSync('src/styles/tokens.css', 'utf8');
+      for (const picture of picturesToMake(pages, site)) {
+        const out = `${root}${picture.path}`;
+        mkdirSync(dirname(out), { recursive: true });
+        writeFileSync(out, await sharePicture(picture, css, new URL(site).host));
+      }
+      const missing = missingPictures(pages, site, (path) => existsSync(`${root}${path}`));
+      if (missing.length) throw new Error(`Share pictures missing for: ${missing.join(', ')}`);
     },
   },
 };
@@ -27,7 +42,7 @@ export default defineConfig({
   site,
   // Old Hexo links all end in a slash (/11/, /archives/), so every page URL does.
   trailingSlash: 'always',
-  integrations: [sitemapCheck],
+  integrations: [siteChecks],
   build: { format: 'directory' },
   markdown: {
     shikiConfig: {
@@ -41,6 +56,8 @@ export default defineConfig({
     // Archives was folded into Writing (4 Oct 2026), which lists every post; its old addresses (the old site had pages
     // per year and month too) lead there, so links from search results and other sites still work.
     '/archives': '/writing/',
+    // The home page's older pages went when it became a grid of tiles (5 Oct 2026); Writing lists every post.
+    '/page/2': '/writing/',
     '/archives/page/2': '/writing/',
     '/archives/2023': '/writing/',
     '/archives/2023/page/2': '/writing/',

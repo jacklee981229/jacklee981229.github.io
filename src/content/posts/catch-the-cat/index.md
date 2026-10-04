@@ -5,6 +5,7 @@ date: 2023-03-02T23:07:33+08:00
 topic: games
 tags: ["game"]
 hidden: true
+cover: ./cover.png
 ---
 
 My own version of Catch the Cat, built into this site. The original game is by ganlvtech ([source](https://github.com/ganlvtech/phaser-catch-the-cat)).

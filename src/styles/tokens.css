@@ -36,6 +36,8 @@
   --display-tracking: -0.045em;
 
   --text-xs: 0.75rem;
+  /* The big numbers on the home page's tiles (places, days running). */
+  --text-stat: 2.75rem;
   --text-sm: 0.875rem;
   --text-ui: 0.9375rem;
   --text-base: 1rem;
@@ -44,6 +46,8 @@
   --text-xl: 1.75rem;
   --text-2xl: clamp(2.25rem, 6vw, 3.75rem);
   --text-display: clamp(3.25rem, 9.5vw, 7rem);
+  /* The home page's two-line title in its tile: about 92px on a desktop, 56px on a phone. */
+  --text-hero: clamp(3.5rem, 7.2vw, 5.75rem);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -56,6 +60,8 @@
   --space-9: 5rem;
   --gutter: clamp(1rem, 4vw, 2.5rem);
   --content-max: 76rem;
+  /* The home page's grid: the least height of a row of tiles. */
+  --tile-row: 10.5rem;
   /* The width a Lab game plays in: as much as the screen's height allows for a square board with its scores above
      (the page glides to the game when play starts), up to a comfortable size. */
   --game-width: min(44rem, calc(100svh - 7rem));
@@ -95,7 +101,8 @@
 
 /* The Lab (its home, tools, games and Random) in the dark theme: the same colours turned from deep blue to deep
    green, so the Lab feels like a place of its own. Measured: text keeps at least 4.5:1 on every surface. */
-:root[data-theme="dark"][data-area="lab"] {
+:root[data-theme="dark"][data-area="lab"],
+:root[data-theme="dark"] [data-area="lab"] {
   --paper: #0C1812;
   --surface: #15281F;
   --ink: #E3EDE8;

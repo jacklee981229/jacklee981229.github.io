@@ -28,8 +28,8 @@ const posts = defineCollection({
       draft: z.boolean().default(false),
       // Hidden posts have a page but appear in no list, feed, search or sitemap.
       hidden: z.boolean().default(false),
-      // Pinned posts also show at the top of the home page.
-      pinned: z.boolean().default(false),
+      // Featured posts are listed under "Start here" at the top of Writing: the ones to read first.
+      featured: z.boolean().default(false),
       // false hides the CC licence notice, for posts that are mostly other people's code.
       license: z.boolean().default(true),
     }),
@@ -37,7 +37,13 @@ const posts = defineCollection({
 
 const pages = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/pages' }),
-  schema: z.object({ title: z.string() }),
+  schema: z.object({
+    title: z.string(),
+    // About: where Jack has worked, newest first. Shown only once there's an entry.
+    work: z.array(z.object({ role: z.string().min(1), place: z.string().min(1), years: z.string().min(1) })).default([]),
+    // About: what Jack works with, in a few named groups.
+    tools: z.array(z.object({ group: z.string().min(1), items: z.array(z.string().min(1)).min(1) })).default([]),
+  }),
 });
 
 // The Collections page. One folder per collection: src/content/collections/<name>/index.yaml, with its pictures

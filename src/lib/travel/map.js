@@ -2,7 +2,7 @@
 // colour each visited place gets. The country shapes are Natural Earth's (the world-atlas package): `world` is its
 // coarse file, which the map draws, and `fine` its finer one, which also knows the places too small to draw.
 // Also how the globe opens out into the flat map. Tested by tests/travel.test.js.
-import { geoCentroid, geoDistance, geoGraticule10, geoNaturalEarth1, geoNaturalEarth1Raw, geoOrthographicRaw, geoPath, geoProjectionMutator } from 'd3-geo';
+import { geoCentroid, geoDistance, geoGraticule10, geoNaturalEarth1, geoNaturalEarth1Raw, geoOrthographic, geoOrthographicRaw, geoPath, geoProjectionMutator } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
 
 /** The flat map's own size, in the SVG's units. */
@@ -91,5 +91,26 @@ export function flatMap(world, places) {
       const country = countries.find((c) => c.properties.name === name);
       return { said, name, d: path(country), box: path.bounds(country).flat().map(tenth), middle: path.centroid(country).map(tenth) };
     }),
+  };
+}
+
+/**
+ * A small globe for the home page, `size` pixels across, turned to face the middle of the visited places: its
+ * outline, the land, and the visited countries the map can draw, each with its step along the colours. Drawn once
+ * while the site is built; rounded to whole pixels, which is all a globe this small needs.
+ * @param {{ name: string, drawn: boolean }[]} places in the listed order, home first @param {number[]} steps each place's colour step
+ */
+export function smallGlobe(world, land, places, steps, size) {
+  const drawn = places.map((place, i) => ({ ...place, step: steps[i] })).filter((place) => place.drawn);
+  const countries = feature(world, world.objects.countries).features;
+  const shapes = drawn.map((place) => ({ step: place.step, feature: countries.find((c) => c.properties.name === place.name) }));
+  const mids = shapes.map((s) => geoCentroid(s.feature));
+  const [lon, lat] = mids.length ? mids.reduce(([a, b], [x, y]) => [a + x / mids.length, b + y / mids.length], [0, 0]) : [0, 0];
+  const projection = geoOrthographic().rotate([-lon, -lat]).scale(size / 2 - 1).translate([size / 2, size / 2]);
+  const path = geoPath(projection).digits(0);
+  return {
+    sphere: path({ type: 'Sphere' }),
+    land: path(feature(land, land.objects.land)),
+    shapes: shapes.map((s) => ({ step: s.step, d: path(s.feature) })).filter((s) => s.d),
   };
 }

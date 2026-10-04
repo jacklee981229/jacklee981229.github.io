@@ -22,3 +22,10 @@
 - 2026-10-04 new: Hid a little surprise somewhere
 - 2026-10-04 improved: Folded Archives into [Writing](/writing/), which lists every post
 - 2026-10-04 fix: Made Taiwan easy to point at on the flat [Travel Map](/travel/)
+- 2026-10-04 improved: Added a Start here list to [Writing](/writing/) and notes on old Hexo posts
+- 2026-10-04 improved: Moved the visitor numbers to a new counter, counting since 1 Oct
+- 2026-10-04 design: Gave each Lab game a cover from a game in play
+- 2026-10-04 improved: Turned [About](/about/) into a page about who I am
+- 2026-10-04 new: Gave every page its own picture for link previews
+- 2026-10-05 design: Turned the home page into tiles, with a new toy every day
+- 2026-10-05 design: Swapped underlined links for little pills with an arrow

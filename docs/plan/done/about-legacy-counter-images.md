@@ -2,7 +2,7 @@
 
 Six parts, in order: **0 → 1 → 2 → 3 → 4 → 5**. Do one at a time and stop for my OK after each, as usual (CLAUDE.md). Each part gets its own commit.
 
-For every part: record the decisions in docs/PLAN.md (the next free D number), add test steps to TESTING.md, keep CLAUDE.md's "Where things live" up to date, pass CLAUDE.md's UI checks, and add a changelog line when a visitor can see the change.
+For every part: record the decisions at the end of this file (the next free D number), add test steps to TESTING.md, keep CLAUDE.md's "Where things live" up to date, pass CLAUDE.md's UI checks, and add a changelog line when a visitor can see the change.
 
 The home page is being redesigned separately; it's not in this plan. So keep About about me rather than the site's activity, and don't make anything here depend on the home page's current layout.
 
@@ -94,3 +94,16 @@ Pages without a cover share my avatar as their preview (`og:image`, with `twitte
 ## Not in this round
 
 The home page redesign (its own plan), more slash pages, TIL notes, the Lab's "Soon" tools.
+
+---
+
+## Decisions and tasks
+
+Your plan of 4 Oct 2026, above: six parts (0 to 5), one at a time, each its own commit.
+
+- **D52. The design idea bank is read only when you ask** for design ideas or inspiration ([design-ideas.md](../../design-ideas.md)); it's not a rulebook for every UI change. CLAUDE.md and the file's own "How to use" steps say so.
+- **D53. The old Hexo posts** carry a note at the top ("I wrote this in 2023 for the old version of this site, which ran on Hexo. It runs on Astro now, so these steps may no longer apply."), set once on the Hexo topic (`legacy` in `src/lib/topics.js`), and Hexo is listed last on Writing and in the home page's topic row (the home graph's lanes keep their order). Writing opens with "Start here": posts marked `featured: true` (Git Commands, Flutter Get Started, Terraria).
+- **D54. About is a page about you**: the intro, Work (shown once you give the entries), What I work with, Things I like (the Collection's five best-rated covers and the Travel Map's places, read from their own files), Find me and This site. Its words, the work list and the tools are in `src/content/pages/about.md`. The intro and the tools are my drafts for your rewrite or OK.
+- **D55. One visitor counter, GoatCounter**; busuanzi is gone. GoatCounter gives `count` and `count_unique`, and on every page checked they were the same number, so Site info shows one row, "Visitors", and each post its views. Counting restarted on 1 Oct 2026, when GoatCounter was added; a row that gets no number goes away.
+- **D56. Each Lab game has a cover**: a photo of the game in play (2048 mid-game, a long snake, a stack of blocks, the cat half trapped), taken with a headless browser on this PC (no new package) and framed the same for all four, 1200 by 630 on the Lab's green.
+- **D57. Every page has a share picture**: its cover, or a 1200 by 630 picture made at the end of the build from what the page says (its title, description and section), in the dark theme's colours (the Lab's green for Lab pages, a post's topic colour for posts). `twitter:card` is `summary_large_image` everywhere. satori (the approved package) draws the text; sharp makes the PNG; WOFF copies of the two fonts (from Fontsource, OFL) are in `src/assets/share-fonts/`. The build stops if any page's share picture is missing. This makes the pictures from every built page rather than from the sitemap's list, so pages outside the sitemap (404, Random) get one too.

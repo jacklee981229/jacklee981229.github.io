@@ -25,8 +25,9 @@ const { posts, showTopic = true } = Astro.props;
 
 <style>
   .list { display: grid; margin: 0; padding: 0; list-style: none; }
-  a { display: flex; align-items: baseline; gap: var(--space-3); padding-block: 0.625rem; border-bottom: 1px solid var(--rule); text-decoration: none; }
-  a:hover .title { text-decoration: underline; text-decoration-color: var(--c); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+  /* A row under the mouse takes the tint of the site's standalone links (.go in global.css), a little past its words. */
+  a { display: flex; align-items: baseline; gap: var(--space-3); margin-inline: calc(-1 * var(--space-2)); padding: 0.625rem var(--space-2); border-bottom: 1px solid var(--rule); text-decoration: none; transition: background-color 0.2s ease; }
+  a:hover { background: var(--wash); }
   .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); translate: 0 -1px; }
   .title { flex: 1; min-width: 0; font-weight: 600; }
   time { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkThese, homePageUrl, lastUpdated, listed, neighbours, paginate, pinned, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
+import { checkThese, featured, lastUpdated, listed, neighbours, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
+import { TOPICS, listOrder } from '../src/lib/topics.js';
 
 const post = (id, date, extra = {}) => ({ id, data: { title: id, date: new Date(date), topic: 'hexo', tags: [], ...extra } });
 
@@ -9,7 +10,7 @@ const posts = [
   post('draft', '2023-11-01T09:00:00+08:00', { draft: true, tags: ['secret'] }),
   post('game', '2023-03-02T22:00:00+08:00', { hidden: true, topic: 'games', tags: ['game'] }),
   post('new', '2023-10-16T11:46:00+08:00', { topic: 'flutter', tags: ['flutter'] }),
-  post('mid', '2023-10-04T23:47:00+08:00', { tags: ['hexo'], pinned: true }),
+  post('mid', '2023-10-04T23:47:00+08:00', { tags: ['hexo'] }),
 ];
 
 test('published sorts newest first and leaves drafts out unless asked', () => {
@@ -25,22 +26,6 @@ test('listed also leaves hidden posts out', () => {
 test('posts at the same moment keep a stable order', () => {
   const same = [post('b', '2023-01-01T00:00:00Z'), post('a', '2023-01-01T00:00:00Z')];
   assert.deepEqual(published(same).map((p) => p.id), ['a', 'b']);
-});
-
-test('pinned picks only pinned posts', () => {
-  assert.deepEqual(pinned(listed(posts)).map((p) => p.id), ['mid']);
-});
-
-test('paginate splits 14 posts into pages of 10 and 4', () => {
-  const pages = paginate(Array.from({ length: 14 }, (_, i) => i), 10);
-  assert.equal(pages.length, 2);
-  assert.deepEqual(pages.map((p) => [p.page, p.pages, p.start, p.items.length]), [[1, 2, 0, 10], [2, 2, 10, 4]]);
-  assert.deepEqual(paginate([], 10), [{ page: 1, pages: 1, start: 0, items: [] }]);
-});
-
-test('home pages keep the old Hexo addresses', () => {
-  assert.equal(homePageUrl(1), '/');
-  assert.equal(homePageUrl(2), '/page/2/');
 });
 
 test('neighbours are the next newer and older listed posts', () => {
@@ -90,4 +75,20 @@ test('lastUpdated takes the latest publish or update date', () => {
   const updatedLater = [post('x', '2023-01-01T00:00:00Z', { updated: new Date('2024-05-01T00:00:00Z') })];
   assert.equal(lastUpdated(updatedLater)?.toISOString(), '2024-05-01T00:00:00.000Z');
   assert.equal(lastUpdated([]), undefined);
+});
+
+test('featured picks only the posts marked to start with, newest first as given', () => {
+  const posts = [{ id: 'a', data: { featured: true } }, { id: 'b', data: {} }, { id: 'c', data: { featured: true } }];
+  assert.deepEqual(featured(posts).map((p) => p.id), ['a', 'c']);
+});
+
+test('legacy topics are listed last; the others keep their order', () => {
+  const order = listOrder(TOPICS).map((t) => t.id);
+  assert.equal(order.at(-1), 'hexo');
+  assert.deepEqual(order.slice(0, -1), TOPICS.map((t) => t.id).filter((id) => id !== 'hexo'));
+  assert.deepEqual(listOrder([{ id: 'x' }, { id: 'old', legacy: 'note' }, { id: 'y' }]).map((t) => t.id), ['x', 'y', 'old']);
+});
+
+test("Hexo's posts carry the note about the old site", () => {
+  assert.match(TOPICS.find((t) => t.id === 'hexo').legacy, /2023.*Hexo.*Astro/);
 });

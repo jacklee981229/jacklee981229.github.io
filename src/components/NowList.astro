@@ -2,19 +2,18 @@
 // Now's items (src/content/now.md, read by src/lib/now.js): each its label and value. When a value is the name of
 // something in a collection, its cover shows beside it and the value leads to that collection's tab.
 import { Image } from 'astro:assets';
+import Go from './Go.astro';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed } from '../lib/shelf-pictures';
 
 interface Props {
   items: { label?: string; value: string }[];
-  /** "card" in the home sidebar, "page" on /now/. */
-  size?: 'card' | 'page';
 }
 
-const { items, size = 'card' } = Astro.props;
+const { items } = Astro.props;
 const site = String(Astro.site);
 /** The cover's width on screen, in pixels; drawn at twice that for sharp screens. */
-const THUMB = size === 'page' ? 44 : 32;
+const THUMB = 44;
 const rows = await Promise.all(
   items.map(async (item) => {
     const found = await shelfItemNamed(plainText(item.value));
@@ -24,12 +23,12 @@ const rows = await Promise.all(
   }),
 );
 ---
-<ul class:list={['now', size]}>
+<ul class="now">
   {rows.map((row) => (
     <li>
       <span class="text">
         {row.label && <span class="label">{row.label}</span>}
-        {row.link ? <a class="value" href={row.link} set:html={row.html} /> : <span class="value" set:html={row.html} />}
+        {row.link ? <Go class="value" href={row.link}><Fragment set:html={row.html} /></Go> : <span class="value" set:html={row.html} />}
       </span>
       {row.found?.picture && (
         <a class="thumb" href={`/collections/#${row.found.shelf}`} tabindex="-1" aria-hidden="true">
@@ -41,7 +40,7 @@ const rows = await Promise.all(
 </ul>
 
 <style>
-  .now { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+  .now { display: grid; gap: var(--space-4); margin: 0; padding: 0; font-size: var(--text-md); list-style: none; }
   /* The words line up on the left; a cover, when there is one, sits at the right. */
   li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
   .thumb { flex: none; line-height: 0; }
@@ -49,7 +48,4 @@ const rows = await Promise.all(
   .text { display: grid; gap: 0.125rem; min-width: 0; }
   .label { color: var(--muted); }
   .value { font-weight: 650; overflow-wrap: anywhere; }
-  a.value { text-decoration: none; }
-  a.value:hover { text-decoration: underline; }
-  .page { gap: var(--space-4); font-size: var(--text-md); }
 </style>

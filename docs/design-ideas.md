@@ -337,7 +337,7 @@ Fill this in as choices are made, so later design sessions know what's settled.
 - **Accent color:** _undecided_
 - **Typefaces:** _undecided_
 - **Adopted:** _(ID, date, note)_
-  - D1, 4 Oct 2026: the Changelog (`/changelog/` and the fold at the bottom of the home page), each change labelled New, Improved, Design or Fix (D50 in PLAN.md).
+  - D1, 4 Oct 2026: the Changelog (`/changelog/` and the fold at the bottom of the home page), each change labelled New, Improved, Design or Fix (D50 in [foundation-now-changelog-palette.md](plan/done/foundation-now-changelog-palette.md)).
   - C7 (the random part), 4 Oct 2026: Random and the palette's Surprise me (D45).
   - Close to C5, 4 Oct 2026: the Ctrl/⌘+K or `/` command palette finds pages, Lab tools, games, effects and posts (D43). No scope tabs.
   - B7 (already there before this file): code blocks can carry a file name, and every page has a skip-to-content link.

@@ -44,3 +44,21 @@ export function mostPopular(items, visits, count = 4) {
     .slice(0, count)
     .map((x) => x.item);
 }
+
+/**
+ * The most visited of `items` (all one kind), or the first when none has been visited or there are no counts.
+ * @template {{ path: string }} T @param {T[]} items in the Lab's order @param {Map<string, number> | null} visits
+ * @returns {T | undefined}
+ */
+export function bestOf(items, visits) {
+  let best = items[0];
+  let most = 0;
+  for (const item of items) {
+    const n = visits?.get(item.path) ?? 0;
+    if (n > most) {
+      best = item;
+      most = n;
+    }
+  }
+  return best;
+}

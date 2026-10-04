@@ -2,7 +2,7 @@
 
 Three tasks, in order: **1 → 2 → 3a → 3b → 3c**. Do one at a time and stop for my OK after each, as usual (CLAUDE.md). Each part gets its own commit, so any one of them can be reverted on its own.
 
-For every part: record the decisions in docs/PLAN.md (the next one is D37), add test steps to TESTING.md, keep CLAUDE.md's "Where things live" up to date, and pass CLAUDE.md's UI checks. No new packages and no version changes without asking.
+For every part: record the decisions at the end of this file (the next one is D37), add test steps to TESTING.md, keep CLAUDE.md's "Where things live" up to date, and pass CLAUDE.md's UI checks. No new packages and no version changes without asking.
 
 The findings below were checked against the repo at `5cbd2c8` (3 Oct 2026). Confirm them before changing code.
 
@@ -213,3 +213,25 @@ Measure every pair (CLAUDE.md's contrast check), the topic lanes, code blocks an
 ## Not in this round
 
 A history of past Nows, a changelog feed, more palette commands (copy link and so on), a Konami code, Now or Changelog in the menu.
+
+---
+
+## Decisions and tasks
+
+Your plan of 4 Oct 2026, above: a foundation check (sitemap, robots.txt, one shared page top, radii), a Now card and page, a Changelog, the search turned into a command palette with Random built for real, and a hidden night sky. You asked for all of it in one go, then one test.
+
+- **D37. The four Lab games are in the sitemap**, and every build checks the sitemap against the built pages (`src/lib/sitemap-check.js`, run from `astro.config.mjs` when the build ends): a page in one and not the other stops the build, and the deploy with it. Redirect pages and pages marked `noindex` stay out. `/random/` is marked `noindex` (it's different every visit).
+- **D38. robots.txt** lets every crawler in and names the sitemap. It's a route beside the sitemaps, so its address comes from `site`.
+- **D39. One page top, `PageTop.astro`**, on Writing, Archives, the Lab home, Collections, Travel, About, tag pages, `/page/N/`, 404, Random, Now and Changelog: the big title, an optional lead, an optional icon and an optional row under them. Checked pixel by pixel at 375 and 1280 px in both themes: nothing moved.
+- **D40. Every corner's roundness is a token.** Four were added to keep the look exactly: `--radius-2xs` (3px), `--radius-xs` (4px), `--radius-art` (10px), `--radius-image` (12px). Circles (50%) and Snake's rounded squares are shapes, not sizes, and stay as they are.
+- **D41. Now is one file, `src/content/now.md`**, edited by hand; nothing in it can stop the build. Its date is its last commit's (the deploy now fetches the whole history for this), shown as "Updated 3 days ago" in the browser. The home sidebar shows up to three items under the profile card; `/now/` shows them all with the note. A value naming something in a collection shows its cover and leads to its tab.
+- **D42. The Changelog is one file, `src/content/changelog.md`**, read the same way as Now, but a bad date stops the build. `/changelog/` lists it by year like Archives. The footer and Site info's "Last update" lead to it. The first fill came from this repo's history and the old Hexo site's backup.
+- **D43. The search is a command palette**: actions (theme, Surprise me, Fullscreen where it applies, the night sky once found), pages, the Lab's tools, games and effects, then posts from the search index as before. Matching is our own small function (`src/lib/palette.js`). The arrows move a highlight while the typing stays in the box; Enter while an input method is still composing does nothing; Esc closes in one press, even with text in the box.
+- **D44. One theme switch for the header and the palette** (`src/lib/theme.ts`), so the two always agree.
+- **D45. Random is real**: one list of everything that can be opened (posts, tools, games, effects), made while the site is built. The palette's Surprise me goes straight to one (never the page you're on); `/random/` shows "You got …" with Open it and Pick again.
+- **D46. Fullscreen** shows only the Travel Map, a game or an effect, on a plain background; hidden where the browser can't do it. All three were checked full screen.
+- **D47. Starry Night** is the dark theme with a sky of its own (`data-sky="night"` on the page, its colours last in `tokens.css`, so they win over the Lab's green), found only by typing the secret word into the palette. The page keeps only a fingerprint of the word, never the word. It stays on until left with the star button or the palette, which go back to the theme from before. The stars are placed while the site is built, all CSS but one small timer, and cost nothing while the night is off. With less motion nothing moves.
+- **D48. The night is a dark aurora: "Curtains"** (your pick of 4 Oct 2026, out of three first designs and then three aurora ones, in `scratch/mockups/starry-night/`). A near-black sky (#020509) with faint green veils edged in violet, high up, swaying slowly; mint for focus and links. No land and no city at the bottom: this replaces the spec's horizon. Every 10 to 20 seconds one star somewhere blinks with a soft glow. Measured: text at least 7.85:1, the grey intro over the aurora's brightest at least 6.59:1, code colours at least 6.14:1, the map's red 3.99:1 (3:1 is the bar for shapes).
+- **D49. Archives is gone** (4 Oct 2026): out of the menu and the sitemap, its page deleted. Writing already lists every post. Its old addresses, the old site's included, forward to Writing, so links in search results and on other sites still land somewhere.
+- **D50. The Changelog looks like a release log** (after imqi1.com): a card per day, each change with a label for its kind (New, Improved, Design, Fix), so every line now says its kind. The home page ends with a "Changelog" line right across the page; opening it shows the latest three days and "See all changes". The labels' words stay in the text colour (the colour is in the icon and the tint), because coloured words on their tint fell under 4.5:1.
+- **D51. Now's items line up**: the words on the left, a cover (when there is one) at the right.

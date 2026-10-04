@@ -1,5 +1,6 @@
 ---
-// Jack's links as tiles: icons only, 4 in a row, in the profile card; with their names on the About page (`labels`).
+// Jack's links as tiles: icons only, 4 in a row, in the profile card; with their names on the About page (`labels`);
+// as a row of pills with their names on the home page (`pills`).
 // Icons only still carry the name, for screen readers (hidden text) and as a tooltip on hover.
 import Icon from './Icon.astro';
 import { LINKS } from '../site';
@@ -7,11 +8,12 @@ import { isExternal, NEW_TAB } from '../lib/links.js';
 
 interface Props {
   labels?: boolean;
+  pills?: boolean;
 }
 
-const { labels = false } = Astro.props;
+const { pills = false, labels = pills } = Astro.props;
 ---
-<ul class:list={['links', { labels }]}>
+<ul class:list={['links', { labels, pills }]}>
   {LINKS.map(({ label, href, icon }) => (
     <li>
       <a href={href} title={labels ? undefined : label} {...(isExternal(href, String(Astro.site)) ? NEW_TAB : {})}>
@@ -36,6 +38,8 @@ const { labels = false } = Astro.props;
     .links a:hover { background: var(--ink); border-color: var(--ink); color: var(--surface); transform: scale(1.1); }
     .links.labels a:hover { transform: scale(1.04); }
   }
+  .links.pills { display: flex; flex-wrap: wrap; }
+  .links.pills a { border-radius: var(--radius-pill); padding: 0 var(--space-4); }
   /* With names, four across needs room; phones get 2 by 2. */
   @media (max-width: 559px) {
     .links.labels { grid-template-columns: repeat(2, minmax(0, 1fr)); }

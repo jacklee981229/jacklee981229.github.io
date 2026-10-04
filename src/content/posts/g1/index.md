@@ -4,6 +4,7 @@ date: 2023-03-10T09:39:26+08:00
 topic: git
 tags: ["git"]
 description: "some git commands."
+featured: true
 ---
 
 - Init an empty repository.

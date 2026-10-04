@@ -1,8 +1,8 @@
 ---
 // Changelog days as cards: the date, then each change with a label for its kind (New, Improved, Design, Fix). Used
 // by /changelog/ (every day) and the fold at the bottom of the home page (the latest few).
-import Icon from './Icon.astro';
-import { KINDS, dayToDate } from '../lib/changelog.js';
+import ChangeKind from './ChangeKind.astro';
+import { type KINDS, dayToDate } from '../lib/changelog.js';
 import { formatDate } from '../lib/dates.js';
 import { inlineHtml } from '../lib/now.js';
 
@@ -20,7 +20,7 @@ const site = String(Astro.site);
       <ul>
         {changes.map((change) => (
           <li>
-            <span class:list={['kind', change.kind]}><Icon name={KINDS[change.kind].icon} />{KINDS[change.kind].name}</span>
+            <ChangeKind kind={change.kind} />
             <span class="text" set:html={inlineHtml(change.text, site)} />
           </li>
         ))}
@@ -35,13 +35,6 @@ const site = String(Astro.site);
   .date { margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--text-sm); font-weight: 500; font-variant-numeric: tabular-nums; }
   ul { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   li { display: grid; grid-template-columns: 6.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }
-  /* Every label the same width, whatever its word. Each kind in a colour of its own, from the site's topic colours: a tint behind and the icon in full strength.
-     The word stays in the text colour, which keeps small letters readable on the tint in every theme. */
-  .kind { --k: var(--lane-games); display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem; justify-self: start; width: 6.5rem; padding: 0.15rem 0.5rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--ink); font-size: var(--text-xs); font-weight: 650; white-space: nowrap; }
-  .kind :global(.icon) { width: 0.95rem; height: 0.95rem; color: var(--k); }
-  .improved { --k: var(--lane-flutter); }
-  .design { --k: var(--lane-chatgpt); }
-  .fix { --k: var(--lane-git); }
   .text { line-height: 1.6; }
 
   @media (max-width: 479px) {

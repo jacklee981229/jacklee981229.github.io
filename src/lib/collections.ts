@@ -1,12 +1,12 @@
 // Reading posts from Astro's content collection. The rules themselves live in posts.js, where tests cover them.
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
-import { homePageUrl, lastUpdated, listed, paginate, published, tagCounts } from './posts.js';
+import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
-import { mostPopular, pageVisits } from './lab/popular.js';
+import { bestOf, mostPopular, pageVisits } from './lab/popular.js';
 import { EFFECTS, EXPERIMENTS, TOOLS, effectUrl, toolUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
-import { POSTS_PER_PAGE, SITE } from '../site';
+import { SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
 
@@ -39,21 +39,38 @@ export type LabItem =
   | { post: Post; tool?: never; effect?: never }
   | { effect: (typeof EFFECTS)[number]; tool?: never; post?: never };
 
-// Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
-let popular: Promise<LabItem[]> | undefined;
+type CountedItem = { path: string; item: LabItem; kind: 'Tool' | 'Game' | 'Effect'; name: string };
 
-/** The Lab's Most Popular: its four most visited ready tools, games and effects (lab/popular.js); none while there's no ranking. */
-export function popularLabItems(): Promise<LabItem[]> {
-  return (popular ??= (async () => {
-    const items = [
-      ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem })),
-      ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem })),
-      ...EFFECTS.map((effect) => ({ path: effectUrl(effect.slug), item: { effect } as LabItem })),
+// Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
+let counted: Promise<{ items: CountedItem[]; visits: Map<string, number> | null }> | undefined;
+
+/** Every ready Lab item in the Lab's order, with GoatCounter's visits to each (null when there are no counts). */
+function labVisits() {
+  return (counted ??= (async () => {
+    const items: CountedItem[] = [
+      ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem, kind: 'Tool' as const, name: tool.name })),
+      ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem, kind: 'Game' as const, name: post.data.title })),
+      ...EFFECTS.map((effect) => ({ path: effectUrl(effect.slug), item: { effect } as LabItem, kind: 'Effect' as const, name: effect.name })),
     ];
     const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
-    if (!visits) console.warn("Most Popular: GoatCounter gave no counts, so the Lab home is built without it.");
-    return mostPopular(items, visits).map((i) => i.item);
+    if (!visits) console.warn('Most Popular: GoatCounter gave no counts, so the Lab is built without a ranking.');
+    return { items, visits };
   })());
+}
+
+/** The Lab's Most Popular: its four most visited ready tools, games and effects (lab/popular.js); none while there's no ranking. */
+export async function popularLabItems(): Promise<LabItem[]> {
+  const { items, visits } = await labVisits();
+  return mostPopular(items, visits).map((i) => i.item);
+}
+
+/** The most visited tool, game and effect, one of each; the first of its kind when nothing has been counted. */
+export async function bestOfEachKind() {
+  const { items, visits } = await labVisits();
+  return (['Tool', 'Game', 'Effect'] as const).flatMap((kind) => {
+    const best = bestOf(items.filter((i) => i.kind === kind), visits);
+    return best ? [{ kind, name: best.name, href: best.path }] : [];
+  });
 }
 
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/content/posts/*/*.{png,jpg,jpeg,webp,gif,avif}', { eager: true });
@@ -64,7 +81,6 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
   const newest = lastUpdated(posts);
   return [
     { path: '/', lastmod: newest },
-    ...paginate(posts, POSTS_PER_PAGE).slice(1).map((p) => ({ path: homePageUrl(p.page) })),
     { path: '/writing/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/collections/' },

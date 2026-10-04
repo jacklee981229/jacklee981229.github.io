@@ -43,7 +43,7 @@
 [data-theme='dark'] .prose .astro-code span { color: var(--shiki-dark) !important; }
 .prose figure.code.is-folded .astro-code { max-height: calc(24 * 1.6em + 1.75rem); overflow-y: hidden; }
 .prose .code-more { display: block; width: 100%; padding: var(--space-2); border: 0; border-top: 1px solid var(--rule); background: var(--wash); color: var(--ink); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
-.prose .code-more:hover { text-decoration: underline; }
+.prose .code-more:hover { background: var(--rule); }
 
 @media (max-width: 719px) {
   .prose { font-size: 1.0625rem; }

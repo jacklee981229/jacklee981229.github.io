@@ -14,7 +14,7 @@ const { items, note, updated } = nowFile();
   <div class="wrap page">
     <PageTop title="Now" lead="What I'm up to at the moment." />
     <div class="body">
-      {items.length ? <NowList items={items} size="page" /> : <p class="empty">Nothing here right now.</p>}
+      {items.length ? <NowList items={items} /> : <p class="empty">Nothing here right now.</p>}
       {note && <div class="prose note" set:html={blockHtml(note, String(Astro.site))} />}
       {updated && <Updated date={updated} />}
     </div>

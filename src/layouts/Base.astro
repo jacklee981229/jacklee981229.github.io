@@ -9,14 +9,17 @@ import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
 import SearchDialog from '../components/SearchDialog.astro';
 import NightSky from '../components/NightSky.astro';
-import avatar from '../assets/avatar.png';
+import { shareLabel, sharePath } from '../lib/share.js';
 import { SITE } from '../site';
 
 interface Props {
   title?: string;
   description?: string;
-  // The picture shown when the page is shared; the avatar when there is none.
+  // The picture shown when the page is shared. Without one, the page gets a picture made for it at the end of the
+  // build (src/lib/share.js, share-image.js) from its title, description and section.
   image?: ImageMetadata;
+  /** A post's topic, which names its section and colours its made share picture. */
+  topic?: { id: string; name: string };
   article?: { published: Date; updated?: Date; tags: string[] };
   /** "lab" for the Lab's pages (its home, tools, games and Random), which have their own dark theme colours. */
   area?: 'lab';
@@ -24,12 +27,11 @@ interface Props {
   noindex?: boolean;
 }
 
-const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, article, area, noindex } = Astro.props;
+const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, topic, article, area, noindex } = Astro.props;
 // Same title format as the old site, so search results look the same.
 const pageTitle = title ? `${title} | ${SITE.title}` : `${SITE.title} - ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const shareImage = await getImage({ src: image ?? avatar, width: image ? Math.min(image.width, 1200) : 500, format: image ? 'jpeg' : 'png' });
-const shareImageUrl = new URL(shareImage.src, Astro.site);
+const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.min(image.width, 1200), format: 'jpeg' })).src : sharePath(Astro.url.pathname), Astro.site);
 ---
 <!doctype html>
 <html lang="en" data-area={area}>
@@ -55,7 +57,9 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
     {article && <meta property="article:published_time" content={article.published.toISOString()} />}
     {article?.updated && <meta property="article:modified_time" content={article.updated.toISOString()} />}
     {article?.tags.map((tag) => <meta property="article:tag" content={tag} />)}
-    <meta name="twitter:card" content={image ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {!image && <meta name="share:label" content={shareLabel(Astro.url.pathname, topic?.name)} />}
+    {!image && topic && <meta name="share:accent" content={topic.id} />}
     <!-- Keeps the site verified in Google Search Console (same token as the old site). -->
     <meta name="google-site-verification" content="jSWL6ULyDHu6BWdCYblWse_SuDVpLxTjWvooOx0Xgpw" />
 
@@ -83,14 +87,9 @@ const shareImageUrl = new URL(shareImage.src, Astro.site);
       } catch (e) {}
     </script>
     <script is:inline define:vars={{ liveHost: Astro.site?.hostname, goatcounter: SITE.goatcounter }}>
-      // The visitor counters, only on the live site so local previews never add to them.
+      // The visitor counter, only on the live site so local previews never add to it.
       if (location.hostname === liveHost) {
-        // The numbers shown on the site (busuanzi).
-        var counter = document.createElement('script');
-        counter.async = true;
-        counter.src = 'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js';
-        document.head.appendChild(counter);
-        // Page views for the Lab's Most Popular (GoatCounter, no cookies). One fixed version with its fingerprint, so
+        // GoatCounter (no cookies): its numbers feed Site info, each post's views and the Lab's Most Popular. One fixed version with its fingerprint, so
         // the browser refuses the script if the file ever differs from the one checked on 1 Oct 2026.
         var views = document.createElement('script');
         views.async = true;

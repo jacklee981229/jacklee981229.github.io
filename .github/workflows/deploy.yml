@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          # The same Node as Jack's PC (D1 in docs/PLAN.md), so the site builds the same way here.
+          # The same Node as Jack's PC (D1 in docs/plan/done/site-v2.md), so the site builds the same way here.
           node-version: 20.18.0
           cache: npm
       - run: npm ci

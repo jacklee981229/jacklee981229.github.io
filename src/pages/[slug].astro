@@ -2,6 +2,7 @@
 import { render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Cover from '../components/Cover.astro';
+import Go from '../components/Go.astro';
 import Icon from '../components/Icon.astro';
 import MiniCard from '../components/MiniCard.astro';
 import MoreBand from '../components/MoreBand.astro';
@@ -41,16 +42,16 @@ const more = checkThese(listed, post);
 const topic = topicOf(data.topic);
 const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 ---
-<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
+<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} topic={{ id: topic.id, name: topic.name }} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
   <article class="wrap post" style={`--c: var(--lane-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
     <header>
-      <p class="topic" data-pagefind-ignore><a href={`/writing/#${data.topic}`}>{topic.name}</a></p>
+      <p class="topic" data-pagefind-ignore><Go href={`/writing/#${data.topic}`}>{topic.name}</Go></p>
       <h1 class="title">{data.title}</h1>
       <div class="meta" data-pagefind-ignore>
         <span>Published <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time></span>
         {showUpdated && data.updated && <span>Updated <time datetime={data.updated.toISOString()}>{formatDate(data.updated)}</time></span>}
-        <!-- The busuanzi counter reveals this once it has the number. -->
-        <span class="views" id="busuanzi_container_page_pv" hidden><span id="busuanzi_value_page_pv"></span> views</span>
+        <!-- The post's visits from GoatCounter (src/lib/visits.js), shown once the number has come, on the live site. -->
+        <span class="views" data-visits={Astro.url.pathname} hidden><span data-visits-number></span> views</span>
       </div>
       <div class="actions" data-pagefind-ignore>
         {data.tags.length > 0 && (
@@ -66,7 +67,10 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 
     <div class="grid">
       <Toc headings={headings} />
-      <div class="prose"><Content /></div>
+      <div class="prose">
+        {topic.legacy && <p class="legacy" data-pagefind-ignore>{topic.legacy}</p>}
+        <Content />
+      </div>
     </div>
 
     <footer class="foot" data-pagefind-ignore>
@@ -77,11 +81,11 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
         <nav class="older-newer" aria-label="Newer and older posts">
           <div>
             <span class="label">Newer post</span>
-            {newer ? <a href={postUrl(newer)}>{newer.data.title}</a> : <span class="none">None yet</span>}
+            {newer ? <Go href={postUrl(newer)}>{newer.data.title}</Go> : <span class="none">None yet</span>}
           </div>
           <div>
             <span class="label">Older post</span>
-            {older ? <a href={postUrl(older)}>{older.data.title}</a> : <span class="none">None</span>}
+            {older ? <Go href={postUrl(older)}>{older.data.title}</Go> : <span class="none">None</span>}
           </div>
         </nav>
       )}
@@ -96,7 +100,7 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
     )}
     <section class="author" aria-label="About the author">
       <ProfileCard posts={listed.length} topics={topicCounts(listed, TOPICS).filter((t) => t.count > 0).length} tags={tagCounts(listed).length} />
-      <SiteInfo updated={lastUpdated(listed)} />
+      <SiteInfo newestPost={lastUpdated(listed)} />
     </section>
   </MoreBand>
 
@@ -109,8 +113,6 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .post::before { content: ''; position: absolute; top: calc(var(--post-pad) + 0.75rem); bottom: 0; left: calc(var(--gutter) + var(--node) / 2 - var(--stroke) / 2); width: var(--stroke); background: var(--c); }
   .topic { position: relative; margin: 0 0 var(--space-3); color: var(--c); font-size: var(--text-ui); font-weight: 700; }
   .topic::before { content: ''; position: absolute; top: 0.75rem; left: -2.25rem; width: var(--node); height: var(--node); margin-top: calc(var(--node) / -2); border-radius: 50%; background: var(--c); }
-  .topic a { padding-block: var(--space-1); text-decoration: none; }
-  .topic a:hover { text-decoration: underline; }
   .title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
   .meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin-top: 1.25rem; color: var(--muted); font-size: var(--text-ui); }
   .meta time, .views span { color: var(--ink); font-weight: 650; }
@@ -118,21 +120,24 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
   .tags a { display: inline-block; padding: var(--space-1) var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-pill); font-size: 0.8125rem; font-weight: 650; text-decoration: none; }
   .tags a:hover { border-color: var(--c); }
-  .copy-link { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0; border: 0; background: none; color: var(--ink); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
-  .copy-link:hover { text-decoration: underline; }
+  /* A button, not a link: under the mouse it takes the tinted pill of the site's standalone links, without the arrow. */
+  .copy-link { display: inline-flex; align-items: center; gap: 0.375rem; margin: 0 -0.625rem; padding: 0.375rem 0.625rem; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ink); font-size: var(--text-sm); font-weight: 650; cursor: pointer; transition: background-color 0.2s ease; }
+  .copy-link:hover { background: var(--wash); }
   .copy-link :global(.icon) { width: 18px; height: 18px; }
 
   .grid { display: grid; grid-template-columns: minmax(0, 40rem) minmax(11rem, 15rem); justify-content: space-between; gap: var(--space-8); margin-top: 2.5rem; }
   .grid .prose { grid-row: 1; grid-column: 1; }
 
+  /* The note on posts about something the site no longer runs on (a topic's `legacy` in src/lib/topics.js). */
+  .legacy { margin: 0 0 var(--space-5); padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--wash); color: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
   .foot { max-width: 40rem; margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--rule); }
   .license { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-sm); }
   .older-newer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-  .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: 0.875rem var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); }
+  /* Room at the sides for a link's arrow (.go in global.css) to slide out inside the box. */
+  .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: 0.875rem var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); }
   .older-newer > div:last-child { align-items: flex-end; text-align: right; }
   .label { color: var(--muted); font-size: 0.8125rem; }
-  .older-newer a { font-size: 1.0625rem; font-weight: 650; text-decoration: none; }
-  .older-newer a:hover { text-decoration: underline; }
+  .older-newer .go { font-size: 1.0625rem; font-weight: 650; }
   .none { color: var(--muted); }
 
   .related { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }

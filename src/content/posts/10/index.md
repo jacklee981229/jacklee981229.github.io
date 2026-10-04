@@ -3,6 +3,7 @@ title: "Terraria"
 date: 2023-10-05T14:24:00+08:00
 topic: games
 tags: ["game"]
+featured: true
 ---
 
 ## Terraria

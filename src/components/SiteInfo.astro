@@ -1,43 +1,41 @@
 ---
+import Go from './Go.astro';
 import { SITE } from '../site';
 import { daysBetween, formatDate } from '../lib/dates.js';
+import { lastUpdate } from '../lib/changelog-file.js';
 
 interface Props {
-  /** The newest post's date or the newest change in the Changelog, whichever is later. */
-  updated?: Date;
+  /** The newest post's date. */
+  newestPost?: Date;
 }
 
-const { updated } = Astro.props;
+const { newestPost } = Astro.props;
+const updated = lastUpdate(newestPost);
 const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`));
 ---
-<dl class="info" data-live-host={Astro.site?.hostname}>
+<dl class="info">
   <div><dt>Running for</dt><dd><span data-running-since={SITE.started}>{days.toLocaleString('en-US')}</span> days</dd></div>
-  <!-- Filled in by the busuanzi visitor counter on the live site; the dash shows until it answers. -->
-  <div><dt>Visitors</dt><dd id="busuanzi_value_site_uv">–</dd></div>
-  <div><dt>Page views</dt><dd id="busuanzi_value_site_pv">–</dd></div>
-  {updated && <div><dt>Last update</dt><dd><a href="/changelog/">{formatDate(updated)}</a></dd></div>}
+  <!-- Visits to the whole site from GoatCounter (src/lib/visits.js), filled in on the live site; the row goes away if
+       no number comes. -->
+  <div data-visits="TOTAL" data-local><dt>Visitors</dt><dd data-visits-number>–</dd></div>
+  {updated && <div><dt>Last update</dt><dd><Go href="/changelog/">{formatDate(updated)}</Go></dd></div>}
 </dl>
 
 <script>
-  // Recount the days in the visitor's browser: the page itself is only rebuilt when a post is published.
-  document.querySelectorAll<HTMLElement>('[data-running-since]').forEach((el) => {
-    const start = new Date(`${el.dataset.runningSince}T00:00:00+08:00`).getTime();
-    el.textContent = Math.floor((Date.now() - start) / 86400000).toLocaleString('en-US');
-  });
+  import { showRunningDays } from '../lib/running.js';
+  import { showVisits } from '../lib/visits.js';
+  import Go from './Go.astro';
+import { SITE } from '../site';
 
-  // The counter only runs on the live site (Base.astro), so a local preview says so rather than showing a dash forever.
-  const info = document.querySelector<HTMLElement>('[data-live-host]');
-  if (info && location.hostname !== info.dataset.liveHost) {
-    info.querySelectorAll('[id^="busuanzi_value"]').forEach((el) => {
-      el.textContent = 'live site only';
-      el.classList.add('local');
-    });
-  }
+  showRunningDays();
+  // The visit count, on the live site only; a local preview says so.
+  showVisits(SITE.goatcounter, new URL(import.meta.env.SITE).hostname);
 </script>
 
 <style>
   .info { display: grid; gap: var(--space-2); margin: 0; }
   div { display: flex; justify-content: space-between; gap: var(--space-4); }
+  div[hidden] { display: none; }
   dt { color: var(--muted); }
   /* No tabular figures here: they give the comma in "1,312" a full digit's width. */
   dd { margin: 0; font-weight: 650; }

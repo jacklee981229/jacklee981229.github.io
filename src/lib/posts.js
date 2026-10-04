@@ -1,7 +1,7 @@
 // Which posts show where, and in what order. Pure functions over { id, data } entries, so tests can cover them.
 
 /**
- * @typedef {{ id: string, data: { title: string, date: Date, updated?: Date, topic: string, tags: string[], draft?: boolean, hidden?: boolean, pinned?: boolean } }} PostLike
+ * @typedef {{ id: string, data: { title: string, date: Date, updated?: Date, topic: string, tags: string[], draft?: boolean, hidden?: boolean } }} PostLike
  */
 
 // Folder names a post can't use: the site's own pages and files already live at these addresses.
@@ -26,20 +26,8 @@ export function listed(posts, options) {
   return published(posts, options).filter((p) => !p.data.hidden);
 }
 
-/** @template {PostLike} T @param {T[]} listedPosts @returns {T[]} */
-export const pinned = (listedPosts) => listedPosts.filter((p) => p.data.pinned);
-
-/**
- * @template T @param {T[]} items @param {number} perPage
- * @returns {{ page: number, pages: number, items: T[], start: number }[]}
- */
-export function paginate(items, perPage) {
-  const pages = Math.max(1, Math.ceil(items.length / perPage));
-  return Array.from({ length: pages }, (_, i) => ({ page: i + 1, pages, start: i * perPage, items: items.slice(i * perPage, (i + 1) * perPage) }));
-}
-
-/** Home is page 1; the rest keep the old Hexo addresses (/page/2/). @param {number} page */
-export const homePageUrl = (page) => (page === 1 ? '/' : `/page/${page}/`);
+/** The posts to start with, listed at the top of Writing. @template {{ data: { featured?: boolean } }} T @param {T[]} listedPosts */
+export const featured = (listedPosts) => listedPosts.filter((p) => p.data.featured);
 
 /**
  * @template {PostLike} T @param {T[]} listedPosts @param {T} post

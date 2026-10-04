@@ -2,17 +2,24 @@
 import Base from '../layouts/Base.astro';
 import PageTop from '../components/PageTop.astro';
 import PostList from '../components/PostList.astro';
-import { topicCounts } from '../lib/posts.js';
-import { TOPICS } from '../lib/topics.js';
+import { featured, topicCounts } from '../lib/posts.js';
+import { TOPICS, listOrder } from '../lib/topics.js';
 import { listedPosts } from '../lib/collections';
 
 const posts = await listedPosts();
-const topics = topicCounts(posts, TOPICS).filter((t) => t.count > 0);
+const topics = listOrder(topicCounts(posts, TOPICS).filter((t) => t.count > 0));
+const start = featured(posts);
 ---
 <Base title="Writing" description="Posts grouped by topic.">
   <div class="wrap page">
     <PageTop title="Writing" lead="Posts grouped by topic." />
     {topics.length === 0 && <p class="empty">No posts yet.</p>}
+    {start.length > 0 && (
+      <section class="topic start" aria-labelledby="start-here">
+        <h2 id="start-here">Start here</h2>
+        <PostList posts={start} />
+      </section>
+    )}
     {topics.map((t) => (
       <section class="topic" id={t.id} style={`--c: var(--lane-${t.id})`} aria-labelledby={`topic-${t.id}`}>
         <h2 id={`topic-${t.id}`}><span class="dot" aria-hidden="true" />{t.name} <span class="count">{t.count}</span></h2>
@@ -26,5 +33,6 @@ const topics = topicCounts(posts, TOPICS).filter((t) => t.count > 0);
   .topic { max-width: 44rem; margin-top: var(--space-7); scroll-margin-top: var(--space-5); }
   h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: var(--text-lg); font-weight: 750; }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+  .start h2 { font-size: var(--text-lg); }
   .count { color: var(--muted); font-size: var(--text-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
 </style>

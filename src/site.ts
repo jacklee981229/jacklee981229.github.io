@@ -1,14 +1,14 @@
 // Site-wide facts. Pages and components read these instead of repeating them.
 export const SITE = {
   title: "Jack's Space",
-  tagline: 'My programming journal',
+  tagline: 'Things I build, play and love',
   intro: 'Just sharing some of my thoughts, and maybe some tech that I learned. And some games to share :D',
   author: 'Jack Lee',
   role: 'Senior Software Engineer at Squarebox Technology',
   started: '2023-02-23',
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
   // GoatCounter counts page views, without cookies. Every page's script reports its view here, and the build reads
-  // the Lab pages' public counts from here to rank Most Popular (D13 in docs/PLAN.md).
+  // the Lab pages' public counts from here to rank Most Popular (D13 in docs/plan/done/lab-brief.md).
   goatcounter: 'https://jacklee981229.goatcounter.com',
 } as const;
 
@@ -30,5 +30,3 @@ export const NAV = [
   { href: '/about/', label: 'About' },
 ] as const;
 
-// Home and its later pages show this many posts each (same as the old site).
-export const POSTS_PER_PAGE = 10;
