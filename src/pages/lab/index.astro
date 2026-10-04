@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import PageTop from '../../components/PageTop.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
-import { EFFECTS, GROUPS, TOOLS } from '../../lib/lab/tools.js';
+import { EFFECTS, GROUPS, TOOLS, WORLDS } from '../../lib/lab/tools.js';
 import { experimentPosts, popularLabItems } from '../../lib/collections';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
@@ -16,6 +16,7 @@ const popular = await popularLabItems();
         <a href="#tools">Tools</a>
         <a href="#mini-games">Mini Games</a>
         <a href="#effects">Effects</a>
+        <a href="#little-worlds">Little Worlds</a>
         <a href="#random">Random</a>
       </nav>
     </PageTop>
@@ -57,10 +58,18 @@ const popular = await popularLabItems();
       <p class="note">No use at all. Just move your mouse.</p>
     </section>
 
+    <section id="little-worlds" aria-labelledby="little-worlds-title">
+      <h2 id="little-worlds-title">Little Worlds</h2>
+      <ul class="cards">
+        {WORLDS.map((world) => <LabItemCard world={world} />)}
+      </ul>
+      <p class="note">They run by themselves. Nothing to do but watch.</p>
+    </section>
+
     <section id="random" aria-labelledby="random-title">
       <h2 id="random-title">Random</h2>
       <div class="random">
-        <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game or an effect.</p>
+        <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game, an effect or a little world.</p>
         <a class="button" href="/random/">Surprise me</a>
       </div>
     </section>

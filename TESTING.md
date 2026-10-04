@@ -740,3 +740,15 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 5. Let the bot play until a message comes up. Expected: it stops at "You made 2048!" (Keep going, then Bot again plays on) or "No more moves."; neither message offers the name box, and Best stays where it was.
 6. Reload during a bot game, then play it to the end yourself. Expected: still no name box: a game the bot played in stays off the leaderboard until New game.
 7. On a laptop the buttons above the board are three round icons on the same line as the scores; point at one for its name. On a phone they show their names, on a line under the scores.
+
+## Jack's Town
+
+1. Open http://localhost:4321/lab/world/town/. Expected: a town seen from above fills the window under the Lab header: grey roads with kerbs, houses (a pitched roof, a drive beside it) and places (a flat roof with a ring, three parking bays in front) in four colours, coloured stop lines at the junctions, cars, and one to three roads running off the edge. Each load is a different town.
+2. Watch a house whose car is parked on its drive. Expected: when it leaves it waits for a gap, backs out onto the lane with white lights at the back, stops, and drives off.
+3. Follow a car to a place of its colour. Expected: it blinks its indicator, slows, turns into a free bay and parks nose in beside the others; later it backs out and drives home, where it turns into its own drive.
+4. Watch a junction for a minute. Expected: cars stop at red (brake lights on), go on green, queue behind each other, signal before turning, and keep to the left. No car drives through another.
+5. Watch a road that runs off the edge. Expected: cars drive in from beyond the edge and out past it; none pops up or disappears inside the town.
+6. Click Pause, then Play. Expected: the town stops and carries on. Switch to the light theme: the same town in light colours.
+7. Run the simulation's tests: `node --test tests/town.test.js`. Expected: `# pass 10`, about half a minute (four towns each run a whole day).
+8. Open http://localhost:4321/lab/. Expected: a Little Worlds button among the section links; it jumps to a Little Worlds section after Effects with Jack's Town's card (a picture of the town); the card opens the town.
+9. Press Ctrl+K and type `town`. Expected: Jack's Town under Lab. http://localhost:4321/sitemap.txt lists `/lab/world/town/`.

@@ -58,10 +58,21 @@ export const EFFECTS = [
   { slug: 'key-jam', name: 'Key Jam', description: 'Every key plays a sound and a little show.', hint: 'Press letter keys, or tap the stage. Space changes the set. Sound on!' },
 ];
 
+/**
+ * The Little Worlds: things that run by themselves, for watching (D58 in docs/plan/todo/little-worlds-town.md). Each is
+ * drawn by src/worlds/<slug>.js on the effects' stage, at /lab/world/<slug>/, and has a picture of itself in
+ * src/assets/worlds/<slug>.png for its card and its link previews. `hint` says what there is to see.
+ */
+export const WORLDS = [
+  { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: 'Each car drives to a place of its own colour. Just watch.' },
+];
+
 /** @param {string} slug */
 export const toolUrl = (slug) => `/lab/${slug}/`;
 /** @param {string} slug */
 export const effectUrl = (slug) => `/lab/effect/${slug}/`;
+/** @param {string} slug */
+export const worldUrl = (slug) => `/lab/world/${slug}/`;
 
 /**
  * "Check these too!" under a Lab page: the same kind first, in the Lab's order, then the other kinds; never the page

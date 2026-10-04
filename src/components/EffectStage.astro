@@ -1,15 +1,18 @@
 ---
 // The stage an effect plays on: a canvas right across the window. src/effects/stage.js runs it, with the effect's
-// own code (src/effects/<slug>.js), which is fetched only on that effect's page.
+// own code (src/effects/<slug>.js), which is fetched only on that effect's page. A Little World (`world`, such as
+// Jack's Town) plays on the same stage, from src/worlds/<slug>.js.
 interface Props {
   slug: string;
   /** What the moving picture shows, for someone who can't see it. */
   label: string;
+  /** A Little World rather than an effect: its own colours, nothing to point at, and a finger scrolls the page. */
+  world?: boolean;
 }
 
-const { slug, label } = Astro.props;
+const { slug, label, world = false } = Astro.props;
 ---
-<div class="stage" data-stage={slug} data-fullscreen="Show the effect on the whole screen">
+<div class="stage" data-stage={slug} data-world={world || undefined} data-fullscreen={world ? 'Show the town on the whole screen' : 'Show the effect on the whole screen'}>
   <canvas role="img" aria-label={label}></canvas>
   <button type="button" class="button" data-stage-toggle>Pause</button>
 </div>
@@ -17,10 +20,13 @@ const { slug, label } = Astro.props;
 <script>
   import { runStage } from '../effects/stage.js';
 
-  // One file per effect; only the one this page names is fetched.
-  const pieces = import.meta.glob<{ default: Parameters<typeof runStage>[1] }>('../effects/*.js');
+  // One file per effect or world; only the one this page names is fetched.
+  type Piece = { default: Parameters<typeof runStage>[1] };
+  const effects = import.meta.glob<Piece>('../effects/*.js');
+  const worlds = import.meta.glob<Piece>('../worlds/*.js');
   const root = document.querySelector<HTMLElement>('[data-stage]');
-  if (root) pieces[`../effects/${root.dataset.stage}.js`]?.().then((piece) => runStage(root, piece.default));
+  const load = root && ('world' in root.dataset ? worlds[`../worlds/${root.dataset.stage}.js`] : effects[`../effects/${root.dataset.stage}.js`]);
+  if (root && load) load().then((piece) => runStage(root, piece.default));
 </script>
 
 <style>
@@ -35,5 +41,9 @@ const { slug, label } = Astro.props;
   /* The command palette's Fullscreen: the stage alone, edge to edge. */
   .stage:fullscreen { height: 100%; border: 0; background: var(--paper); }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  /* A world: the homes' four colours, the lights' go, wait and stop, and the ground. Nothing follows the pointer,
+     so a finger on it scrolls the page as anywhere else. */
+  .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); }
+  .stage[data-world] canvas { touch-action: auto; cursor: default; }
   .button { position: absolute; top: var(--space-3); right: var(--gutter); padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
 </style>

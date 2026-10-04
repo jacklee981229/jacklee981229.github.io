@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EFFECTS, effectBySlug, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl } from '../src/lib/lab/tools.js';
+import { EFFECTS, effectBySlug, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -75,8 +75,20 @@ test('every effect has its code, its card picture, its icon and a web-safe addre
   assert.throws(() => effectBySlug('no-such-thing'), /No effect "no-such-thing"/);
 });
 
-test('no tool takes the address the games or the effects live under', () => {
-  TOOLS.forEach((t) => assert.ok(!['game', 'effect'].includes(t.slug), t.slug));
+test('every Little World has its code, its picture, its icon and a web-safe address of its own', () => {
+  assert.equal(new Set(WORLDS.map((w) => w.slug)).size, WORLDS.length);
+  for (const w of WORLDS) {
+    assert.match(w.slug, /^[a-z0-9]+(-[a-z0-9]+)*$/, w.slug);
+    assert.ok(existsSync(new URL(`src/worlds/${w.slug}.js`, ROOT)), `${w.slug}: src/worlds/${w.slug}.js is missing`);
+    assert.ok(existsSync(new URL(`src/assets/worlds/${w.slug}.png`, ROOT)), `${w.slug}: src/assets/worlds/${w.slug}.png is missing`);
+    assert.ok(w.description.length <= 70 && w.hint.length <= 70, `${w.slug}: keep the description and the hint short`);
+  }
+  assert.match(icons, /^\s+car: '/m, 'the "car" icon is missing from src/lib/icons.js');
+  assert.equal(worldUrl('town'), '/lab/world/town/');
+});
+
+test('no tool takes the address the games, the effects or the worlds live under', () => {
+  TOOLS.forEach((t) => assert.ok(!['game', 'effect', 'world'].includes(t.slug), t.slug));
 });
 
 test('"check these too" under an effect: other effects first, never itself', () => {

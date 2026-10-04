@@ -17,6 +17,7 @@ export function shareLabel(pathname, topic) {
   if (p === '/') return 'Home';
   if (p === '/lab/') return 'Lab';
   if (p.startsWith('/lab/effect/')) return 'Lab · Effect';
+  if (p.startsWith('/lab/world/')) return 'Lab · Little World';
   if (p.startsWith('/lab/game/')) return 'Lab · Game';
   if (p === '/random/') return 'Lab · Random';
   if (p.startsWith('/lab/')) return 'Lab · Tool';
