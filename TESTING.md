@@ -591,3 +591,18 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 20. A missing picture stops the build. In the same file, change the first `image:` line to `image: missing.jpg` and run `npm run build`. Expected: it stops with `Collections:`, the item's name, then `in movies asks for the picture "missing.jpg", but there is no file of that name in src/content/collections/movies/`. Put it back.
 21. A misspelt place stops the build. In `src\content\travel\visited.yaml`, change `Malaysia` to `Malaysa` and run `npm run build`. Expected: it stops with `Travel Map: "Malaysa" isn't a place the map knows. Did you mean Malaysia? Fix it in src/content/travel/visited.yaml.` Put it back.
 22. Add an item of your own, following `src\content\collections\README.md`, with `npm run dev` running. Expected: it shows at http://localhost:4321/collections/ after a reload.
+
+## Five effects livened up: Orbits, Garden, Flock, Spotlight, Sand
+
+1. Start the local site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run dev
+   ```
+   Expected: the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/lab/ and find Flock under Effects. Expected: its card shows a shoal of small fish of different sizes, not arrows.
+3. Open http://localhost:4321/lab/effect/orbits/ and rest the mouse in the middle. Expected: the planets cross the sun at every angle, on round paths and long thin ones, some going clockwise and some anticlockwise; a planet looks bigger on the near side of its path and smaller on the far side. Then move the mouse quickly from the right side to the left. Expected: only the sun follows the mouse; the planets stay where they were and chase after it, the ones left furthest behind (on the right) fastest, each at its own pace, then swing round the sun again. Click: they fling out and fall back as before.
+4. Open http://localhost:4321/lab/effect/garden/. Expected: short plants with thin trunks and few forks beside tall ones; some branches fork in two or three, some carry straight on, some stop early in a flower. Rest the mouse at the far left, then at the far right. Expected: the tall plants curve over towards it, trunk and all, while the short ones hardly lean. Sweep the mouse fast once across part of the stage: the plants it passes over swing most, the tall ones slowly back and forth, the short ones quickly straight again. With the mouse still, each branch sways a little on its own. Click a few times: no two new plants alike.
+5. Open http://localhost:4321/lab/effect/flock/. Expected: a shoal of small fish (a body and a forked tail), some bigger, some slimmer or rounder, each beating its tail, faster when it swims faster. Click near them: they dart off with quicker tails, then gather again.
+6. Open http://localhost:4321/lab/effect/spotlight/ and hold the mouse still. Expected: the faint shapes in the dark drift and turn very slightly, each at its own pace; the shapes in the light stay perfectly still. Move the light over a drifting shape: it settles into place as the light reaches it. Click: the light opens over everything and the drifting stops until it closes again.
+7. Open http://localhost:4321/lab/effect/sand/ and click several times high up. Expected: each click bursts out a heap of a different size and shape: lumpy, stretched one way or another, with small clumps and loose grains thrown beyond it, never a neat circle. Look closely at the sand: the grains are a mix of sizes, some a little smaller and some a little bigger than the rest, and the coloured stripes are of different widths.

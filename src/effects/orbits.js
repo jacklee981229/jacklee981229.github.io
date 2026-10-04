@@ -1,6 +1,8 @@
 // Orbits: the pointer is a sun, and a few dozen little planets circle it, each on its own path, pulled the way
-// real ones are: harder the nearer they come. Move the sun and they trail behind and swing back round it. A click
-// flings them outwards, and they fall back.
+// real ones are: harder the nearer they come. Each path is tipped its own way out of the screen's flat, so they
+// cross at every angle, and some planets go round the other way. Only the sun follows the pointer: move it and the
+// planets are left where they were and chase after it, the ones left furthest behind hardest, each at its own pace.
+// A click flings them outwards, and they fall back.
 
 const PLANETS = 34;
 /** The sun's pull, and a softening so a planet passing straight through the sun isn't thrown off to infinity. */
@@ -8,31 +10,54 @@ const PULL = 5.5e6;
 const SOFT = 34;
 /** Points kept of each planet's path, for its tail. */
 const TAIL = 30;
-/** Further from the sun than half the stage's shorter side plus this, a planet is slowed, so it falls back. */
+/** Further from the sun than half the stage's shorter side plus this, a planet always counts as left behind. */
 const FAR = 140;
-/** How quickly the sun catches up with the pointer, and how much of each move the planets are left behind by. */
-const FOLLOW = 9;
-const LAG = 0.3;
+/** How quickly the sun catches up with the pointer. */
+const FOLLOW = 4;
+/**
+ * Further from the sun than its path ever takes it (and a little more), a planet has been left behind: it's pulled
+ * on harder the further it is (CHASE for each pixel too far, times its own eagerness), and its going further away is
+ * slowed by DRAG a second, so it turns back and settles into its path again instead of shooting past.
+ */
+const LEEWAY = 1.15;
+const CHASE = 2;
+const DRAG = 1.6;
 /** A click's fling: its reach and its strength. */
 const FLING_REACH = 520;
 const FLING = 300;
 const FASTEST = 1100;
 /** A tail is drawn in this many pieces, each fainter and thinner than the one before. */
 const FADES = [0.6, 0.34, 0.14];
+/** How far a path can be tipped out of the screen's flat (in radians), and the share of planets going round backwards. */
+const TIP = 1.05;
+const BACKWARDS = 0.3;
+/** A planet's speed against the one that would hold a circle, slowest and fastest: ovals of every shape. */
+const SLOW = 0.7;
+const QUICK = 1.22;
 
 /** @param {import('./stage.js').Stage} stage @returns {import('./stage.js').Piece} */
 export default function orbits(stage) {
   // The sun glides after the pointer, which smooths out a jerky mouse. Planets and their tails are measured from
-  // the sun, so the whole system travels with it.
+  // the sun, so each move of the sun is taken off them: they stay where they were on the stage.
   const sun = { x: stage.pointer.x, y: stage.pointer.y };
+  // Planets move in depth too (z, towards the viewer); only their sizes show it.
   const planets = Array.from({ length: PLANETS }, (_, i) => {
     const angle = Math.random() * Math.PI * 2;
     const far = 60 + Math.random() * 0.4 * Math.min(stage.width, stage.height);
-    // The speed that would hold a circle at this distance, a little off, so the paths come out as ovals.
-    const speed = Math.sqrt((PULL * far) / (far * far + SOFT * SOFT)) * (0.82 + Math.random() * 0.3);
-    const x = Math.cos(angle) * far;
-    const y = Math.sin(angle) * far;
-    return { x, y, vx: -Math.sin(angle) * speed, vy: Math.cos(angle) * speed, r: 2 + Math.random() * 3.4, color: i % stage.colors.lanes.length, tail: Array.from({ length: TAIL }, () => [x, y]) };
+    // The speed that would hold a circle at this distance, more or less, and a little in or out as well as across.
+    const speed = Math.sqrt((PULL * far) / (far * far + SOFT * SOFT)) * (SLOW + Math.random() * (QUICK - SLOW));
+    const way = Math.random() < BACKWARDS ? -1 : 1;
+    const out = (Math.random() - 0.5) * 0.6;
+    // Worked out flat, then the path is tipped about one line through the sun, and that line turned any way round.
+    const tip = Math.random() * TIP;
+    const turn = Math.random() * Math.PI * 2;
+    const place = (x, y) => [x * Math.cos(turn) - y * Math.cos(tip) * Math.sin(turn), x * Math.sin(turn) + y * Math.cos(tip) * Math.cos(turn), y * Math.sin(tip)];
+    const [x, y, z] = place(Math.cos(angle) * far, Math.sin(angle) * far);
+    const [vx, vy, vz] = place((-Math.sin(angle) * way + Math.cos(angle) * out) * speed, (Math.cos(angle) * way + Math.sin(angle) * out) * speed);
+    // Its furthest from the sun, worked out as if the pull were exactly a planet's: twice the path's half-length.
+    const energy = (speed * speed * (1 + out * out)) / 2 - PULL / far;
+    const furthest = energy < 0 ? Math.min(3 * far, -PULL / energy) : 3 * far;
+    return { x, y, z, vx, vy, vz, leash: Math.max(far, furthest) * LEEWAY, eager: 0.5 + Math.random(), r: 2 + Math.random() * 3.4, color: i % stage.colors.lanes.length, tail: Array.from({ length: TAIL }, () => [x, y]) };
   });
 
   return {
@@ -49,24 +74,41 @@ export default function orbits(stage) {
         const h = dt / 2;
         for (const p of planets) {
           if (half === 0) {
-            p.x -= movedX * LAG;
-            p.y -= movedY * LAG;
+            p.x -= movedX;
+            p.y -= movedY;
+            for (const point of p.tail) {
+              point[0] -= movedX;
+              point[1] -= movedY;
+            }
           }
-          const rr = p.x * p.x + p.y * p.y;
+          const rr = p.x * p.x + p.y * p.y + p.z * p.z;
           const r = Math.sqrt(rr) || 1;
           const pull = PULL / (rr + SOFT * SOFT);
           p.vx -= (p.x / r) * pull * h;
           p.vy -= (p.y / r) * pull * h;
-          if (pointer.pressed && half === 0 && r < FLING_REACH) {
-            p.vx += (p.x / r) * (1 - r / FLING_REACH) * FLING;
-            p.vy += (p.y / r) * (1 - r / FLING_REACH) * FLING;
+          p.vz -= (p.z / r) * pull * h;
+          const behind = r - Math.min(p.leash, far);
+          if (behind > 0) {
+            const away = (p.vx * p.x + p.vy * p.y + p.vz * p.z) / r;
+            const chase = CHASE * p.eager * behind * h + (away > 0 ? away * Math.min(1, DRAG * h) : 0);
+            p.vx -= (p.x / r) * chase;
+            p.vy -= (p.y / r) * chase;
+            p.vz -= (p.z / r) * chase;
           }
-          const speed = Math.hypot(p.vx, p.vy) || 1;
-          const slow = Math.min(r > far ? 1 - Math.min(1, 1.4 * h) : 1, FASTEST / speed);
+          if (pointer.pressed && half === 0 && r < FLING_REACH) {
+            const fling = (1 - r / FLING_REACH) * FLING;
+            p.vx += (p.x / r) * fling;
+            p.vy += (p.y / r) * fling;
+            p.vz += (p.z / r) * fling;
+          }
+          const speed = Math.hypot(p.vx, p.vy, p.vz) || 1;
+          const slow = Math.min(1, FASTEST / speed);
           p.vx *= slow;
           p.vy *= slow;
+          p.vz *= slow;
           p.x += p.vx * h;
           p.y += p.vy * h;
+          p.z += p.vz * h;
         }
       }
       if (dt > 0) {
@@ -96,9 +138,12 @@ export default function orbits(stage) {
         });
       });
       const balls = colors.lanes.map(() => new Path2D());
+      const depth = Math.min(width, height);
       for (const p of planets) {
-        balls[p.color].moveTo(p.x + p.r, p.y);
-        balls[p.color].arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        // Nearer the viewer, bigger.
+        const r = p.r * Math.min(1.5, Math.max(0.55, 1 + (p.z / depth) * 0.9));
+        balls[p.color].moveTo(p.x + r, p.y);
+        balls[p.color].arc(p.x, p.y, r, 0, Math.PI * 2);
       }
       balls.forEach((ball, c) => {
         ctx.fillStyle = rgba(colors.lanes[c]);

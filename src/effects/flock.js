@@ -1,6 +1,7 @@
 // Flock: a shoal of fish. Each one follows three simple habits (keep off your neighbours, swim the way they swim,
 // stay with the group), and out of that the shoal turns and streams as one. It trails after the pointer. A click
-// frightens it, and the fish dart away from that spot before gathering again.
+// frightens it, and the fish dart away from that spot before gathering again. No two fish are quite the same size
+// or shape, and each beats its tail as it swims, faster the faster it goes.
 
 /** One fish for about this many square pixels of stage, within limits (every pair is compared each frame). */
 const AREA_EACH = 7200;
@@ -26,14 +27,24 @@ const FRIGHT_FOR = 1.3;
 /** Nearer the stage's edge than this, a fish turns back in. */
 const MARGIN = 50;
 const TURN_BACK = 520;
+/** A fish's length from nose to tail tip, at its smallest and biggest. */
+const SHORT = 12;
+const LONG = 21;
+/** How far the tail swings (in radians), and its beats a second when still and for each pixel a second of speed. */
+const SWING = 0.42;
+const BEAT = 1.2;
+const BEAT_PER = 0.022;
 
 /** @param {import('./stage.js').Stage} stage @returns {import('./stage.js').Piece} */
 export default function flock(stage) {
-  /** @type {{ x: number, y: number, vx: number, vy: number, color: number }[]} */
+  /** @type {{ x: number, y: number, vx: number, vy: number, color: number, length: number, girth: number, fin: number, beat: number }[]} */
   const fish = [];
   const born = () => {
     const angle = Math.random() * Math.PI * 2;
-    return { x: Math.random() * stage.width, y: Math.random() * stage.height, vx: Math.cos(angle) * CRUISE, vy: Math.sin(angle) * CRUISE, color: Math.floor(Math.random() * stage.colors.lanes.length) };
+    // Smaller fish are commoner than big ones. Girth (the body's half-width) and fin (the tail's size) are shares of
+    // the length: a slim fish or a round one, a small tail or a broad one.
+    const length = SHORT + (LONG - SHORT) * Math.random() ** 1.6;
+    return { x: Math.random() * stage.width, y: Math.random() * stage.height, vx: Math.cos(angle) * CRUISE, vy: Math.sin(angle) * CRUISE, color: Math.floor(Math.random() * stage.colors.lanes.length), length, girth: 0.13 + Math.random() * 0.08, fin: 0.26 + Math.random() * 0.12, beat: Math.random() * Math.PI * 2 };
   };
   const fit = () => {
     const count = Math.min(MOST, Math.max(FEWEST, Math.round((stage.width * stage.height) / AREA_EACH)));
@@ -110,25 +121,40 @@ export default function flock(stage) {
         f.vy *= scale;
         f.x += f.vx * dt;
         f.y += f.vy * dt;
+        f.beat += dt * Math.PI * 2 * (BEAT + Math.hypot(f.vx, f.vy) * BEAT_PER);
       }
 
       ctx.clearRect(0, 0, width, height);
-      // Each fish is a dart pointing the way it swims; all of one colour are drawn in one go.
-      const darts = colors.lanes.map(() => new Path2D());
+      // Each fish is a body and a forked tail, pointing the way it swims; all of one colour are drawn in one go.
+      const shoal = colors.lanes.map(() => new Path2D());
       for (const f of fish) {
         const speed = Math.hypot(f.vx, f.vy) || 1;
         const hx = f.vx / speed;
         const hy = f.vy / speed;
-        const dart = darts[f.color];
-        dart.moveTo(f.x + hx * 10, f.y + hy * 10);
-        dart.lineTo(f.x - hx * 7 - hy * 5, f.y - hy * 7 + hx * 5);
-        dart.lineTo(f.x - hx * 3.5, f.y - hy * 3.5);
-        dart.lineTo(f.x - hx * 7 + hy * 5, f.y - hy * 7 - hx * 5);
-        dart.closePath();
+        // A point `along` ahead of the fish's middle and `aside` to its left, both in shares of its length.
+        const at = (along, aside) => [f.x + (hx * along - hy * aside) * f.length, f.y + (hy * along + hx * aside) * f.length];
+        const path = shoal[f.color];
+        // The body sways a little with the tail, so the fish swims rather than slides.
+        const wag = Math.sin(f.beat);
+        const root = at(-0.22, wag * f.girth * 0.25);
+        const nose = at(0.42, 0);
+        path.moveTo(...nose);
+        path.quadraticCurveTo(...at(0.12, f.girth * 2), ...root);
+        path.quadraticCurveTo(...at(0.12, -f.girth * 2), ...nose);
+        // The tail turns about its root, the way the body last pointed.
+        const swing = wag * SWING;
+        const tx = -Math.cos(swing);
+        const ty = Math.sin(swing);
+        const tail = (along, aside) => [root[0] + ((hx * tx - hy * ty) * along - (hy * tx + hx * ty) * aside) * f.length, root[1] + ((hy * tx + hx * ty) * along + (hx * tx - hy * ty) * aside) * f.length];
+        path.moveTo(...root);
+        path.lineTo(...tail(f.fin, f.fin * 0.75));
+        path.lineTo(...tail(f.fin * 0.6, 0));
+        path.lineTo(...tail(f.fin, -f.fin * 0.75));
+        path.closePath();
       }
-      darts.forEach((dart, c) => {
+      shoal.forEach((path, c) => {
         ctx.fillStyle = rgba(colors.lanes[c]);
-        ctx.fill(dart);
+        ctx.fill(path);
       });
     },
   };
