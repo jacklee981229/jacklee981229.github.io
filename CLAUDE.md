@@ -52,7 +52,7 @@ Every task that changes the UI passes these in the sweep: after Jack confirms th
 
 ## Design rules
 
-- Before proposing any UI, read [docs/design-ideas.md](docs/design-ideas.md): an idea bank from two reference blogs (its Principles and Avoid sections first). Suggest ideas by their ID, and record what's adopted or rejected in its Decisions section.
+- [docs/design-ideas.md](docs/design-ideas.md) is an idea bank from two reference blogs. Read it only when Jack asks for design ideas or inspiration; it's not a rulebook for every UI change. When it is used, suggest ideas by their ID and record what's adopted or rejected in its Decisions section.
 
 - Colours, fonts, spacing and radii come only from the design tokens. Components contain no raw colour values.
 - No full-page loaders, except the welcome screen as the plan's feature table describes it. No third-party scripts except the ones the plan names.

@@ -182,3 +182,9 @@ Your plan of 4 Oct 2026 is [foundation-now-changelog-palette.md](foundation-now-
 - **D49. Archives is gone** (4 Oct 2026): out of the menu and the sitemap, its page deleted. Writing already lists every post. Its old addresses, the old site's included, forward to Writing, so links in search results and on other sites still land somewhere.
 - **D50. The Changelog looks like a release log** (after imqi1.com): a card per day, each change with a label for its kind (New, Improved, Design, Fix), so every line now says its kind. The home page ends with a "Changelog" line right across the page; opening it shows the latest three days and "See all changes". The labels' words stay in the text colour (the colour is in the icon and the tint), because coloured words on their tint fell under 4.5:1.
 - **D51. Now's items line up**: the words on the left, a cover (when there is one) at the right.
+
+## About, old posts, visitor counter, game covers and share images
+
+Your plan of 4 Oct 2026 is [about-legacy-counter-images.md](about-legacy-counter-images.md): six parts (0 to 5), one at a time, each its own commit.
+
+- **D52. The design idea bank is read only when you ask** for design ideas or inspiration ([design-ideas.md](design-ideas.md)); it's not a rulebook for every UI change. CLAUDE.md and the file's own "How to use" steps say so.

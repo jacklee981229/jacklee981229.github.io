@@ -665,3 +665,8 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Close the browser tab and open the site again. Expected: still night, from the first moment, without a flash of the old theme.
 5. Ctrl+K: the first item says "Leave the night sky". Or press the star button. Expected: back to the theme you had before (light or dark), or the system's if you never chose. Ctrl+K again: "Starry Night" is offered from now on.
 6. Less motion: in Windows, Settings → Accessibility → Visual effects → Animation effects off, then turn the night on. Expected: the stars and the aurora stand still, nothing twinkles, blinks or shoots, and the switch is instant.
+
+## Idea bank only on request
+
+1. Open `CLAUDE.md` and find `docs/design-ideas.md`. Expected: it says to read the idea bank only when Jack asks for design ideas or inspiration.
+2. Open `docs/design-ideas.md`, "How to use this file". Expected: steps 1 and 4 say the same: only when asked.

@@ -8,10 +8,10 @@ This file collects UI/UX patterns from two reference blogs, for use when designi
 
 ## How to use this file
 
-1. Before designing a page or feature, read **Principles** (section 2) and **Avoid** (section 4).
+1. When Jack asks for design ideas or inspiration, start with **Principles** (section 2) and **Avoid** (section 4).
 2. Pick ideas from the **Catalog** (section 3) and refer to them by ID, e.g. "add C4 unread markers".
 3. Record what was adopted or rejected in **Decisions** (section 6), so later sessions don't start from scratch.
-4. AI assistants working in this repo should check sections 2 and 4 before proposing any UI, suggest ideas by ID, and not implement anything from section 4 unless explicitly asked.
+4. AI assistants working in this repo read this file only when Jack asks for design ideas or inspiration, not before every UI change. When they do, they suggest ideas by ID and don't implement anything from section 4 unless explicitly asked.
 
 **Legend**
 - **Hosting**
