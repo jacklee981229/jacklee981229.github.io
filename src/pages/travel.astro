@@ -39,6 +39,10 @@ const shapes = map.shapes.map((shape, i) => {
   };
 });
 
+// Drawn biggest first, so a small country beside a big one (Taiwan by China) lies on top of it and wins the mouse
+// where their edges meet.
+const layered = [...shapes].sort((a, b) => b.box[2] - b.box[0] + b.box[3] - b.box[1] - (a.box[2] - a.box[0] + a.box[3] - a.box[1]));
+
 // What the globe needs: the countries to colour, and where to face at the start (home).
 const globe = {
   shapes: shapes.map((shape) => ({ name: shape.name, said: shape.said })),
@@ -78,7 +82,7 @@ const globe = {
         <!-- A visited country, bottom to top: the faint mark it leaves on the map, the part that rises under the
              mouse (a soft copy that swells and fades, then the country itself), the shape the mouse is checked
              against (which stays put, so rising can't move the country out from under the mouse), and its name. -->
-        {shapes.map((shape) => (
+        {layered.map((shape) => (
           <div class="place" style={shape.style} data-place={shape.name} aria-hidden="true">
             <svg class="mark" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
             <div class="lift">
@@ -188,11 +192,15 @@ const globe = {
     .place, .places li::before { --colour: color-mix(in oklch, var(--visited-far) calc(var(--step) * 100%), var(--visited-near)); }
   }
   /* The colour is the place's text colour, which its shapes are filled with; the globe reads it from here. */
-  .place { position: absolute; color: var(--colour); }
+  /* Only a country's own shape answers the mouse (.hit below), never its rectangular box: China's box covers Taiwan,
+     and would otherwise take the mouse from it. */
+  .place { position: absolute; color: var(--colour); pointer-events: none; }
   .place:hover { z-index: 2; }
   .place svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
   .place use:not(.scan) { fill: currentColor; }
-  .place .hit use { fill: transparent; pointer-events: fill; }
+  /* The shape the mouse is checked against, with a few pixels to spare all round, so a small country (Taiwan,
+     a few pixels across on a world map) can be found under the mouse. */
+  .place .hit use { fill: transparent; stroke: transparent; stroke-width: 10px; vector-effect: non-scaling-stroke; pointer-events: all; }
   .mark { opacity: 0.3; }
   .shape { stroke: var(--paper); stroke-width: 0.5; stroke-linejoin: round; }
   .scan { opacity: 0; transition: opacity 0.22s ease; }
@@ -200,7 +208,7 @@ const globe = {
 
   /* Under the mouse a place rises out of the map like a picture made of light: a little bigger and higher, a
      bright edge, thin lines across it, and its name over it. */
-  .lift { position: absolute; inset: 0; transform-origin: var(--middle); transition: transform 0.22s ease; }
+  .lift { position: absolute; inset: 0; transform-origin: var(--middle); transition: transform 0.22s ease; pointer-events: none; }
   .place:hover .lift { transform: translateY(-0.35rem) scale(var(--lift-scale)); }
   .place:hover .shape { stroke: color-mix(in srgb, var(--ink) 60%, var(--colour)); stroke-width: 0.9; }
   .place:hover .scan { opacity: 1; }

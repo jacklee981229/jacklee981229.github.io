@@ -21,3 +21,4 @@
 - 2026-10-04 new: Added Surprise me: one click to something at random
 - 2026-10-04 new: Hid a little surprise somewhere
 - 2026-10-04 improved: Folded Archives into [Writing](/writing/), which lists every post
+- 2026-10-04 fix: Made Taiwan easy to point at on the flat [Travel Map](/travel/)
