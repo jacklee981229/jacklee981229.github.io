@@ -730,3 +730,13 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 3. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
 4. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
 5. Press Tab through the home page. Expected: each of these links shows its pill and arrow along with the focus ring.
+
+## 2048 Bot
+
+1. Open http://localhost:4321/lab/game/2048/ and click New game. Click the robot button (Bot). Expected: the game plays itself, about five moves a second; the button turns into a square (Stop).
+2. Click Stop. Expected: it stops at once.
+3. Click Bot again, then press an arrow key. Expected: the bot stops and your move is made. Same with Z (it stops and takes one move back) and New game.
+4. Click Bot and switch to another tab for a moment. Expected: back on the page, the bot has stopped.
+5. Let the bot play until a message comes up. Expected: it stops at "You made 2048!" (Keep going, then Bot again plays on) or "No more moves."; neither message offers the name box, and Best stays where it was.
+6. Reload during a bot game, then play it to the end yourself. Expected: still no name box: a game the bot played in stays off the leaderboard until New game.
+7. On a laptop the buttons above the board are three round icons on the same line as the scores; point at one for its name. On a phone they show their names, on a line under the scores.

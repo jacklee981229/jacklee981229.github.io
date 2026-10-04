@@ -33,6 +33,15 @@
   .g2048 .g2048-buttons { gap: 0.375rem; }
   .g2048 .g2048-buttons .button { padding-inline: var(--space-3); }
 }
+/* Each button is an icon and a name. Where the row would otherwise wrap (a laptop's board, between a phone's width
+   and a wide screen's), the names hide and the buttons are square, so the scores and all three buttons keep one
+   line. On a phone the buttons have a line of their own anyway, so their names show. */
+.g2048 .g2048-buttons .button { gap: 0.375rem; }
+.g2048 .g2048-buttons .icon { width: 18px; height: 18px; }
+@container (min-width: 26rem) and (max-width: 46rem) {
+  .g2048 .g2048-buttons .button { justify-content: center; width: 2.75rem; padding-inline: 0; }
+  .g2048 .g2048-label-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
 .g2048 .g2048-board { position: relative; padding: var(--gap); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
 .g2048 .g2048-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }

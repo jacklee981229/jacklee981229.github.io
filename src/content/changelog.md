@@ -29,3 +29,4 @@
 - 2026-10-04 new: Gave every page its own picture for link previews
 - 2026-10-05 design: Turned the home page into tiles, with a new toy every day
 - 2026-10-05 design: Swapped underlined links for little pills with an arrow
+- 2026-10-05 new: Added a Bot to [Jack's 2048](/lab/game/2048/) that plays the game for you

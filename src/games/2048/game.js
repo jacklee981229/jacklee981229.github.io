@@ -1,9 +1,13 @@
 // 2048 on the "Jack's 2048" post: draws the board and plays the rules from rules.js, with a clock, Undo for the
-// move just made, and the games' leaderboard (../leaderboard.js) for finished games.
+// move just made, and the games' leaderboard (../leaderboard.js) for finished games. Bot plays the game for you
+// (./bot.js); a game it played in is marked, and never reaches the leaderboard or Best (D64 to D67 in
+// docs/plan/done/2048-bot.md).
 // Smoothness: each tile is one element moved by a GPU-friendly transform; joins pop and new tiles appear once
 // the slide ends; a key pressed mid-slide finishes the current step at once, so input never waits for animation.
 import { bringIntoView, onGameKeys, onSwipe } from '../controls.js';
 import { formatTime, leaderboard } from '../leaderboard.js';
+import { ICONS } from '../../lib/icons.js';
+import { botMove } from './bot.js';
 import { move, newGame, SIZE, undo } from './rules.js';
 
 const KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', a: 'left', d: 'right', w: 'up', s: 'down', A: 'left', D: 'right', W: 'up', S: 'down' };
@@ -11,6 +15,12 @@ const SAVED = 'g2048-game';
 const BEST = 'g2048-best';
 // The saved game's time in milliseconds; empty until its first move.
 const TIME = 'g2048-time';
+// The bot's pace: about five moves a second, so each slide can be seen.
+const BOT_MS = 200;
+
+// A button's icon and name. When the row above the board is short of room, the names hide (2048.css) and the icon
+// is what shows; the name stays for screen readers and as the tooltip.
+const face = (icon, label) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[icon]}</svg><span class="g2048-label-text">${label}</span>`;
 
 const store = {
   get: (key) => { try { return localStorage.getItem(key); } catch { return null; } },
@@ -32,8 +42,9 @@ function play(root) {
           <p class="g2048-score g2048-time"><span class="g2048-label">Time</span><strong data-time>00:00.00</strong></p>
         </div>
         <div class="g2048-buttons">
-          <button type="button" class="button" data-undo disabled>Undo</button>
-          <button type="button" class="button" data-new>New game</button>
+          <button type="button" class="button" data-bot aria-pressed="false" title="Bot">${face('bot', 'Bot')}</button>
+          <button type="button" class="button" data-undo title="Undo" disabled>${face('undo', 'Undo')}</button>
+          <button type="button" class="button" data-new title="New game">${face('restart', 'New game')}</button>
         </div>
       </div>
       <div class="g2048-board" tabindex="0" role="application" aria-label="2048 board" aria-describedby="g2048-help">
@@ -41,7 +52,7 @@ function play(root) {
         <div class="g2048-tiles" aria-hidden="true" data-tiles></div>
         <div class="g2048-message" data-message hidden><p data-message-text></p><div data-extra hidden></div><div class="g2048-actions" data-actions></div></div>
       </div>
-      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board. Z undoes one move.</p>
+      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board. Z undoes one move. Bot plays for you; a game it plays in stays off the leaderboard.</p>
     </div>
     <section data-leaderboard></section>
     <p class="visually-hidden" aria-live="polite" data-status></p>`;
@@ -54,12 +65,14 @@ function play(root) {
   const bestEl = $('[data-best]');
   const timeEl = $('[data-time]');
   const undoButton = $('[data-undo]');
+  const botButton = $('[data-bot]');
   const scores = leaderboard($('[data-leaderboard]'), '2048');
   /** @type {Map<number, HTMLElement>} */
   const tiles = new Map();
   const saved = restore();
   let game = saved ?? newGame();
-  let best = Math.max(Number(store.get(BEST)) || 0, game.score);
+  // A game the bot played in (game.bot) never sets Best.
+  let best = Math.max(Number(store.get(BEST)) || 0, game.bot ? 0 : game.score);
   let pending = null;
 
   // The clock runs from a game's first move until no moves are left, and shows the milliseconds as they go. It
@@ -125,7 +138,7 @@ function play(root) {
 
   const showScore = (gained) => {
     scoreEl.textContent = game.score.toLocaleString('en-US');
-    if (game.score > best) {
+    if (game.score > best && !game.bot) {
       best = game.score;
       store.set(BEST, String(best));
     }
@@ -167,6 +180,7 @@ function play(root) {
     board.focus();
   };
   const restart = () => {
+    stopBot();
     finishNow();
     game = newGame();
     store.set(SAVED, JSON.stringify(game));
@@ -183,7 +197,9 @@ function play(root) {
   };
   // Once a name is typed into a message, the focus goes on to the message's first button.
   const toActions = () => $('[data-actions] button').focus();
-  const ended = () => say('No more moves.', [['Try again', restart]], scores.finish(game.score, elapsed(), toActions));
+  // A game the bot played in ends without the leaderboard's name box.
+  const onBoard = () => (game.bot ? undefined : scores.finish(game.score, elapsed(), toActions));
+  const ended = () => say('No more moves.', [['Try again', restart]], onBoard());
 
   // The end of a move (joins, the new tile, messages) waits for the slide, unless another move needs it now.
   const finishNow = () => {
@@ -194,10 +210,11 @@ function play(root) {
     finish();
   };
 
-  const step = (direction) => {
+  const step = (direction, byBot = false) => {
     if (!message.hidden) return;
-    // A board partly off the screen comes fully into view as you play, with its scores.
-    bringIntoView($('.g2048-top'), board);
+    // A board partly off the screen comes fully into view as you play, with its scores. Not for the bot's moves:
+    // the page is yours to scroll while it plays.
+    if (!byBot) bringIntoView($('.g2048-top'), board);
     finishNow();
     const r = move(game, direction);
     if (!r.moved) return;
@@ -225,7 +242,7 @@ function play(root) {
       if (r.spawned) make(r.spawned, 'new');
       // Reaching 2048 goes on the leaderboard straight away, so starting a new game from here keeps it; playing
       // on, the final score replaces it when it's higher.
-      if (wonNow) say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], scores.finish(game.score, elapsed(), toActions));
+      if (wonNow) say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], onBoard());
       else if (game.over) ended();
     };
     if (slideMs) pending = { timer: setTimeout(finishNow, slideMs), finish };
@@ -242,7 +259,8 @@ function play(root) {
     pending = null;
     // The focus can't stay on what's going: a button of the message, or Undo itself as it switches off.
     const refocus = message.contains(document.activeElement) || document.activeElement === undoButton;
-    game = undo(game);
+    // Undo doesn't clear the bot's mark: only a new game does.
+    game = game.bot ? { ...undo(game), bot: true } : undo(game);
     store.set(SAVED, JSON.stringify(game));
     message.hidden = true;
     const kept = new Set(game.tiles.map((t) => t.id));
@@ -263,26 +281,65 @@ function play(root) {
     if (refocus) board.focus();
   };
 
-  // Keys and swipes (../controls.js); a message over the board, where a name may be typed, keeps them.
+  // The bot: one move every BOT_MS, through the same step as the keys. It stops when a message comes up (2048 or
+  // no more moves), when it finds no move, and when you stop it, take over or start a new game (D66).
+  let botTimer = 0;
+  const botOn = () => botTimer !== 0;
+  const showBot = () => {
+    botButton.innerHTML = botOn() ? face('stop', 'Stop') : face('bot', 'Bot');
+    botButton.title = botOn() ? 'Stop' : 'Bot';
+    botButton.setAttribute('aria-pressed', String(botOn()));
+  };
+  const botTurn = () => {
+    finishNow();
+    const direction = message.hidden && !game.over ? botMove(game) : null;
+    if (!direction) return stopBot();
+    step(direction, true);
+    botTimer = setTimeout(botTurn, BOT_MS);
+  };
+  const startBot = () => {
+    if (botOn() || !message.hidden || game.over) return;
+    // The mark goes on before the bot's first move, so Undo keeps it, and is saved with the game.
+    game = { ...game, bot: true };
+    store.set(SAVED, JSON.stringify(game));
+    bringIntoView($('.g2048-top'), board);
+    botTimer = setTimeout(botTurn, 0);
+    showBot();
+    $('[data-status]').textContent = 'The bot is playing.';
+  };
+  function stopBot() {
+    if (!botOn()) return;
+    clearTimeout(botTimer);
+    botTimer = 0;
+    showBot();
+    if (message.hidden) $('[data-status]').textContent = 'The bot stopped.';
+  }
+
+  // Keys and swipes (../controls.js); a message over the board, where a name may be typed, keeps them. A move or
+  // Z while the bot plays takes the game back from it.
   onGameKeys(board, {
     down: (e) => {
       if (e.key === 'z' || e.key === 'Z') {
+        stopBot();
         takeBack();
         return true;
       }
       const direction = KEYS[e.key];
       if (!direction || !message.hidden) return false;
+      stopBot();
       step(direction);
       return true;
     },
   });
-  onSwipe(board, { swipe: step, ignore: () => !message.hidden });
+  onSwipe(board, { swipe: (direction) => { stopBot(); step(direction); }, ignore: () => !message.hidden });
   $('[data-new]').addEventListener('click', restart);
-  undoButton.addEventListener('click', takeBack);
+  undoButton.addEventListener('click', () => { stopBot(); takeBack(); });
+  botButton.addEventListener('click', () => (botOn() ? stopBot() : startBot()));
 
   // Leaving the page stops the clock and saves its time. Coming back with the Back button starts it again; a
   // background tab is still open, so its time goes on counting and is only saved in case the tab gets closed.
   addEventListener('pagehide', () => {
+    stopBot();
     pausedByLeaving = since !== null;
     halt();
     saveTime();
@@ -291,7 +348,11 @@ function play(root) {
     if (e.persisted && pausedByLeaving) run();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveTime();
+    // Leaving the tab stops the bot too: it shouldn't play on where nobody watches.
+    if (document.visibilityState === 'hidden') {
+      stopBot();
+      saveTime();
+    }
   });
 
   drawAll('new');
