@@ -203,6 +203,8 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
       slide.style.transform = `translate(-50%, -50%) translateX(${x}px) scale(${look.scale}) rotateY(${-side * look.turn}deg)`;
       slide.style.filter = look.filter;
       slide.style.opacity = Math.abs(d) > 1 ? '0' : '1';
+      // Out of sight is out of reach too: a click there is on the dark, not on a picture two along.
+      slide.style.pointerEvents = Math.abs(d) > 1 ? 'none' : '';
       slide.style.zIndex = String(3 - Math.min(2, Math.abs(d)));
       slide.classList.toggle('middle', d === 0);
       slide.classList.toggle('beside', Math.abs(d) === 1);

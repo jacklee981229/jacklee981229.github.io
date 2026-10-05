@@ -45,3 +45,5 @@
 - 2026-10-05 improved: Rewrote my [About](/about/) intro and added where I've worked
 - 2026-10-05 new: Added my own notes to things in my [Collection](/collections/)
 - 2026-10-05 new: Swapped the notes in my [Collection](/collections/) for galleries of covers
+- 2026-10-06 new: Gave every game in my [Collection](/collections/) a gallery of its own
+- 2026-10-06 fix: Stopped the [Collection](/collections/) galleries jumping two pictures at a stray click

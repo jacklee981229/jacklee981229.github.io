@@ -7,21 +7,28 @@ items:
   - name: Terraria
     stars: 5
     image: terraria.jpg
+    gallery: [terraria-2.jpg, terraria-3.jpg, terraria-4.jpg, terraria-5.jpg]
   - name: Shape of Dreams
     stars: 5
     image: shape-of-dreams.jpg
+    gallery: [shape-of-dreams-2.jpg, shape-of-dreams-3.jpg, shape-of-dreams-4.jpg, shape-of-dreams-5.jpg]
   - name: "Black Myth: Wukong"
     stars: 4
     image: black-myth-wukong.jpg
+    gallery: [black-myth-wukong-2.jpg, black-myth-wukong-3.jpg, black-myth-wukong-4.jpg, black-myth-wukong-5.jpg]
   - name: Persona 5 Royal
     stars: 5
     image: persona-5-royal.jpg
+    gallery: [persona-5-royal-2.jpg, persona-5-royal-3.jpg, persona-5-royal-4.jpg, persona-5-royal-5.jpg]
   - name: Death Stranding
     stars: 5
     image: death-stranding.jpg
+    gallery: [death-stranding-2.jpg, death-stranding-3.jpg, death-stranding-4.jpg, death-stranding-5.jpg]
   - name: Palworld
     stars: 5
     image: palworld.jpg
+    gallery: [palworld-2.jpg, palworld-3.jpg, palworld-4.jpg, palworld-5.jpg]
   - name: V Rising
     stars: 5
     image: v-rising.jpg
+    gallery: [v-rising-2.jpg, v-rising-3.jpg, v-rising-4.jpg, v-rising-5.jpg]

@@ -822,8 +822,9 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 3. Click the picture on the right. Expected: the pictures slide along; it comes to the middle, sharp, with "2 / 5". Click the one on the left: back to "1 / 5".
 4. Press ← on the first picture. Expected: the last comes round ("5 / 5"). Press →: the first again. ‹ and › do the same.
 5. Press Esc. Expected: the gallery closes and you're back on the page where you were.
-6. Click "Games 7", then Terraria. Expected: for now its gallery is its cover alone, with no side pictures, buttons or count (the games' own pictures come in a later round). Click the dark area around it: the gallery closes.
-7. Open the other movies. Expected: every movie has five pictures, each different.
-8. On a phone: tap a movie. Expected: the middle picture takes most of the width, the side pictures peek in at the edges; a swipe left or right steps along.
-9. A gallery picture that isn't there stops the build: in `src\content\collections\movies\index.yaml`, change `wednesday-2.jpg` to `wednesday-9.jpg` and run `npm run build`. Expected: it stops with `Collections: "Wednesday" in movies asks for the picture "wednesday-9.jpg", but there is no file of that name in src/content/collections/movies/`. Put it back.
-10. Run `npm test`. Expected: `# fail 0`; among the shelves tests, "an item's gallery is its cover, then the pictures its gallery lists, in that order" and "the gallery's pictures step round".
+6. In a window about 1920 px wide, open Teach You a Lesson and click the dark just below ›, past the right picture. Expected: the gallery closes; it doesn't jump two pictures along. Open it again and click the dark just below ‹: it closes the same way.
+7. Click "Games 7", then Terraria. Expected: five pictures, each a different one: the cover, then wide update and anniversary art and a screenshot, each in its own shape; the side pictures keep clear of the middle one. Click the dark area around the pictures: the gallery closes.
+8. Open the other movies and games. Expected: every one has five pictures, each different (V Rising's second is square).
+9. On a phone: tap a movie. Expected: the middle picture takes most of the width, the side pictures peek in at the edges; a swipe left or right steps along.
+10. A gallery picture that isn't there stops the build: in `src\content\collections\movies\index.yaml`, change `wednesday-2.jpg` to `wednesday-9.jpg` and run `npm run build`. Expected: it stops with `Collections: "Wednesday" in movies asks for the picture "wednesday-9.jpg", but there is no file of that name in src/content/collections/movies/`. Put it back.
+11. Run `npm test`. Expected: `# fail 0`; among the shelves tests, "an item's gallery is its cover, then the pictures its gallery lists, in that order" and "the gallery's pictures step round".
