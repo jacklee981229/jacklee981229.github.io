@@ -2,10 +2,15 @@
 // blocks; a train may only go where it has booked, one train to a block. It books the block ahead while it's still
 // far enough back to stop, so the lamps ahead turn amber before it arrives, red as it passes and green again behind
 // it. At a look-ahead signal it books its whole way through the junction, and on until there's room for all of it, or
-// nothing at all, so no train ever waits inside a junction. Drop-offs use up their stock; whenever another load
+// nothing at all, so no train ever waits inside a junction. Where stations stand close, that way can cross several
+// junctions; so the train that has waited longest at a look-ahead signal goes next: no other train may book a junction
+// way on its stretch (or one crossing it) until it has, unless it's already on that stretch, and can clear it. Drop-offs use up their stock; whenever another load
 // would fit, the dispatcher sends the nearest free train from the depot: empty to a pickup of that colour, load,
-// deliver, back to the depot. No more than two trains head for one station at once, so a busy colour has two trains
-// working for it; at a busy station the second waits its turn on the straight before the platform. Trains pick up speed and slow down where you can see it, run fastest along the main
+// deliver, back to the depot. No more than two trains head for one station at once (at a busy one the second waits its
+// turn on the straight before the platform), but a colour has up to four at work: two at or on their way to its
+// pickup, two to its drop-off; a loaded train waits at the pickup's platform while its drop-off has two coming. Add
+// train brings one more onto the railway along the line from outside, to a free siding; Remove train sends a parked
+// one, picked at random, out along it and off the railway (D97). Trains pick up speed and slow down where you can see it, run fastest along the main
 // line, and slow down well before a red. It runs in fixed steps from a seed, so the same seed always plays out the
 // same. Tested by tests/trains.test.js.
 import { seeded } from '../town/layout.js';
@@ -29,11 +34,14 @@ const SHORT = 2;
 const DWELL = 5;
 /** A drop-off's stock: how fast it's used (of a full stock, a second) and what one train brings. */
 const USE = 1 / 80;
-const LOAD = 0.35;
-/** No more than this many trains head for one station at once. */
+const LOAD = 0.2;
+/** No more than this many trains head for one station at once, and this many work for one colour. */
 const LIMIT = 2;
+const JOBS = 4;
 /** A train waiting this many seconds is taken off the network and comes back at the depot (D80). */
 export const STUCK = 120;
+/** A train waiting longer than this at a look-ahead signal, the longest of any, goes next. */
+const FIRST_AFTER = 8;
 
 /**
  * @typedef {import('./layout.js').Network} Network
@@ -44,14 +52,15 @@ export const STUCK = 120;
  * A block (the stretch of a track from one signal to the next) or a way across a junction: what trains book.
  * @typedef {{ part: Track | Path, at: number }} Leg
  * @typedef {{
- *   id: number, phase: 'parked' | 'out' | 'loading' | 'over' | 'unloading' | 'home', length: number,
+ *   id: number, phase: 'parked' | 'out' | 'loading' | 'over' | 'unloading' | 'home' | 'leaving', length: number,
  *   route: (Track | Path)[], starts: number[], pieces: { piece: Piece, a: number, b: number }[], ahead: number, behind: number,
  *   head: number, stop: number, speed: number, colour: number, cargo: number, still: number, until: number,
- *   job: null | { drop: any, pickup: any, platform: import('./layout.js').Stretch }, siding: Track,
+ *   job: null | { drop: any, pickup: any, platform: import('./layout.js').Stretch }, siding: Track, wants: Piece[] | null,
  * }} Train
  * A train's route is the tracks and ways it follows; `head` is how far along it its front is, `stop` where it will
  * stop. `pieces` are the route's blocks and ways in order, with where each starts and ends along it; the train has
- * booked those from `behind` to just before `ahead`.
+ * booked those from `behind` to just before `ahead`. `wants` is the stretch it's waiting to book at a look-ahead
+ * signal, if it is.
  */
 
 /**
@@ -84,7 +93,9 @@ export function startTrains(network, seed) {
   for (const p of network.paths) wayOf.get(p).crosses = p.crosses.map((c) => wayOf.get(c));
 
   // Stations and their stock; the depot's sidings.
-  const stations = network.stations.map((st) => ({ ...st, stock: st.kind === 'drop' ? 0.2 + 0.4 * random() : 1, heading: 0, using: new Set() }));
+  // A pickup's `heading` are the trains at it or on their way there; a drop-off's are all those with a load for it
+  // (loaded or not yet), and its `coming` those on their way with one, or unloading.
+  const stations = network.stations.map((st) => ({ ...st, stock: st.kind === 'drop' ? 0.2 + 0.4 * random() : 1, heading: 0, coming: 0, using: new Set() }));
   const pickupOf = (colour) => stations.find((s) => s.kind === 'pickup' && s.colour === colour);
 
   /** The quickest way from a track to another, as a list of tracks and the ways between them; null if there's none. */
@@ -133,7 +144,7 @@ export function startTrains(network, seed) {
     const first = list.findIndex((p) => keep.has(p.piece));
     let last = first;
     while (last + 1 < list.length && keep.has(list[last + 1].piece)) last++;
-    Object.assign(train, { route, starts, pieces: list, behind: first, ahead: last + 1, head, stop });
+    Object.assign(train, { route, starts, pieces: list, behind: first, ahead: last + 1, head, stop, wants: null });
   };
 
   // Trains start in the depot, one to a siding, the last siding left free.
@@ -141,7 +152,7 @@ export function startTrains(network, seed) {
   const trains = Array.from({ length: network.trains }, (_, id) => {
     const siding = network.depot.sidings[id];
     const block = blocksOf.get(siding)[0];
-    const train = { id, phase: /** @type {Train['phase']} */ ('parked'), length: L, route: [], starts: [], pieces: [{ piece: block, a: 0, b: siding.len }], ahead: 1, behind: 0, head: 0, stop: 0, speed: 0, colour: 0, cargo: 0, still: 0, until: 0, job: null, siding };
+    const train = { id, phase: /** @type {Train['phase']} */ ('parked'), length: L, route: [], starts: [], pieces: [{ piece: block, a: 0, b: siding.len }], ahead: 1, behind: 0, head: 0, stop: 0, speed: 0, colour: 0, cargo: 0, still: 0, until: 0, job: null, siding, wants: null };
     block.owner = train;
     setRoute(train, [siding], siding.len - padAt(k), siding.len - padAt(k));
     return train;
@@ -154,8 +165,9 @@ export function startTrains(network, seed) {
     pieces,
     time: 0,
     /** What happened so far: loads picked up and delivered, trains taken off, the longest any train waited, the
-     *  lowest any stock fell, and how often a train went where it hadn't booked (never, if the rules hold). */
-    stats: { loaded: 0, delivered: 0, removed: 0, longestWait: 0, lowestStock: 1, unbooked: 0 },
+     *  lowest any stock fell, how often a train went where it hadn't booked (never, if the rules hold), and trains
+     *  that came onto the railway and left it. */
+    stats: { loaded: 0, delivered: 0, removed: 0, longestWait: 0, lowestStock: 1, unbooked: 0, joined: 0, left: 0 },
   };
 
   /** Where a train stands in its route: the part and how far along it, for a distance along the route. */
@@ -165,13 +177,15 @@ export function startTrains(network, seed) {
     return { part: train.route[i], s: d - train.starts[i] };
   };
 
-  /** The free sidings: no train in them or on its way. */
-  const freeSidings = () => network.depot.sidings.filter((s) => !trains.some((t) => t.siding === s));
+  /** The free sidings: no train on its way to them, and none in them (one pulling out still holds its siding). */
+  const freeSidings = () => network.depot.sidings.filter((s) => !trains.some((t) => t.siding === s) && !blocksOf.get(s).some((b) => b.owner));
 
   /** Sends a train on: to a station's platform, or to a siding. */
   const send = (train, track, s) => {
     const here = partAt(train, train.head);
-    const route = routeTo(here.part, track);
+    // From partway across a junction, on along that way first.
+    const onward = here.part.kind === 'path' ? routeTo(here.part.to, track) : null;
+    const route = here.part.kind === 'path' ? onward && [here.part, ...onward] : routeTo(here.part, track);
     if (!route) return false;
     // A route that starts partway along a track: the train's distance along it is its place on that track.
     setRoute(train, route, here.s, 0);
@@ -180,6 +194,14 @@ export function startTrains(network, seed) {
     train.stop = at + s;
     return true;
   };
+
+  /** The train that goes next (it has waited longest at a look-ahead signal), and the junction ways no other train
+   *  may book meanwhile: those on its stretch and those crossing them. */
+  let first = null;
+  let stretch = [];
+  let held = new Set();
+  /** Whether a train stands on any of some pieces. */
+  const standsOn = (train, pieces) => train.pieces.slice(train.behind, train.ahead).some((p) => p.a < train.head && p.b > train.head - L && pieces.includes(p.piece));
 
   /** The way through a junction, and on until there's room for the whole train beyond it (or its stop), booked
    *  all together or not at all. */
@@ -202,9 +224,14 @@ export function startTrains(network, seed) {
       if (train.stop >= a && train.stop <= b && train.stop - L >= lastWayEnd) break;
     }
     const free = run.every((piece) => (!piece.owner || piece.owner === train) && piece.crosses.every((c) => !c.owner || c.owner === train));
-    if (!free) return false;
+    const giveWay = first && first !== train && run.some((piece) => held.has(piece)) && !standsOn(train, stretch);
+    if (!free || giveWay) {
+      train.wants = run;
+      return false;
+    }
     for (const piece of run) piece.owner = train;
     train.ahead += run.length;
+    train.wants = null;
     return true;
   };
 
@@ -260,7 +287,7 @@ export function startTrains(network, seed) {
    *  nearest free train in the depot goes, if the pickup has room. */
   const dispatch = () => {
     for (const drop of stations) {
-      if (drop.kind !== 'drop' || drop.heading >= LIMIT || drop.stock + LOAD * (drop.heading + 1) > 1) continue;
+      if (drop.kind !== 'drop' || drop.heading >= JOBS || drop.stock + LOAD * (drop.heading + 1) > 1) continue;
       const pickup = pickupOf(drop.colour);
       if (pickup.heading >= LIMIT) continue;
       const parked = trains.filter((t) => t.phase === 'parked');
@@ -278,10 +305,14 @@ export function startTrains(network, seed) {
     }
   };
 
-  /** What a train does when it has stopped where it was going. */
+  /** What a train does when it has stopped where it was going: out of sight on the line out, it has left. */
   const arrive = (train) => {
     const job = train.job;
-    if (train.phase === 'out') {
+    if (train.phase === 'leaving') {
+      for (const { piece } of train.pieces) if (piece.owner === train) piece.owner = null;
+      trains.splice(trains.indexOf(train), 1);
+      traffic.stats.left++;
+    } else if (train.phase === 'out') {
       Object.assign(train, { phase: 'loading', until: traffic.time + DWELL });
     } else if (train.phase === 'over') {
       Object.assign(train, { phase: 'unloading', until: traffic.time + DWELL });
@@ -291,20 +322,24 @@ export function startTrains(network, seed) {
     return job;
   };
 
-  /** A train done at a platform goes on: from the pickup to the drop-off, or from the drop-off to a free siding. */
+  /** A train done at a platform goes on: from the pickup to the drop-off (once fewer than two are coming there; till
+   *  then it waits, loaded, at the platform), or from the drop-off to a free siding. */
   const leave = (train) => {
     const job = train.job;
     if (train.phase === 'loading') {
+      if (job.drop.coming >= LIMIT) return;
       train.cargo = 1;
       traffic.stats.loaded++;
       job.pickup.heading--;
       job.pickup.using.delete(job.platform.track);
+      job.drop.coming++;
       const platform = job.drop.platforms[0];
       if (send(train, platform.track, platform.s1 - padAt(k))) train.phase = 'over';
     } else if (train.phase === 'unloading') {
       train.cargo = 0;
       job.drop.stock = Math.min(1, job.drop.stock + LOAD);
       job.drop.heading--;
+      job.drop.coming--;
       traffic.stats.delivered++;
       const siding = freeSidings()[0];
       train.siding = siding;
@@ -316,11 +351,12 @@ export function startTrains(network, seed) {
   const takeOff = (train) => {
     for (const { piece } of train.pieces) if (piece.owner === train) piece.owner = null;
     const job = train.job;
-    if (job) {
+    // A train on its way home has delivered: its job no longer counts at either station.
+    if (job && train.phase !== 'home') {
       if (train.phase === 'out' || train.phase === 'loading') {
         job.pickup.heading--;
         job.pickup.using.delete(job.platform.track);
-      }
+      } else job.drop.coming--;
       job.drop.heading--;
     }
     const siding = train.phase === 'home' ? train.siding : freeSidings()[0];
@@ -331,16 +367,70 @@ export function startTrains(network, seed) {
     traffic.stats.removed++;
   };
 
+  // Add train and Remove train, along the line out of the picture.
+  const { line } = network;
+  let nextId = trains.length;
+  /** Trains Add train asked for that are still to come in. */
+  let joining = 0;
+  /** Whether Add train can bring one more: while the depot keeps a siding spare. */
+  const canAdd = () => Boolean(line) && trains.length + joining < network.depot.sidings.length - 1;
+  /** The trains Remove train can send away: parked ones, and empty ones on their way back to the depot. */
+  const idle = () => trains.filter((t) => t.phase === 'parked' || t.phase === 'home');
+  const canRemove = () => Boolean(line) && idle().length > 0;
+
+  /** Add train: one more train will come in along the line from outside, as soon as the line is clear. */
+  const addTrain = () => {
+    if (!canAdd()) return false;
+    joining++;
+    return true;
+  };
+
+  /** Brings in a train Add train asked for: on the line in, out of sight, bound for a free siding; false if the line
+   *  in isn't clear yet. */
+  const bringIn = () => {
+    const block = blocksOf.get(line.in)[0];
+    const siding = freeSidings()[0];
+    if (block.owner || !siding) return false;
+    /** @type {Train} */
+    const train = { id: nextId++, phase: 'home', length: L, route: [], starts: [], pieces: [{ piece: block, a: 0, b: line.in.len }], ahead: 1, behind: 0, head: 0, stop: 0, speed: 0, colour: 0, cargo: 0, still: 0, until: 0, job: null, siding, wants: null };
+    block.owner = train;
+    setRoute(train, [line.in], L + padAt(k), L + padAt(k));
+    if (!send(train, siding, siding.len - padAt(k))) {
+      block.owner = null;
+      return false;
+    }
+    trains.push(train);
+    traffic.stats.joined++;
+    return true;
+  };
+
+  /** Remove train: a train with no work, picked at random, leaves along the line out: out of the depot if it's
+   *  parked, straight there if it was on its way back. Returns the train, or null if none can. */
+  const removeTrain = () => {
+    const free = idle();
+    if (!line || !free.length) return null;
+    const train = free[Math.floor(random() * free.length)];
+    if (!send(train, line.out, line.out.len - padAt(k))) return null;
+    Object.assign(train, { phase: 'leaving', siding: null });
+    return train;
+  };
+
   /** One step of time. */
   const step = () => {
     traffic.time += STEP;
+    if (joining > 0 && bringIn()) joining--;
     for (const st of stations) {
       if (st.kind !== 'drop') continue;
       st.stock = Math.max(0, st.stock - USE * STEP);
       traffic.stats.lowestStock = Math.min(traffic.stats.lowestStock, st.stock);
     }
     dispatch();
-    for (const train of trains) {
+    first = null;
+    for (const t of trains) if (t.wants && t.still > FIRST_AFTER && (!first || t.still > first.still)) first = t;
+    stretch = first ? first.wants : [];
+    held = new Set(stretch.filter((p) => p.kind === 'path').flatMap((p) => [p, ...p.crosses]));
+    // A copy: trains leave the list as they leave the railway.
+    for (const train of [...trains]) {
       if (train.phase === 'parked') continue;
       if (train.phase === 'loading' || train.phase === 'unloading') {
         // Wagons fill (or empty) one after another while it stands at the platform.
@@ -368,7 +458,7 @@ export function startTrains(network, seed) {
     }
   };
 
-  return Object.assign(traffic, { step, partAt });
+  return Object.assign(traffic, { step, partAt, addTrain, removeTrain, canAdd, canRemove });
 }
 
 /** A train's stopping room at each end of a platform or siding, at scale `k`. */

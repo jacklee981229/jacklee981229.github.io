@@ -2,7 +2,8 @@
 // the window, one way on each track, trains keeping left; branches to the stations and to the depot. A station is an
 // outpost whose branch ends in a loop, so trains never reverse, in one of three shapes: a plain loop, a round head, or
 // a loop with two platforms; all three stand straight up from the main line. The depot is a stack of parallel sidings
-// that curve off one track and back onto another. Every piece is a straight or an arc that meets the next one on the same heading, as in
+// that curve off one track and back onto another. A line out leaves the main line and runs out of the picture: trains
+// come onto the railway along it and leave by it (D97). Every piece is a straight or an arc that meets the next one on the same heading, as in
 // a toy train set, so every join is smooth. Where a branch leaves the main line, a look-ahead signal stands at each
 // way in and a plain signal at each way out; a train books its whole way through a junction before it goes in, so no
 // train ever stops inside one. Long stretches are cut into blocks by plain signals. Made to fit the window, a new one
@@ -75,7 +76,10 @@ export const trainLength = (k) => k * (TRAIN.engine + TRAIN.wagons * (TRAIN.coup
  * is the side of the yard the platform's edge is on (1 to the right of that way, -1 to the left).
  * @typedef {{ in: Track, sidings: Track[], out: Track, x: number, y: number, angle: number }} Depot
  * Trains park in the `sidings`, one each. `x`, `y` is a spot beside them for the shed.
- * @typedef {{ width: number, height: number, k: number, colours: number, trains: number, trainLength: number, tracks: Track[], paths: Path[], junctions: Junction[], stations: Station[], depot: Depot }} Network
+ * @typedef {{ in: Track, out: Track }} Line
+ * The line out of the picture: trains come in along `in` and leave along `out`, both running past the window's edge.
+ * @typedef {{ width: number, height: number, k: number, colours: number, trains: number, trainLength: number, tracks: Track[], paths: Path[], junctions: Junction[], stations: Station[], depot: Depot, line: Line | null }} Network
+ * `trains` is how many trains a network starts with; the depot has room for more.
  */
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -200,8 +204,8 @@ function fitTo(W, H) {
 
 /** The places along the main line and the room the branches take, at scale `k` with `colours` colours; null if it doesn't fit. */
 function tryFit(W, H, k, colours) {
-  // Two trains for each colour, and a siding more than there are trains.
-  const storage = 2 * colours + 1;
+  // Four trains for each colour, a siding more than that, and one spare for each colour for the trains Add train brings.
+  const storage = 5 * colours + 1;
   const f = footprints(k, storage);
   const { S } = f;
   const mid = S.margin + S.spacing / 2;
@@ -214,13 +218,14 @@ function tryFit(W, H, k, colours) {
   if (usable < 0) return null;
   const slots = Math.floor(usable / (2 * f.reach + S.gap)) + 1;
   const spacing = slots > 1 ? usable / (slots - 1) : Infinity;
-  // Places the depot takes from stations: beside it on its own side, and across from it if they'd meet in the middle.
+  // Places the depot takes from stations: beside it on its own side, and across from it if they'd meet in the middle;
+  // and the line out takes one.
   const clear = f.half + S.gap;
   const beside = Math.floor((f.depot.left + clear) / spacing) + Math.floor((f.depot.right + clear) / spacing);
   const across = f.depot.reach + (span - S.gap) / 2 + S.gap > span ? 1 + beside : 0;
   // The places across from the two-platform station.
   const facing = f.station.double + f.stationReach + S.gap > span ? 1 + 2 * Math.floor((f.half + f.clear) / spacing) : 0;
-  if (2 * colours + 1 + beside + across + facing > Math.floor(0.8 * 2 * slots)) return null;
+  if (2 * colours + 2 + beside + across + facing > Math.floor(0.8 * 2 * slots)) return null;
   return { ...f, k, colours, storage, slots, spacing, first, usable, mid, span, clear };
 }
 
@@ -295,9 +300,11 @@ export function buildNetwork(width, height, seed) {
   // Each branch is laid out in its own frame: its main line along x, the near track (the one on the branch's side)
   // running towards +x, and the branch going off towards -y. The bottom side's frame is the window's; the top side's
   // is turned half a circle.
+  // The line out goes the other way, out of the picture: its frame is turned round, so there the near track is the
+  // outer one.
   const frameOf = (place) => {
     const y = place.side === 0 ? H - fit.mid : fit.mid;
-    const turn = turnOf(place);
+    const turn = turnOf(place) * (place.out ? -1 : 1);
     return (/** @type {Point[]} */ pts) => pts.map((p) => ({ x: place.x + p.x * turn, y: y + p.y * turn }));
   };
 
@@ -420,6 +427,22 @@ export function buildNetwork(width, height, seed) {
     branches.push({ ways, first: inTrack, last: outTrack });
   }
 
+  // The line out: from a place no station or depot uses, as far from the depot as can be, a branch that runs straight
+  // out of the picture, one track out and one back in, each long enough to hold a whole train out of sight.
+  /** @type {Line | null} */
+  let line = null;
+  {
+    const free = places.filter((p) => !taken.includes(p)).sort((a, b) => Math.abs(b.x - depotAt.x) + (b.side !== depotAt.side ? fit.spacing / 2 : 0) - Math.abs(a.x - depotAt.x) - (a.side !== depotAt.side ? fit.spacing / 2 : 0));
+    if (free.length) {
+      const { j, ways, at } = mainJunction({ ...free[0], out: true });
+      const away = train + 4 * S.pad;
+      const outTrack = track('line out', at(turtle(-S.spacing / 2, -reach, -Math.PI / 2).straight(away).points), j, null);
+      const inTrack = track('line in', at(turtle(S.spacing / 2, -reach - away, Math.PI / 2).straight(away).points), null, j);
+      line = { in: inTrack, out: outTrack };
+      branches.push({ ways, first: outTrack, last: inTrack, out: true });
+    }
+  }
+
   // The main line: the outer track runs clockwise and the inner one anticlockwise, so trains keep left. Each is cut
   // where it meets a junction: from a junction's way out to the next junction's way in is one track.
   const m = S.margin;
@@ -465,9 +488,11 @@ export function buildNetwork(width, height, seed) {
   for (const inner of [true, false]) {
     const loop = loopOf(inner);
     // Each junction's way in and way out on this loop, in the order a train meets them.
-    const stops = branches.map(({ ways }) => {
-      const on = inner ? ways.nearOn : ways.farOn;
-      return { ways, way: on, in: on.points[0], out: on.points[on.points.length - 1] };
+    // A branch's near track is the inner one, but for the line out, which leaves on the outer side.
+    const stops = branches.map(({ ways, out }) => {
+      const near = inner !== Boolean(out);
+      const on = near ? ways.nearOn : ways.farOn;
+      return { ways, near, way: on, in: on.points[0], out: on.points[on.points.length - 1] };
     }).sort((a, b) => around(loop, a.in) - around(loop, b.in));
     stops.forEach((stop, i) => {
       const next = stops[(i + 1) % stops.length];
@@ -475,8 +500,8 @@ export function buildNetwork(width, height, seed) {
       stop.after = t;
       next.before = t;
     });
-    for (const { ways, before, after } of stops) {
-      const [on, into, onto] = inner ? [ways.nearOn, ways.nearIn, ways.outNear] : [ways.farOn, ways.farIn, ways.outFar];
+    for (const { ways, near, before, after } of stops) {
+      const [on, into, onto] = near ? [ways.nearOn, ways.nearIn, ways.outNear] : [ways.farOn, ways.farIn, ways.outFar];
       Object.assign(on, { from: before, to: after });
       into.from = before;
       onto.to = after;
@@ -522,7 +547,7 @@ export function buildNetwork(width, height, seed) {
       const n = Math.max(1, Math.floor(t.len / (2 * train)));
       for (let i = 1; i < n; i++) at.add(t.len * i / n);
     }
-    if (t.from) at.add(0);
+    at.add(0);
     at.delete(t.len);
     for (const s of [...at].sort((a, b) => a - b)) t.signals.push({ s, kind: 'block', x: 0, y: 0 });
     if (t.to) t.signals.push({ s: t.len, kind: 'chain', x: 0, y: 0 });
@@ -546,7 +571,7 @@ export function buildNetwork(width, height, seed) {
     }
   }
 
-  return { width, height, k, colours, trains: storage - 1, trainLength: train, tracks, paths, junctions, stations, depot };
+  return { width, height, k, colours, trains: 4 * colours, trainLength: train, tracks, paths, junctions, stations, depot, line };
 }
 
 /** The screen angle of a heading given in a branch's own frame, where the top side's frame is turned round. */

@@ -1,7 +1,8 @@
 ---
 // The stage an effect plays on: a canvas right across the window. src/effects/stage.js runs it, with the effect's
 // own code (src/effects/<slug>.js), which is fetched only on that effect's page. A Little World (`world`, such as
-// Jack's Town) plays on the same stage, from src/worlds/<slug>.js.
+// Jack's Town) plays on the same stage, from src/worlds/<slug>.js. A world can put buttons of its own beside Pause
+// (the `controls` slot); its code finds them in the stage.
 interface Props {
   slug: string;
   /** What the moving picture shows, for someone who can't see it. */
@@ -12,9 +13,12 @@ interface Props {
 
 const { slug, label, world = false } = Astro.props;
 ---
-<div class="stage" data-stage={slug} data-world={world || undefined} data-fullscreen={world ? 'Show the town on the whole screen' : 'Show the effect on the whole screen'}>
+<div class="stage" data-stage={slug} data-world={world || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
   <canvas role="img" aria-label={label}></canvas>
-  <button type="button" class="button" data-stage-toggle>Pause</button>
+  <div class="controls">
+    <slot name="controls" />
+    <button type="button" class="button" data-stage-toggle>Pause</button>
+  </div>
 </div>
 
 <script>
@@ -45,5 +49,8 @@ const { slug, label, world = false } = Astro.props;
      so a finger on it scrolls the page as anywhere else. */
   .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); }
   .stage[data-world] canvas { touch-action: auto; cursor: default; }
-  .button { position: absolute; top: var(--space-3); right: var(--gutter); padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
+  .controls { position: absolute; top: var(--space-3); right: var(--gutter); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+  .controls :global(.button) { padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
+  .controls :global(.button:disabled) { color: var(--muted); cursor: default; }
+  .controls :global(.button:disabled:hover) { border-color: var(--rule); }
 </style>

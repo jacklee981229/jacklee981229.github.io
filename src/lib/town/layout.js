@@ -49,7 +49,9 @@ export function seeded(seed) {
 
 /**
  * @typedef {{ x: number, y: number }} Point
- * @typedef {{ id: number, x: number, y: number, lanesIn: Lane[], light: null | { offset: number } }} Junction
+ * @typedef {{ id: number, x: number, y: number, lanesIn: Lane[], light: null | { offset: number, axis?: 'h' | 'v', phase?: 'green' | 'amber' | 'clear', since?: number } }} Junction
+ * A junction with a light: `offset` sets which road it starts green for; sim.js keeps what it shows (`axis`, `phase`
+ * and `since`).
  * @typedef {{ id: number, kind: 'lane', from: Junction, to: Junction, dir: Point, axis: 'h' | 'v', start: Point, end: Point, len: number, out: Path[], into: Path[], cars: any[] }} Lane
  * @typedef {{ id: number, kind: 'path', at: Junction, from: Lane, to: Lane, turn: boolean, side: number, points: Point[], lengths: number[], len: number, crosses: Path[], cars: any[] }} Path
  * `side` is the way a path turns: -1 left, 1 right, 0 straight on.

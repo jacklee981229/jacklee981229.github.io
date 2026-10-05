@@ -18,6 +18,7 @@ export const ICONS = {
   back: '<path d="M15 18l-6-6 6-6"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   car: '<path d="M4 15l1.6-4.6A2 2 0 0 1 7.5 9h9a2 2 0 0 1 1.9 1.4L20 15"/><rect x="3" y="15" width="18" height="4" rx="1.5"/><circle cx="7.5" cy="19.5" r="1.5"/><circle cx="16.5" cy="19.5" r="1.5"/>',
+  train: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 10h14M9 13.5h.01M15 13.5h.01M8 17l-2 4M16 17l2 4"/>',
   bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><path d="M9.5 13v2M14.5 13v2"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',

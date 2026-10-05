@@ -25,7 +25,7 @@ const picture = world && pictures[`/src/assets/worlds/${world.slug}.png`]?.defau
     <EffectCover slot="cover" slug={effect.slug} />
   </LabCard>
 ) : world && (
-  <LabCard href={worldUrl(world.slug)} icon="car" name={world.name} description={world.description}>
+  <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description}>
     <span slot="cover" class="cover world" aria-hidden="true">{picture && <Image src={picture} alt="" width={480} />}</span>
   </LabCard>
 )}

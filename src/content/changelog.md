@@ -31,3 +31,9 @@
 - 2026-10-05 design: Swapped underlined links for little pills with an arrow
 - 2026-10-05 new: Added a Bot to [Jack's 2048](/lab/game/2048/) that plays the game for you
 - 2026-10-05 new: Opened Little Worlds in the [Lab](/lab/#little-worlds) with Jack's Town
+- 2026-10-05 new: Opened [Jack's Train World](/lab/world/trains/): trains you can follow, add or remove
+- 2026-10-05 new: Cars in [Jack's Town](/lab/world/town/) now think of where they're going; click one to ask
+- 2026-10-05 new: Added buttons to bring cars into [Jack's Town](/lab/world/town/) or send them away
+- 2026-10-05 fix: Stopped traffic jams in [Jack's Town](/lab/world/town/) on big screens
+- 2026-10-05 improved: Traffic lights in [Jack's Town](/lab/world/town/) now turn green when nobody's coming
+- 2026-10-05 improved: Cars in [Jack's Town](/lab/world/town/) start and stop more gently

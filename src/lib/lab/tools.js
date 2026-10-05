@@ -61,10 +61,13 @@ export const EFFECTS = [
 /**
  * The Little Worlds: things that run by themselves, for watching (D58 in docs/plan/todo/little-worlds-town.md). Each is
  * drawn by src/worlds/<slug>.js on the effects' stage, at /lab/world/<slug>/, and has a picture of itself in
- * src/assets/worlds/<slug>.png for its card and its link previews. `hint` says what there is to see.
+ * src/assets/worlds/<slug>.png for its card and its link previews. `hint` says what there is to see or do, `icon` is
+ * its card's and the palette's icon, `words` are more words the palette finds it by, and `controls` are buttons of
+ * its own beside Pause (its code finds each by its id).
  */
 export const WORLDS = [
-  { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: 'Each car drives to a place of its own colour. Just watch.' },
+  { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: "Click a car to see where it's going, or add and remove cars.", icon: 'car', words: ['traffic', 'cars'], controls: [{ id: 'add-car', label: 'Add car' }, { id: 'remove-car', label: 'Remove car' }] },
+  { slug: 'trains', name: "Jack's Train World", description: 'A little railway whose trains fetch and deliver cargo by themselves.', hint: 'Click a train to follow it, or add and remove trains.', icon: 'train', words: ['railway', 'trains', 'cargo'], controls: [{ id: 'add-train', label: 'Add train' }, { id: 'remove-train', label: 'Remove train' }] },
 ];
 
 /** @param {string} slug */

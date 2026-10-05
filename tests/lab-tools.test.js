@@ -82,8 +82,8 @@ test('every Little World has its code, its picture, its icon and a web-safe addr
     assert.ok(existsSync(new URL(`src/worlds/${w.slug}.js`, ROOT)), `${w.slug}: src/worlds/${w.slug}.js is missing`);
     assert.ok(existsSync(new URL(`src/assets/worlds/${w.slug}.png`, ROOT)), `${w.slug}: src/assets/worlds/${w.slug}.png is missing`);
     assert.ok(w.description.length <= 70 && w.hint.length <= 70, `${w.slug}: keep the description and the hint short`);
+    assert.match(icons, new RegExp(`^\\s+${w.icon}: '`, 'm'), `${w.slug}: the "${w.icon}" icon is missing from src/lib/icons.js`);
   }
-  assert.match(icons, /^\s+car: '/m, 'the "car" icon is missing from src/lib/icons.js');
   assert.equal(worldUrl('town'), '/lab/world/town/');
 });
 

@@ -26,7 +26,7 @@ export async function paletteItems(): Promise<PaletteItem[]> {
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool'] })),
     ...(await experimentPosts()).map((post) => ({ title: post.data.title, group: 'Lab' as const, href: postUrl(post), icon: 'gamepad', description: summaryOf(post), words: ['game', 'play'] })),
     ...EFFECTS.map((e) => ({ title: e.name, group: 'Lab' as const, href: effectUrl(e.slug), icon: 'pointer', description: e.description, words: ['effect'] })),
-    ...WORLDS.map((w) => ({ title: w.name, group: 'Lab' as const, href: worldUrl(w.slug), icon: 'car', description: w.description, words: ['world', 'little world', 'traffic', 'cars'] })),
+    ...WORLDS.map((w) => ({ title: w.name, group: 'Lab' as const, href: worldUrl(w.slug), icon: w.icon, description: w.description, words: ['world', 'little world', ...w.words] })),
   ];
 }
 

@@ -105,13 +105,15 @@ test('every junction has a look-ahead signal at each way in and a plain one at e
   });
 });
 
-test('the network stays inside the window, and no two tracks touch except through a junction', () => {
+test('the network stays inside the window (but for the line out), and no two tracks touch except through a junction', () => {
   each((n, at) => {
     const { tie } = sizesAt(n.k);
+    const out = new Set(n.line ? [n.line.in, n.line.out] : []);
     for (const part of [...n.tracks, ...n.paths]) {
+      if (out.has(part) || out.has(part.from) || out.has(part.to)) continue;
       for (const p of part.points) assert.ok(p.x >= tie && p.y >= tie && p.x <= n.width - tie && p.y <= n.height - tie, `${at}: track outside the window`);
     }
-    for (const t of n.tracks) for (const s of t.signals) assert.ok(s.x >= 0 && s.y >= 0 && s.x <= n.width && s.y <= n.height, `${at}: a signal outside the window`);
+    for (const t of n.tracks) if (!out.has(t)) for (const s of t.signals) assert.ok(s.x >= 0 && s.y >= 0 && s.x <= n.width && s.y <= n.height, `${at}: a signal outside the window`);
     // Tracks' sleepers never overlap: any two points of different tracks are at least two half-sleepers apart.
     const cell = 2 * tie;
     const grid = new Map();
@@ -132,6 +134,32 @@ test('the network stays inside the window, and no two tracks touch except throug
       }
     }
     assert.ok(closest >= cell * 0.99, `${at}: two tracks ${closest.toFixed(1)} px apart`);
+  });
+});
+
+test('a line out of the picture: both its tracks run past the window, each long enough to hide a train, and every siding reaches it and is reached from it', () => {
+  const reachable = (from) => {
+    const seen = new Set([from]);
+    const todo = [from];
+    while (todo.length) {
+      const t = todo.pop();
+      for (const p of t.to?.paths ?? []) if (p.from === t && !seen.has(p.to)) seen.add(p.to), todo.push(p.to);
+    }
+    return seen;
+  };
+  const outside = (n, p) => p.x < 0 || p.y < 0 || p.x > n.width || p.y > n.height;
+  each((n, at) => {
+    assert.ok(n.line, `${at}: no line out`);
+    const { in: into, out } = n.line;
+    // Wholly out of sight, and a train's length or more.
+    for (const t of [into, out]) {
+      assert.ok(t.points.every((p) => outside(n, p)), `${at}: the line out shows in the picture`);
+      assert.ok(t.len >= n.trainLength, `${at}: the line out is too short to hide a train`);
+    }
+    assert.equal(out.to, null, `${at}: the line out goes on somewhere`);
+    assert.equal(into.from, null, `${at}: the line in comes from somewhere`);
+    for (const siding of n.depot.sidings) assert.ok(reachable(siding).has(out), `${at}: a siding with no way out`);
+    assert.ok(n.depot.sidings.every((s) => reachable(into).has(s)), `${at}: a siding the line in can't reach`);
   });
 });
 
@@ -202,6 +230,53 @@ for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2], [1920, 1000, 3], [768
     assert.equal(stats.loaded - stats.delivered, trains.filter((t) => t.phase === 'over' || t.phase === 'unloading').length);
     assert.ok(stats.delivered > 24 * 30, `${stats.delivered} deliveries in a day`);
     assert.ok(jump <= TOP * k * STEP + 1e-6, `a train jumped ${jump.toFixed(2)} px in a step`);
+  });
+}
+
+// Add train and Remove train (TR7).
+for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2]]) {
+  test(`Add train and Remove train on a ${w} by ${h} network: trains come on and leave out of sight along the line out, and the railway runs as safely full`, () => {
+    const network = buildNetwork(w, h, seed);
+    const traffic = startTrains(network, seed);
+    const { k } = network;
+    const outside = (p) => p.x < 0 || p.y < 0 || p.x > w || p.y > h;
+    // As many brought in as the depot takes, with a siding to spare.
+    let added = 0;
+    while (traffic.addTrain()) added++;
+    assert.equal(traffic.trains.length + added, network.depot.sidings.length - 1);
+    let was = new Map(traffic.trains.map((t) => [t, carsOf(t, t.head, k)[0]]));
+    const count = { shared: 0, touching: 0, appearedInSight: 0, vanishedInSight: 0, sent: 0 };
+    for (let i = 0; i < (6 * 3600) / STEP; i++) {
+      // Every ten minutes one is sent away, and five minutes later one is brought in.
+      if (i % 12000 === 6000 && traffic.removeTrain()) count.sent++;
+      if (i % 12000 === 0) traffic.addTrain();
+      traffic.step();
+      const now = new Map(traffic.trains.map((t) => [t, carsOf(t, t.head, k)[0]]));
+      for (const [t, engine] of now) if (!was.has(t) && !outside(engine)) count.appearedInSight++;
+      for (const [t, engine] of was) if (!now.has(t) && !outside(engine)) count.vanishedInSight++;
+      was = now;
+      if (i % 20) continue;
+      const on = new Map();
+      for (const t of traffic.trains) {
+        for (const p of t.pieces) {
+          if (!(p.a < t.head && p.b > t.head - t.length)) continue;
+          if (on.has(p.piece) && on.get(p.piece) !== t) count.shared++;
+          on.set(p.piece, t);
+        }
+      }
+      if (i % 80) continue;
+      const cars = traffic.trains.map((t) => carsOf(t, t.head, k));
+      for (let a = 0; a < cars.length; a++) for (let b = a + 1; b < cars.length; b++) for (const x of cars[a]) for (const y of cars[b]) if (touching(x, y, x.width)) count.touching++;
+    }
+    const { stats } = traffic;
+    assert.ok(stats.joined >= added && stats.left >= count.sent - 1 && count.sent > 20, `${stats.joined} came on, ${stats.left} left, ${count.sent} sent away`);
+    assert.equal(count.appearedInSight, 0, 'a train appeared in sight');
+    assert.equal(count.vanishedInSight, 0, 'a train vanished in sight');
+    assert.equal(count.shared, 0, 'two trains in one block');
+    assert.equal(count.touching, 0, 'two trains touching');
+    assert.equal(stats.unbooked, 0, 'a train where it had not booked');
+    assert.equal(stats.removed, 0, 'trains taken off');
+    assert.ok(stats.longestWait < STUCK, `a train waited ${stats.longestWait.toFixed(0)}s`);
   });
 }
 

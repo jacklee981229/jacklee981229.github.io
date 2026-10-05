@@ -5,7 +5,8 @@
 // trains, an engine and three wagons that fill with their cargo's colour at a pickup and empty at a drop-off. What
 // never moves is drawn once into a picture of its own and laid down each frame. The trains move in fixed steps and
 // are drawn between two steps, so they glide at any frame rate. Click a train and the view glides in on it and
-// follows it (src/lib/trains/view.js); click anywhere else, or press Esc, and it glides back out. Zoomed in, what never
+// follows it (src/lib/trains/view.js); click anywhere else, or press Esc, and it glides back out. The page's Add train
+// and Remove train buttons bring a train onto the railway along the line from outside, and send a parked one off. Zoomed in, what never
 // moves is drawn afresh each frame, only what's in view, so it stays sharp. The stage's --c1 to --c3 are the cargo
 // colours, --c5 to --c7 the signals' go, wait and stop, and --c8 the ground (the same as the Town's).
 import { buildNetwork, sizesAt } from '../lib/trains/layout.js';
@@ -337,6 +338,14 @@ export default function trains(stage) {
   canvas.addEventListener('pointermove', (e) => { mouse = e.pointerType === 'mouse' ? pointOf(e) : null; });
   canvas.addEventListener('pointerleave', () => { mouse = null; });
 
+  // The page's buttons: Add train brings one more onto the railway, Remove train sends a parked one off it. Each greys
+  // out while it can't.
+  const stageRoot = canvas.closest('[data-stage]');
+  const addButton = /** @type {HTMLButtonElement | null} */ (stageRoot?.querySelector('[data-control="add-train"]') ?? null);
+  const removeButton = /** @type {HTMLButtonElement | null} */ (stageRoot?.querySelector('[data-control="remove-train"]') ?? null);
+  addButton?.addEventListener('click', () => traffic.addTrain());
+  removeButton?.addEventListener('click', () => traffic.removeTrain());
+
   return {
     frame(dt) {
       behind += dt;
@@ -344,6 +353,10 @@ export default function trains(stage) {
         tick();
         behind -= STEP;
       }
+      // A train that has left the railway can't be followed.
+      if (followed && !traffic.trains.includes(followed)) follow(null);
+      if (addButton && addButton.disabled === traffic.canAdd()) addButton.disabled = !traffic.canAdd();
+      if (removeButton && removeButton.disabled === traffic.canRemove()) removeButton.disabled = !traffic.canRemove();
       // The view: gliding, smoothly in and out, from where it was to where it's going; then there.
       const target = followed ? viewOn(network, followed, headOf(followed)) : whole(network);
       glided = Math.min(GLIDE, glided + dt);

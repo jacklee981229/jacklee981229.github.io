@@ -21,13 +21,16 @@ const picture = pictures[`/src/assets/worlds/${world.slug}.png`]?.default;
 // What the moving picture shows, for someone who can't see it.
 const LABELS: Record<string, string> = {
   town: 'A small town seen from above: roads with traffic lights, coloured houses and shops, and cars driving between them, backing out of drives, parking, and coming and going along the roads out of town.',
+  trains: 'A train network seen from above: a double-track main line round the edge, with branches to stations and a depot, and trains carrying coloured cargo between the stations.',
 };
 ---
 <Base title={world.name} description={world.description} image={picture} area="lab">
   <div class="wrap top">
     <LabHeader compact title={world.name} description={`${world.description} ${world.hint}`} back="/lab/#little-worlds" />
   </div>
-  <EffectStage slug={world.slug} world label={LABELS[world.slug] ?? world.description} />
+  <EffectStage slug={world.slug} world label={LABELS[world.slug] ?? world.description}>
+    {'controls' in world && world.controls?.map((c) => <button slot="controls" type="button" class="button" data-control={c.id}>{c.label}</button>)}
+  </EffectStage>
   <LabMore current={world.slug} />
 </Base>
 

@@ -749,19 +749,40 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Watch a junction for a minute. Expected: cars stop at red (brake lights on), go on green, queue behind each other, signal before turning, and keep to the left. No car drives through another.
 5. Watch a road that runs off the edge. Expected: cars drive in from beyond the edge and out past it; none pops up or disappears inside the town.
 6. Click Pause, then Play. Expected: the town stops and carries on. Switch to the light theme: the same town in light colours.
-7. Run the simulation's tests: `node --test tests/town.test.js`. Expected: `# pass 10`, about half a minute (four towns each run a whole day).
+7. Run the simulation's tests: `node --test tests/town.test.js`. Expected: `# pass 20`, about a minute (five towns each run a whole day, one of them a 12 by 5 town whose queues used to lock up; then thought bubbles, and Add car and Remove car).
 8. Open http://localhost:4321/lab/. Expected: a Little Worlds button among the section links; it jumps to a Little Worlds section after Effects with Jack's Town's card (a picture of the town); the card opens the town.
 9. Press Ctrl+K and type `town`. Expected: Jack's Town under Lab. http://localhost:4321/sitemap.txt lists `/lab/world/town/`.
 
-## Jack's Train World (hidden)
+## Jack's Town: thought bubbles
 
-1. Open http://localhost:4321/lab/world/trains/. Expected: a train set seen from above fills the window under the Lab header: a double-track main line round the edge; outposts off its top and bottom, each standing straight up from it, in three shapes (a plain loop, a round head, a loop with two platforms), each with its yard (crates in a colour at a pickup, a building in a colour at a drop-off, with a stock bar on its roof); a depot of parallel sidings beside a shed; and six trains (four on a phone), each a dark engine and three grey wagons, most of them already running.
+1. Open http://localhost:4321/lab/world/town/ in the dark theme and watch for half a minute. Expected: now and then a driving car shows a thought cloud above it (in the page's colour, with a thin outline and a soft shadow): first a small circle by the car, then a middle one, then the cloud puffs out; about five seconds later it fades. Only a few at a time (one for every eight homes, at most four), and never two touching.
+2. Look inside the clouds. Expected: where that car is heading: a tiny copy of a place in its colour, ring and all; a little house in its home's colour when it's going home; a hand waving bye-bye, in amber, when it's leaving town. Parked cars and cars backing out don't think of their own accord.
+3. Watch a long queue at a junction. Expected: a car that has stood still longer than a red light lasts (15 seconds) shows the red anger mark in a cloud until it moves on; then that cloud fades.
+4. Click Pause while a bubble is popping up or fading. Expected: it freezes with the cars; Play carries on from there.
+5. Switch to the light theme. Expected: white clouds with a grey outline; the clouds read in both themes.
+6. Run the town's tests: `node --test tests/town.test.js`. Expected: `# pass 20`; tests 12 to 17 are the bubbles' (the traffic plays out exactly the same with them, and four towns each run three hours of them, with clicks).
+
+## Jack's Town: clicks, Add car and Remove car
+
+1. Open http://localhost:4321/lab/world/town/. Expected: Add car, Remove car and Pause at the top right; the line under the title ends "Click a car to see where it's going, or add and remove cars."
+2. Point at a moving car. Expected: the pointer is a hand. Click it (tap on a phone): its thought pops up at once and stays about five seconds. Click a parked car that isn't about to leave: nothing.
+3. Click Remove car. Expected: a parked car somewhere pops up a bye-bye hand, backs out when there's a gap and drives off out of town; it doesn't come back.
+4. Click Add car a few times. Expected: within a few seconds, cars drive in along the roads from beyond the edge; one heads for the home emptied in step 3 and parks there, the others stay in town, driving from place to place in their colour. Keep clicking: after half as many again as the town has homes (eleven in a town of 22 homes), Add car greys out.
+5. Watch the full town for a few minutes. Expected: busy, but no car stands still for a minute or disappears; now and then a car that has waited long at a junction turns another way.
+6. Watch a car pull away from a stop line, and another come up to a red. Expected: it picks up speed over about two seconds, and slows to a stop over about a second, starting well before the line.
+7. Watch a junction with a light where only one road has cars. Expected: its light stays green for that road. When a car comes up on the other road, the green goes over to it within a few seconds (amber, a moment of red for both, then green), unless cars keep coming on the green road; then it waits until they've had about 9 seconds.
+8. Run the town's tests: `node --test tests/town.test.js`. Expected: `# pass 20`; the last three are Add car and Remove car's.
+
+## Jack's Train World
+
+1. Open http://localhost:4321/lab/ and click Jack's Train World under Little Worlds (a train icon, and a picture of a network). Expected: the address is /lab/world/trains/; under the Lab header, a train set seen from above fills the window under the Lab header: a double-track main line round the edge; outposts off its top and bottom, each standing straight up from it, in three shapes (a plain loop, a round head, a loop with two platforms), each with its yard (crates in a colour at a pickup, a building in a colour at a drop-off, with a stock bar on its roof); a depot of parallel sidings beside a shed; and twelve trains (eight on a phone), each a dark engine and three grey wagons, most of them already running.
 2. Watch a train leave a platform. Expected: it pulls away slowly and picks up speed for about three seconds; along the main line it runs fastest, without slowing where it goes straight on past a station's junction; it slows down for about two seconds before it stops, and well before a red. The lamps ahead of it turn amber before it arrives and red as it passes, green again behind it; it never stops inside a junction.
 3. Watch a pickup. Expected: a train stops at the platform and its wagons fill with the pickup's colour one after another; it then goes to the drop-off of that colour, where the wagons empty and the drop-off's stock bar fills up; then it goes back to a siding in the depot.
-4. Watch a drop-off's bar. Expected: it shrinks (a full bar lasts about 80 seconds); whenever there's room on it for another load (about a third of the bar), a train sets off from the depot for it, and a second one if there's room for one more before the first arrives. Each delivery fills about a third of the bar.
+4. Watch a drop-off's bar. Expected: it shrinks (a full bar lasts about 80 seconds); whenever there's room on it for another load (a fifth of the bar), a train sets off from the depot for it, up to four at once. A loaded train waits at its pickup's platform while two are already on their way to the drop-off. Each delivery fills a fifth of the bar.
 5. Reload a few times. Expected: a different network each time, stations spread along the main line. Make the window narrow or open it on a phone: the network stands upright with two colours.
 6. Click Pause, then Play; switch between light and dark. Expected: it stops and carries on; the same network in the theme's colours.
 7. Click a train (tap it on a phone). Expected: over a train the pointer is a hand; the view glides in until the whole train fills about half the stage, then follows it, the train staying in the middle while the network slides past (near the edge, the page's colour shows beyond the network). Click another train in view: the view glides over to it.
 8. Click anywhere that isn't a train, or press Esc. Expected: the view glides back out to the whole network.
-9. Run its tests: `node --test tests/trains.test.js`. Expected: `# pass 16`, in about fifteen seconds (five networks each run a whole day).
-10. It isn't in the Lab, the sitemap or search engines yet: http://localhost:4321/sitemap.txt has no `/lab/world/trains/`.
+9. Run its tests: `node --test tests/trains.test.js`. Expected: `# pass 19`, in under a minute (five networks each run a whole day; two more run six hours with trains joining and leaving).
+10. Find the line out: a pair of tracks curving off the main line and out past the window's edge. Click Add train. Expected: a few seconds later a train comes in along it from beyond the edge, joins the main line and parks in the depot; Add train greys out once the depot has a single siding to spare (fifteen trains; ten on a phone). Click Remove train. Expected: a train with no work (parked, or empty on its way back) heads for the line out and leaves the picture along it; Remove train greys out while every train is busy.
+11. It's listed wherever the Lab's items are: http://localhost:4321/sitemap.txt has `/lab/world/trains/`; the palette (Ctrl+K) finds it when you type `train` or `railway`; on its page, the palette's Fullscreen says "Show this world on the whole screen".
