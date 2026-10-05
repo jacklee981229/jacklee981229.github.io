@@ -572,12 +572,12 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    Expected: "63 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
 2. Look at the menu. Expected: Home, Writing, Lab, Collection, Travel, About (Archives was removed on 4 Oct). On a phone the menu slides sideways, and opens with the current page's word in view.
 3. Open http://localhost:4321/collections/. Expected: "Jack's Collection" as big as "Jack's Lab" on the Lab page, "Things I like, kept where I can look at them." under it, and under that two tabs, "Movies 8" (filled in) and "Games 7". Then a board with the eight movies: five in a row, the other three in the middle under them, 48 px apart. Each has its poster, its name in the middle under it, and its stars under that. One thin line runs between the two rows, under the first row's stars: none between a poster and its own name.
-4. Rest the mouse on an item. Expected: it grows a little at once. After about two seconds a small note opens on its right with its name, its stars and "No comment yet." (for the last item of a row, on its left). Move to the item beside it: that one's note comes at once. Move the mouse away: the note closes. The note's stars are the same as the ones under the name: on a four-star item, four filled and the fifth a faint shadow.
+4. Rest the mouse on an item. Expected: it grows a little at once. After about two seconds a small note opens on its right with its name, its stars and your comment, or "Great movie!" ("Great game!" on Games) for an item without one (for the last item of a row, on its left). Move to the item beside it: that one's note comes at once. Move the mouse away: the note closes. The note's stars are the same as the ones under the name: on a four-star item, four filled and the fifth a faint shadow.
 5. Click an item. Expected: its note opens without the wait. Esc, or a click somewhere else, closes it.
 6. Click "Games 7". Expected: the tab fills in at once, and the board turns like two cards on a round table, clockwise seen from above: Movies swings away to the left and round to the back, the back of the Games card shows on the right, and Games comes round to the front. It takes about a second. Then the seven games: five in a row, two in the middle under them.
 7. Click "Movies 8". Expected: the table turns back the other way.
 8. Open http://localhost:4321/collections/#games. Expected: the page opens on Games, without a turn.
-9. A comment shows in the note. With `npm run dev` running, add a line `    comment: Testing the note.` under an item's `image:` line in `src\content\collections\games\index.yaml`, reload http://localhost:4321/collections/#games and rest the mouse on that item. Expected: the note says "Testing the note." in place of "No comment yet." Take the line out again.
+9. A comment shows in the note. With `npm run dev` running, add a line `    comment: Testing the note.` under an item's `image:` line in `src\content\collections\games\index.yaml`, reload http://localhost:4321/collections/#games and rest the mouse on that item. Expected: the note says "Testing the note." in place of "Great game!" Take the line out again.
 10. Open http://localhost:4321/travel/. Expected: "Jack's Travel Map" as big as "Jack's Lab", "5 places so far." under it, and under that a Globe | Flat switch with Globe filled in. The page opens on a globe facing Malaysia, turning slowly by itself, with four countries coloured: Malaysia red, Thailand orange, Taiwan amber, China yellow. No dot. Under it the five names with their colours, from home outward: Malaysia, Singapore, Thailand, Taiwan, China. (Singapore is too small to draw on a map of the world, so it's only named.) The whole globe and the names fit in the window, and the pointer over the globe is the ordinary arrow.
 11. Watch the coloured countries for ten seconds. Expected: they breathe gently: a faint glow around them swells and fades, about five seconds for a breath in and out.
 12. Move the mouse onto a coloured country. Expected: the globe holds still, and the country rises from its surface like a picture made of light: a little bigger, thin lines across it, a brighter edge, a faint mark left where it was, and its name over it in capitals ("CHINA"). Its glow breathes harder while the others stay gentle. Move away: it settles, and the globe turns on.
@@ -686,16 +686,9 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 
 ## About
 
-1. Open http://localhost:4321/about/. Expected: the intro, then cards: What I work with (Languages, Frameworks, Tools), Things I like (five covers from the Collection, then a line to My Collection and one to My Travel Map with the five places), Find me (Resume, LinkedIn, GitHub, Email) and This site (running since 23 Feb 2023, and a link to the Changelog). Two cards side by side on a desktop; one under another on a phone.
-2. Add your work: in `src\content\pages\about.md`, replace `work: []` with entries like
-   ```yaml
-   work:
-     - role: Senior Software Engineer
-       place: Squarebox Technology
-       years: 2022 – now
-   ```
-   With `npm run dev` running, reload http://localhost:4321/about/. Expected: a Work card with each entry: the role, the place under it, the years on the right.
-3. Change the intro or the tools in the same file: the page follows after a reload.
+1. Open http://localhost:4321/about/. Expected: the intro, then cards: Work (until 5 Oct 2026 this was What I work with, now hidden), Things I like (five covers from the Collection, then a line to My Collection and one to My Travel Map with the five places), Find me (Resume, LinkedIn, GitHub, Email) and This site (running since 23 Feb 2023, and a link to the Changelog). Two cards side by side on a desktop; one under another on a phone.
+2. Change your work: in `src\content\pages\about.md`, edit the entries under `work:` (each a `role`, `place` and `years`). With `npm run dev` running, reload http://localhost:4321/about/. Expected: the Work card follows: the role, the place under it, the years on the right. With `work: []` the card goes away.
+3. Change the intro in the same file, or give `tools:` groups again (`- group: Languages` with `items: [C#, Dart]` under it): the page follows after a reload, and What I work with comes back.
 
 ## Visitor counter: GoatCounter only
 
@@ -787,3 +780,33 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 10. Find the line out: a pair of tracks curving off the main line and out past the window's edge. Click Add train. Expected: a few seconds later a train comes in along it from beyond the edge, joins the main line and parks in the depot; Add train greys out once the depot has a single siding to spare (fifteen trains; ten on a phone). Click Remove train. Expected: a train with no work (parked, or empty on its way back) heads for the line out and leaves the picture along it; Remove train greys out while every train is busy.
 11. Switch to the dark theme (or find the night sky). Expected: every running train's headlight throws a soft cone of warm light along the track ahead, brightening it; trains parked in the depot are dark; every signal lamp glows in its colour. Follow a train: its beam leads the way. Switch back to light: no beams or glow.
 12. It's listed wherever the Lab's items are: http://localhost:4321/sitemap.txt has `/lab/world/trains/`; the palette (Ctrl+K) finds it when you type `train` or `railway`; on its page, the palette's Fullscreen says "Show this world on the whole screen".
+
+## Newest changes first, and Little Worlds counted
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "65 page(s) built", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/ at full width. Expected: the Lab tile's line, beside "Lab" on one line, reads "7 tools · 4 games · 18 effects · 2 worlds".
+3. Look at Latest changes. Expected: 5 Oct 2026, with the last four lines written that day, the newest on top: "Added my own notes to things in my Collection", then "Rewrote my About intro…", "Lit up Jack's Town in the dark theme…" and "Counted Little Worlds in the Lab tile on the home page".
+4. Click See all. Expected: every day's card lists its changes newest first: 5 Oct 2026 starts with "Added my own notes to things in my Collection" and ends with "Turned the home page into tiles, with a new toy every day"; 4 Oct starts with "Gave every page its own picture for link previews".
+5. Open `src\content\changelog.md`. Expected: its top line says to add new lines at the bottom.
+6. Run `npm test`. Expected: `# fail 0`; the first changelog test is called "changes come out newest first, a day's later lines first".
+
+## Jack's Town at night
+
+1. With the built site running, open http://localhost:4321/lab/world/town/ and switch to the dark theme (the moon at the top right). Expected: every stop line glows softly in its colour; every home has two lit windows on the side facing its road and every place eight along its roof, each in a dark frame with a soft glow round it. The cars have no headlights.
+2. Press Ctrl+K and type the secret word for the night sky. Expected: the same lights on the night sky's colours.
+3. Switch to the light theme. Expected: no glows or windows: the town looks exactly as before.
+4. Run the town's tests: `node --test tests/town.test.js`. Expected: `# pass 20`, the same tests as before.
+
+## About and Collection words
+
+1. With the built site running, open http://localhost:4321/about/. Expected: the intro reads "Hi, I'm Jack, a senior software engineer at Squarebox Technology in Malaysia. For fun, I build little tools, games and worlds in the Lab. You'll also find the games and shows I like, and the places I've been." Then the Work card: Senior Software Engineer, Squarebox Technology, Nov 2023 – now; Software Developer, CP Development (M) Sdn. Bhd., Dec 2020 – Nov 2023. Then Things I like, Find me and This site; no What I work with. On a phone, each job's years sit under it, so the role and the place each stay on one line.
+2. Open http://localhost:4321/. Expected: the tagline under the title is still "Things I build, play and love."
+3. Open http://localhost:4321/collections/ and click Stranger Things. Expected: its note says "I like Millie Bobby Brown. And I love Eleven. I like the vibe. And I love the story. Love it."
+4. Click 逐玉, then Teach You a Lesson. Expected: your Chinese words, exactly as you typed them.
+5. Click The Uncanny Counter. Expected: "Great movie!" Then on the Games tab, click Terraria. Expected: "Great game!"

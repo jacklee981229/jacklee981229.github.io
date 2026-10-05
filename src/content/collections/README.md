@@ -22,7 +22,7 @@ The rules:
 - **Stars:** from 1 to 5, halves allowed: `4` or `4.5`.
 - **Picture:** a `.jpg`, `.jpeg`, `.png` or `.webp` file, named exactly as the file is, capital letters included. Leave the `image:` line out and the item gets a plain cover with its name.
 - **Picture shape:** every cover is shown as a poster, 2 wide by 3 tall. A wider picture loses its sides. Any size works: the site makes its own small copy.
-- **Comment:** your own words on the item, shown in the note that opens beside it (rest the mouse on the item, or tap it). Leave the `comment:` line out and the note says "No comment yet."
+- **Comment:** your own words on the item, shown in the note that opens beside it (rest the mouse on the item, or tap it). Leave the `comment:` line out and the note says "Great movie!" in Movies and "Great game!" in Games (in another collection, "Great" and its name without the last "s").
 - **A name or a comment with a colon or a `#`** goes in quotes: `name: "Part Two: The Return"`.
 
 A mistake stops the build with a message that names the item: stars out of range, a picture that isn't there, or a picture of another type.

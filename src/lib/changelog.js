@@ -22,8 +22,8 @@ export const KINDS = {
 /** @typedef {{ day: string, kind: keyof typeof KINDS, text: string }} Change */
 
 /**
- * The changes, newest first; changes on the same day keep their order in the file. Each line is
- * "- YYYY-MM-DD kind: text", the kind one of KINDS.
+ * The changes, newest first. New lines go at the bottom of the file, so on the same day a later line is a newer change
+ * and comes first. Each line is "- YYYY-MM-DD kind: text", the kind one of KINDS.
  * @param {string} text the file
  * @returns {Change[]}
  */
@@ -37,8 +37,9 @@ export function readChangelog(text) {
     }
     return { day, kind: /** @type {keyof typeof KINDS} */ (kind), text: what };
   });
-  // Array.prototype.sort keeps equal items in their order, so a day's changes stay as written.
-  return changes.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+  // Turned round, the file reads newest line first; Array.prototype.sort keeps equal items in their order, so a day's
+  // later lines stay ahead of its earlier ones.
+  return changes.reverse().sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
 }
 
 /** Newest-first changes grouped by day, a card each. @param {Change[]} changes */

@@ -1,4 +1,4 @@
-// Jack's Town's traffic (D60 to D62 in docs/plan/todo/little-worlds-town.md): every car lives at a home, parked nose
+// Jack's Town's traffic (D60 to D62 in docs/plan/done/little-worlds-town.md): every car lives at a home, parked nose
 // in on its drive. When its wait is over it backs out onto the lane, drives to a free bay at a place of its home's
 // colour, turns in and parks there a while, then backs out again and drives home. Now and then it drives out of town
 // instead, and comes back a while later. Visitors come in along the roads out of town, park at a place of their

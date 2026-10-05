@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { KINDS, byDay, byYear, isDay, readChangelog } from '../src/lib/changelog.js';
 
-test('changes come out newest first, a day keeping its order in the file', () => {
+test("changes come out newest first, a day's later lines first", () => {
   const changes = readChangelog('<!-- note -->\n- 2026-09-26 new: Rebuilt\n- 2026-10-02 new: First that day\n- 2023-02-23 new: Started\n- 2026-10-02 fix: Second that day');
-  assert.deepEqual(changes.map((c) => c.text), ['First that day', 'Second that day', 'Rebuilt', 'Started']);
+  assert.deepEqual(changes.map((c) => c.text), ['Second that day', 'First that day', 'Rebuilt', 'Started']);
 });
 
 test('each change has its kind; the text may hold colons and links', () => {
@@ -33,7 +33,7 @@ test('real days only', () => {
 
 test('grouped by day, and by year then day, newest first', () => {
   const changes = readChangelog('- 2023-02-23 new: A\n- 2026-09-26 new: B\n- 2026-10-01 new: C\n- 2026-10-01 fix: D');
-  assert.deepEqual(byDay(changes).map((d) => [d.day, d.changes.map((c) => c.text)]), [['2026-10-01', ['C', 'D']], ['2026-09-26', ['B']], ['2023-02-23', ['A']]]);
+  assert.deepEqual(byDay(changes).map((d) => [d.day, d.changes.map((c) => c.text)]), [['2026-10-01', ['D', 'C']], ['2026-09-26', ['B']], ['2023-02-23', ['A']]]);
   assert.deepEqual(byYear(changes).map((y) => [y.year, y.days.map((d) => d.day)]), [['2026', ['2026-10-01', '2026-09-26']], ['2023', ['2023-02-23']]]);
 });
 

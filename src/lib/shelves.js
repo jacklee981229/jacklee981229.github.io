@@ -19,6 +19,13 @@ export const starFills = (stars) => Array.from({ length: MOST_STARS }, (_, i) =>
 export const starsLabel = (stars) => `${stars} out of ${MOST_STARS} stars`;
 
 /**
+ * What an item's note says when Jack hasn't written a comment on it, from its collection's name: "Great movie!" in
+ * Movies, "Great game!" in Games (D107 in docs/plan/done/home-fixes-town-night-words.md).
+ * @param {string} name the collection's name
+ */
+export const defaultComment = (name) => `Great ${name.toLowerCase().replace(/s$/, '')}!`;
+
+/**
  * The picture an item names, out of the pictures found in the collections' folders (`pictures`: each one under
  * its path from the project's top, such as /src/content/collections/movies/poster.jpg). Nothing when the item
  * names no picture; a plain message when it names one that isn't there.

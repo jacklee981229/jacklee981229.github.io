@@ -1,4 +1,4 @@
-// Jack's Town's thought bubbles (D86 to D91 in docs/plan/todo/little-worlds-town.md). Now and then a car that's
+// Jack's Town's thought bubbles (D86 to D91 in docs/plan/done/little-worlds-town.md). Now and then a car that's
 // driving thinks of where it's going, in a comic thought cloud beside it: the place it's heading to, home, or a
 // waving hand when it's leaving town; a car stuck in a jam is angry. A click on a car (or sending it out of town)
 // asks it what it's thinking, whatever the limit. Each bubble pops up and fades on the town's own clock. This only

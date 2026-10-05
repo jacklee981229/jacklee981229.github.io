@@ -1,12 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MOST_STARS, PICTURE_TYPES, pictureOf, placeNote, starFills, starsLabel, turnFrames, validStars } from '../src/lib/shelves.js';
+import { MOST_STARS, PICTURE_TYPES, defaultComment, pictureOf, placeNote, starFills, starsLabel, turnFrames, validStars } from '../src/lib/shelves.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 test('stars go from 1 to 5, in halves', () => {
   for (const stars of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) assert.ok(validStars(stars), `${stars}`);
   for (const stars of [0, 0.5, 5.5, 6, 4.2, 4.25, -1, NaN, Infinity, '4', null, undefined]) assert.ok(!validStars(stars), `${stars}`);
+});
+
+test("an item without a comment says its collection's own word", () => {
+  assert.equal(defaultComment('Movies'), 'Great movie!');
+  assert.equal(defaultComment('Games'), 'Great game!');
 });
 
 test('each star is full, half or empty', () => {

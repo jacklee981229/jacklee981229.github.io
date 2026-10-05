@@ -59,7 +59,7 @@ export const EFFECTS = [
 ];
 
 /**
- * The Little Worlds: things that run by themselves, for watching (D58 in docs/plan/todo/little-worlds-town.md). Each is
+ * The Little Worlds: things that run by themselves, for watching (D58 in docs/plan/done/little-worlds-town.md). Each is
  * drawn by src/worlds/<slug>.js on the effects' stage, at /lab/world/<slug>/, and has a picture of itself in
  * src/assets/worlds/<slug>.png for its card and its link previews. `hint` says what there is to see or do, `icon` is
  * its card's and the palette's icon, `words` are more words the palette finds it by, and `controls` are buttons of

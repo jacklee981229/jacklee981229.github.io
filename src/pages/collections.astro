@@ -4,7 +4,7 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
-import { pictureOf } from '../lib/shelves.js';
+import { defaultComment, pictureOf } from '../lib/shelves.js';
 import { pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
@@ -37,7 +37,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
                     const id = `${shelf.id}-${n + 1}`;
                     return (
                       <li>
-                        <div class="item" tabindex="0" role="group" aria-labelledby={`${id}-name`} aria-describedby={item.comment ? `${id}-comment` : undefined} data-item>
+                        <div class="item" tabindex="0" role="group" aria-labelledby={`${id}-name`} aria-describedby={`${id}-comment`} data-item>
                           {/* The name is right under the cover, so the picture needs no words of its own. */}
                           {picture ? (
                             <span class="cover"><Image class="picture" src={picture} alt="" width={Math.min(picture.width, COVER_WIDTH)} /></span>
@@ -46,7 +46,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
                           )}
                           <strong class="name" id={`${id}-name`}><span>{item.name}</span></strong>
                           <Stars stars={item.stars} />
-                          {item.comment && <span class="visually-hidden" id={`${id}-comment`} data-comment>{item.comment}</span>}
+                          <span class="visually-hidden" id={`${id}-comment`} data-comment>{item.comment ?? defaultComment(shelf.data.name)}</span>
                         </div>
                       </li>
                     );
@@ -162,9 +162,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
     item.classList.add('noted');
     noteName.textContent = item.querySelector('.name')!.textContent;
     noteStars.replaceChildren(item.querySelector('.stars')!.cloneNode(true));
-    const comment = item.querySelector('[data-comment]')?.textContent;
-    noteComment.textContent = comment ?? 'No comment yet.';
-    noteComment.classList.toggle('none', !comment);
+    noteComment.textContent = item.querySelector('[data-comment]')!.textContent;
     note.hidden = false;
     const cover = item.querySelector('.cover')!.getBoundingClientRect();
     const place = placeNote(cover, item.getBoundingClientRect().bottom, { width: note.offsetWidth, height: note.offsetHeight }, { width: document.documentElement.clientWidth, height: innerHeight });
@@ -295,7 +293,6 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
   .note[data-side='above']::before { bottom: -6px; left: calc(var(--pointer) - 5px); border-width: 0 1px 1px 0; }
   .note strong { display: block; margin-bottom: 0.2rem; font-size: var(--text-base); line-height: 1.3; }
   .note p { margin: var(--space-2) 0 0; }
-  .note .none { color: var(--muted); }
   @keyframes note-in {
     from { opacity: 0; }
   }

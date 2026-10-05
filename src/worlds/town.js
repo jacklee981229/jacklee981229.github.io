@@ -4,9 +4,10 @@
 // the cars are drawn over it. The traffic moves in fixed steps and the picture is drawn between two steps, so cars
 // glide at any frame rate. Over the cars, now and then a thought bubble (src/lib/town/thoughts.js) pops up and
 // fades; a click on a car pops up what it's thinking of. The page's Add car and Remove car buttons bring a car in from
-// outside town and send one away. The stage brings Pause, the still picture under reduced motion, and rest while off
-// screen. The stage's --c1 to --c4 are the homes' colours, --c5 to --c7 the lights' go, wait and stop, and --c8 the
-// ground.
+// outside town and send one away. At night (the dark theme, and the night sky) every stop line glows in its colour,
+// as the Train World's lamps do, and the homes and places have lit windows (D103; the cars have no headlights, D106).
+// The stage brings Pause, the still picture under reduced motion, and rest while off screen. The stage's --c1 to --c4
+// are the homes' colours, --c5 to --c7 the lights' go, wait and stop, and --c8 the ground.
 import { BAY_DEPTH, buildTown, CAR_LENGTH, CAR_WIDTH, JUNCTION, ROAD } from '../lib/town/layout.js';
 import { carPlace, lightFor, startTraffic, STEP } from '../lib/town/sim.js';
 import { boxOf, CLOUD, FADE, goingSomewhere, startThoughts } from '../lib/town/thoughts.js';
@@ -26,6 +27,24 @@ const PUFFS = [...Array.from({ length: 8 }, (_, i) => {
 const puffOut = (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
 /** How near a click has to be to a car to pick it, in pixels on the screen. */
 const SLACK = 10;
+/** At night, in blocks: how far a stop line's glow spreads round it (about as big on the screen as a Train World lamp's,
+ *  src/worlds/trains.js), and a lit window's width and its glow. */
+const GLOW = 0.07;
+const WINDOW = 0.028;
+const WINDOW_GLOW = 0.06;
+
+/** How bright a colour is, from 0 (black) to 1 (white). @param {number[]} rgb */
+const brightness = ([r, g, b]) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+/** Night: the page's colour is dark. */
+const isNight = (colors) => brightness(colors.paper) < 0.3;
+/** The windows' light, the Train World's at night: between the page's ink and the lights' amber. */
+const warmOf = (colors) => colors.ink.map((v, i) => (v + colors.lanes[5][i]) / 2);
+
+/** A building's windows, seen from above, in its own frame (its road along x, on the +y side): two on a home's slope
+ *  towards the road, and on a place's flat roof two either side of its ring along each long edge. */
+const windowsOf = (b) => (b.kind === 'home'
+  ? [[-b.length / 4, b.depth / 4], [b.length / 4, b.depth / 4]]
+  : [-0.35, -0.18, 0.18, 0.35].flatMap((f) => [[f * b.length, -0.3 * b.depth], [f * b.length, 0.3 * b.depth]]));
 
 /** @param {import('../effects/stage.js').Stage} stage */
 export default function town(stage) {
@@ -194,6 +213,63 @@ export default function town(stage) {
       drawBuilding(g, b.kind, homeColours[b.colour], b.length, b.depth);
       g.restore();
     }
+
+    // At night, their windows lit: a soft glow round each, added to the light already there, then the window in a
+    // dark frame, so it stands out on the pale roofs.
+    if (isNight(colors)) {
+      const light = warmOf(colors);
+      const frame = WINDOW * 0.22;
+      for (const b of t.buildings) {
+        g.save();
+        g.translate(b.x, b.y);
+        g.rotate(b.angle);
+        g.globalCompositeOperation = 'lighter';
+        for (const [x, y] of windowsOf(b)) {
+          const glow = g.createRadialGradient(x, y, 0, x, y, WINDOW_GLOW);
+          glow.addColorStop(0, rgba(light, 0.3));
+          glow.addColorStop(1, rgba(light, 0));
+          g.fillStyle = glow;
+          g.fillRect(x - WINDOW_GLOW, y - WINDOW_GLOW, 2 * WINDOW_GLOW, 2 * WINDOW_GLOW);
+        }
+        g.globalCompositeOperation = 'source-over';
+        for (const [x, y] of windowsOf(b)) {
+          g.fillStyle = rgba(colors.paper, 0.6);
+          g.fillRect(x - WINDOW / 2 - frame, y - WINDOW * 0.36 - frame, WINDOW + 2 * frame, WINDOW * 0.72 + 2 * frame);
+          g.fillStyle = rgba(light);
+          g.fillRect(x - WINDOW / 2, y - WINDOW * 0.36, WINDOW, WINDOW * 0.72);
+        }
+        g.restore();
+      }
+    }
+  };
+
+  /** Where a lane's stop line runs: across the lane, just short of the junction. */
+  const stopLine = (lane) => {
+    const side = { x: lane.dir.y, y: -lane.dir.x };
+    const end = { x: lane.end.x - lane.dir.x * 0.012, y: lane.end.y - lane.dir.y * 0.012 };
+    return { from: { x: end.x - side.x * 0.04, y: end.y - side.y * 0.04 }, to: { x: end.x + side.x * 0.035, y: end.y + side.y * 0.035 } };
+  };
+
+  /** At night, each light colour's glow, drawn once onto a little picture of its own (a soft round light, brightest in
+   *  the middle) and laid over every stop line showing that colour; made again when the colours change. */
+  let glows = null;
+  let glowsFor = null;
+  const glowsOf = (lamps) => {
+    if (glowsFor !== stage.colors) {
+      glows = Object.fromEntries(Object.entries(lamps).map(([state, rgb]) => {
+        const picture = document.createElement('canvas');
+        picture.width = picture.height = 64;
+        const g = /** @type {CanvasRenderingContext2D} */ (picture.getContext('2d'));
+        const light = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        light.addColorStop(0, stage.rgba(rgb, 0.55));
+        light.addColorStop(1, stage.rgba(rgb, 0));
+        g.fillStyle = light;
+        g.fillRect(0, 0, 64, 64);
+        return [state, picture];
+      }));
+      glowsFor = stage.colors;
+    }
+    return glows;
   };
 
   /** One car, its middle and facing in `place`. */
@@ -360,9 +436,24 @@ export default function town(stage) {
     ctx.drawImage(still, 0, 0, stage.width, stage.height);
     const { colors, rgba } = stage;
     const [go, wait, stop] = colors.lanes.slice(4, 7);
+    const lamps = { go, wait, stop };
     ctx.save();
     ctx.translate(left, top);
     ctx.scale(scale, scale);
+
+    // At night, the stop lines' glow, added to the light already there, under the lights and the cars.
+    if (isNight(colors)) {
+      const glow = glowsOf(lamps);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const lane of world.town.lanes) {
+        const state = lightFor(lane);
+        if (!state) continue;
+        const { from, to } = stopLine(lane);
+        ctx.drawImage(glow[state], (from.x + to.x) / 2 - GLOW, (from.y + to.y) / 2 - GLOW, 2 * GLOW, 2 * GLOW);
+      }
+      ctx.restore();
+    }
 
     // The lights: a line across each lane at its stop line, in the colour it's showing.
     ctx.lineWidth = 0.02;
@@ -370,12 +461,11 @@ export default function town(stage) {
     for (const lane of world.town.lanes) {
       const state = lightFor(lane);
       if (!state) continue;
-      const side = { x: lane.dir.y, y: -lane.dir.x };
-      const end = { x: lane.end.x - lane.dir.x * 0.012, y: lane.end.y - lane.dir.y * 0.012 };
-      ctx.strokeStyle = rgba(state === 'go' ? go : state === 'wait' ? wait : stop);
+      const { from, to } = stopLine(lane);
+      ctx.strokeStyle = rgba(lamps[state]);
       ctx.beginPath();
-      ctx.moveTo(end.x - side.x * 0.04, end.y - side.y * 0.04);
-      ctx.lineTo(end.x + side.x * 0.035, end.y + side.y * 0.035);
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
       ctx.stroke();
     }
 

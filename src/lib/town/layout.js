@@ -1,4 +1,4 @@
-// Jack's Town's map (D58 to D63 in docs/plan/todo/little-worlds-town.md): a grid of two-way roads that fits the
+// Jack's Town's map (D58 to D63 in docs/plan/done/little-worlds-town.md): a grid of two-way roads that fits the
 // window, with a few stretches left out so it isn't a plain grid, lanes on the left (as in Malaysia), the paths
 // cars take across each junction and which of them cross, traffic lights where three or four roads meet, homes and
 // places beside the roads with their parking bays and the way in and out of each bay, and the roads out of town,

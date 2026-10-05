@@ -1,4 +1,4 @@
-<!-- One line per change, like "- 2026-09-26 new: Rebuilt Jack's Space from scratch with Astro". The kind is new, improved, design or fix. Any order; the page sorts them. -->
+<!-- One line per change, like "- 2026-09-26 new: Rebuilt Jack's Space from scratch with Astro". The kind is new, improved, design or fix. Add new lines at the bottom: the newest day shows first, and on the same day a later line shows first. -->
 - 2023-02-23 new: Started Jack's Space on Hexo
 - 2023-03-10 design: Added background pictures and a typing title
 - 2023-10-04 new: Added confetti, fireworks and hearts wherever you click
@@ -39,3 +39,8 @@
 - 2026-10-05 improved: Cars in [Jack's Town](/lab/world/town/) start and stop more gently
 - 2026-10-05 new: Trains in [Jack's Train World](/lab/world/trains/) light their way in the dark theme
 - 2026-10-05 fix: Made the drop-off bars in [Jack's Train World](/lab/world/trains/) fill as trains unload
+- 2026-10-05 fix: Put the newest changes of each day first
+- 2026-10-05 improved: Counted Little Worlds in the Lab tile on the home page
+- 2026-10-05 new: Lit up [Jack's Town](/lab/world/town/) in the dark theme: glowing lights and lit windows
+- 2026-10-05 improved: Rewrote my [About](/about/) intro and added where I've worked
+- 2026-10-05 new: Added my own notes to things in my [Collection](/collections/)

@@ -24,7 +24,7 @@ import { SITE } from '../site';
 import { bestOfEachKind, experimentPosts, listedPosts, postUrl } from '../lib/collections';
 import { lastUpdated } from '../lib/posts.js';
 import { topicOf } from '../lib/topics.js';
-import { EFFECTS, TOOLS } from '../lib/lab/tools.js';
+import { EFFECTS, TOOLS, WORLDS } from '../lib/lab/tools.js';
 import { nowFile } from '../lib/now-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
@@ -53,7 +53,7 @@ const nowItems = await Promise.all(
 );
 
 // The Lab: its counts, the most visited tool, game and effect.
-const counts = { tools: TOOLS.filter((t) => t.status === 'ready').length, games: (await experimentPosts()).length, effects: EFFECTS.length };
+const counts = { tools: TOOLS.filter((t) => t.status === 'ready').length, games: (await experimentPosts()).length, effects: EFFECTS.length, worlds: WORLDS.length };
 const best = await bestOfEachKind();
 
 // The four newest changes, under their days.
@@ -128,7 +128,7 @@ const days = Math.floor((Date.now() - new Date(`${SITE.started}T00:00:00+08:00`)
       </HomeTile>
 
       <HomeTile class="t-lab" id="lab" title="Lab" icon="flask" href="/lab/" lab>
-        <p slot="meta">{counts.tools} tools · {counts.games} games · {counts.effects} effects</p>
+        <p slot="meta">{counts.tools} tools · {counts.games} games · {counts.effects} effects · {counts.worlds} worlds</p>
         <div class="lab">
           <HomeToy />
           <div class="picks">
