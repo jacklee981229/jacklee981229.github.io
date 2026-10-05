@@ -761,5 +761,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 4. Watch a drop-off's bar. Expected: it shrinks (a full bar lasts about 80 seconds); whenever there's room on it for another load (about a third of the bar), a train sets off from the depot for it, and a second one if there's room for one more before the first arrives. Each delivery fills about a third of the bar.
 5. Reload a few times. Expected: a different network each time, stations spread along the main line. Make the window narrow or open it on a phone: the network stands upright with two colours.
 6. Click Pause, then Play; switch between light and dark. Expected: it stops and carries on; the same network in the theme's colours.
-7. Run its tests: `node --test tests/trains.test.js`. Expected: `# pass 13`, in about fifteen seconds (five networks each run a whole day).
-8. It isn't in the Lab, the sitemap or search engines yet: http://localhost:4321/sitemap.txt has no `/lab/world/trains/`.
+7. Click a train (tap it on a phone). Expected: over a train the pointer is a hand; the view glides in until the whole train fills about half the stage, then follows it, the train staying in the middle while the network slides past (near the edge, the page's colour shows beyond the network). Click another train in view: the view glides over to it.
+8. Click anywhere that isn't a train, or press Esc. Expected: the view glides back out to the whole network.
+9. Run its tests: `node --test tests/trains.test.js`. Expected: `# pass 16`, in about fifteen seconds (five networks each run a whole day).
+10. It isn't in the Lab, the sitemap or search engines yet: http://localhost:4321/sitemap.txt has no `/lab/world/trains/`.

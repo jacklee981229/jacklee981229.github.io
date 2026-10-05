@@ -50,8 +50,8 @@ const SIZE = {
 const STEP = 2;
 /** A window narrower than this either way is phone-sized. */
 const PHONE = 500;
-/** A train at scale 1: an engine and its wagons, coupled. */
-export const TRAIN = { engine: 24, wagon: 20, coupling: 3, wagons: 3 };
+/** A train at scale 1: an engine and its wagons, coupled, each as wide as `width`. */
+export const TRAIN = { engine: 24, wagon: 20, coupling: 3, wagons: 3, width: 9 };
 /** The cargo colours: a pickup and a drop-off of each (D77). */
 export const COLOURS = 3;
 /** A train's length at scale `k`. */

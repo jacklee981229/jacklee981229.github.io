@@ -9,7 +9,7 @@
 // line, and slow down well before a red. It runs in fixed steps from a seed, so the same seed always plays out the
 // same. Tested by tests/trains.test.js.
 import { seeded } from '../town/layout.js';
-import { pointAt } from './layout.js';
+import { pointAt, TRAIN } from './layout.js';
 
 /** Seconds of time a step moves on. */
 export const STEP = 0.05;
@@ -375,26 +375,30 @@ export function startTrains(network, seed) {
 const padAt = (k) => 8 * k;
 
 /**
- * Where each of a train's engine and wagons is, `head` along its route: the middle of each and the way it faces.
- * Each one's front and back both follow the track, so on a curve it cuts across it as a real wagon does.
+ * The point `d` along a train's route, and the way the track runs there.
+ * @param {import('./sim.js').Train} train @param {number} d
+ */
+export function placeOn(train, d) {
+  let i = train.starts.length - 1;
+  while (i > 0 && train.starts[i] > d) i--;
+  return pointAt(train.route[i], Math.max(0, d - train.starts[i]));
+}
+
+/**
+ * Where each of a train's engine and wagons is, `head` along its route: the middle of each, the way it faces, and its
+ * size. Each one's front and back both follow the track, so on a curve it cuts across it as a real wagon does.
  * @param {import('./sim.js').Train} train @param {number} head @param {number} k
  */
 export function carsOf(train, head, k) {
-  const at = (d) => {
-    let i = train.starts.length - 1;
-    while (i > 0 && train.starts[i] > d) i--;
-    return pointAt(train.route[i], Math.max(0, d - train.starts[i]));
-  };
   const cars = [];
   let front = head;
-  const sizes = [24, 20, 20, 20];
-  sizes.forEach((size, i) => {
-    const len = size * k;
-    const a = at(front);
-    const b = at(front - len);
-    cars.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, angle: Math.atan2(a.y - b.y, a.x - b.x), length: len, engine: i === 0 });
-    front -= len + 3 * k;
-  });
+  for (let i = 0; i <= TRAIN.wagons; i++) {
+    const len = (i ? TRAIN.wagon : TRAIN.engine) * k;
+    const a = placeOn(train, front);
+    const b = placeOn(train, front - len);
+    cars.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, angle: Math.atan2(a.y - b.y, a.x - b.x), length: len, width: TRAIN.width * k, engine: i === 0 });
+    front -= len + TRAIN.coupling * k;
+  }
   return cars;
 }
 

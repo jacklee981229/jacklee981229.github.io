@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildNetwork, COLOURS, sizesAt } from '../src/lib/trains/layout.js';
 import { carsOf, startTrains, STEP, STUCK, TOP } from '../src/lib/trains/sim.js';
+import { trainAt, viewOn, whole } from '../src/lib/trains/view.js';
 
 // Window sizes from a small phone's to a big screen's, short laptops and a tall tablet among them.
 const SIZES = [[320, 288], [360, 450], [375, 468], [768, 600], [768, 1024], [1024, 600], [1280, 288], [1265, 652], [1366, 657], [1440, 760], [1920, 1000]];
@@ -201,5 +202,34 @@ for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2], [1920, 1000, 3], [768
     assert.equal(stats.loaded - stats.delivered, trains.filter((t) => t.phase === 'over' || t.phase === 'unloading').length);
     assert.ok(stats.delivered > 24 * 30, `${stats.delivered} deliveries in a day`);
     assert.ok(jump <= TOP * k * STEP + 1e-6, `a train jumped ${jump.toFixed(2)} px in a step`);
+  });
+}
+
+// Following a train (TR5).
+for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2], [1280, 288, 5]]) {
+  test(`following a train on a ${w} by ${h} network keeps all of it in view, and a click on it picks it`, () => {
+    const network = buildNetwork(w, h, seed);
+    const traffic = startTrains(network, seed);
+    const { k } = network;
+    assert.deepEqual(whole(network), { x: w / 2, y: h / 2, zoom: 1 });
+    for (let i = 0; i < 3600 / STEP; i++) {
+      traffic.step();
+      if (i % 40) continue;
+      for (const train of traffic.trains) {
+        const view = viewOn(network, train, train.head);
+        const [left, right] = [view.x - w / 2 / view.zoom, view.x + w / 2 / view.zoom];
+        const [top, bottom] = [view.y - h / 2 / view.zoom, view.y + h / 2 / view.zoom];
+        assert.ok(view.zoom > 1, 'no zoom');
+        for (const car of carsOf(train, train.head, k)) {
+          for (const [a, b] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+            const x = car.x + Math.cos(car.angle) * a * car.length / 2 - Math.sin(car.angle) * b * car.width / 2;
+            const y = car.y + Math.sin(car.angle) * a * car.length / 2 + Math.cos(car.angle) * b * car.width / 2;
+            assert.ok(x >= left && x <= right && y >= top && y <= bottom, 'part of a followed train out of view');
+          }
+          assert.equal(trainAt(traffic.trains, car, 2 * k, k), train, 'a click on a car picked another train');
+        }
+      }
+    }
+    assert.equal(trainAt(traffic.trains, { x: -100, y: -100 }, 12, k), null, 'a click far from any train picked one');
   });
 }

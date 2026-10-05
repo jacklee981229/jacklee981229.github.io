@@ -8,10 +8,11 @@ import LabMore from '../../../components/LabMore.astro';
 
 const title = "Jack's Train World";
 const description = 'A train network that runs by itself: when a drop-off runs low, a train brings it a load from the pickup of its colour.';
+const hint = 'Click a train to follow it, and anywhere else to stop.';
 ---
 <Base title={title} description={description} area="lab" noindex>
   <div class="wrap top">
-    <LabHeader compact title={title} description={description} back="/lab/#little-worlds" />
+    <LabHeader compact title={title} description={`${description} ${hint}`} back="/lab/#little-worlds" />
   </div>
   <EffectStage slug="trains" world label="A train network seen from above: a double-track main line round the edge, with branches to stations and a depot." />
   <LabMore current="trains" />
