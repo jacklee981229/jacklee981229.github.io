@@ -572,12 +572,12 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    Expected: "63 page(s) built" and "Indexed 14 pages"; the site runs at http://localhost:4321/.
 2. Look at the menu. Expected: Home, Writing, Lab, Collection, Travel, About (Archives was removed on 4 Oct). On a phone the menu slides sideways, and opens with the current page's word in view.
 3. Open http://localhost:4321/collections/. Expected: "Jack's Collection" as big as "Jack's Lab" on the Lab page, "Things I like, kept where I can look at them." under it, and under that two tabs, "Movies 8" (filled in) and "Games 7". Then a board with the eight movies: five in a row, the other three in the middle under them, 48 px apart. Each has its poster, its name in the middle under it, and its stars under that. One thin line runs between the two rows, under the first row's stars: none between a poster and its own name.
-4. Rest the mouse on an item. Expected: it grows a little at once. After about two seconds a small note opens on its right with its name, its stars and your comment, or "Great movie!" ("Great game!" on Games) for an item without one (for the last item of a row, on its left). Move to the item beside it: that one's note comes at once. Move the mouse away: the note closes. The note's stars are the same as the ones under the name: on a four-star item, four filled and the fifth a faint shadow.
-5. Click an item. Expected: its note opens without the wait. Esc, or a click somewhere else, closes it.
+4. Rest the mouse on an item. Expected: it grows a little at once. (The note that used to open beside it was replaced by the gallery on 5 Oct 2026.)
+5. Click an item. Expected: its gallery opens (see "Collection gallery" below). Esc closes it.
 6. Click "Games 7". Expected: the tab fills in at once, and the board turns like two cards on a round table, clockwise seen from above: Movies swings away to the left and round to the back, the back of the Games card shows on the right, and Games comes round to the front. It takes about a second. Then the seven games: five in a row, two in the middle under them.
 7. Click "Movies 8". Expected: the table turns back the other way.
 8. Open http://localhost:4321/collections/#games. Expected: the page opens on Games, without a turn.
-9. A comment shows in the note. With `npm run dev` running, add a line `    comment: Testing the note.` under an item's `image:` line in `src\content\collections\games\index.yaml`, reload http://localhost:4321/collections/#games and rest the mouse on that item. Expected: the note says "Testing the note." in place of "Great game!" Take the line out again.
+9. (A comment in the note: gone with the notes on 5 Oct 2026.)
 10. Open http://localhost:4321/travel/. Expected: "Jack's Travel Map" as big as "Jack's Lab", "5 places so far." under it, and under that a Globe | Flat switch with Globe filled in. The page opens on a globe facing Malaysia, turning slowly by itself, with four countries coloured: Malaysia red, Thailand orange, Taiwan amber, China yellow. No dot. Under it the five names with their colours, from home outward: Malaysia, Singapore, Thailand, Taiwan, China. (Singapore is too small to draw on a map of the world, so it's only named.) The whole globe and the names fit in the window, and the pointer over the globe is the ordinary arrow.
 11. Watch the coloured countries for ten seconds. Expected: they breathe gently: a faint glow around them swells and fades, about five seconds for a breath in and out.
 12. Move the mouse onto a coloured country. Expected: the globe holds still, and the country rises from its surface like a picture made of light: a little bigger, thin lines across it, a brighter edge, a faint mark left where it was, and its name over it in capitals ("CHINA"). Its glow breathes harder while the others stay gentle. Move away: it settles, and the globe turns on.
@@ -807,6 +807,23 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 
 1. With the built site running, open http://localhost:4321/about/. Expected: the intro reads "Hi, I'm Jack, a senior software engineer at Squarebox Technology in Malaysia. For fun, I build little tools, games and worlds in the Lab. You'll also find the games and shows I like, and the places I've been." Then the Work card: Senior Software Engineer, Squarebox Technology, Nov 2023 – now; Software Developer, CP Development (M) Sdn. Bhd., Dec 2020 – Nov 2023. Then Things I like, Find me and This site; no What I work with. On a phone, each job's years sit under it, so the role and the place each stay on one line.
 2. Open http://localhost:4321/. Expected: the tagline under the title is still "Things I build, play and love."
-3. Open http://localhost:4321/collections/ and click Stranger Things. Expected: its note says "I like Millie Bobby Brown. And I love Eleven. I like the vibe. And I love the story. Love it."
-4. Click 逐玉, then Teach You a Lesson. Expected: your Chinese words, exactly as you typed them.
-5. Click The Uncanny Counter. Expected: "Great movie!" Then on the Games tab, click Terraria. Expected: "Great game!"
+3. (The Collection's notes, with your words, were taken out the same day for the gallery: see "Collection gallery" below.)
+
+## Collection gallery
+
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "65 page(s) built", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/collections/ and click Stranger Things. Expected: the page blurs behind a dark backdrop; "Stranger Things" and its stars at the top, its cover big in the middle, a smaller picture on each side turned slightly in, dimmed and a little blurred, "1 / 5" under them, and Close at the top right.
+3. Click the picture on the right. Expected: the pictures slide along; it comes to the middle, sharp, with "2 / 5". Click the one on the left: back to "1 / 5".
+4. Press ← on the first picture. Expected: the last comes round ("5 / 5"). Press →: the first again. ‹ and › do the same.
+5. Press Esc. Expected: the gallery closes and you're back on the page where you were.
+6. Click "Games 7", then Terraria. Expected: for now its gallery is its cover alone, with no side pictures, buttons or count (the games' own pictures come in a later round). Click the dark area around it: the gallery closes.
+7. Open the other movies. Expected: every movie has five pictures, each different.
+8. On a phone: tap a movie. Expected: the middle picture takes most of the width, the side pictures peek in at the edges; a swipe left or right steps along.
+9. A gallery picture that isn't there stops the build: in `src\content\collections\movies\index.yaml`, change `wednesday-2.jpg` to `wednesday-9.jpg` and run `npm run build`. Expected: it stops with `Collections: "Wednesday" in movies asks for the picture "wednesday-9.jpg", but there is no file of that name in src/content/collections/movies/`. Put it back.
+10. Run `npm test`. Expected: `# fail 0`; among the shelves tests, "an item's gallery is its cover, then the pictures its gallery lists, in that order" and "the gallery's pictures step round".

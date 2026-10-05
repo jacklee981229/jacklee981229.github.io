@@ -67,8 +67,8 @@ const shelves = defineCollection({
           stars: z.number(),
           // A picture in the same folder. Without one, the item gets a plain cover with its name.
           image: z.string().optional(),
-          // Jack's own words on it, shown in the note that opens beside the item.
-          comment: z.string().min(1).optional(),
+          // More pictures in the same folder, shown after the cover in the item's gallery, in this order.
+          gallery: z.array(z.string().min(1)).optional(),
         })
         .superRefine((item, ctx) => {
           if (!validStars(item.stars)) ctx.addIssue({ code: 'custom', path: ['stars'], message: `"${item.name}" has ${item.stars} stars. Stars go from 1 to 5, in halves: 4 or 4.5, not 4.2.` });

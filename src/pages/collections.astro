@@ -4,10 +4,18 @@ import { Image } from 'astro:assets';
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
-import { defaultComment, pictureOf } from '../lib/shelves.js';
+import Icon from '../components/Icon.astro';
+import { galleryOf, pictureOf } from '../lib/shelves.js';
 import { pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
+/** The sizes each gallery picture is made in, for the browser to choose from by the window's size and sharpness: up
+    to the largest here, or the picture's own width when it's smaller. */
+const GALLERY_WIDTHS = [480, 960, 1440];
+const widthsFor = (picture: { width: number }) => {
+  const top = Math.min(picture.width, GALLERY_WIDTHS.at(-1)!);
+  return [...GALLERY_WIDTHS.filter((w) => w < top), top];
+};
 
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
 ---
@@ -32,22 +40,27 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
             <section class="card" id={`shelf-${shelf.id}`} role="tabpanel" aria-labelledby={`tab-${shelf.id}`} hidden={i !== 0}>
               <div class="board">
                 <ul class="items">
-                  {shelf.data.items.map((item, n) => {
+                  {shelf.data.items.map((item) => {
                     const picture = pictureOf(pictures, shelf.id, item)?.default;
-                    const id = `${shelf.id}-${n + 1}`;
+                    const shown = galleryOf(pictures, shelf.id, item).map((p) => p.default);
                     return (
                       <li>
-                        <div class="item" tabindex="0" role="group" aria-labelledby={`${id}-name`} aria-describedby={`${id}-comment`} data-item>
+                        <button type="button" class="item" aria-haspopup="dialog" data-item>
                           {/* The name is right under the cover, so the picture needs no words of its own. */}
                           {picture ? (
                             <span class="cover"><Image class="picture" src={picture} alt="" width={Math.min(picture.width, COVER_WIDTH)} /></span>
                           ) : (
                             <span class="cover plain" aria-hidden="true"><b>{item.name}</b></span>
                           )}
-                          <strong class="name" id={`${id}-name`}><span>{item.name}</span></strong>
+                          <strong class="name"><span>{item.name}</span></strong>
                           <Stars stars={item.stars} />
-                          <span class="visually-hidden" id={`${id}-comment`} data-comment>{item.comment ?? defaultComment(shelf.data.name)}</span>
-                        </div>
+                        </button>
+                        {/* The item's gallery, made ready while the site is built; nothing in it loads until it opens. */}
+                        <template data-pictures>
+                          {shown.map((p, k) => (
+                            <Image src={p} alt={`${item.name}, picture ${k + 1} of ${shown.length}`} widths={widthsFor(p)} sizes={p.width > p.height ? '(max-width: 719px) 64vw, 50vw' : '(max-width: 719px) 64vw, 40vw'} />
+                          ))}
+                        </template>
                       </li>
                     );
                   })}
@@ -58,33 +71,43 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
         </div>
       </div>
 
-      <!-- An item's note: one box, filled and moved beside whichever item asks for it. A screen reader already has
-           the name, the stars and the comment from the item itself. -->
-      <div class="note" aria-hidden="true" hidden data-note>
-        <strong data-note-name></strong>
-        <span data-note-stars></span>
-        <p data-note-comment></p>
-      </div>
     </div>
   </div>
+
+  <!-- An item's gallery (D109, D112): one dialog, filled with whichever item's pictures are asked for. It looks like
+       a post's enlarged picture (PostScripts.astro): the same dark backdrop and Close button. -->
+  <dialog class="gallery" aria-labelledby="gallery-name" data-gallery>
+    <!-- First in the dialog, so the Tab key reaches Close first, as its place at the top right suggests. -->
+    <form method="dialog"><button class="close" autofocus><Icon name="close" />Close</button></form>
+    <div class="gallery-head">
+      <h2 id="gallery-name" data-gallery-name></h2>
+      <span data-gallery-stars></span>
+    </div>
+    <div class="gallery-stage" data-gallery-stage></div>
+    <button type="button" class="step prev" aria-label="Previous picture" data-gallery-step="-1"><Icon name="back" /></button>
+    <button type="button" class="step next" aria-label="Next picture" data-gallery-step="1"><Icon name="back" /></button>
+    <p class="gallery-count" aria-live="polite" data-gallery-count></p>
+  </dialog>
 </Base>
 
 <script>
-  import { placeNote, turnFrames } from '../lib/shelves.js';
+  import { stepsFrom, turnFrames } from '../lib/shelves.js';
 
   /** How long half a turn of the table takes, in milliseconds. */
   const TURN_MS = 950;
   /** How far each card stands from the table's middle: this share of the table's width, up to so many pixels. */
   const RADIUS_SHARE = 0.3;
   const MOST_RADIUS = 340;
-  /** How long the pointer rests on an item before its note opens; sooner when a note was open a moment ago. */
-  const HOVER_WAIT = 2000;
-  const WARM_WAIT = 300;
-  const STAYS_WARM = 800;
-  /** The same for an item reached with the Tab key. */
-  const FOCUS_WAIT = 500;
-  /** How long after the pointer leaves the note closes: time to cross the gap from the item to its note. */
-  const LEAVE_WAIT = 160;
+  /** The gallery's middle picture at most this share of its width (more on a phone, where the sides only peek in),
+      the gap between pictures as a share of it too, and how the pictures beside it look: smaller, turned in a
+      little, dimmed and a touch blurred (mockup A, D112); the ones past them smaller still, and out of sight. */
+  const MIDDLE_SHARE = 0.5;
+  const MIDDLE_SHARE_NARROW = 0.64;
+  const GAP_SHARE = 0.03;
+  const SIDE = { scale: 0.74, turn: 20, filter: 'brightness(0.5) blur(1.5px)' };
+  const FAR = { scale: 0.55, filter: 'brightness(0.3) blur(3px)' };
+  /** How far a finger has to travel across the gallery to count as a swipe, in pixels; less is a tap. */
+  const SWIPE = 40;
 
   const table = document.querySelector<HTMLElement>('[data-table]')!;
   const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
@@ -103,7 +126,6 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
     });
     // A turn under way finishes first; it then follows the tabs again.
     if (turning || index === front) return;
-    closeNote();
     const from = cards[front];
     const to = cards[index];
     to.hidden = false;
@@ -145,79 +167,114 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
       choose(next);
     });
   });
-  // The note that opens beside an item.
-  const note = document.querySelector<HTMLElement>('[data-note]')!;
-  const noteName = note.querySelector('[data-note-name]')!;
-  const noteStars = note.querySelector('[data-note-stars]')!;
-  const noteComment = note.querySelector('[data-note-comment]')!;
-  let noted: HTMLElement | null = null;
-  let wait = 0;
-  let warmUntil = 0;
+  // The gallery: a click on an item shows its pictures one at a time, the one before on the left and the one after
+  // on the right. A click on either (or the buttons, the arrow keys, a swipe) brings it to the middle; it goes round.
+  const gallery = document.querySelector<HTMLDialogElement>('[data-gallery]')!;
+  const stage = gallery.querySelector<HTMLElement>('[data-gallery-stage]')!;
+  const count = gallery.querySelector('[data-gallery-count]')!;
+  let slides: HTMLElement[] = [];
+  let current = 0;
+  let opener: HTMLElement | null = null;
 
-  function openNote(item: HTMLElement) {
-    clearTimeout(wait);
-    if (noted === item) return;
-    noted?.classList.remove('noted');
-    noted = item;
-    item.classList.add('noted');
-    noteName.textContent = item.querySelector('.name')!.textContent;
-    noteStars.replaceChildren(item.querySelector('.stars')!.cloneNode(true));
-    noteComment.textContent = item.querySelector('[data-comment]')!.textContent;
-    note.hidden = false;
-    const cover = item.querySelector('.cover')!.getBoundingClientRect();
-    const place = placeNote(cover, item.getBoundingClientRect().bottom, { width: note.offsetWidth, height: note.offsetHeight }, { width: document.documentElement.clientWidth, height: innerHeight });
-    note.dataset.side = place.side;
-    note.style.left = `${place.left}px`;
-    note.style.top = `${place.top}px`;
-    note.style.setProperty('--pointer', `${place.pointer}px`);
+  /** Puts every picture in its place: the middle one big and sharp, its neighbours beside it, the rest out of sight. */
+  function lay() {
+    // The count first: its line takes room from the stage, so it must be there before the stage is measured.
+    count.textContent = `${current + 1} / ${slides.length}`;
+    const width = stage.clientWidth;
+    const narrow = matchMedia('(max-width: 719px)').matches;
+    const most = { width: width * (narrow ? MIDDLE_SHARE_NARROW : MIDDLE_SHARE), height: stage.clientHeight };
+    const gap = width * GAP_SHARE;
+    const n = slides.length;
+    // Each picture in its own shape, as big as the middle's room allows.
+    const sizes = slides.map((slide) => {
+      const img = slide.querySelector('img')!;
+      const ratio = Number(img.getAttribute('width')) / Number(img.getAttribute('height')) || 2 / 3;
+      return ratio > most.width / most.height ? { width: most.width, height: most.width / ratio } : { width: most.height * ratio, height: most.height };
+    });
+    slides.forEach((slide, i) => {
+      const d = stepsFrom(i, current, n);
+      const side = Math.sign(d);
+      const beside = sizes[(current + side + n) % n];
+      // Beside the middle: just clear of it. Further on: just clear of the one beside it.
+      const x = d === 0 ? 0 : side * (sizes[current].width / 2 + gap + beside.width * SIDE.scale / 2 + (Math.abs(d) > 1 ? beside.width * SIDE.scale / 2 + gap + sizes[i].width * FAR.scale / 2 : 0));
+      const look = d === 0 ? { scale: 1, turn: 0, filter: 'none' } : Math.abs(d) === 1 ? SIDE : { ...FAR, turn: SIDE.turn };
+      slide.style.width = `${sizes[i].width}px`;
+      slide.style.height = `${sizes[i].height}px`;
+      slide.style.transform = `translate(-50%, -50%) translateX(${x}px) scale(${look.scale}) rotateY(${-side * look.turn}deg)`;
+      slide.style.filter = look.filter;
+      slide.style.opacity = Math.abs(d) > 1 ? '0' : '1';
+      slide.style.zIndex = String(3 - Math.min(2, Math.abs(d)));
+      slide.classList.toggle('middle', d === 0);
+      slide.classList.toggle('beside', Math.abs(d) === 1);
+      slide.setAttribute('aria-hidden', String(d !== 0));
+    });
   }
 
-  function closeNote() {
-    clearTimeout(wait);
-    if (!noted) return;
-    noted.classList.remove('noted');
-    noted = null;
-    note.hidden = true;
-    warmUntil = performance.now() + STAYS_WARM;
-  }
-
-  const later = (run: () => void, ms: number) => {
-    clearTimeout(wait);
-    wait = window.setTimeout(run, ms);
+  const go = (step: number) => {
+    current = (current + step + slides.length) % slides.length;
+    lay();
   };
 
-  for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) {
-    // A mouse resting on the item opens its note. A finger has no resting: a tap does it (the click below).
-    item.addEventListener('pointerenter', (e) => {
-      if (e.pointerType === 'mouse') later(() => openNote(item), noted || performance.now() < warmUntil ? WARM_WAIT : HOVER_WAIT);
+  function openGallery(item: HTMLElement) {
+    opener = item;
+    const template = item.nextElementSibling as HTMLTemplateElement;
+    gallery.querySelector('[data-gallery-name]')!.textContent = item.querySelector('.name')!.textContent;
+    gallery.querySelector('[data-gallery-stars]')!.replaceChildren(item.querySelector('.stars')!.cloneNode(true));
+    slides = [...template.content.querySelectorAll('img')].map((img, i) => {
+      const slide = document.createElement('figure');
+      slide.className = 'slide';
+      slide.append(img.cloneNode());
+      slide.addEventListener('click', () => {
+        const d = stepsFrom(i, current, slides.length);
+        if (d && !swiped) go(d);
+      });
+      return slide;
     });
-    item.addEventListener('pointerleave', (e) => {
-      if (e.pointerType === 'mouse') later(closeNote, LEAVE_WAIT);
-    });
-    item.addEventListener('click', () => (noted === item ? closeNote() : openNote(item)));
-    item.addEventListener('focus', () => {
-      if (item.matches(':focus-visible')) later(() => openNote(item), FOCUS_WAIT);
-    });
-    item.addEventListener('blur', closeNote);
-    item.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      e.preventDefault();
-      if (noted === item) closeNote();
-      else openNote(item);
-    });
+    stage.replaceChildren(...slides);
+    current = 0;
+    swiped = false;
+    gallery.classList.toggle('single', slides.length < 2);
+    gallery.showModal();
+    // Into place at once on opening; after that, every change slides.
+    stage.classList.add('placing');
+    lay();
+    stage.getBoundingClientRect();
+    stage.classList.remove('placing');
   }
-  // The pointer may cross onto the note itself, to read or copy it.
-  note.addEventListener('pointerenter', () => clearTimeout(wait));
-  note.addEventListener('pointerleave', () => later(closeNote, LEAVE_WAIT));
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeNote();
+
+  for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) item.addEventListener('click', () => openGallery(item));
+  for (const button of gallery.querySelectorAll<HTMLElement>('[data-gallery-step]')) button.addEventListener('click', () => go(Number(button.dataset.galleryStep)));
+  gallery.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    if (slides.length > 1) go(e.key === 'ArrowLeft' ? -1 : 1);
   });
-  document.addEventListener('pointerdown', (e) => {
-    if (!(e.target as Element).closest('[data-item], [data-note]')) closeNote();
+  // A swipe across moves one picture along; a tap on the dark around the pictures closes the gallery, as on a
+  // post's enlarged picture.
+  let downAt: number | null = null;
+  let swiped = false;
+  stage.addEventListener('pointerdown', (e) => {
+    downAt = e.clientX;
+    swiped = false;
   });
-  // The note is fixed to the window, so it would be left behind by the page moving under it.
-  addEventListener('scroll', closeNote, { passive: true });
-  addEventListener('resize', closeNote);
+  stage.addEventListener('pointerup', (e) => {
+    if (downAt !== null && Math.abs(e.clientX - downAt) > SWIPE && slides.length > 1) {
+      swiped = true;
+      go(e.clientX < downAt ? 1 : -1);
+    }
+    downAt = null;
+  });
+  stage.addEventListener('click', (e) => {
+    if (e.target === stage && !swiped) gallery.close();
+  });
+  addEventListener('resize', () => {
+    if (gallery.open) lay();
+  });
+  gallery.addEventListener('close', () => {
+    stage.replaceChildren();
+    slides = [];
+    opener?.focus();
+  });
 
   // A link to a tab (/collections/#games) opens the page on it, without the turn.
   const linked = tabs.findIndex((tab) => `#${tab.dataset.tab}` === location.hash);
@@ -251,19 +308,19 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
      however many items the row has. Which item starts the second row goes with --cols. */
   .items li::before { content: var(--line, none); position: absolute; top: calc(var(--row-gap) / -2); right: -100vw; left: -100vw; height: 1px; background: var(--rule); }
   .items li:nth-child(n + 6) { --line: ''; }
-  .item { display: grid; justify-items: center; border-radius: var(--radius-sm); outline-offset: 6px; text-align: center; -webkit-tap-highlight-color: transparent; }
+  .item { display: grid; justify-items: center; width: 100%; padding: 0; border: 0; border-radius: var(--radius-sm); outline-offset: 6px; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   /* Every cover is a poster's shape, whatever the picture's own: a wider picture loses its sides. */
   .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-sm); background: var(--wash); box-shadow: var(--shadow-cover); transform-origin: 50% 100%; transition: transform 0.2s ease; }
   .picture { display: block; width: 100%; height: 100%; object-fit: cover; }
   .plain { display: grid; align-content: end; padding: var(--space-3); border: 1px solid var(--rule); text-align: left; }
   .plain b { font-size: var(--text-md); font-weight: var(--display-weight); line-height: 1.05; letter-spacing: -0.02em; overflow-wrap: anywhere; }
-  /* Room for two lines of name, a shorter name in the middle of it; a longer one is cut at two (its note has it whole). */
+  /* Room for two lines of name, a shorter name in the middle of it; a longer one is cut at two (its gallery has it whole). */
   .name { display: grid; align-items: center; height: 2.6em; margin-top: var(--space-3); font-size: var(--text-ui); font-weight: 700; line-height: 1.3; }
   .name span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
   .item :global(.stars) { margin-top: var(--space-1); }
-  /* An item grows a little, upwards so it never covers its name, like the cards on the home page: under the mouse,
-     under the keyboard's focus, and while its note is open. */
-  .item:focus-visible .cover, .noted .cover { transform: scale(1.05); }
+  /* An item grows a little, upwards so it never covers its name, like the cards on the home page: under the mouse
+     and under the keyboard's focus. */
+  .item:focus-visible .cover { transform: scale(1.05); }
   @media (hover: hover) {
     .item:hover .cover { transform: scale(1.05); }
   }
@@ -282,18 +339,43 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
     .items li:nth-child(n + 3) { --line: ''; }
   }
 
-  /* The note: a small card beside the item, with a pointer towards it. On the dark theme, where a shadow doesn't
-     show, it's a shade lighter than the board it floats over. */
-  .note { --lift: var(--surface); position: fixed; z-index: 20; width: min(18rem, calc(100vw - 2 * var(--space-3))); padding: var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--lift); box-shadow: var(--shadow-float); font-size: var(--text-sm); line-height: 1.55; animation: note-in 0.16s ease; }
-  :global([data-theme='dark']) .note { --lift: color-mix(in srgb, var(--ink) 9%, var(--surface)); --star-shadow: color-mix(in srgb, var(--ink) 9%, var(--lift)); border-color: color-mix(in srgb, var(--ink) 22%, var(--surface)); }
-  .note::before { content: ''; position: absolute; width: 10px; height: 10px; border: 0 solid; border-color: inherit; background: var(--lift); transform: rotate(45deg); }
-  .note[data-side='right']::before { top: calc(var(--pointer) - 5px); left: -6px; border-width: 0 0 1px 1px; }
-  .note[data-side='left']::before { top: calc(var(--pointer) - 5px); right: -6px; border-width: 1px 1px 0 0; }
-  .note[data-side='below']::before { top: -6px; left: calc(var(--pointer) - 5px); border-width: 1px 0 0 1px; }
-  .note[data-side='above']::before { bottom: -6px; left: calc(var(--pointer) - 5px); border-width: 0 1px 1px 0; }
-  .note strong { display: block; margin-bottom: 0.2rem; font-size: var(--text-base); line-height: 1.3; }
-  .note p { margin: var(--space-2) 0 0; }
-  @keyframes note-in {
-    from { opacity: 0; }
+  /* The gallery: the whole window, over the dark backdrop of a post's enlarged picture; the name and stars at the
+     top, the pictures in the middle, how far along under them. The page stays put behind it. */
+  :global(html:has(.gallery[open])) { overflow: hidden; }
+  .gallery { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; background: transparent; color: var(--on-backdrop); }
+  .gallery[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+  /* The Close button's form takes no row of its own: the button sits fixed at the top right. */
+  .gallery form { display: contents; }
+  /* The page behind is blurred too, so its covers don't compete with the gallery's dimmed side pictures. */
+  .gallery::backdrop { background: var(--backdrop-dark); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .gallery-head { display: grid; justify-items: center; gap: var(--space-1); padding: var(--space-5) 8.5rem var(--space-3); text-align: center; }
+  .gallery-head h2 { margin: 0; font-size: var(--text-lg); line-height: 1.25; }
+  .gallery :global(.stars) { --star-shadow: color-mix(in srgb, var(--on-backdrop) 28%, transparent); }
+  .gallery :global(.full) { fill: var(--on-backdrop); }
+  .gallery-stage { position: relative; perspective: 1400px; touch-action: pan-y; }
+  .gallery-stage :global(.slide) { position: absolute; top: 50%; left: 50%; margin: 0; overflow: hidden; border-radius: var(--radius-image); background: var(--surface); box-shadow: var(--shadow-cover); cursor: pointer; transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.5s ease, opacity 0.5s ease; -webkit-tap-highlight-color: transparent; }
+  .gallery-stage :global(.slide.middle) { cursor: default; }
+  .gallery-stage :global(.slide img) { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+  .gallery-stage.placing :global(.slide) { transition: none; }
+  .gallery-count { margin: 0; padding: var(--space-3) 0 var(--space-5); color: color-mix(in srgb, var(--on-backdrop) 75%, transparent); font-size: var(--text-sm); text-align: center; font-variant-numeric: tabular-nums; }
+  /* The Close button is a post's enlarged picture's own; the step buttons are round ones in the same style. */
+  .close, .step { border: 1px solid color-mix(in srgb, var(--on-backdrop) 35%, transparent); background: var(--backdrop-dark); color: var(--on-backdrop); cursor: pointer; }
+  .close { position: fixed; top: var(--space-4); right: var(--space-4); z-index: 4; display: inline-flex; align-items: center; gap: 0.375rem; padding: var(--space-2) 0.875rem; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 650; }
+  .close :global(.icon) { width: 16px; height: 16px; }
+  .step { position: absolute; top: 50%; z-index: 4; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; transform: translateY(-50%); -webkit-tap-highlight-color: transparent; }
+  .step:hover, .close:hover { border-color: var(--on-backdrop); }
+  .step :global(.icon) { width: 20px; height: 20px; }
+  .prev { left: var(--space-4); }
+  .next { right: var(--space-4); }
+  .next :global(.icon) { transform: rotate(180deg); }
+  /* One picture: no neighbours to step to. */
+  .single .step, .single .gallery-count { visibility: hidden; }
+  @media (max-width: 719px) {
+    .gallery-head { padding: var(--space-4) 6.5rem var(--space-3) var(--space-4); justify-items: start; text-align: left; }
+    .prev { left: var(--space-2); }
+    .next { right: var(--space-2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gallery-stage :global(.slide) { transition: none; }
   }
 </style>

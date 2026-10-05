@@ -1,17 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MOST_STARS, PICTURE_TYPES, defaultComment, pictureOf, placeNote, starFills, starsLabel, turnFrames, validStars } from '../src/lib/shelves.js';
+import { MOST_STARS, PICTURE_TYPES, galleryOf, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars } from '../src/lib/shelves.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 test('stars go from 1 to 5, in halves', () => {
   for (const stars of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) assert.ok(validStars(stars), `${stars}`);
   for (const stars of [0, 0.5, 5.5, 6, 4.2, 4.25, -1, NaN, Infinity, '4', null, undefined]) assert.ok(!validStars(stars), `${stars}`);
-});
-
-test("an item without a comment says its collection's own word", () => {
-  assert.equal(defaultComment('Movies'), 'Great movie!');
-  assert.equal(defaultComment('Games'), 'Great game!');
 });
 
 test('each star is full, half or empty', () => {
@@ -44,6 +39,25 @@ test('a picture that is not there, or of another type, is a plain message naming
   assert.throws(() => pictureOf(pictures, 'movies', { name: 'My Film', image: 'poster' }), /only \.jpg/);
 });
 
+test("an item's gallery is its cover, then the pictures its gallery lists, in that order", () => {
+  const pictures = { '/src/content/collections/movies/a.jpg': 'a', '/src/content/collections/movies/a-2.jpg': 'a2', '/src/content/collections/movies/a-3.webp': 'a3' };
+  assert.deepEqual(galleryOf(pictures, 'movies', { name: 'A', image: 'a.jpg', gallery: ['a-3.webp', 'a-2.jpg'] }), ['a', 'a3', 'a2']);
+  assert.deepEqual(galleryOf(pictures, 'movies', { name: 'A', image: 'a.jpg' }), ['a']);
+  assert.deepEqual(galleryOf(pictures, 'movies', { name: 'No picture' }), []);
+  // A gallery picture that isn't there stops the build like a missing cover.
+  assert.throws(() => galleryOf(pictures, 'movies', { name: 'My Film', image: 'a.jpg', gallery: ['a-9.jpg'] }), /"My Film" in movies asks for the picture "a-9\.jpg", but there is no file of that name/);
+});
+
+test("the gallery's pictures step round: the middle one, one each side, the rest further round", () => {
+  // Five pictures, the second in the middle: the first on its left, the third on its right.
+  assert.deepEqual([0, 1, 2, 3, 4].map((i) => stepsFrom(i, 1, 5)), [-1, 0, 1, 2, -2]);
+  // From the last, the first comes next on the right, round the end.
+  assert.deepEqual([0, 1, 2, 3, 4].map((i) => stepsFrom(i, 4, 5)), [1, 2, -2, -1, 0]);
+  // Two pictures: the other one is on the right. One picture: only the middle.
+  assert.deepEqual([stepsFrom(1, 0, 2), stepsFrom(0, 1, 2)], [1, 1]);
+  assert.equal(stepsFrom(0, 0, 1), 0);
+});
+
 test("the pictures are looked for in exactly the types a collection takes, in small letters and capitals", () => {
   const page = readFileSync(new URL('../src/lib/shelf-pictures.ts', import.meta.url), 'utf8');
   const looked = page.match(/collections\/\*\/\*\.\{([^}]+)\}/)?.[1].split(',');
@@ -74,38 +88,6 @@ test('the turntable starts and stops gently, and stands furthest back half-way r
   // The first and last steps are far smaller than the ones in the middle.
   const size = (i) => Math.abs(steps[i][1] - steps[i - 1][1]);
   assert.ok(size(1) < size(middle) / 10 && size(steps.length - 1) < size(middle) / 10, `${size(1)} ${size(middle)}`);
-});
-
-test("an item's note goes on the right of its cover, or on the left when the right has no room", () => {
-  const view = { width: 1440, height: 800 };
-  const note = { width: 288, height: 120 };
-  const right = placeNote({ left: 200, top: 300, right: 376, bottom: 564 }, 640, note, view);
-  assert.deepEqual(right, { side: 'right', left: 390, top: 300, pointer: 36 });
-  // The last cover in a row: no room on the right.
-  const left = placeNote({ left: 1100, top: 300, right: 1276, bottom: 564 }, 640, note, view);
-  assert.deepEqual(left, { side: 'left', left: 1100 - 14 - 288, top: 300, pointer: 36 });
-});
-
-test('the note stays inside the window, its pointer still aimed at the cover', () => {
-  const view = { width: 1440, height: 800 };
-  const note = { width: 288, height: 200 };
-  // A cover whose top has scrolled off the window: the note stops at the window's top edge.
-  const high = placeNote({ left: 200, top: -100, right: 376, bottom: 164 }, 240, note, view);
-  assert.deepEqual([high.side, high.top, high.pointer], ['right', 12, 18]);
-  // A cover low in the window: the note stops at the bottom edge, and its pointer moves down to the cover.
-  const low = placeNote({ left: 200, top: 700, right: 376, bottom: 964 }, 1040, note, view);
-  assert.deepEqual([low.side, low.top, low.pointer], ['right', 800 - 200 - 12, 700 + 36 - 588]);
-});
-
-test('on a phone the note goes under the item, or over the cover when the window ends too soon', () => {
-  const view = { width: 375, height: 700 };
-  const note = { width: 288, height: 120 };
-  const below = placeNote({ left: 20, top: 100, right: 180, bottom: 340 }, 420, note, view);
-  assert.deepEqual(below, { side: 'below', left: 12, top: 434, pointer: 88 });
-  const above = placeNote({ left: 195, top: 300, right: 355, bottom: 540 }, 620, note, view);
-  assert.deepEqual(above, { side: 'above', left: 375 - 288 - 12, top: 300 - 14 - 120, pointer: 275 - 75 });
-  // No room either way: under the item, where scrolling can reach it.
-  assert.equal(placeNote({ left: 20, top: 50, right: 180, bottom: 290 }, 660, note, view).side, 'below');
 });
 
 test("the new pages' addresses are kept from posts", () => {

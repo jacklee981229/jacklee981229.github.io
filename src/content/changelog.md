@@ -44,3 +44,4 @@
 - 2026-10-05 new: Lit up [Jack's Town](/lab/world/town/) in the dark theme: glowing lights and lit windows
 - 2026-10-05 improved: Rewrote my [About](/about/) intro and added where I've worked
 - 2026-10-05 new: Added my own notes to things in my [Collection](/collections/)
+- 2026-10-05 new: Swapped the notes in my [Collection](/collections/) for galleries of covers

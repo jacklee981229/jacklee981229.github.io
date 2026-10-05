@@ -7,31 +7,32 @@ items:
   - name: Stranger Things
     stars: 5
     image: stranger-things.jpg
-    comment: I like Millie Bobby Brown. And I love Eleven. I like the vibe. And I love the story. Love it.
+    gallery: [stranger-things-2.jpg, stranger-things-3.jpg, stranger-things-4.jpg, stranger-things-5.jpg]
   - name: The Uncanny Counter
     stars: 5
     image: the-uncanny-counter.jpg
+    gallery: [the-uncanny-counter-2.jpg, the-uncanny-counter-3.jpg, the-uncanny-counter-4.jpg, the-uncanny-counter-5.jpg]
   - name: Wednesday
     stars: 4
     image: wednesday.jpg
-    comment: Not the best film, but I like the actress. Fun to watch!
+    gallery: [wednesday-2.jpg, wednesday-3.jpg, wednesday-4.jpg, wednesday-5.jpg]
   - name: Happiness
     stars: 5
     image: happiness.jpg
-    comment: A zombie drama, but Asian style. Love the ending.
+    gallery: [happiness-2.jpg, happiness-3.jpg, happiness-4.jpg, happiness-5.jpg]
   - name: 难哄
     stars: 4
     image: nan-hong.jpg
-    comment: 第一次认识章若楠，好似白月光。
+    gallery: [nan-hong-2.jpg, nan-hong-3.jpg, nan-hong-4.jpg, nan-hong-5.jpg]
   - name: Howl's Moving Castle
     stars: 4
     image: howls-moving-castle.jpg
-    comment: Good old classic movie.
+    gallery: [howls-moving-castle-2.jpg, howls-moving-castle-3.jpg, howls-moving-castle-4.jpg, howls-moving-castle-5.jpg]
   - name: 逐玉
     stars: 5
     image: zhu-yu.jpg
-    comment: 田曦薇的笑容真的好有感染力。整部剧凸显一个有钱，大制作，好看！大推！
+    gallery: [zhu-yu-2.jpg, zhu-yu-3.jpg, zhu-yu-4.jpg, zhu-yu-5.jpg]
   - name: Teach You a Lesson
     stars: 4
     image: teach-you-a-lesson.jpg
-    comment: 就是个爽剧，但也是有主线剧情。整体看下来很不错！
+    gallery: [teach-you-a-lesson-2.jpg, teach-you-a-lesson-3.jpg, teach-you-a-lesson-4.jpg, teach-you-a-lesson-5.jpg]
