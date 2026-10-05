@@ -1,4 +1,4 @@
-// Jack's Train World's network (D75 to D83 in docs/plan/todo/little-worlds-trains.md): a double-track main line round
+// Jack's Train World's network (D75 to D97 in docs/plan/done/little-worlds-trains.md): a double-track main line round
 // the window, one way on each track, trains keeping left; branches to the stations and to the depot. A station is an
 // outpost whose branch ends in a loop, so trains never reverse, in one of three shapes: a plain loop, a round head, or
 // a loop with two platforms; all three stand straight up from the main line. The depot is a stack of parallel sidings

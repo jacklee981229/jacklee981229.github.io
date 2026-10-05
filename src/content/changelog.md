@@ -37,3 +37,5 @@
 - 2026-10-05 fix: Stopped traffic jams in [Jack's Town](/lab/world/town/) on big screens
 - 2026-10-05 improved: Traffic lights in [Jack's Town](/lab/world/town/) now turn green when nobody's coming
 - 2026-10-05 improved: Cars in [Jack's Town](/lab/world/town/) start and stop more gently
+- 2026-10-05 new: Trains in [Jack's Train World](/lab/world/trains/) light their way in the dark theme
+- 2026-10-05 fix: Made the drop-off bars in [Jack's Train World](/lab/world/trains/) fill as trains unload

@@ -233,6 +233,23 @@ for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2], [1920, 1000, 3], [768
   });
 }
 
+test("a drop-off's stock fills while a train unloads, not all at once when it's done", () => {
+  const traffic = startTrains(buildNetwork(1265, 652, 1), 1);
+  let watched = 0;
+  let biggest = 0;
+  for (let i = 0; i < (2 * 3600) / STEP && watched < 20; i++) {
+    const unloading = traffic.trains.filter((t) => t.phase === 'unloading').map((t) => [t, t.job.drop, t.job.drop.stock]);
+    traffic.step();
+    for (const [t, drop, was] of unloading) {
+      biggest = Math.max(biggest, drop.stock - was);
+      if (t.phase !== 'unloading') watched++;
+    }
+  }
+  assert.ok(watched >= 20, `only ${watched} trains seen unloading`);
+  // A load is a fifth of a full stock, emptied over five seconds: a step adds a hundredth of that at most.
+  assert.ok(biggest < 0.005, `a drop-off's stock jumped by ${biggest.toFixed(3)} in one step`);
+});
+
 // Add train and Remove train (TR7).
 for (const [w, h, seed] of [[1265, 652, 1], [375, 468, 2]]) {
   test(`Add train and Remove train on a ${w} by ${h} network: trains come on and leave out of sight along the line out, and the railway runs as safely full`, () => {

@@ -1,4 +1,4 @@
-// Jack's Train World's trains (D77 to D83 in docs/plan/todo/little-worlds-trains.md). Signals cut every track into
+// Jack's Train World's trains (D77 to D100 in docs/plan/done/little-worlds-trains.md). Signals cut every track into
 // blocks; a train may only go where it has booked, one train to a block. It books the block ahead while it's still
 // far enough back to stop, so the lamps ahead turn amber before it arrives, red as it passes and green again behind
 // it. At a look-ahead signal it books its whole way through the junction, and on until there's room for all of it, or
@@ -337,7 +337,6 @@ export function startTrains(network, seed) {
       if (send(train, platform.track, platform.s1 - padAt(k))) train.phase = 'over';
     } else if (train.phase === 'unloading') {
       train.cargo = 0;
-      job.drop.stock = Math.min(1, job.drop.stock + LOAD);
       job.drop.heading--;
       job.drop.coming--;
       traffic.stats.delivered++;
@@ -433,9 +432,14 @@ export function startTrains(network, seed) {
     for (const train of [...trains]) {
       if (train.phase === 'parked') continue;
       if (train.phase === 'loading' || train.phase === 'unloading') {
-        // Wagons fill (or empty) one after another while it stands at the platform.
-        train.cargo = Math.max(0, Math.min(1, 1 - (train.until - traffic.time) / DWELL));
-        if (train.phase === 'unloading') train.cargo = 1 - train.cargo;
+        // Wagons fill (or empty) one after another while it stands at the platform; a drop-off's stock fills as
+        // they empty, not all at once at the end.
+        const done = Math.max(0, Math.min(1, 1 - (train.until - traffic.time) / DWELL));
+        if (train.phase === 'unloading') {
+          const was = train.cargo;
+          train.cargo = 1 - done;
+          train.job.drop.stock = Math.min(1, train.job.drop.stock + LOAD * (was - train.cargo));
+        } else train.cargo = done;
         if (traffic.time >= train.until) leave(train);
         continue;
       }

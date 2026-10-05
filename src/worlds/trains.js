@@ -6,7 +6,9 @@
 // never moves is drawn once into a picture of its own and laid down each frame. The trains move in fixed steps and
 // are drawn between two steps, so they glide at any frame rate. Click a train and the view glides in on it and
 // follows it (src/lib/trains/view.js); click anywhere else, or press Esc, and it glides back out. The page's Add train
-// and Remove train buttons bring a train onto the railway along the line from outside, and send a parked one off. Zoomed in, what never
+// and Remove train buttons bring a train onto the railway along the line from outside, and send a parked one off. At
+// night (the dark theme, and the night sky) each running train's headlight throws a soft cone of light along the track
+// ahead, and every signal lamp glows in its colour (D99). Zoomed in, what never
 // moves is drawn afresh each frame, only what's in view, so it stays sharp. The stage's --c1 to --c3 are the cargo
 // colours, --c5 to --c7 the signals' go, wait and stop, and --c8 the ground (the same as the Town's).
 import { buildNetwork, sizesAt } from '../lib/trains/layout.js';
@@ -19,6 +21,14 @@ const WARM_UP = 60;
 const GLIDE = 0.8;
 /** How near a click has to be to a train to pick it, in pixels on the screen. */
 const SLACK = 12;
+/** At night, how far a headlight reaches ahead and how far it spreads either side (radians), and how far a lamp's glow
+ *  spreads round it, at scale 1. */
+const BEAM = 75;
+const SPREAD = 0.3;
+const GLOW = 10;
+
+/** How bright a colour is, from 0 (black) to 1 (white). @param {number[]} rgb */
+const brightness = ([r, g, b]) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
 /** @param {import('../effects/stage.js').Stage} stage */
 export default function trains(stage) {
@@ -251,6 +261,47 @@ export default function trains(stage) {
     });
   };
 
+  /** At night, each lamp colour's glow, drawn once onto a little picture of its own (a soft round light, brightest in
+   *  the middle) and laid round every lamp of that colour; made again when the colours change. */
+  let glows = null;
+  let glowsFor = null;
+  const glowsOf = (lamps) => {
+    if (glowsFor !== stage.colors) {
+      glows = Object.fromEntries(Object.entries(lamps).map(([state, rgb]) => {
+        const picture = document.createElement('canvas');
+        picture.width = picture.height = 64;
+        const g = /** @type {CanvasRenderingContext2D} */ (picture.getContext('2d'));
+        const light = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        light.addColorStop(0, stage.rgba(rgb, 0.55));
+        light.addColorStop(1, stage.rgba(rgb, 0));
+        g.fillStyle = light;
+        g.fillRect(0, 0, 64, 64);
+        return [state, picture];
+      }));
+      glowsFor = stage.colors;
+    }
+    return glows;
+  };
+
+  /** At night, a train's headlight: a cone of warm light from the front of its engine along the way it faces, fading
+   *  out about three wagons ahead. Off while it stands parked in the depot. */
+  const drawBeam = (train, k, light) => {
+    if (train.phase === 'parked') return;
+    const engine = carsOf(train, headOf(train), k)[0];
+    const x = engine.x + Math.cos(engine.angle) * engine.length / 2;
+    const y = engine.y + Math.sin(engine.angle) * engine.length / 2;
+    const reach = BEAM * k;
+    const fade = ctx.createRadialGradient(x, y, 0, x, y, reach);
+    fade.addColorStop(0, stage.rgba(light, 0.42));
+    fade.addColorStop(1, stage.rgba(light, 0));
+    ctx.fillStyle = fade;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.arc(x, y, reach, engine.angle - SPREAD, engine.angle + SPREAD);
+    ctx.closePath();
+    ctx.fill();
+  };
+
   const draw = () => {
     const zoomed = view.zoom > 1 + 1e-6;
     if (zoomed) {
@@ -292,6 +343,19 @@ export default function trains(stage) {
       ctx.beginPath();
       ctx.roundRect(-(b.length - 10 * k) / 2, -1.5 * k, full, 3 * k, 1.5 * k);
       ctx.fill();
+      ctx.restore();
+    }
+
+    // At night, the lamps' glow and the headlights, added to the light already there, under the lamps and trains.
+    const night = brightness(colors.paper) < 0.3;
+    if (night) {
+      const glow = glowsOf(lamps);
+      const r = GLOW * k;
+      const warm = colors.ink.map((v, i) => (v + colors.lanes[5][i]) / 2);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (const t of network.tracks) for (const sig of t.signals) ctx.drawImage(glow[lampOf(traffic, t, sig)], sig.x - r, sig.y - r, 2 * r, 2 * r);
+      for (const train of traffic.trains) drawBeam(train, k, warm);
       ctx.restore();
     }
 
