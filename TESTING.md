@@ -752,3 +752,14 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 7. Run the simulation's tests: `node --test tests/town.test.js`. Expected: `# pass 10`, about half a minute (four towns each run a whole day).
 8. Open http://localhost:4321/lab/. Expected: a Little Worlds button among the section links; it jumps to a Little Worlds section after Effects with Jack's Town's card (a picture of the town); the card opens the town.
 9. Press Ctrl+K and type `town`. Expected: Jack's Town under Lab. http://localhost:4321/sitemap.txt lists `/lab/world/town/`.
+
+## Jack's Train World (hidden)
+
+1. Open http://localhost:4321/lab/world/trains/. Expected: a train set seen from above fills the window under the Lab header: a double-track main line round the edge; outposts off its top and bottom, each standing straight up from it, in three shapes (a plain loop, a round head, a loop with two platforms), each with its yard (crates in a colour at a pickup, a building in a colour at a drop-off, with a stock bar on its roof); a depot of parallel sidings beside a shed; and six trains (four on a phone), each a dark engine and three grey wagons, most of them already running.
+2. Watch a train leave a platform. Expected: it pulls away slowly and picks up speed for about three seconds; along the main line it runs fastest, without slowing where it goes straight on past a station's junction; it slows down for about two seconds before it stops, and well before a red. The lamps ahead of it turn amber before it arrives and red as it passes, green again behind it; it never stops inside a junction.
+3. Watch a pickup. Expected: a train stops at the platform and its wagons fill with the pickup's colour one after another; it then goes to the drop-off of that colour, where the wagons empty and the drop-off's stock bar fills up; then it goes back to a siding in the depot.
+4. Watch a drop-off's bar. Expected: it shrinks (a full bar lasts about 80 seconds); whenever there's room on it for another load (about a third of the bar), a train sets off from the depot for it, and a second one if there's room for one more before the first arrives. Each delivery fills about a third of the bar.
+5. Reload a few times. Expected: a different network each time, stations spread along the main line. Make the window narrow or open it on a phone: the network stands upright with two colours.
+6. Click Pause, then Play; switch between light and dark. Expected: it stops and carries on; the same network in the theme's colours.
+7. Run its tests: `node --test tests/trains.test.js`. Expected: `# pass 13`, in about fifteen seconds (five networks each run a whole day).
+8. It isn't in the Lab, the sitemap or search engines yet: http://localhost:4321/sitemap.txt has no `/lab/world/trains/`.
