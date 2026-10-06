@@ -77,7 +77,7 @@ Every task that changes the UI passes these in the sweep: after Jack confirms th
 - Commit and push only when Jack says so, through the commit and push checklist in `C:\repos\Jack\CLAUDE.md`. This site's own steps in it:
   - The checks: `npm test`, `npm run check` and `npm run build`.
   - The commit carries a changelog line for each change a visitor can see (the Changelog, under Where things live).
-  - Work that stays local stays out of the commit: right now the unpublished post of [first-new-post.md](docs/plan/todo/first-new-post.md) and its topic's lines in `src/lib/topics.js` and `src/styles/tokens.css`. When one of those files is part of the work too, stage only the work's lines.
+  - Work that stays local stays out of the commit. When a file holds both, stage only the work's lines.
   - After the push: the deploy goes green (below; if it fails, find out why, fix it and tell Jack), then the changed page on the live site shows the change.
 - The GitHub CLI is `%LOCALAPPDATA%\Programs\gh\bin\gh.exe` (not on PATH). `gh run list --limit 3` shows recent deploys; `gh run view <id> --log-failed` shows why one failed.
 - This repo's Git identity and github.com login live in `.git/config` only. Never change the global Git config: it belongs to Jack's work projects.
