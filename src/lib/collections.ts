@@ -3,7 +3,7 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
-import { bestOf, mostPopular, pageVisits } from './lab/popular.js';
+import { mostPopular, pageVisits } from './lab/popular.js';
 import { EFFECTS, EXPERIMENTS, TOOLS, WORLDS, effectUrl, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
 import { SITE } from '../site';
@@ -64,15 +64,6 @@ function labVisits() {
 export async function popularLabItems(): Promise<LabItem[]> {
   const { items, visits } = await labVisits();
   return mostPopular(items, visits).map((i) => i.item);
-}
-
-/** The most visited tool, game and effect, one of each; the first of its kind when nothing has been counted. */
-export async function bestOfEachKind() {
-  const { items, visits } = await labVisits();
-  return (['Tool', 'Game', 'Effect'] as const).flatMap((kind) => {
-    const best = bestOf(items.filter((i) => i.kind === kind), visits);
-    return best ? [{ kind, name: best.name, href: best.path }] : [];
-  });
 }
 
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/content/posts/*/*.{png,jpg,jpeg,webp,gif,avif}', { eager: true });

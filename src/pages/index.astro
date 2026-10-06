@@ -1,8 +1,7 @@
 ---
-// The home page: one grid of tiles showing what's alive on the site (docs/plan/done/home-bento.md): who Jack is,
-// what he's up to, the Lab, the latest changes, the Collection, his travels, his writing and the site itself.
-// Every number and list comes from the site's own data; the rules are in src/lib/home.js. On a phone the tiles
-// stack in the order they're written here, which is also the order screen readers read them.
+// The home page: a place that belongs to Jack, not a dashboard. Jack's Space itself, then what he's up to (Now, as
+// one sentence), the Lab as the one lively part, and three quiet doors to the rest. No counts and no tiles: the
+// other pages hold the details. The rules are in src/lib/home.js.
 import { Image } from 'astro:assets';
 import { getCollection, getEntry } from 'astro:content';
 import world from 'world-atlas/countries-110m.json';
@@ -10,213 +9,152 @@ import land from 'world-atlas/land-110m.json';
 import fine from 'world-atlas/countries-50m.json';
 import Base from '../layouts/Base.astro';
 import Welcome from '../components/Welcome.astro';
-import HomeTile from '../components/HomeTile.astro';
 import HomeToy from '../components/HomeToy.astro';
-import ChangeKind from '../components/ChangeKind.astro';
 import Go from '../components/Go.astro';
 import Icon from '../components/Icon.astro';
-import ProfileLinks from '../components/ProfileLinks.astro';
-import Stars from '../components/Stars.astro';
 import Updated from '../components/Updated.astro';
 import avatar from '../assets/avatar.png';
 import { CURSOR_MS, typingTimeline } from '../lib/typing.js';
-import { SITE } from '../site';
-import { bestOfEachKind, experimentPosts, listedPosts, postUrl } from '../lib/collections';
-import { lastUpdated } from '../lib/posts.js';
+import { LINKS, SITE } from '../site';
+import { isExternal, NEW_TAB } from '../lib/links.js';
+import { listedPosts } from '../lib/collections';
 import { topicOf } from '../lib/topics.js';
-import { EFFECTS, TOOLS, WORLDS } from '../lib/lab/tools.js';
 import { nowFile } from '../lib/now-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
 import { pictureOf } from '../lib/shelves.js';
-import { changelogFile, lastUpdate } from '../lib/changelog-file.js';
-import { dayToDate } from '../lib/changelog.js';
-import { formatDate } from '../lib/dates.js';
-import { interleave, latestChanges, splitEmoji, writingPicks } from '../lib/home.js';
+import { changelogFile } from '../lib/changelog-file.js';
+import { interleave, joiner, lately, lowerFirst, splitEmoji, writingPicks } from '../lib/home.js';
 import { colourSteps, middles, namesIn, smallGlobe } from '../lib/travel/map.js';
 import { placesFor } from '../lib/travel/places.js';
 
 const site = String(Astro.site);
 
-// The title types itself out on two lines: "Jack's" then "Space".
+// The title types itself out, a letter at a time; where the window is too narrow for one line, it breaks at the space.
 const letters = [...SITE.title];
 const at = typingTimeline(SITE.title);
 
-// Now: up to three items; the first one bigger, with its cover when it names something in the Collection.
+// Now, as one sentence: "Right now I'm playing Shape of Dreams and building Jack's Space." Each line's label is a
+// doing word, so it reads on in small letters; its emoji is left for the Now page. The first item that names
+// something in the Collection lends its cover.
 const now = nowFile();
 const nowItems = await Promise.all(
-  now.items.slice(0, 3).map(async (item) => {
-    const { emoji, text } = splitEmoji(item.label ?? '');
-    const found = await shelfItemNamed(plainText(item.value));
-    return { emoji, label: text, html: inlineHtml(item.value, site), found };
-  }),
+  now.items.slice(0, 3).map(async (item) => ({
+    doing: lowerFirst(splitEmoji(item.label ?? '').text),
+    html: inlineHtml(item.value, site),
+    found: await shelfItemNamed(plainText(item.value)),
+  })),
 );
+const snapshot = nowItems.find((item) => item.found?.picture)?.found;
+const change = lately(changelogFile());
 
-// The Lab: its counts, the most visited tool, game and effect.
-const counts = { tools: TOOLS.filter((t) => t.status === 'ready').length, games: (await experimentPosts()).length, effects: EFFECTS.length, worlds: WORLDS.length };
-const best = await bestOfEachKind();
-
-// The four newest changes, under their days.
-const changes = latestChanges(changelogFile(), 4);
-
-// The Collection: five covers, taken from each collection in turn, in the order the files list them.
+// The doors: three covers taken from each collection in turn, the globe facing Jack's places, and a Start here post
+// on the front sheet of paper.
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
 const covers = interleave(
-  shelves.map((shelf) => shelf.data.items.map((item) => ({ item, shelf: shelf.id, picture: pictureOf(pictures, shelf.id, item)?.default }))),
-  5,
+  shelves.map((shelf) => shelf.data.items.map((item) => pictureOf(pictures, shelf.id, item)?.default).filter((picture) => picture !== undefined)),
+  3,
 );
-
-// Travel: how many places, and a small globe facing them.
 const visited = (await getEntry('travel', 'visited'))?.data.visited ?? [];
 const places = placesFor(visited, namesIn(world), namesIn(fine));
-const GLOBE = 88;
+const GLOBE = 128;
 const globe = smallGlobe(world, land, places, colourSteps(middles(fine, places.map((p) => p.name))), GLOBE);
-
-// Writing: the "Start here" posts, else the newest that aren't on a legacy topic.
-const posts = await listedPosts();
-const picks = writingPicks(posts, (topic) => Boolean(topicOf(topic).legacy), 3);
-
-// This site.
-const updated = lastUpdate(lastUpdated(posts));
-const days = Math.floor((Date.now() - new Date(`${SITE.started}T00:00:00+08:00`).getTime()) / 86400000);
+const [sheet] = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(topic).legacy), 1);
 ---
 <Base>
   <Welcome slot="top" />
-  <div class="wrap home">
-    <div class="bento">
-      <section class="hero" aria-labelledby="site-title">
-        <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
-        <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
-          <!-- On one line: any line break between the letters would show as a space after each one. -->
-          <span aria-hidden="true">{letters.map((ch, i) => <><span class="ch" style={`--at: ${at[i]}ms; --for: ${(at[i + 1] ?? at[i]) - at[i]}ms`}>{ch}</span>{ch === ' ' && <br />}</>)}</span>
-        </h1>
-        <p class="tagline">{SITE.tagline}.</p>
-        <div class="who">
-          <Image class="avatar" src={avatar} alt="" width={80} height={80} />
-          <div>
-            <p class="name">{SITE.author}</p>
-            <p class="role">{SITE.role}</p>
-          </div>
-        </div>
-        <div class="find-me"><ProfileLinks pills /></div>
-      </section>
 
-      <HomeTile class="t-now" id="now" title="Now" icon="clock" href="/now/">
-        {now.updated && <Updated slot="meta" date={now.updated} />}
-        {nowItems.length ? (
-          <ul class="now">
-            {nowItems.map((item, i) => (
-              <li class:list={{ first: i === 0 }}>
-                {i === 0 && item.found?.picture ? (
-                  <a class="box cover" href={`/collections/#${item.found.shelf}`} tabindex="-1" aria-hidden="true">
-                    <Image src={item.found.picture} alt="" width={144} height={192} fit="cover" />
-                  </a>
-                ) : (
-                  <span class="box" aria-hidden="true">{item.emoji ?? <Icon name="clock" />}</span>
-                )}
-                <span class="words">
-                  {item.label && <span class="label">{item.label}</span>}
-                  {item.found ? <Go class="value" href={`/collections/#${item.found.shelf}`}><Fragment set:html={item.html} /></Go> : <span class="value" set:html={item.html} />}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="quiet">Nothing here right now.</p>
-        )}
-        <Go class="foot" href="/now/">See the Now page</Go>
-      </HomeTile>
-
-      <HomeTile class="t-lab" id="lab" title="Lab" icon="flask" href="/lab/" lab>
-        <p slot="meta">{counts.tools} tools · {counts.games} games · {counts.effects} effects · {counts.worlds} worlds</p>
-        <div class="lab">
-          <HomeToy />
-          <div class="picks">
-            <ul class="rows">
-              {best.map((item) => (
-                <li><a href={item.href}><span class="row-name">{item.name}</span><span class="row-kind">{item.kind}</span></a></li>
-              ))}
-            </ul>
-            <button type="button" class="surprise" data-surprise><Icon name="dice" />Surprise me</button>
-          </div>
-        </div>
-      </HomeTile>
-
-      <HomeTile class="t-changes" id="changes" title="Latest changes" icon="list" href="/changelog/">
-        <Go slot="meta" href="/changelog/">See all</Go>
-        {changes.map(({ day, changes: list }) => (
-          <div class="day">
-            <p class="date"><time datetime={day}>{formatDate(dayToDate(day))}</time></p>
-            <ul class="changes">
-              {list.map((change) => (
-                <li><ChangeKind kind={change.kind} /><span set:html={inlineHtml(change.text, site)} /></li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </HomeTile>
-
-      <HomeTile class="t-collection" id="collection" title="Collection" icon="books" href="/collections/">
-        <p slot="meta">{shelves.map((shelf) => `${shelf.data.name} ${shelf.data.items.length}`).join(' · ')}</p>
-        <ul class="covers">
-          {covers.map(({ item, shelf, picture }) => (
-            <li>
-              <a href={`/collections/#${shelf}`}>
-                {picture ? <Image class="poster" src={picture} alt="" width={240} height={320} fit="cover" /> : <span class="poster plain" aria-hidden="true" />}
-                <span class="title">{item.name}</span>
-              </a>
-              <Stars stars={item.stars} />
-            </li>
-          ))}
-        </ul>
-      </HomeTile>
-
-      <HomeTile class="t-travel" id="travel" title="Travel" icon="globe" href="/travel/">
-        <div class="stat-row">
-          <p class="stat"><span class="number">{places.length}</span><span class="unit">places so far</span></p>
-          <svg class="globe" viewBox={`0 0 ${GLOBE} ${GLOBE}`} width={GLOBE} height={GLOBE} aria-hidden="true" focusable="false">
-            <path class="sphere" d={globe.sphere} />
-            <path class="land" d={globe.land} />
-            {globe.shapes.map((shape) => <path class="place" d={shape.d} style={`--step: ${shape.step}`} />)}
-          </svg>
-        </div>
-      </HomeTile>
-
-      <HomeTile class="t-writing" id="writing" title="Writing" icon="pen" href="/writing/">
-        <p slot="meta">{posts.length} posts</p>
-        <ul class="posts">
-          {picks.map((post) => (
-            <li style={`--c: var(--lane-${post.data.topic})`}>
-              <span class="dot" aria-hidden="true" />
-              <span class="words">
-                <Go href={postUrl(post)}>{post.data.title}</Go>
-                <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-              </span>
-            </li>
-          ))}
-        </ul>
-        <Go class="foot" href="/writing/">All posts</Go>
-      </HomeTile>
-
-      <HomeTile class="t-site" id="site" title="This site" icon="sparkles">
-        <p class="stat"><span class="number" data-running-since={SITE.started}>{days.toLocaleString('en-US')}</span><span class="unit">days running</span></p>
-        <p class="site-line">
-          <span data-visits="TOTAL" hidden><span data-visits-number></span> visitors · </span>
-          {updated && <span>updated <Go href="/changelog/">{formatDate(updated)}</Go></span>}
-        </p>
-      </HomeTile>
+  <section class="wrap hero" aria-labelledby="site-title">
+    <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
+    <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
+      <!-- On one line: any line break between the letters would show as a space after each one. -->
+      <span aria-hidden="true">{letters.map((ch, i) => <span class="ch" style={`--at: ${at[i]}ms; --for: ${(at[i + 1] ?? at[i]) - at[i]}ms`}>{ch}</span>)}</span>
+    </h1>
+    <p class="tagline">{SITE.tagline}.</p>
+    <div class="signature">
+      <div class="who">
+        <Image class="avatar" src={avatar} alt="" width={80} height={80} />
+        <p><span class="name">{SITE.author}</span><span class="role">{SITE.role}</span></p>
+      </div>
+      <ul class="find-me" aria-label="Find me">
+        {LINKS.map(({ label, href }) => <li><Go href={href} {...(isExternal(href, site) ? NEW_TAB : {})}>{label}</Go></li>)}
+      </ul>
     </div>
-  </div>
+  </section>
+
+  <section class:list={['wrap', 'now', { bare: !snapshot }]} aria-labelledby="now-title">
+    <h2 id="now-title">Now</h2>
+    {nowItems.length ? (
+      <p class="sentence">Right now I'm {nowItems.map((item, i) => <>{joiner(i, nowItems.length)}{item.doing && `${item.doing} `}<strong set:html={item.html} /></>)}.</p>
+    ) : (
+      <p class="sentence">Nothing much, right now.</p>
+    )}
+    {snapshot?.picture && (
+      <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
+        <Image src={snapshot.picture} alt="" width={192} height={256} fit="cover" />
+      </a>
+    )}
+    {change && <p class="lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
+    <div class="meta">
+      {now.updated && <Updated date={now.updated} />}
+      {now.updated && <span aria-hidden="true">·</span>}
+      <Go href="/now/">More on the Now page</Go>
+    </div>
+  </section>
+
+  <section class="lab" data-area="lab" aria-labelledby="lab-title">
+    <div class="wrap lab-inner">
+      <div class="lab-words">
+        <h2 id="lab-title">Jack's Lab</h2>
+        <p>Games, toys and little worlds I made for fun.</p>
+      </div>
+      <div class="lab-actions">
+        <a class="explore" href="/lab/">Explore the Lab<Icon name="arrow" /></a>
+        <button type="button" class="surprise" data-surprise><Icon name="dice" />Surprise me</button>
+      </div>
+      <HomeToy />
+    </div>
+  </section>
+
+  <nav class="wrap doors" aria-label="More of Jack's Space">
+    <ul>
+      <li>
+        <a class="door" href="/collections/">
+          <span class="thing covers" aria-hidden="true">
+            {covers.map((picture) => <Image src={picture} alt="" width={160} height={240} fit="cover" />)}
+          </span>
+          <span class="words"><span class="door-name">Collection<Icon name="arrow" /></span><span class="door-line">Films and games I love.</span></span>
+        </a>
+      </li>
+      <li>
+        <a class="door" href="/travel/">
+          <span class="thing" aria-hidden="true">
+            <svg class="globe" viewBox={`0 0 ${GLOBE} ${GLOBE}`} width={GLOBE} height={GLOBE} focusable="false">
+              <path class="sphere" d={globe.sphere} />
+              <path class="land" d={globe.land} />
+              {globe.shapes.map((shape) => <path class="place" d={shape.d} style={`--step: ${shape.step}`} />)}
+            </svg>
+          </span>
+          <span class="words"><span class="door-name">Travel<Icon name="arrow" /></span><span class="door-line">Places I've been.</span></span>
+        </a>
+      </li>
+      <li>
+        <a class="door" href="/writing/">
+          <span class="thing sheets" aria-hidden="true">
+            <span class="sheet"><i></i><i></i><i></i><i></i></span>
+            <span class="sheet"><i></i><i></i><i></i><i></i></span>
+            <span class="sheet front">{sheet && <b>{sheet.data.title}</b>}<i></i><i></i><i></i></span>
+          </span>
+          <span class="words"><span class="door-name">Writing<Icon name="arrow" /></span><span class="door-line">Notes I've written.</span></span>
+        </a>
+      </li>
+    </ul>
+  </nav>
 </Base>
 
 <script>
   import { pickOne } from '../lib/palette.js';
-  import { showRunningDays } from '../lib/running.js';
-  import { showVisits } from '../lib/visits.js';
-  import { SITE } from '../site';
 
-  showRunningDays();
-  showVisits(SITE.goatcounter, new URL(import.meta.env.SITE).hostname);
   // Surprise me: the same pick as the command palette's, out of the same list (SearchDialog.astro carries it).
   document.querySelector('[data-surprise]')?.addEventListener('click', () => {
     const things = JSON.parse(document.querySelector('[data-palette]')?.textContent ?? '{}').things ?? [];
@@ -226,34 +164,21 @@ const days = Math.floor((Date.now() - new Date(`${SITE.started}T00:00:00+08:00`)
 </script>
 
 <style>
-  .home { padding-block: var(--space-8); }
-  /* Four equal columns; a row is at least --tile-row tall and every tile in it shares its height. */
-  .bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(var(--tile-row), auto); gap: var(--space-4); }
-  .hero { grid-column: 1 / 3; grid-row: 1 / 3; }
-  .bento > :global(.t-now) { grid-column: 3; grid-row: 1 / 3; }
-  .bento > :global(.t-travel) { grid-column: 4; grid-row: 1; }
-  .bento > :global(.t-site) { grid-column: 4; grid-row: 2; }
-  .bento > :global(.t-lab) { grid-column: 1 / 3; grid-row: 3; }
-  .bento > :global(.t-changes) { grid-column: 3 / 5; grid-row: 3; }
-  .bento > :global(.t-collection) { grid-column: 1 / 4; grid-row: 4; }
-  .bento > :global(.t-writing) { grid-column: 4; grid-row: 4; }
-
-  /* The hero: the same box as a tile, roomier. */
-  /* The title, tagline and Jack on the left; his links stand in a column on the right, so the title's side isn't empty. */
-  .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto 1fr auto; column-gap: var(--space-6); min-width: 0; padding: var(--space-7) var(--space-6) var(--space-6); border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
-  h1 { margin: 0; font-size: var(--text-hero); font-weight: var(--display-weight); line-height: 1; letter-spacing: var(--display-tracking); }
-  .tagline { align-self: start; margin: var(--space-5) 0 0; color: var(--ink); font-size: var(--text-lg); }
-  /* Jack in a band of his own across the tile's foot, under a line edge to edge, so his job title has the full width. */
-  .who { grid-column: 1 / -1; grid-row: 3; display: flex; align-items: center; gap: var(--space-3); margin: var(--space-6) calc(-1 * var(--space-6)) 0; padding: var(--space-5) var(--space-6) 0; border-top: 1px solid var(--rule); }
-  .find-me { grid-column: 2; grid-row: 1 / 3; padding-top: var(--space-2); }
-  .find-me :global(.links.pills) { flex-direction: column; flex-wrap: nowrap; }
-  .find-me :global(.links.pills a) { justify-content: flex-start; min-width: 9.5rem; }
-  .who :global(.avatar) { width: 40px; height: 40px; border-radius: 50%; background: var(--rule); }
-  .who p { margin: 0; }
-  .name { font-weight: 700; }
+  /* Jack's Space: the title on its own, big, with room around it; Jack and his links sign off at its foot. */
+  .hero { padding-top: clamp(3.5rem, 9vw, 7rem); }
+  h1 { margin: 0; font-size: var(--text-hero); font-weight: var(--display-weight); line-height: 0.92; letter-spacing: var(--display-tracking); }
+  .tagline { margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-xl); }
+  .signature { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-6); margin-top: var(--space-8); }
+  .who { display: flex; align-items: center; gap: var(--space-3); }
+  .who :global(.avatar) { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--rule); }
+  .who p { display: grid; margin: 0; line-height: 1.35; }
+  .name { font-weight: 600; }
   .role { color: var(--muted); font-size: var(--text-sm); }
+  .find-me { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--text-ui); }
+
   /* The title types itself (as before): every letter is laid out from the start, each shows from its moment
-     (--at, after --type-start when the welcome screen plays first), with the cursor after the newest one. */
+     (--at, after --type-start when the welcome screen plays first), with the cursor after the newest one. The
+     cursor blinks once at the end and goes, so nothing trails after the name. */
   .ch { position: relative; animation: type-in 1ms calc(var(--at) + var(--type-start, 0ms)) both; }
   .ch::after { content: ''; position: absolute; top: 0.1em; bottom: 0.08em; right: -0.12em; width: 0.05em; background: currentColor; opacity: 0; animation: cursor var(--for) calc(var(--at) + var(--type-start, 0ms)); }
   .ch:last-child::after { animation: cursor-blink var(--cursor) calc(var(--at) + var(--type-start, 0ms)) step-end; }
@@ -261,94 +186,101 @@ const days = Math.floor((Date.now() - new Date(`${SITE.started}T00:00:00+08:00`)
   @keyframes cursor { from, to { opacity: 1; } }
   @keyframes cursor-blink { 0%, 50% { opacity: 1; } 25%, 75%, 100% { opacity: 0; } }
 
-  ul { margin: 0; padding: 0; list-style: none; }
-  .foot { font-size: var(--text-sm); font-weight: 650; }
-  .quiet { margin: 0; color: var(--muted); }
+  /* Now: a note, not a table. The sentence beside a photo-like cover, then what changed lately and when. */
+  .now { display: grid; grid-template-columns: 6rem minmax(0, 40rem); grid-template-areas: 'photo head' 'photo sentence' 'photo lately' 'photo meta'; justify-content: start; column-gap: var(--space-7); padding-block: clamp(4.5rem, 10vw, 7.5rem) clamp(4rem, 10vw, 8rem); }
+  .now.bare { grid-template-columns: minmax(0, 40rem); grid-template-areas: 'head' 'sentence' 'lately' 'meta'; }
+  .now h2 { grid-area: head; margin: 0; color: var(--muted); font-size: var(--text-ui); font-weight: 600; }
+  .sentence { grid-area: sentence; margin: var(--space-3) 0 0; font-size: var(--text-xl); font-weight: 500; line-height: 1.3; letter-spacing: -0.015em; }
+  .sentence strong { font-weight: 700; }
+  .snapshot { grid-area: photo; align-self: start; margin-top: var(--space-2); transform: rotate(-5deg); }
+  .snapshot :global(img) { display: block; width: 96px; height: 128px; object-fit: cover; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); }
+  .lately { grid-area: lately; margin: var(--space-6) 0 0; color: var(--muted); }
+  .lately a { color: var(--ink); }
+  .meta { grid-area: meta; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
+  .meta .go { color: var(--ink); font-weight: 600; }
 
-  /* Now: a box for each item (its cover, its emoji or an icon), then its label and value. */
-  .now li { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; gap: var(--space-3); padding-block: var(--space-3); }
-  .now li + li { border-top: 1px solid var(--rule); }
-  .now li:first-child { padding-top: 0; }
-  .box { display: grid; place-items: center; width: 72px; height: 44px; border-radius: var(--radius-art); background: var(--wash); color: var(--muted); font-size: var(--text-xl); line-height: 1; }
-  .first .box { height: 96px; }
-  .box :global(.icon) { width: 20px; height: 20px; }
-  .cover { overflow: hidden; background: none; }
-  .cover :global(img) { width: 72px; height: 96px; object-fit: cover; }
-  .words { display: grid; gap: 0.15rem; min-width: 0; }
-  .label { color: var(--muted); font-size: var(--text-sm); }
-  .value { font-size: var(--text-md); font-weight: 700; overflow-wrap: anywhere; }
-
-  /* Lab: today's toy beside the most visited, and Surprise me under them. */
-  .lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); flex: 1; }
-  .picks { display: flex; flex-direction: column; gap: var(--space-3); }
-  .rows li + li { border-top: 1px solid var(--rule); }
-  /* A row under the mouse takes the same tint as a .go link (global.css), reaching a little past its words. */
-  .rows a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 44px; margin-inline: calc(-1 * var(--space-2)); padding-inline: var(--space-2); border-radius: var(--radius-sm); text-decoration: none; transition: background-color 0.2s ease; }
-  .rows a:hover { background: var(--wash); }
-  .row-name { font-weight: 600; }
-  .row-kind { color: var(--muted); font-size: var(--text-sm); }
-  .surprise { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; min-height: 44px; margin-top: auto; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--wash); color: var(--ink); font: inherit; font-size: var(--text-ui); font-weight: 650; cursor: pointer; }
+  /* The Lab: the one lively band, in its own colours (the deep green of its dark theme). */
+  .lab { border-block: 1px solid var(--rule); background: var(--surface); }
+  :global([data-theme='dark']) .lab { background: var(--paper); }
+  /* The words and buttons beside the toy, together in the middle of its height; on a phone the toy comes between them. */
+  .lab-inner { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); grid-template-areas: 'words toy' 'actions toy'; gap: var(--space-6) var(--space-8); padding-block: var(--space-8); }
+  .lab-words { grid-area: words; align-self: end; }
+  .lab h2 { margin: 0; font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1; letter-spacing: var(--display-tracking); }
+  .lab-words p { margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-md); }
+  .lab-actions { grid-area: actions; align-self: start; display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .explore, .surprise { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: 0 var(--space-5); border-radius: var(--radius-pill); font: inherit; font-size: var(--text-ui); font-weight: 700; text-decoration: none; cursor: pointer; }
+  .explore { background: var(--ink); color: var(--paper); }
+  .surprise { border: 1px solid var(--rule); background: var(--surface); color: var(--ink); }
   .surprise:hover { border-color: var(--ink); }
-  .surprise :global(.icon) { width: 18px; height: 18px; }
+  .explore :global(.icon), .surprise :global(.icon) { width: 18px; height: 18px; }
+  .lab-inner > :global(.home-toy) { grid-area: toy; align-self: center; min-width: 0; }
 
-  /* Latest changes: the labels in one column, so every line's words start at the same place. */
-  .day { display: grid; gap: var(--space-2); }
-  .date { margin: 0; color: var(--muted); font-size: var(--text-sm); }
-  .changes { display: grid; gap: var(--space-2); }
-  .changes li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }
+  /* The doors: one shape each, a tilted thing, its name and one line. */
+  .doors { padding-block: clamp(3.5rem, 8vw, 6rem) clamp(4rem, 9vw, 7rem); }
+  /* Three across down to a tablet's width; the fans may reach a little into the gap there. */
+  .doors ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-7) clamp(var(--space-5), 4vw, var(--space-8)); margin: 0; padding: 0; list-style: none; }
+  .door { display: grid; gap: var(--space-5); color: var(--ink); text-decoration: none; }
+  .thing { display: flex; align-items: flex-end; height: 8.75rem; padding-left: var(--space-2); transition: transform 0.2s ease; }
+  .words { display: grid; gap: 0.375rem; }
+  .door-name { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.01em; }
+  .door-name :global(.icon) { width: 1em; height: 1em; stroke-width: 2.2; transition: translate 0.2s ease; }
+  .door-line { color: var(--muted); }
+  .door:hover .thing, .door:focus-visible .thing { transform: translateY(-4px); }
+  .door:hover .door-name :global(.icon), .door:focus-visible .door-name :global(.icon) { translate: 0.25em 0; }
 
-  /* Collection: five covers in a row. */
-  .covers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-4); }
-  .covers li { display: grid; align-content: start; gap: var(--space-1); min-width: 0; }
-  /* As on the Collection page, a cover under the mouse grows a little. */
-  .covers a { display: grid; gap: var(--space-2); text-decoration: none; }
-  .covers :global(.poster) { transform-origin: 50% 100%; transition: transform 0.2s ease; }
-  .covers a:hover :global(.poster) { transform: scale(1.05); }
-  .covers :global(.poster) { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius-image); background: var(--wash); }
-  .covers .title { display: -webkit-box; overflow: hidden; font-size: var(--text-sm); font-weight: 600; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  /* Covers and sheets fan out a little, like things set down by hand. */
+  .covers :global(img), .sheet { flex: none; border-radius: var(--radius-sm); box-shadow: var(--shadow-cover); }
+  .covers :global(img) { width: 80px; height: 120px; object-fit: cover; }
+  .covers :global(img:nth-child(1)), .sheet:nth-child(1) { transform: rotate(-5deg); }
+  .covers :global(img:nth-child(2)), .sheet:nth-child(2) { margin-left: -16px; transform: rotate(1deg) translateY(-6px); }
+  .covers :global(img:nth-child(3)), .sheet:nth-child(3) { margin-left: -16px; transform: rotate(6deg); }
 
-  /* Travel and This site: one big number each. */
-  .stat-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
-  .stat { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-2); margin: 0; }
-  .stat-row .stat { flex-direction: column; align-items: flex-start; }
-  .number { font-size: var(--text-stat); font-weight: var(--display-weight); line-height: 1; letter-spacing: var(--display-tracking); }
-  .unit { color: var(--muted); font-size: var(--text-sm); }
-  .globe { flex: none; }
-  .sphere { fill: var(--wash); stroke: var(--rule); }
+  .globe { flex: none; filter: drop-shadow(var(--shadow-cover)); }
+  .sphere { fill: color-mix(in srgb, var(--surface), var(--ink) 6%); stroke: var(--rule); }
   .land { fill: color-mix(in srgb, var(--muted) 28%, transparent); }
   .place { --colour: var(--visited-near); fill: var(--colour); }
   @supports (color: color-mix(in oklch, red, blue)) {
     .place { --colour: color-mix(in oklch, var(--visited-far) calc(var(--step) * 100%), var(--visited-near)); }
   }
-  .site-line { margin: 0; color: var(--muted); font-size: var(--text-sm); }
 
-  /* Writing: three posts, each with its topic's dot and its date. */
-  .posts li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2); padding-block: var(--space-2); }
-  .posts li + li { border-top: 1px solid var(--rule); }
-  .posts .dot { width: 10px; height: 10px; margin-top: 0.4rem; border-radius: 50%; background: var(--c); }
-  .posts .go { font-weight: 600; }
-  .posts time { color: var(--muted); font-size: var(--text-xs); }
+  /* Paper: white in the light theme, the page's light ink in the dark one; the front sheet carries a post's title. */
+  .sheet { --line: var(--rule); display: flex; flex-direction: column; gap: var(--space-2); box-sizing: border-box; width: 84px; height: 112px; padding: var(--space-4) var(--space-3); background: var(--surface); }
+  .sheet:nth-child(-n + 2) { background: color-mix(in srgb, var(--surface) 90%, var(--muted)); }
+  :global([data-theme='dark']) .sheet { --line: var(--muted); background: var(--ink); color: var(--paper); }
+  :global([data-theme='dark']) .sheet:nth-child(-n + 2) { background: color-mix(in srgb, var(--ink) 82%, var(--muted)); }
+  .sheet i { display: block; height: 3px; border-radius: var(--radius-2xs); background: var(--line); }
+  .sheet i:nth-child(odd) { width: 86%; }
+  .sheet i:nth-child(even) { width: 64%; }
+  .sheet.front { padding: var(--space-3) var(--space-2); }
+  .sheet b { font-size: var(--text-xs); font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
 
-  /* Tablets: two columns; the wide tiles span both, the others take one each, and no hole is left. */
-  @media (max-width: 1099px) {
-    .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; }
-    .hero, .bento > :global(.t-lab), .bento > :global(.t-changes), .bento > :global(.t-collection) { grid-column: span 2; grid-row: auto; }
-    .bento > :global(.t-now), .bento > :global(.t-travel), .bento > :global(.t-site), .bento > :global(.t-writing) { grid-column: auto; grid-row: auto; }
+  @media (prefers-reduced-motion: reduce) {
+    .thing, .door-name :global(.icon) { transition: none; }
   }
-  /* Phones: one column, in the page's own order; the toy above the most visited; three covers to a row. */
+
+  /* Too narrow for the toy beside the words: it goes between them and the buttons. */
+  @media (max-width: 899px) {
+    .lab-inner { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'words' 'toy' 'actions'; }
+  }
+
+  /* Phones: the title breaks onto two lines by itself; the cover sits beside the sentence; the doors become rows. */
   @media (max-width: 719px) {
-    .bento { grid-template-columns: minmax(0, 1fr); }
-    .hero, .bento > :global(.t-lab), .bento > :global(.t-changes), .bento > :global(.t-collection) { grid-column: auto; }
-    /* Too narrow for a column beside the title: the links go back to a row under Jack. */
-    .hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; padding: var(--space-6) var(--space-5) var(--space-5); }
-    .find-me { grid-column: 1; grid-row: 3; padding-top: 0; margin-top: var(--space-5); }
-    .who { grid-row: 4; margin-inline: calc(-1 * var(--space-5)); padding-inline: var(--space-5); }
-    .find-me :global(.links.pills) { flex-direction: row; flex-wrap: wrap; }
-    .find-me :global(.links.pills a) { min-width: 0; }
-    .lab { grid-template-columns: minmax(0, 1fr); }
-    .covers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
-  @media (max-width: 479px) {
-    .changes li { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+    .tagline { font-size: var(--text-lg); }
+    .signature { flex-direction: column; align-items: flex-start; margin-top: var(--space-6); }
+    .find-me .go { padding-block: 0.625rem; }
+    .now { grid-template-columns: minmax(0, 1fr) 4rem; grid-template-areas: 'head head' 'sentence photo' 'lately lately' 'meta meta'; column-gap: var(--space-4); }
+    .now.bare { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'head' 'sentence' 'lately' 'meta'; }
+    .sentence { font-size: var(--text-lg); }
+    .lab-inner { padding-block: var(--space-7); }
+    .lab-actions { gap: var(--space-2); }
+    .explore, .surprise { padding-inline: var(--space-4); }
+    .snapshot { margin-top: var(--space-3); transform: rotate(5deg); }
+    .snapshot :global(img) { width: 64px; height: 86px; }
+    .doors ul { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+    .door { grid-template-columns: 8.25rem minmax(0, 1fr); align-items: center; }
+    .thing { height: 6.5rem; }
+    /* The covers and sheets as a whole, shrunk to fit beside their words. */
+    .covers, .sheets { zoom: 0.62; height: 10.5rem; }
+    .globe { width: 96px; height: 96px; }
   }
 </style>

@@ -53,12 +53,3 @@ test('nothing until four items have been visited at all', () => {
   assert.deepEqual(mostPopular(lab, new Map([['/a/', 5], ['/b/', 2], ['/c/', 1]])), []);
   assert.equal(mostPopular(lab, new Map([['/a/', 5], ['/b/', 2], ['/c/', 1], ['/e/', 1]])).length, 4);
 });
-
-test('bestOf: the most visited of a kind, else the first', async () => {
-  const { bestOf } = await import('../src/lib/lab/popular.js');
-  const items = [{ path: '/a/' }, { path: '/b/' }, { path: '/c/' }];
-  assert.equal(bestOf(items, new Map([['/b/', 5], ['/c/', 3]])).path, '/b/');
-  assert.equal(bestOf(items, new Map()).path, '/a/');
-  assert.equal(bestOf(items, null).path, '/a/');
-  assert.equal(bestOf([], null), undefined);
-});

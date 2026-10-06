@@ -1,5 +1,5 @@
-// The home page's rules: which effect is today's toy, which Collection items and posts its tiles show, the newest
-// changes, and a Now label's emoji. The page itself is src/pages/index.astro.
+// The home page's rules: which effect is today's toy, which covers and post its doors show, how the Now lines read
+// as one sentence, and which change its "Lately" line tells of. The page itself is src/pages/index.astro.
 
 /** Whole days since 1 Jan 1970 for a date as the visitor's calendar shows it. @param {Date} date */
 export const dayNumber = (date) => Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
@@ -47,17 +47,24 @@ export function writingPicks(posts, legacy, count) {
 }
 
 /**
- * The newest `count` changes (the list is already newest first), grouped under their days.
- * @template {{ day: string }} T @param {T[]} changes @param {number} count @returns {{ day: string, changes: T[] }[]}
+ * The change the "Lately I …" line tells of: the newest one that isn't a fix, since a fix reads oddly as news.
+ * @template {{ kind: string }} T @param {T[]} changes newest first @returns {T | undefined}
  */
-export function latestChanges(changes, count) {
-  const days = [];
-  for (const change of changes.slice(0, count)) {
-    if (days.at(-1)?.day !== change.day) days.push({ day: change.day, changes: [] });
-    days.at(-1).changes.push(change);
-  }
-  return days;
-}
+export const lately = (changes) => changes.find((change) => change.kind !== 'fix');
+
+/**
+ * A word made ready for the middle of a sentence: "Playing" becomes "playing". Words with more capitals than the
+ * first ("AI art", "iOS") are names, so they stay as written.
+ * @param {string} text
+ */
+export const lowerFirst = (text) => (/^\p{Lu}\p{Ll}/u.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text);
+
+/**
+ * What goes before the item at `index` when `count` items read as a list: nothing before the first, "and" before
+ * the last, a comma between the others ("a, b and c").
+ * @param {number} index @param {number} count
+ */
+export const joiner = (index, count) => (index === 0 ? '' : index === count - 1 ? ' and ' : ', ');
 
 /**
  * A Now label split into its leading emoji, if it has one, and the words: "🎮 Playing" is 🎮 and "Playing".

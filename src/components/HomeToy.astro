@@ -4,20 +4,18 @@
 // (src/effects/stage.js): only while it's on screen, with a pointer or a finger, and as a still picture when less
 // motion is asked for. A finger can still scroll the page across it, and it never takes the keyboard's focus.
 // The stage opts into the Lab's colours (data-area="lab", tokens.css).
-import Icon from './Icon.astro';
 import { EFFECTS, effectUrl } from '../lib/lab/tools.js';
 
 // Key Jam is left out: it plays sounds from the keyboard, which a page you've only opened shouldn't.
 const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.slug, name: e.name, href: effectUrl(e.slug), description: e.description }));
 ---
-<div class="toy" data-area="lab" data-toy>
-  <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
-  <a class="caption" href="/lab/#effects" data-toy-link>
-    <span class="kicker">Today's toy</span>
-    <strong><span data-toy-name>The Lab's effects</span><Icon name="arrow" /></strong>
-  </a>
-  <script is:inline type="application/json" data-toys set:html={JSON.stringify(toys)} />
-</div>
+<figure class="home-toy">
+  <div class="toy" data-area="lab" data-toy>
+    <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
+    <script is:inline type="application/json" data-toys set:html={JSON.stringify(toys)} />
+  </div>
+  <figcaption>Today's toy: <a href="/lab/#effects" data-toy-link>one of the Lab's effects</a>. A new one every day.</figcaption>
+</figure>
 
 <script>
   import { runStage } from '../effects/stage.js';
@@ -29,10 +27,11 @@ const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.s
     const toys = JSON.parse(root.querySelector('[data-toys]')?.textContent ?? '[]') as { slug: string; name: string; href: string; description: string }[];
     const toy = todaysToy(toys, new Date());
     if (toy) {
-      const link = root.querySelector<HTMLAnchorElement>('[data-toy-link]');
-      const name = root.querySelector<HTMLElement>('[data-toy-name]');
-      if (link) link.href = toy.href;
-      if (name) name.textContent = toy.name;
+      const link = document.querySelector<HTMLAnchorElement>('[data-toy-link]');
+      if (link) {
+        link.href = toy.href;
+        link.textContent = toy.name;
+      }
       root.querySelector('canvas')?.setAttribute('aria-label', `${toy.name}: ${toy.description}`);
       pieces[`../effects/${toy.slug}.js`]?.().then((piece) => runStage(root, piece.default));
     }
@@ -40,14 +39,15 @@ const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.s
 </script>
 
 <style>
+  .home-toy { margin: 0; }
   /* --c1 onward are the colours the effects draw with: the site's topic colours, as on an effect's own page. */
-  .toy { --c1: var(--lane-flutter); --c2: var(--lane-games); --c3: var(--lane-hexo); --c4: var(--lane-chatgpt); --c5: var(--lane-git); position: relative; min-height: 200px; overflow: hidden; border-radius: var(--radius-md); background: var(--paper); }
+  .toy { --c1: var(--lane-flutter); --c2: var(--lane-games); --c3: var(--lane-hexo); --c4: var(--lane-chatgpt); --c5: var(--lane-git); position: relative; aspect-ratio: 2 / 1; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--paper); }
   /* A finger dragging up or down scrolls the page; across, it plays. */
   canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: crosshair; }
-  .caption { position: absolute; left: var(--space-3); bottom: var(--space-3); display: grid; gap: 0.1rem; min-height: 44px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-art); background: color-mix(in srgb, var(--paper) 92%, transparent); color: var(--ink); text-decoration: none; }
-  .kicker { color: var(--muted); font-size: var(--text-xs); }
-  /* The name's arrow slides out under the mouse, as on the site's other standalone links (.go in global.css). */
-  strong { display: inline-flex; align-items: center; gap: 0.125rem; font-size: var(--text-ui); }
-  strong :global(.icon) { width: 1em; height: 1em; stroke-width: 2.2; opacity: 0; translate: -0.375em 0; transition: opacity 0.2s ease, translate 0.2s ease; }
-  .caption:hover strong :global(.icon), .caption:focus-visible strong :global(.icon) { opacity: 1; translate: 0 0; }
+  figcaption { margin-top: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
+  figcaption a { color: var(--ink); font-weight: 600; }
+  /* A phone's toy is taller than half its width, so there's something to play with. */
+  @media (max-width: 719px) {
+    .toy { aspect-ratio: auto; height: 15rem; border-radius: var(--radius-md); }
+  }
 </style>

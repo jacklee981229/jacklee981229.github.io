@@ -706,23 +706,29 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 2. A post with a cover and the games share their covers: in the page source of http://localhost:4321/lab/game/2048/, `og:image` points to the game's cover.
 3. After the deploy, paste a few addresses (the home page, a tool, a game, About) into LinkedIn's Post Inspector (https://www.linkedin.com/post-inspector/). Expected: each shows its picture, large.
 
-## Home bento
+## Home page
 
-1. Open http://localhost:4321/ at full width. Expected: the big two-line "Jack's / Space" types in; tiles in four columns: the hero and Now on the left, Travel and This site stacked on the right, Lab and Latest changes under them, Collection and Writing at the bottom. Edges line up in every row.
-2. The Lab tile: an effect is moving in the dark green box, its name in the corner ("Today's toy"). Move the mouse over it: it follows. Click the name: that effect's page opens.
-3. Back home, click Surprise me. Expected: something on the site opens (a post, tool, game or effect).
-4. Travel shows the number of places and a small globe with them coloured. This site shows the days running and "updated 4 Oct 2026" (visitors only on the live site).
-5. Make the window narrower than 1100 px: two columns, no gaps. Narrower than 720 px (or on a phone): one column in the order Hero, Now, Lab, Latest changes, Collection, Travel, Writing, This site. Nothing scrolls sideways.
-6. Open http://localhost:4321/page/2/. Expected: it forwards to Writing.
-7. Switch to light, then type the secret word in the palette for the night sky. Expected: the page reads well in each; the Lab box stays green.
+1. Build and start the built site:
+   ```powershell
+   cd C:\repos\Jack\jacks-space
+   npm run build
+   npm run preview
+   ```
+   Expected: "65 page(s) built", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
+2. Open http://localhost:4321/ at full width in the dark theme. Expected: "Jack's Space" types itself in on one line, a cursor after the newest letter that blinks once at the end and goes; "Things I build, play and love." under it; at the foot of this part your avatar, name and job on the left, and Resume, LinkedIn, GitHub and Email on the right. No box around any of it.
+3. Below it, Now: the Shape of Dreams cover, tilted, beside "Right now I'm playing **Shape of Dreams** and building **Jack's Space**.", then "Lately I made the home page calmer: what I'm up to, the Lab and a few doors." and "Updated … ago · More on the Now page".
+4. The Lab, a deep green band: "Jack's Lab", "Games, toys and little worlds I made for fun.", Explore the Lab and Surprise me on one line, and today's toy big on the right with "Today's toy: (its name). A new one every day." under it. Move the mouse over the toy: it follows. Click its name: that effect's page opens. Back home, click Surprise me: something on the site opens.
+5. Three doors: Collection (three covers fanned out), Travel (the globe) and Writing (three sheets of paper, the front one titled "Flutter Get Started"), each with its name, an arrow and one line. Point at one: its picture lifts a little and the arrow moves. Each opens its page.
+6. Make the window phone-wide (375 px). Expected: the title on two lines; your links in a row under your name; the cover to the right of the sentence; the toy between the Lab's words and its buttons; the doors as rows, picture on the left. Nothing scrolls sideways (the menu row at the top scrolls on its own, as on every page).
+7. Switch to the light theme. Expected: the Lab band is white between two lines, Explore the Lab is a dark pill, the sheets of paper are white.
+8. Open http://localhost:4321/page/2/. Expected: it forwards to Writing.
 
 ## Links without underlines
 
-1. Open http://localhost:4321/ and point at a tile's title (Lab), "See all", "See the Now page" and "All posts". Expected: no underline; a soft pill comes up behind the words and an arrow slides out. Nothing beside them moves.
-2. Point at a Lab row and a cover. Expected: the row tints; the cover grows a little.
-3. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
-4. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
-5. Press Tab through the home page. Expected: each of these links shows its pill and arrow along with the focus ring.
+1. Open http://localhost:4321/ and point at Resume, LinkedIn, GitHub, Email and "More on the Now page". Expected: no underline; a soft pill comes up behind the words and an arrow slides out. Nothing beside them moves.
+2. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
+3. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
+4. Press Tab through the home page. Expected: each of these links shows its pill and arrow along with the focus ring.
 
 ## 2048 Bot
 
@@ -781,7 +787,7 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
 11. Switch to the dark theme (or find the night sky). Expected: every running train's headlight throws a soft cone of warm light along the track ahead, brightening it; trains parked in the depot are dark; every signal lamp glows in its colour. Follow a train: its beam leads the way. Switch back to light: no beams or glow.
 12. It's listed wherever the Lab's items are: http://localhost:4321/sitemap.txt has `/lab/world/trains/`; the palette (Ctrl+K) finds it when you type `train` or `railway`; on its page, the palette's Fullscreen says "Show this world on the whole screen".
 
-## Newest changes first, and Little Worlds counted
+## Changelog: newest first
 
 1. Build and start the built site:
    ```powershell
@@ -790,11 +796,9 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "65 page(s) built", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/ at full width. Expected: the Lab tile's line, beside "Lab" on one line, reads "7 tools · 4 games · 18 effects · 2 worlds".
-3. Look at Latest changes. Expected: 5 Oct 2026, with the last four lines written that day, the newest on top: "Added my own notes to things in my Collection", then "Rewrote my About intro…", "Lit up Jack's Town in the dark theme…" and "Counted Little Worlds in the Lab tile on the home page".
-4. Click See all. Expected: every day's card lists its changes newest first: 5 Oct 2026 starts with "Added my own notes to things in my Collection" and ends with "Turned the home page into tiles, with a new toy every day"; 4 Oct starts with "Gave every page its own picture for link previews".
-5. Open `src\content\changelog.md`. Expected: its top line says to add new lines at the bottom.
-6. Run `npm test`. Expected: `# fail 0`; the first changelog test is called "changes come out newest first, a day's later lines first".
+2. Open http://localhost:4321/changelog/. Expected: every day's card lists its changes newest first: 6 Oct 2026 starts with "Made the home page calmer: what I'm up to, the Lab and a few doors"; 5 Oct starts with "Swapped the notes in my Collection for galleries of covers" and ends with "Turned the home page into tiles, with a new toy every day"; 4 Oct starts with "Gave every page its own picture for link previews".
+3. Open `src\content\changelog.md`. Expected: its top line says to add new lines at the bottom.
+4. Run `npm test`. Expected: `# fail 0`; the first changelog test is called "changes come out newest first, a day's later lines first".
 
 ## Jack's Town at night
 

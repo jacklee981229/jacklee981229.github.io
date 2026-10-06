@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayNumber, interleave, latestChanges, splitEmoji, todaysToy, writingPicks } from '../src/lib/home.js';
+import { dayNumber, interleave, joiner, lately, lowerFirst, splitEmoji, todaysToy, writingPicks } from '../src/lib/home.js';
 
 const toys = Array.from({ length: 17 }, (_, i) => `toy${i}`);
 const day = (iso, hour = 12) => new Date(`${iso}T${String(hour).padStart(2, '0')}:00:00`);
@@ -48,9 +48,28 @@ test('Writing shows the Start here posts, else the newest off legacy topics', ()
   assert.deepEqual(writingPicks(none, legacy, 3).map((p) => p.id), ['f1', 'g1', 't1']);
 });
 
-test('the four newest changes, under their days', () => {
-  const changes = [{ day: '2026-10-05', text: 'a' }, { day: '2026-10-05', text: 'b' }, { day: '2026-10-04', text: 'c' }, { day: '2026-10-03', text: 'd' }, { day: '2026-10-03', text: 'e' }];
-  assert.deepEqual(latestChanges(changes, 4).map((d) => [d.day, d.changes.map((c) => c.text)]), [['2026-10-05', ['a', 'b']], ['2026-10-04', ['c']], ['2026-10-03', ['d']]]);
+test('Lately tells of the newest change that is not a fix', () => {
+  const change = (kind, text) => ({ day: '2026-10-06', kind, text });
+  assert.equal(lately([change('fix', 'a'), change('new', 'b'), change('design', 'c')])?.text, 'b');
+  assert.equal(lately([change('improved', 'a'), change('fix', 'b')])?.text, 'a');
+  assert.equal(lately([change('fix', 'a')]), undefined);
+  assert.equal(lately([]), undefined);
+});
+
+test('a label or a change starts small in the middle of a sentence, unless it is a name', () => {
+  assert.equal(lowerFirst('Playing'), 'playing');
+  assert.equal(lowerFirst('Gave every game in my Collection a gallery of its own'), 'gave every game in my Collection a gallery of its own');
+  assert.equal(lowerFirst('AI art'), 'AI art');
+  assert.equal(lowerFirst('iOS'), 'iOS');
+  assert.equal(lowerFirst('watching'), 'watching');
+  assert.equal(lowerFirst(''), '');
+});
+
+test('Now items read as a list: a, b and c', () => {
+  const read = (items) => items.map((item, i) => joiner(i, items.length) + item).join('');
+  assert.equal(read(['a']), 'a');
+  assert.equal(read(['a', 'b']), 'a and b');
+  assert.equal(read(['a', 'b', 'c']), 'a, b and c');
 });
 
 test("a Now label's leading emoji is split from its words", () => {
