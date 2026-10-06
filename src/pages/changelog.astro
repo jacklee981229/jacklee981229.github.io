@@ -1,28 +1,56 @@
 ---
-// The Changelog: src/content/changelog.md, newest first, a card for each day, under its year. In the sitemap, not
-// in the menu; the footer, Site info and the home page's Latest changes link here.
+// The Changelog: src/content/changelog.md, newest first, a card for each day (quiet days share one), under its year.
+// The newest few show at once; the rest open under Expand (fold in changelog.js). In the sitemap, not in the menu;
+// the footer and Site info link here.
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
 import PageTop from '../components/PageTop.astro';
 import ChangelogDays from '../components/ChangelogDays.astro';
-import { byYear } from '../lib/changelog.js';
+import { byYear, fold } from '../lib/changelog.js';
 import { changelogFile } from '../lib/changelog-file.js';
 
-const years = byYear(changelogFile());
+/** How many cards show before Expand. */
+const SHOWN = 2;
+const { open, folded } = fold(byYear(changelogFile()), SHOWN);
 ---
 <Base title="Changelog" description="What changed on Jack's Space, newest first.">
   <div class="wrap page">
-    <PageTop title="Changelog" lead="What changed on this site, newest first." />
-    {years.length === 0 && <p class="empty">No changes listed yet.</p>}
-    {years.map(({ year, days }) => (
+    <PageTop tone="changelog" icon="list" title="Changelog" lead="What changed on this site, newest first." />
+    {open.length === 0 && <p class="empty">No changes listed yet.</p>}
+    {open.map(({ year, cards }) => (
       <section class="year" aria-labelledby={`y${year}`}>
         <h2 id={`y${year}`}>{year}</h2>
-        <ChangelogDays days={days} />
+        <ChangelogDays cards={cards} />
       </section>
     ))}
+    {folded.length > 0 && (
+      <details class="older">
+        <summary><span class="fold"><span class="closed">Expand</span><span class="opened">Collapse</span><Icon name="chevron-down" /></span></summary>
+        {folded.map(({ year, cards, continued }) => (
+          <section class="year" aria-labelledby={`y${year}`}>
+            {!continued && <h2 id={`y${year}`}>{year}</h2>}
+            <ChangelogDays cards={cards} />
+          </section>
+        ))}
+      </details>
+    )}
   </div>
 </Base>
 
 <style>
-  .year { max-width: 52rem; margin-top: var(--space-7); }
-  h2 { margin: 0 0 var(--space-3); font-size: var(--text-lg); font-weight: 750; font-variant-numeric: tabular-nums; }
+  .year + .year { margin-top: var(--space-6); }
+  h2 { margin: 0 0 var(--space-4); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+  /* The fold: a line across the page with Expand in the middle; open, it says Collapse and stays above the rest. */
+  .older > summary { display: flex; align-items: center; gap: var(--space-4); margin: var(--space-5) 0; list-style: none; cursor: pointer; }
+  .older > summary::-webkit-details-marker { display: none; }
+  .older > summary::before, .older > summary::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+  .older > summary:focus-visible { outline: none; }
+  /* The middle like the site's buttons (.button in global.css). */
+  .fold { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 800; }
+  .older > summary:focus-visible .fold { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .older > summary:hover .fold { border-color: var(--ink); }
+  .fold :global(.icon) { width: 1rem; height: 1rem; stroke-width: 2.2; transition: rotate 0.2s ease; }
+  .older[open] .fold :global(.icon) { rotate: 180deg; }
+  .older[open] .closed, .older:not([open]) .opened { display: none; }
 </style>

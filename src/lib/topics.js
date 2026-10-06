@@ -1,5 +1,5 @@
 // The topics a post can belong to, in lane order (left to right on the home page graph).
-// A new topic also needs its two lane colours (light and dark) in src/styles/tokens.css.
+// A new topic also needs its colours in src/styles/tokens.css: a deep one (--topic-…) and a dark theme lane.
 // A topic with `legacy` is about something the site no longer runs on: its posts open with that note, and it's
 // listed after the others on Writing.
 export const TOPICS = [

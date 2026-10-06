@@ -27,8 +27,11 @@ main:focus { outline: none; }
 .go:hover, .go:focus-visible { background: var(--wash); gap: 0.25rem; }
 .go:hover > .icon, .go:focus-visible > .icon { opacity: 1; translate: 0 0; }
 
-/* Simple pages: a big title, an optional lead paragraph, then the content. */
-.page { padding-block: var(--space-8) var(--space-9); }
+/* Simple pages: a top card (PageTop.astro) at the same height as the home page's first cards, then the content. */
+.page { padding-block: var(--space-6) var(--space-9); }
+@media (max-width: 719px) {
+  .page { padding-top: var(--space-5); }
+}
 .page-title { margin: 0 0 var(--space-4); font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
 .lede { max-width: 60rem; margin: 0; color: var(--muted); font-size: var(--text-md); line-height: 1.6; }
 .empty { margin: 0; color: var(--muted); }
@@ -46,6 +49,13 @@ main:focus { outline: none; }
 }
 .button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; text-decoration: none; }
 .button:hover { border-color: var(--ink); }
+
+/* Jack's links (LINKS in src/site.ts) as coloured tiles, by their icon: on the home page and in ProfileLinks.astro.
+   GitHub's near-black tile gets an edge, to stand apart from the dark theme's page. */
+.link-file { --tile: var(--tile-resume); }
+.link-linkedin { --tile: var(--tile-linkedin); }
+.link-github { --tile: var(--tile-github); --tile-edge: var(--tile-github-edge); }
+.link-mail { --tile: var(--tile-email); }
 
 /* The theme button's cross-fade (started in Header.astro). */
 ::view-transition-old(root),

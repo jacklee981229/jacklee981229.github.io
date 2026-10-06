@@ -15,23 +15,23 @@ const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/assets/world
 const picture = world && pictures[`/src/assets/worlds/${world.slug}.png`]?.default;
 ---
 {tool ? (
-  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} />
+  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={tool.group as 'text' | 'preview' | 'image'} />
 ) : post ? (
-  <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)}>
+  <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)} kind="game">
     <Cover slot="cover" post={post} variant="mini" />
   </LabCard>
 ) : effect ? (
-  <LabCard href={effectUrl(effect.slug)} icon="pointer" name={effect.name} description={effect.description}>
+  <LabCard href={effectUrl(effect.slug)} icon="pointer" name={effect.name} description={effect.description} kind="effect">
     <EffectCover slot="cover" slug={effect.slug} />
   </LabCard>
 ) : world && (
-  <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description}>
+  <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description} kind="world">
     <span slot="cover" class="cover world" aria-hidden="true">{picture && <Image src={picture} alt="" width={480} />}</span>
   </LabCard>
 )}
 
 <style>
   /* A world's picture, cut to the card's cover height from its middle. */
-  .world { display: block; overflow: hidden; background: var(--wash); }
+  .world { display: block; overflow: hidden; }
   .world :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
 </style>

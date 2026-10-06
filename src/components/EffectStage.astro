@@ -46,8 +46,15 @@ const { slug, label, world = false } = Astro.props;
   .stage:fullscreen { height: 100%; border: 0; background: var(--paper); }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
   /* A world: the homes' four colours, the lights' go, wait and stop, and the ground. Nothing follows the pointer,
-     so a finger on it scrolls the page as anywhere else. */
-  .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); }
+     so a finger on it scrolls the page as anywhere else. It lies on a card, like the Travel Map: its roads, tracks
+     and buildings drawn straight onto the card's colour, which it takes for its ground and its page (--paper). A
+     little shorter than an effect's stage, for the room under the card. */
+  .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); --paper: var(--surface); height: clamp(18rem, calc(100svh - 17.5rem), 64rem); border: 0; border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  @media (max-width: 719px) {
+    .stage[data-world] { height: clamp(18rem, calc(100svh - 23.5rem), 40rem); }
+  }
+  .stage[data-world] .controls { top: var(--space-4); right: var(--space-4); }
+  .stage[data-world]:fullscreen { border-radius: 0; box-shadow: none; }
   .stage[data-world] canvas { touch-action: auto; cursor: default; }
   .controls { position: absolute; top: var(--space-3); right: var(--gutter); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
   .controls :global(.button) { padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }

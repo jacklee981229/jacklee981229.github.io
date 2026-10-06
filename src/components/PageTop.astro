@@ -1,25 +1,63 @@
 ---
-// The top of every main page: the big title, an optional lead, and an optional slot for what sits under them (the
-// Collections tabs, the Travel Map's switch, the Lab's buttons). The sizes and the spacing live here and in
-// global.css's .page-title and .lede, so pages can't drift apart. The home page, posts and the Lab's own pages
-// (LabHeader) have tops of their own.
+// The top of every main page: a card in its part's colours (`tone`), like the home page's cards, with the big title,
+// an optional lead, the part's icon drawn large in a corner, and an optional slot at its foot for the page's own
+// controls (the Collections tabs, the Travel Map's switch, the Lab's sections), drawn in white to sit on the colour.
+// The sizes and the spacing live here and in global.css's .page-title and .lede, so pages can't drift apart. The
+// home page, posts and the Lab's own pages (LabHeader) have tops of their own.
 import Icon, { type IconName } from './Icon.astro';
 
 interface Props {
   title: string;
   lead?: string;
-  /** An icon before the title, as on the Lab home. */
-  icon?: IconName;
+  /** Whose colours the card wears; `plain` is a white card (dark in the dark theme), for the 404 page. */
+  tone: 'writing' | 'lab' | 'collection' | 'travel' | 'about' | 'now' | 'changelog' | 'plain';
+  /** The part's icon, drawn large and faint in the card's corner. */
+  icon: IconName;
 }
 
-const { title, lead, icon } = Astro.props;
+const { title, lead, tone, icon } = Astro.props;
 ---
-<h1 class:list={['page-title', { 'has-icon': icon }]}>{icon && <Icon name={icon} />}{title}</h1>
-{lead && <p class="lede">{lead}</p>}
-{Astro.slots.has('default') && <div class="under"><slot /></div>}
+<header class:list={['page-top', tone]}>
+  <Icon name={icon} class="mark" />
+  <h1 class="page-title">{title}</h1>
+  {lead && <p class="lede">{lead}</p>}
+  {Astro.slots.has('default') && <div class="under"><slot /></div>}
+</header>
 
 <style>
-  .has-icon { display: flex; align-items: center; gap: 0.18em; }
-  .has-icon :global(.icon) { width: 0.78em; height: 0.78em; stroke-width: 2.2; }
+  .page-top { position: relative; overflow: hidden; margin-bottom: var(--space-6); padding: var(--space-6); border-radius: var(--radius-2xl); background: linear-gradient(150deg, var(--from), var(--to)); color: var(--on-colour); }
+  /* On the colour, the focus ring is white. */
+  .page-top:not(.plain) { --focus: var(--on-colour); }
+  .writing { --from: var(--writing-top-from); --to: var(--writing-top-to); }
+  .lab { --from: var(--lab-from); --to: var(--lab-to); }
+  .collection { --from: var(--collection-top-from); --to: var(--collection-top-to); }
+  .travel { --from: var(--travel-top-from); --to: var(--travel-top-to); }
+  .about { --from: var(--about-top-from); --to: var(--about-top-to); }
+  .now { --from: var(--now-from); --to: var(--now-to); }
+  .changelog { --from: var(--changelog-top-from); --to: var(--changelog-top-to); }
+  .plain { --from: var(--surface); --to: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); }
+
+  /* The words stay clear of the icon. */
+  .page-title, .lede, .under { position: relative; max-width: calc(100% - 9rem); }
+  .page-title { margin: 0; font-weight: 900; letter-spacing: -0.04em; }
+  .lede { margin-top: var(--space-3); color: inherit; }
+  .plain .lede { color: var(--muted); }
   .under { margin-top: var(--space-5); }
+  .page-top :global(.mark) { position: absolute; top: 50%; right: var(--space-7); width: 8.5rem; height: 8.5rem; translate: 0 -50%; rotate: -10deg; opacity: 0.22; stroke-width: 1.5; }
+  .plain :global(.mark) { color: var(--muted); }
+
+  /* What sits on the colour: a switch or tabs as a dark-tinted pill with the chosen one in white, buttons and links
+     as white-tinted chips. */
+  .page-top:not(.plain) :global(.switch) { border-color: transparent; background: var(--on-colour-chip); }
+  .page-top:not(.plain) :global(:is(.switch label, .switch button)) { color: var(--on-colour-soft); }
+  .page-top:not(.plain) :global(:is(.switch label, .switch button):hover) { color: var(--on-colour); }
+  .page-top:not(.plain) :global(:is(.switch label:has(:checked), .switch button[aria-selected='true'])) { background: var(--on-colour); color: var(--to); }
+
+  /* Phones: the icon smaller, in the corner, so the words can use the card's width. */
+  @media (max-width: 719px) {
+    .page-top { padding: var(--space-5); }
+    .page-title, .lede, .under { max-width: none; }
+    .page-title { padding-right: 3.5rem; }
+    .page-top :global(.mark) { top: var(--space-4); right: var(--space-4); width: 3.5rem; height: 3.5rem; translate: none; }
+  }
 </style>

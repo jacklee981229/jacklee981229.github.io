@@ -24,17 +24,21 @@ const LABELS: Record<string, string> = {
   trains: 'A train network seen from above: a double-track main line round the edge, with branches to stations and a depot, and trains carrying coloured cargo between the stations.',
 };
 ---
-<Base title={world.name} description={world.description} image={picture} area="lab">
+<Base title={world.name} description={world.description} image={picture}>
   <div class="wrap top">
     <LabHeader compact title={world.name} description={`${world.description} ${world.hint}`} back="/lab/#little-worlds" />
   </div>
-  <EffectStage slug={world.slug} world label={LABELS[world.slug] ?? world.description}>
-    {'controls' in world && world.controls?.map((c) => <button slot="controls" type="button" class="button" data-control={c.id}>{c.label}</button>)}
-  </EffectStage>
+  <div class="wrap world">
+    <EffectStage slug={world.slug} world label={LABELS[world.slug] ?? world.description}>
+      {'controls' in world && world.controls?.map((c) => <button slot="controls" type="button" class="button" data-control={c.id}>{c.label}</button>)}
+    </EffectStage>
+  </div>
   <LabMore current={world.slug} />
 </Base>
 
 <style>
   /* Less room above than other pages: the world below wants the height. */
   .top { padding-top: var(--space-5); }
+  /* The world lies on a card (EffectStage.astro), with room under it before the band. */
+  .world { padding-bottom: var(--space-6); }
 </style>

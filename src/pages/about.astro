@@ -6,6 +6,7 @@ import { Image } from 'astro:assets';
 import { getCollection, getEntry, render } from 'astro:content';
 import PageTop from '../components/PageTop.astro';
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
 import ProfileLinks from '../components/ProfileLinks.astro';
 import { SITE } from '../site';
 import { formatDate } from '../lib/dates.js';
@@ -32,14 +33,14 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
 ---
 <Base title={about.data.title} description="About Jack Lee and this site.">
   <div class="wrap page">
-    <PageTop title={about.data.title} />
+    <PageTop tone="about" icon="user" title={about.data.title} />
     <div class="about">
-      <div class="prose intro"><Content /></div>
+      <div class="card intro"><div class="prose"><Content /></div></div>
 
       {work.length > 0 && (
-        <section class="card" aria-labelledby="work">
-          <h2 id="work">Work</h2>
-          <ol class="work">
+        <section class="card work" aria-labelledby="work">
+          <h2 id="work"><Icon name="code" />Work</h2>
+          <ol class="jobs">
             {work.map((job) => (
               <li><span class="job"><span class="role">{job.role}</span><span class="place">{job.place}</span></span><span class="years">{job.years}</span></li>
             ))}
@@ -48,8 +49,8 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
       )}
 
       {tools.length > 0 && (
-        <section class="card" aria-labelledby="tools">
-          <h2 id="tools">What I work with</h2>
+        <section class="card work" aria-labelledby="tools">
+          <h2 id="tools"><Icon name="wrench" />What I work with</h2>
           {tools.map((group) => (
             <div class="group">
               <h3>{group.group}</h3>
@@ -59,8 +60,8 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
         </section>
       )}
 
-      <section class="card" aria-labelledby="likes">
-        <h2 id="likes">Things I like</h2>
+      <section class="card likes" aria-labelledby="likes">
+        <h2 id="likes"><Icon name="star" />Things I like</h2>
         {favourites.length > 0 && (
           <a class="covers" href="/collections/" aria-label="My Collection: films and games I rate highly">
             {favourites.map(({ item, picture }) => picture && <Image src={picture} alt={item.name} title={item.name} width={160} />)}
@@ -72,13 +73,13 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
         )}
       </section>
 
-      <section class="card" aria-labelledby="find-me">
-        <h2 id="find-me">Find me</h2>
+      <section class="card find" aria-labelledby="find-me">
+        <h2 id="find-me"><Icon name="link" />Find me</h2>
         <ProfileLinks labels />
       </section>
 
-      <section class="card" aria-labelledby="this-site">
-        <h2 id="this-site">This site</h2>
+      <section class="card site" aria-labelledby="this-site">
+        <h2 id="this-site"><Icon name="home" />This site</h2>
         <p class="more">Running since {formatDate(started)}, first on Hexo, rebuilt with Astro in 2026.</p>
         <p class="more">What's changed lately is in the <a href="/changelog/">Changelog</a>.</p>
       </section>
@@ -87,31 +88,42 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
 </Base>
 
 <style>
-  .about { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); max-width: 60rem; margin-top: var(--space-6); }
-  .intro { grid-column: 1 / -1; max-width: 44rem; margin-bottom: var(--space-3); font-size: var(--text-md); }
-  .intro :global(> :first-child) { margin-top: 0; }
-  .intro :global(> :last-child) { margin-bottom: 0; }
-  /* The same card as the home page's sidebar blocks. */
-  .card { padding: 1.25rem; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
-  h2 { margin: 0 0 0.875rem; font-size: var(--text-md); font-weight: 750; }
-  h3 { margin: 0 0 var(--space-2); color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
-  .work { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+  /* Every part a card, as on the home page: the intro across the top, the rest two by two, each in the colour of
+     what it's about (tokens.css), with white words. */
+  .about { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+  .card { padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .work, .likes, .find, .site { --focus: var(--on-colour); background: linear-gradient(150deg, var(--from), var(--to)); box-shadow: none; color: var(--on-colour); }
+  .work { --from: var(--about-work-from); --to: var(--about-work-to); }
+  .likes { --from: var(--about-likes-from); --to: var(--about-likes-to); }
+  .find { --from: var(--about-links-from); --to: var(--about-links-to); }
+  .site { --from: var(--about-site-from); --to: var(--about-site-to); }
+  .intro { grid-column: 1 / -1; }
+  .intro .prose { max-width: 44rem; }
+  .intro :global(.prose > :first-child) { margin-top: 0; }
+  .intro :global(.prose > :last-child) { margin-bottom: 0; }
+  h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-4); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
+  h2 :global(.icon) { width: 22px; height: 22px; stroke-width: 2.2; }
+  h3 { margin: 0 0 var(--space-2); color: var(--on-colour-soft); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .jobs { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   /* The years beside the job, or under it where the card is too narrow for both on one line. */
-  .work li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-3); }
+  .jobs li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-3); }
   .job { display: grid; }
-  .role { font-weight: 650; }
-  .place { color: var(--muted); }
-  .years { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .role { font-weight: 800; }
+  .place, .years { color: var(--on-colour-soft); }
+  .years { font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .group + .group { margin-top: var(--space-4); }
   .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-  .chips li { padding: 0.2rem 0.7rem; border: 1px solid var(--rule); border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 600; }
-  .covers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); margin-bottom: var(--space-4); }
-  .covers :global(img) { width: 100%; height: auto; border-radius: var(--radius-xs); box-shadow: var(--shadow-card); }
-  .covers:hover :global(img) { outline: 1px solid var(--rule); }
+  .chips li { padding: 0.25rem 0.75rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 700; }
+  .covers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+  .covers :global(img) { width: 100%; height: auto; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform 0.2s ease; }
+  .covers:hover :global(img) { transform: translateY(-3px); }
   .more { margin: 0; line-height: 1.6; }
   .more + .more { margin-top: var(--space-2); }
+  /* Your links on the colour: the names on dark-tinted pills, each tile in its own colour. */
+  .find :global(.links.labels a) { background: var(--on-colour-chip); color: var(--on-colour); }
 
   @media (max-width: 719px) {
     .about { grid-template-columns: minmax(0, 1fr); }
+    .card { padding: var(--space-5); }
   }
 </style>

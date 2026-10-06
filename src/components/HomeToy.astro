@@ -3,14 +3,13 @@
 // src/lib/home.js): the same for everyone on a day, another the next. It runs on the effects' own stage
 // (src/effects/stage.js): only while it's on screen, with a pointer or a finger, and as a still picture when less
 // motion is asked for. A finger can still scroll the page across it, and it never takes the keyboard's focus.
-// The stage opts into the Lab's colours (data-area="lab", tokens.css). It fills the box the page gives it; the
-// page's [data-toy-link] (anywhere on it) gets the toy's name and address.
+// It fills the box the page gives it; the page's [data-toy-link] (anywhere on it) gets the toy's name and address.
 import { EFFECTS, effectUrl } from '../lib/lab/tools.js';
 
 // Key Jam is left out: it plays sounds from the keyboard, which a page you've only opened shouldn't.
 const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.slug, name: e.name, href: effectUrl(e.slug), description: e.description }));
 ---
-<div class="toy" data-area="lab" data-toy>
+<div class="toy" data-toy>
   <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
   <script is:inline type="application/json" data-toys set:html={JSON.stringify(toys)} />
 </div>

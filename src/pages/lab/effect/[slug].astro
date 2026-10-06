@@ -17,7 +17,7 @@ interface Props {
 
 const { effect } = Astro.props;
 ---
-<Base title={effect.name} description={effect.description} area="lab">
+<Base title={effect.name} description={effect.description}>
   <div class="wrap top">
     <LabHeader compact title={effect.name} description={`${effect.description} ${effect.hint}`} back="/lab/#effects" />
   </div>

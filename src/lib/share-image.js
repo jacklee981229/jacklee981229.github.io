@@ -1,6 +1,6 @@
 // Draws a page's share picture (1200 by 630): its section label, title and description, and the site's name and
-// address, in the dark theme's colours (the Lab's green for Lab pages), read from src/styles/tokens.css so the two
-// can't drift. satori lays the text out as shapes; sharp turns that into a PNG. Used at the end of the build only.
+// address, in the dark theme's colours, read from src/styles/tokens.css so the two can't drift. satori lays the text
+// out as shapes; sharp turns that into a PNG. Used at the end of the build only.
 import { readFileSync } from 'node:fs';
 import satori from 'satori';
 import sharp from 'sharp';
@@ -10,18 +10,14 @@ export const HEIGHT = 630;
 
 /** A block's custom properties in tokens.css, e.g. the dark theme's. @param {string} css @param {string} selector */
 export function tokensOf(css, selector) {
-  // The selector may open a list of them ("a,\n b {"), as the Lab's does.
-  const at = [`${selector} {`, `${selector},`].map((s) => css.indexOf(s)).filter((i) => i >= 0).sort((a, b) => a - b)[0];
-  if (at === undefined) return {};
+  const at = css.indexOf(`${selector} {`);
+  if (at < 0) return {};
   const block = css.slice(css.indexOf('{', at), css.indexOf('}', at));
   return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 }
 
-/** The colours a picture is drawn in: the dark theme's, with the Lab's own over them for Lab pages. */
-export function paletteFor(css, lab) {
-  const dark = tokensOf(css, ':root[data-theme="dark"]');
-  return lab ? { ...dark, ...tokensOf(css, ':root[data-theme="dark"][data-area="lab"]') } : dark;
-}
+/** The colours a picture is drawn in: the dark theme's. @param {string} css */
+export const paletteFor = (css) => tokensOf(css, ':root[data-theme="dark"]');
 
 const fontsDir = new URL('../assets/share-fonts/', import.meta.url);
 const font = (file) => readFileSync(new URL(file, fontsDir));
@@ -43,7 +39,7 @@ const el = (type, style, children) => ({ type, props: { style, ...(children?.len
  */
 export async function sharePicture(page, css, host) {
   const lab = page.label.startsWith('Lab');
-  const c = paletteFor(css, lab);
+  const c = paletteFor(css);
   const accent = (page.accent && c[`lane-${page.accent}`]) || (lab ? c['lane-games'] : c.focus);
   const tree = el('div', { width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 80px 60px 92px', background: c.paper, color: c.ink, fontFamily: 'Schibsted Grotesk', position: 'relative' }, [
     // A stripe down the left in the section's colour.

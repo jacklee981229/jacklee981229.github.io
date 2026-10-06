@@ -9,9 +9,9 @@ const INTRO = 'Tiny useful things, random things, and things I built because I f
 const experiments = await experimentPosts();
 const popular = await popularLabItems();
 ---
-<Base title="Jack's Lab" description={INTRO} area="lab">
+<Base title="Jack's Lab" description={INTRO}>
   <div class="wrap page">
-    <PageTop title="Jack's Lab" lead={INTRO} icon="flask">
+    <PageTop tone="lab" icon="flask" title="Jack's Lab" lead={INTRO}>
       <nav class="jump" aria-label="Lab sections">
         <a href="#tools">Tools</a>
         <a href="#mini-games">Mini Games</a>
@@ -70,22 +70,29 @@ const popular = await popularLabItems();
       <h2 id="random-title">Random</h2>
       <div class="random">
         <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game, an effect or a little world.</p>
-        <a class="button" href="/random/">Surprise me</a>
+        <a class="surprise" href="/random/">Surprise me</a>
       </div>
     </section>
   </div>
 </Base>
 
 <style>
+  /* The sections' links, as chips on the Lab's green card. */
   .jump { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-  .jump a { padding: 0.375rem 0.875rem; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 600; text-decoration: none; }
-  .jump a:hover { border-color: var(--ink); }
-  section { margin-top: var(--space-8); scroll-margin-top: var(--space-5); }
-  h2 { margin: 0 0 var(--space-2); font-size: var(--text-xl); font-weight: var(--display-weight); letter-spacing: calc(var(--display-tracking) / 2); }
-  h3 { margin: var(--space-5) 0 var(--space-3); color: var(--muted); font-size: var(--text-ui); font-weight: 650; }
+  .jump a { display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font-size: var(--text-sm); font-weight: 800; text-decoration: none; }
+  .jump a:hover { background: var(--on-colour-chip-hover); }
+  section { scroll-margin-top: var(--space-5); }
+  section + section { margin-top: var(--space-7); }
+  /* As the home page's section titles. */
+  h2 { margin: 0 0 var(--space-4); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; }
+  h3 { margin: var(--space-5) 0 var(--space-3); color: var(--muted); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  h2 + h3 { margin-top: 0; }
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
   .note { margin: var(--space-3) 0 0; color: var(--muted); }
-  .random { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); max-width: 44rem; padding: var(--space-4) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); }
-  .random p { max-width: 30rem; margin: 0; color: var(--muted); }
-  .random strong { color: var(--ink); }
+  /* Random: a green card, like the Lab's on the home page, with its way in as a white pill. */
+  .random { --focus: var(--on-colour); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4) var(--space-5); max-width: 44rem; padding: var(--space-5) var(--space-6); border-radius: var(--radius-2xl); background: linear-gradient(120deg, var(--lab-from), var(--lab-to)); color: var(--on-colour); }
+  .random p { max-width: 30rem; margin: 0; color: var(--on-colour-soft); }
+  .random strong { color: var(--on-colour); font-weight: 900; }
+  .surprise { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--space-5); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-weight: 900; text-decoration: none; transition: transform 0.15s ease; }
+  .surprise:hover { transform: translateY(-2px); }
 </style>

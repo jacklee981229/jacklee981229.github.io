@@ -1,10 +1,11 @@
 /* 2048 on the "Jack's 2048" post (game.js). Tiles are shades of the Games topic colour, from faint to full.
    Every rule starts with .g2048, so the post text's own styles (.prose p and so on) can't win over these. */
 
-/* The game on the left and its leaderboard on the right; on narrower screens, the leaderboard goes under it.
+/* The game on the left and its leaderboard on the right, out to the page's edge like the top card above; on
+   narrower screens, the leaderboard goes under it.
    The game is as big as the screen's height allows (--game-width). Sizes inside it follow its own width (cqw), so
    the board and its numbers scale together. */
-.g2048 { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
+.g2048 { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 1fr); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
 .g2048 .g2048-play { --gap: 2.5cqw; container-type: inline-size; min-width: 0; }
 .g2048 .lb.lb-board { margin: 0; }
 @media (max-width: 859px) {

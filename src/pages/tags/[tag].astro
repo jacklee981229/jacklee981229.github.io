@@ -23,11 +23,13 @@ const { tag, posts } = Astro.props;
 ---
 <Base title={`Tag: ${tag}`} description={`Posts tagged “${tag}”.`}>
   <div class="wrap page">
-    <PageTop title={tag} lead={`${posts.length === 1 ? '1 post' : `${posts.length} posts`} tagged “${tag}”.`} />
+    <PageTop tone="writing" icon="hash" title={tag} lead={`${posts.length === 1 ? '1 post' : `${posts.length} posts`} tagged “${tag}”.`} />
     <div class="list"><PostList posts={posts} /></div>
   </div>
 </Base>
 
 <style>
-  .list { max-width: 44rem; margin-top: var(--space-6); }
+  /* The posts on a card, like a topic's on Writing. */
+  .list { max-width: 44rem; padding: var(--space-2) var(--space-5) var(--space-3); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .list :global(li:last-child a) { border-bottom: 0; }
 </style>

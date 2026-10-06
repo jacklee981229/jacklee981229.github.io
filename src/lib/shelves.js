@@ -87,3 +87,66 @@ export function turnFrames(way, radius, steps = 36) {
   });
 }
 
+
+/** WCAG's relative luminance of an [r, g, b] colour (0 to 255 each). */
+const luminance = (rgb) => {
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** How well white text reads on a colour: its contrast ratio with white. @param {number[]} rgb */
+export const whiteContrast = (rgb) => 1.05 / (luminance(rgb) + 0.05);
+
+/** @param {number[]} rgb @returns {[number, number, number]} hue, saturation and lightness, each 0 to 1 */
+function toHsl([r, g, b]) {
+  const [R, G, B] = [r / 255, g / 255, b / 255];
+  const max = Math.max(R, G, B);
+  const min = Math.min(R, G, B);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === R ? (G - B) / d + (G < B ? 6 : 0) : max === G ? (B - R) / d + 2 : (R - G) / d + 4;
+  return [h / 6, s, l];
+}
+
+/** @param {number} h @param {number} s @param {number} l @returns {number[]} */
+function toRgb(h, s, l) {
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const channel = (t) => {
+    const x = (t + 1) % 1;
+    return x < 1 / 6 ? p + (q - p) * 6 * x : x < 1 / 2 ? q : x < 2 / 3 ? p + (q - p) * (2 / 3 - x) * 6 : p;
+  };
+  return [channel(h + 1 / 3), channel(h), channel(h - 1 / 3)].map((v) => Math.round(v * 255));
+}
+
+const hex = (rgb) => `#${rgb.map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+
+/**
+ * The colours of an item's card on the Collections page, from its cover: the cover's own colour, deepened until white
+ * text keeps 5:1 on it, fading to a darker shade at the card's foot. Colourful pixels count more than grey ones, so a
+ * mostly dark poster still gives its colour; a grey cover stays grey.
+ * @param {ArrayLike<number>} pixels a small copy of the cover, three numbers (red, green, blue) a pixel
+ * @returns {{ top: string, bottom: string }}
+ */
+export function cardColours(pixels) {
+  let r = 0, g = 0, b = 0, weight = 0;
+  for (let i = 0; i + 2 < pixels.length; i += 3) {
+    const [R, G, B] = [pixels[i], pixels[i + 1], pixels[i + 2]];
+    const w = 1 + (6 * (Math.max(R, G, B) - Math.min(R, G, B))) / 255;
+    r += R * w;
+    g += G * w;
+    b += B * w;
+    weight += w;
+  }
+  const [h, s] = toHsl([r / weight, g / weight, b / weight]);
+  // Livelier than the average, which mixing makes dull; a nearly grey cover isn't given a colour it doesn't have.
+  const saturation = s < 0.1 ? s : Math.min(0.85, s * 1.25 + 0.08);
+  let l = 0.36;
+  while (whiteContrast(toRgb(h, saturation, l)) < 5 && l > 0.02) l -= 0.02;
+  return { top: hex(toRgb(h, saturation, l)), bottom: hex(toRgb(h, saturation, l * 0.62)) };
+}

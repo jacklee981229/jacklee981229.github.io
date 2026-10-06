@@ -46,11 +46,8 @@ test('every page needs its picture to be in the build; redirect pages are skippe
   assert.deepEqual(missingPictures(pages, SITE, (p) => p === '/og/a.png'), [`b/index.html (${SITE}/og/b.png)`, 'c/index.html (no og:image)']);
 });
 
-test("the pictures take the dark theme's colours from tokens.css, the Lab's green for Lab pages", () => {
+test("the pictures take the dark theme's colours from tokens.css", () => {
   const css = readFileSync(new URL('../src/styles/tokens.css', import.meta.url), 'utf8');
-  const dark = paletteFor(css, false);
-  const lab = paletteFor(css, true);
-  assert.match(dark.paper, /^#[0-9A-F]{6}$/i);
-  assert.notEqual(lab.paper, dark.paper);
-  assert.equal(lab.focus, dark.focus);
+  const dark = paletteFor(css);
+  for (const name of ['paper', 'ink', 'muted', 'rule', 'focus', 'lane-games']) assert.match(dark[name], /^#[0-9A-F]{6}$/i, name);
 });

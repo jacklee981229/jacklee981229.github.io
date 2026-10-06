@@ -8,15 +8,15 @@ import { openables } from '../lib/palette-items';
 
 const things = await openables();
 ---
-<Base title="Random" description="One click to something random on Jack's Space: a post, a tool, a game or an effect." area="lab" noindex>
+<Base title="Random" description="One click to something random on Jack's Space: a post, a tool, a game or an effect." noindex>
   <div class="wrap page">
-    <PageTop title="Random" lead={`Something from Jack's Space, picked out of ${things.length} posts, tools, games and effects.`} />
+    <PageTop tone="lab" icon="dice" title="Random" lead={`Something from Jack's Space, picked out of ${things.length} posts, tools, games and effects.`} />
     <div class="pick" data-pick hidden>
       <p class="got" data-got>You got</p>
       <h2 class="title" data-title></h2>
       <p class="about" data-about></p>
       <p class="actions">
-        <a class="button" href="/" data-open>Open it</a>
+        <a class="button open" href="/" data-open>Open it</a>
         <button type="button" class="button" data-again>Pick again</button>
       </p>
     </div>
@@ -50,11 +50,13 @@ const things = await openables();
 </script>
 
 <style>
-  .pick { max-width: 40rem; margin-top: var(--space-6); padding: var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+  .pick { max-width: 40rem; padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
   .got { margin: 0; color: var(--muted); }
-  .title { margin: var(--space-1) 0 var(--space-2); font-size: var(--text-xl); font-weight: var(--display-weight); line-height: 1.15; }
+  .title { margin: var(--space-1) 0 var(--space-2); font-size: var(--text-xl); font-weight: 900; line-height: 1.15; letter-spacing: -0.02em; }
   .about { margin: 0; color: var(--muted); }
   .about:empty { display: none; }
   .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-5) 0 0; }
-  noscript p { margin-top: var(--space-6); }
+  /* The way on, in the Lab's green. */
+  .open { border-color: transparent; background: var(--lab-from); color: var(--on-colour); }
+  .open:hover { border-color: transparent; background: var(--lab-to); }
 </style>

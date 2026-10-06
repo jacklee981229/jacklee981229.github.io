@@ -1,43 +1,52 @@
 ---
-// Changelog days as cards: the date, then each change with a label for its kind (New, Improved, Design, Fix). Used
-// by /changelog/ (every day) and the fold at the bottom of the home page (the latest few).
+// Changelog days as cards, one under another: the date, then each change with a label for its kind (New, Improved,
+// Design, Fix). Quiet days in a row share a card, each change with its day (cardsOf in changelog.js). Used by
+// /changelog/.
 import ChangeKind from './ChangeKind.astro';
-import { type KINDS, dayToDate } from '../lib/changelog.js';
+import { type KINDS, dayToDate, shortDay, spanOf } from '../lib/changelog.js';
 import { formatDate } from '../lib/dates.js';
 import { inlineHtml } from '../lib/now.js';
 
 interface Props {
-  days: { day: string; changes: { kind: keyof typeof KINDS; text: string }[] }[];
+  /** Each card's days, newest first (cardsOf in changelog.js). */
+  cards: { day: string; changes: { day: string; kind: keyof typeof KINDS; text: string }[] }[][];
 }
 
-const { days } = Astro.props;
+const { cards } = Astro.props;
 const site = String(Astro.site);
 ---
 <div class="days">
-  {days.map(({ day, changes }) => (
-    <section class="day">
-      <h3 class="date"><time datetime={day}>{formatDate(dayToDate(day))}</time></h3>
-      <ul>
-        {changes.map((change) => (
-          <li>
-            <ChangeKind kind={change.kind} />
-            <span class="text" set:html={inlineHtml(change.text, site)} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  ))}
+  {cards.map((card) => {
+    const shared = card.length > 1;
+    return (
+      <section class:list={['day', { shared }]}>
+        <h3 class="date">{shared ? spanOf(card) : <time datetime={card[0].day}>{formatDate(dayToDate(card[0].day))}</time>}</h3>
+        <ul>
+          {card.flatMap(({ day, changes }) => changes.map((change) => (
+            <li>
+              {shared && <time class="when" datetime={day}>{shortDay(day)}</time>}
+              <ChangeKind kind={change.kind} />
+              <span class="text" set:html={inlineHtml(change.text, site)} />
+            </li>
+          )))}
+        </ul>
+      </section>
+    );
+  })}
 </div>
 
 <style>
   .days { display: grid; gap: var(--space-4); }
-  .day { padding: var(--space-4) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
-  .date { margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--text-sm); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .day { padding: var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .date { margin: 0 0 var(--space-3); font-size: var(--text-md); font-weight: 900; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
   ul { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   li { display: grid; grid-template-columns: 6.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }
+  /* A shared card's changes, each with its day first. */
+  .shared li { grid-template-columns: 3.25rem 6.75rem minmax(0, 1fr); }
+  .when { color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .text { line-height: 1.6; }
 
   @media (max-width: 479px) {
-    li { grid-template-columns: 1fr; gap: var(--space-1); }
+    li, .shared li { grid-template-columns: 1fr; gap: var(--space-1); }
   }
 </style>

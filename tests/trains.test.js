@@ -5,7 +5,8 @@ import { carsOf, startTrains, STEP, STUCK, TOP } from '../src/lib/trains/sim.js'
 import { trainAt, viewOn, whole } from '../src/lib/trains/view.js';
 
 // Window sizes from a small phone's to a big screen's, short laptops and a tall tablet among them.
-const SIZES = [[320, 288], [360, 450], [375, 468], [768, 600], [768, 1024], [1024, 600], [1280, 288], [1265, 652], [1366, 657], [1440, 760], [1920, 1000]];
+// Squarish ones too (a tablet standing up): there the stations meet across the middle, which once left too few places.
+const SIZES = [[320, 288], [360, 450], [375, 468], [768, 600], [768, 1024], [707, 744], [776, 768], [1024, 600], [1280, 288], [1265, 652], [1366, 657], [1440, 760], [1920, 1000]];
 const SEEDS = [1, 2];
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -26,10 +27,13 @@ test("stations come in three shapes, one pickup with two platforms when there's 
   each((n, at) => assert.ok(n.stations.filter((s) => s.shape === 'double').every((s) => s.kind === 'pickup'), at));
 });
 
-test('a pickup and a drop-off of each colour, fewer on a phone; more room in the depot than there are trains', () => {
+test('a pickup and a drop-off of each colour, fewer on a phone or a squarish window; more room in the depot than there are trains', () => {
   each((n, at) => {
-    const want = Math.min(n.width, n.height) < 500 ? 2 : COLOURS;
-    assert.equal(n.colours, want, at);
+    const [short, long] = [Math.min(n.width, n.height), Math.max(n.width, n.height)];
+    // A squarish window has fewer places along its main line than a wide one, so it may only fit two colours.
+    if (short < 500) assert.equal(n.colours, 2, at);
+    else if (long < 1.2 * short) assert.ok(n.colours >= 2, at);
+    else assert.equal(n.colours, COLOURS, at);
     for (let c = 0; c < n.colours; c++) {
       assert.deepEqual(n.stations.filter((s) => s.colour === c).map((s) => s.kind).sort(), ['drop', 'pickup'], `${at}: colour ${c}`);
     }

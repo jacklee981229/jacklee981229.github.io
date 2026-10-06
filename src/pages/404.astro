@@ -11,11 +11,11 @@ import PageTop from '../components/PageTop.astro';
     })();
   </script>
   <div class="wrap page">
-    <PageTop title="Page not found" lead="This page doesn't exist. It may have moved or been removed when the blog was rebuilt." />
+    <PageTop tone="plain" icon="search" title="Page not found" lead="This page doesn't exist. It may have moved or been removed when the blog was rebuilt." />
     <p class="home"><a class="button" href="/">Go to the home page</a></p>
   </div>
 </Base>
 
 <style>
-  .home { margin: var(--space-6) 0 0; }
+  .home { margin: 0; }
 </style>

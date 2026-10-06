@@ -21,20 +21,18 @@ interface Props {
   /** A post's topic, which names its section and colours its made share picture. */
   topic?: { id: string; name: string };
   article?: { published: Date; updated?: Date; tags: string[] };
-  /** "lab" for the Lab's pages (its home, tools, games and Random), which have their own dark theme colours. */
-  area?: 'lab';
   /** Keeps the page out of search engines and out of the sitemap (the build's sitemap check skips it). */
   noindex?: boolean;
 }
 
-const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, topic, article, area, noindex } = Astro.props;
+const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, topic, article, noindex } = Astro.props;
 // Same title format as the old site, so search results look the same.
 const pageTitle = title ? `${title} | ${SITE.title}` : `${SITE.title} - ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.min(image.width, 1200), format: 'jpeg' })).src : sharePath(Astro.url.pathname), Astro.site);
 ---
 <!doctype html>
-<html lang="en" data-area={area}>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -6,7 +6,7 @@ import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
 import Icon from '../components/Icon.astro';
 import { galleryOf, pictureOf } from '../lib/shelves.js';
-import { pictures } from '../lib/shelf-pictures';
+import { cardColoursOf, pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
 /** The sizes each gallery picture is made in, for the browser to choose from by the window's size and sharpness: up
@@ -18,13 +18,15 @@ const widthsFor = (picture: { width: number }) => {
 };
 
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
+/** Each item's card colours, from its cover, by "collection/name". */
+const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.items.map(async (item) => [`${shelf.id}/${item.name}`, await cardColoursOf(shelf.id, item)] as const))));
 ---
 <Base title="Jack's Collection" description="Things Jack likes, kept where he can look at them, each with its stars.">
   <!-- The cabinet is a turntable: each collection is a card standing on it, one facing the visitor. A tab turns the
        table half-way round to bring another card to the front. -->
   <div class="room">
     <div class="wrap page">
-      <PageTop title="Jack's Collection" lead="Things I like, kept where I can look at them.">
+      <PageTop tone="collection" icon="books" title="Jack's Collection" lead="Things I like, kept where I can look at them.">
         <div class="switch tabs" role="tablist" aria-label="Collections">
           {shelves.map((shelf, i) => (
             <button type="button" role="tab" id={`tab-${shelf.id}`} aria-controls={`shelf-${shelf.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-tab={shelf.id}>
@@ -43,8 +45,9 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
                   {shelf.data.items.map((item) => {
                     const picture = pictureOf(pictures, shelf.id, item)?.default;
                     const shown = galleryOf(pictures, shelf.id, item).map((p) => p.default);
+                    const colour = colours.get(`${shelf.id}/${item.name}`);
                     return (
-                      <li>
+                      <li style={colour && `--card: ${colour.top}; --card-deep: ${colour.bottom}`}>
                         <button type="button" class="item" aria-haspopup="dialog" data-item>
                           {/* The name is right under the cover, so the picture needs no words of its own. */}
                           {picture ? (
@@ -287,58 +290,49 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
   /* The cards swing out past the page's edges while the table turns: cut there, not scrolled to. */
   .room { overflow-x: clip; }
 
-  /* The tabs: the site's switch (global.css), under the page's lead like the Lab's buttons. */
+  /* The tabs: the site's switch (global.css), on the page's top card like the Lab's section links. */
   .tabs { display: flex; width: fit-content; }
   .tabs .count { font-weight: 500; }
 
-  /* The turntable. At rest it's an ordinary flat page; only while it turns are its cards set out in depth: each
-     with a plain back, seen while it faces away. */
-  .stage { margin-top: var(--space-5); perspective: 2400px; }
+  /* The turntable. At rest it's an ordinary flat page; only while it turns are its collections set out in depth,
+     each out of sight while it faces away, so only the items' cards are seen swinging round. */
+  .stage { perspective: 2400px; }
   .table { display: grid; }
   .card { position: relative; grid-area: 1 / 1; align-self: start; min-width: 0; }
-  .board { overflow: clip; padding: var(--space-6) var(--space-6) var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
   .turning { pointer-events: none; }
   .turning, .turning .card { transform-style: preserve-3d; }
-  .turning .board, .turning .card::after { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
-  .turning .card::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--surface); transform: rotateY(180deg); }
+  .turning .board { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
 
   /* The items, a fixed number to a row, a short last row in the middle. */
-  .items { --cols: 5; --gap: var(--space-7); --row-gap: var(--space-7); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--row-gap) var(--gap); margin: 0; padding: 0; list-style: none; }
-  .items li { position: relative; flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.01px); min-width: 0; }
-  /* A line between one row and the next, so each row's covers stay with their own names. Every item after the
-     first row draws it above itself, right across the board (which cuts it at its edges): the pieces make one line
-     however many items the row has. Which item starts the second row goes with --cols. */
-  .items li::before { content: var(--line, none); position: absolute; top: calc(var(--row-gap) / -2); right: -100vw; left: -100vw; height: 1px; background: var(--rule); }
-  .items li:nth-child(n + 6) { --line: ''; }
-  .item { display: grid; justify-items: center; width: 100%; padding: 0; border: 0; border-radius: var(--radius-sm); outline-offset: 6px; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .items { --cols: 5; --gap: var(--space-5); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); margin: 0; padding: 0; list-style: none; }
+  .items li { display: flex; flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.01px); min-width: 0; }
+  /* An item's card: its cover across the top, its name and stars in white under it, on its cover's own colour
+     (cardColours in shelves.js; the Collection's orange for an item without a cover). */
+  .item { display: grid; align-content: start; justify-items: center; width: 100%; overflow: hidden; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-card); color: var(--on-colour); font: inherit; text-align: center; cursor: pointer; transition: transform 0.2s ease; -webkit-tap-highlight-color: transparent; }
   /* Every cover is a poster's shape, whatever the picture's own: a wider picture loses its sides. */
-  .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-sm); background: var(--wash); box-shadow: var(--shadow-cover); transform-origin: 50% 100%; transition: transform 0.2s ease; }
+  .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; background: var(--wash); }
   .picture { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .plain { display: grid; align-content: end; padding: var(--space-3); border: 1px solid var(--rule); text-align: left; }
+  .plain { display: grid; align-content: end; padding: var(--space-3); text-align: left; }
   .plain b { font-size: var(--text-md); font-weight: var(--display-weight); line-height: 1.05; letter-spacing: -0.02em; overflow-wrap: anywhere; }
   /* Room for two lines of name, a shorter name in the middle of it; a longer one is cut at two (its gallery has it whole). */
-  .name { display: grid; align-items: center; height: 2.6em; margin-top: var(--space-3); font-size: var(--text-ui); font-weight: 700; line-height: 1.3; }
+  .name { display: grid; align-items: center; height: 2.6em; margin-top: var(--space-3); padding-inline: var(--space-3); font-size: var(--text-ui); font-weight: 800; line-height: 1.3; }
   .name span { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; }
-  .item :global(.stars) { margin-top: var(--space-1); }
-  /* An item grows a little, upwards so it never covers its name, like the cards on the home page: under the mouse
-     and under the keyboard's focus. */
-  .item:focus-visible .cover { transform: scale(1.05); }
+  .item :global(.stars) { --star-shadow: var(--on-colour-faint); margin-top: var(--space-1); }
+  .item :global(.stars .full) { fill: var(--on-colour); }
+  /* Like the Lab's cards: the one pointed at, or reached with the keyboard, rises. */
+  .item:focus-visible { transform: translateY(-4px); }
   @media (hover: hover) {
-    .item:hover .cover { transform: scale(1.05); }
+    .item:hover { transform: translateY(-4px); }
   }
 
   @media (max-width: 999px) {
-    .items { --cols: 4; --gap: var(--space-6); }
-    .items li:nth-child(n + 5) { --line: ''; }
+    .items { --cols: 4; }
   }
   @media (max-width: 719px) {
-    .board { padding: var(--space-5) var(--space-4) var(--space-4); }
-    .items { --cols: 3; --gap: var(--space-5); --row-gap: var(--space-6); }
-    .items li:nth-child(n + 4) { --line: ''; }
+    .items { --cols: 3; --gap: var(--space-4); }
   }
   @media (max-width: 519px) {
-    .items { --cols: 2; }
-    .items li:nth-child(n + 3) { --line: ''; }
+    .items { --cols: 2; --gap: var(--space-3); }
   }
 
   /* The gallery: the whole window, over the dark backdrop of a post's enlarged picture; the name and stars at the

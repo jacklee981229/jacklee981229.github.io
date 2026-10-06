@@ -50,3 +50,9 @@
 - 2026-10-06 design: Made the home page calmer: what I'm up to, the Lab and a few doors
 - 2026-10-06 design: Gave the menu a coloured icon for each part of the site
 - 2026-10-06 design: Turned the home page into bold colour cards
+- 2026-10-07 fix: Stopped [Jack's Train World](/lab/world/trains/) breaking on tablets
+- 2026-10-07 improved: Folded older [Changelog](/changelog/) days behind an Expand button
+- 2026-10-07 design: Coloured each [Collection](/collections/) card from its own cover
+- 2026-10-07 design: Put the [Travel Map](/travel/) and the Little Worlds on cards
+- 2026-10-07 design: Turned the dark theme into a near-black grey
+- 2026-10-07 design: Gave every page bold colour cards, like the home page

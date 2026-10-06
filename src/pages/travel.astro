@@ -51,54 +51,56 @@ const globe = {
 ---
 <Base title="Jack's Travel Map" description="The places Jack has been, coloured in on a globe you can turn, or on a flat map of the world.">
   <div class="wrap page">
-    <PageTop title="Jack's Travel Map" lead={names.length ? `${count} so far.` : 'Nowhere yet.'}>
+    <PageTop tone="travel" icon="globe" title="Jack's Travel Map" lead={names.length ? `${count} so far.` : 'Nowhere yet.'}>
       <Switch name="map" label="How the map is shown" choices={[{ value: 'globe', label: 'Globe' }, { value: 'flat', label: 'Flat' }]} />
     </PageTop>
-    <div class="map" data-fullscreen="Show the map on the whole screen">
-      <!-- The globe is what the page opens on. Drawn by src/lib/travel/globe.js on its canvases, bottom to top: the
-           world's lines, the visited places' glow and the places themselves, then the same two again for a place
-           that has risen under the mouse. They reach a little past the globe, so a risen place at its edge isn't cut. -->
-      <div class="globe" data-globe={JSON.stringify(globe)} role="group" aria-label={`Globe with ${count} coloured in, listed below. Drag it, or use the arrow keys, to turn it.`} tabindex="0">
-        <canvas aria-hidden="true"></canvas>
-        <canvas class="glow" aria-hidden="true"></canvas>
-        <canvas class="lit" aria-hidden="true"></canvas>
-        <canvas class="glow hot" aria-hidden="true"></canvas>
-        <canvas class="lit hot" aria-hidden="true"></canvas>
-        <span class="tag" aria-hidden="true" data-tag></span>
-      </div>
-      <!-- The flat map, for when Flat is chosen: drawn while the site is built. It keeps its place under the globe
-           even while it's out of sight (data-off), so the globe knows where to open out to. -->
-      <div class="flat" data-flat data-off>
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Map of the world with ${count} coloured in, listed below`}>
-          <defs>
-            {shapes.map((shape) => <path id={shape.id} class="outline" d={shape.d} />)}
-            <!-- Thin lines across a risen place, which make it look like a picture made of light. -->
-            <pattern id="scan" patternUnits="userSpaceOnUse" width="8" height="3"><rect class="scanline" width="8" height="1" /></pattern>
-          </defs>
-          <path class="sphere" d={map.outline} />
-          <path class="grid" d={map.grid} />
-          <path class="lines" d={map.lines} />
-        </svg>
-        <!-- A visited country, bottom to top: the faint mark it leaves on the map, the part that rises under the
-             mouse (a soft copy that swells and fades, then the country itself), the shape the mouse is checked
-             against (which stays put, so rising can't move the country out from under the mouse), and its name. -->
-        {layered.map((shape) => (
-          <div class="place" style={shape.style} data-place={shape.name} aria-hidden="true">
-            <svg class="mark" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
-            <div class="lift">
-              <svg class="glow" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
-              <svg class="lit" viewBox={shape.viewBox}>
-                <use class="shape" href={`#${shape.id}`} />
-                <use class="scan" href={`#${shape.id}`} fill="url(#scan)" />
-              </svg>
+    <div class="frame">
+      <div class="map" data-fullscreen="Show the map on the whole screen">
+        <!-- The globe is what the page opens on. Drawn by src/lib/travel/globe.js on its canvases, bottom to top: the
+             world's lines, the visited places' glow and the places themselves, then the same two again for a place
+             that has risen under the mouse. They reach a little past the globe, so a risen place at its edge isn't cut. -->
+        <div class="globe" data-globe={JSON.stringify(globe)} role="group" aria-label={`Globe with ${count} coloured in, listed below. Drag it, or use the arrow keys, to turn it.`} tabindex="0">
+          <canvas aria-hidden="true"></canvas>
+          <canvas class="glow" aria-hidden="true"></canvas>
+          <canvas class="lit" aria-hidden="true"></canvas>
+          <canvas class="glow hot" aria-hidden="true"></canvas>
+          <canvas class="lit hot" aria-hidden="true"></canvas>
+          <span class="tag" aria-hidden="true" data-tag></span>
+        </div>
+        <!-- The flat map, for when Flat is chosen: drawn while the site is built. It keeps its place under the globe
+             even while it's out of sight (data-off), so the globe knows where to open out to. -->
+        <div class="flat" data-flat data-off>
+          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Map of the world with ${count} coloured in, listed below`}>
+            <defs>
+              {shapes.map((shape) => <path id={shape.id} class="outline" d={shape.d} />)}
+              <!-- Thin lines across a risen place, which make it look like a picture made of light. -->
+              <pattern id="scan" patternUnits="userSpaceOnUse" width="8" height="3"><rect class="scanline" width="8" height="1" /></pattern>
+            </defs>
+            <path class="sphere" d={map.outline} />
+            <path class="grid" d={map.grid} />
+            <path class="lines" d={map.lines} />
+          </svg>
+          <!-- A visited country, bottom to top: the faint mark it leaves on the map, the part that rises under the
+               mouse (a soft copy that swells and fades, then the country itself), the shape the mouse is checked
+               against (which stays put, so rising can't move the country out from under the mouse), and its name. -->
+          {layered.map((shape) => (
+            <div class="place" style={shape.style} data-place={shape.name} aria-hidden="true">
+              <svg class="mark" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+              <div class="lift">
+                <svg class="glow" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+                <svg class="lit" viewBox={shape.viewBox}>
+                  <use class="shape" href={`#${shape.id}`} />
+                  <use class="scan" href={`#${shape.id}`} fill="url(#scan)" />
+                </svg>
+              </div>
+              <svg class="hit" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
+              <span class="tag">{shape.said}</span>
             </div>
-            <svg class="hit" viewBox={shape.viewBox}><use href={`#${shape.id}`} /></svg>
-            <span class="tag">{shape.said}</span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+      <ul class="places">{names.map((name) => <li style={`--step: ${name.step}`}>{name.said}</li>)}</ul>
     </div>
-    <ul class="places">{names.map((name) => <li style={`--step: ${name.step}`}>{name.said}</li>)}</ul>
   </div>
 </Base>
 
@@ -165,11 +167,16 @@ const globe = {
      past the edge of the screen: cut there, so the page can't slide sideways. */
   .page { overflow-x: clip; }
 
-  /* The switch sits under the page's lead, like the Lab's buttons. */
+  /* The map and its names on a card, like the rest of the site. */
+  .frame { padding: var(--space-5); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  /* Phones: thinner sides, so the globe keeps the width. */
+  @media (max-width: 719px) {
+    .frame { padding: var(--space-4) var(--space-2); }
+  }
 
   /* As big as the window's height allows with the page's top above and the names below, so the whole map is in view.
      --lift-scale: how much bigger a place is drawn once it has risen under the mouse (the globe reads it too). */
-  .map { --map-height: max(16rem, calc(100svh - 22.5rem)); --lift-scale: 1.07; display: grid; place-items: center; margin-top: var(--space-4); }
+  .map { --map-height: max(12rem, calc(100svh - 28.5rem)); --lift-scale: 1.07; display: grid; place-items: center; }
   /* The command palette's Fullscreen: the map alone, as big as the screen allows. */
   .map:fullscreen { --map-height: calc(100svh - 4rem); align-content: center; margin: 0; background: var(--paper); }
   /* The globe and the flat map share one place, so that one can open out into the other. The one that's not on show

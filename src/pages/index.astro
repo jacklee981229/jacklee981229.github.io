@@ -89,10 +89,10 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
         </div>
         <ul class="tiles" aria-label="Find me">
           {github && (
-            <li><a class="tile github" href={github.href} title={github.label} aria-label={github.label} {...(github.external ? NEW_TAB : {})}><Icon name="github" /><span class="handle">{new URL(github.href).pathname.slice(1)}</span></a></li>
+            <li><a class="tile github link-github" href={github.href} title={github.label} aria-label={github.label} {...(github.external ? NEW_TAB : {})}><Icon name="github" /><span class="handle">{new URL(github.href).pathname.slice(1)}</span></a></li>
           )}
           {tiles.map((link) => (
-            <li><a class:list={['tile', link.icon]} href={link.href} title={link.label} aria-label={link.label} {...(link.external ? NEW_TAB : {})}><Icon name={link.icon} /></a></li>
+            <li><a class:list={['tile', `link-${link.icon}`]} href={link.href} title={link.label} aria-label={link.label} {...(link.external ? NEW_TAB : {})}><Icon name={link.icon} /></a></li>
           ))}
         </ul>
       </section>
@@ -101,8 +101,8 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
         <p class="wave" aria-hidden="true">👋</p>
         <h2 id="now-title"><a href="/now/">Right now</a></h2>
         {nowItems.length ? nowItems.map((item, i) => <p class:list={['line', `line-${i}`]}>{item.label && `${item.label} `}<span set:html={item.html} /></p>) : <p class="line">Nothing much.</p>}
+        {change && <p class="line lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
         {now.updated && <Updated date={now.updated} />}
-        {change && <p class="lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
         {snapshot?.picture && (
           <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
             <Image src={snapshot.picture} alt="" width={208} height={278} fit="cover" />
@@ -113,7 +113,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
 
     <section aria-labelledby="lab-title">
       <h2 class="section-title" id="lab-title">Jack's Lab <span aria-hidden="true">🧪</span></h2>
-      <div class="card lab" data-area="lab">
+      <div class="card lab">
         <div class="lab-toy"><HomeToy /></div>
         <div class="lab-words">
           <p class="label">Lab</p>
@@ -198,13 +198,10 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .who strong { color: var(--ink); font-weight: 800; }
   .likes { letter-spacing: 2px; }
   .tiles { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: auto; padding: var(--space-4) var(--space-6) var(--space-5); border-top: 1px solid var(--rule); }
-  .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border-radius: var(--radius-md); color: var(--on-colour); text-decoration: none; transition: transform 0.15s ease; }
+  .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); text-decoration: none; transition: transform 0.15s ease; }
   .tile :global(.icon) { width: 23px; height: 23px; }
-  .tile.github { display: inline-flex; align-items: center; gap: var(--space-2); width: auto; padding: 0 var(--space-4); border: 1px solid var(--tile-github-edge); background: var(--tile-github); font-size: var(--text-sm); font-weight: 800; }
+  .tile.github { display: inline-flex; align-items: center; gap: var(--space-2); width: auto; padding: 0 var(--space-4); font-size: var(--text-sm); font-weight: 800; }
   .tile.github :global(.icon) { width: 20px; height: 20px; }
-  .tile.file { background: var(--tile-resume); }
-  .tile.linkedin { background: var(--tile-linkedin); }
-  .tile.mail { background: var(--tile-email); }
   .tile:hover, .tile:focus-visible { transform: translateY(-2px); }
 
   /* The title types itself (as before): every letter is laid out from the start, each shows from its moment
@@ -218,24 +215,24 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   @keyframes cursor-blink { 0%, 50% { opacity: 1; } 25%, 75%, 100% { opacity: 0; } }
 
   /* Now: a purple card of big lines, the first in yellow, with a cover tilted in its corner. */
-  .now { position: relative; padding: var(--space-6) var(--space-6) var(--space-5); background: linear-gradient(150deg, var(--now-from), var(--now-to)); color: var(--on-colour); }
+  .now { --focus: var(--on-colour); position: relative; padding: var(--space-6) var(--space-6) var(--space-5); background: linear-gradient(150deg, var(--now-from), var(--now-to)); color: var(--on-colour); }
   .wave { margin: 0; font-size: var(--text-xl); line-height: 1; }
   .now h2 { margin: var(--space-3) 0 var(--space-1); font-size: var(--text-sm); font-weight: 800; color: var(--on-colour-soft); }
   .now h2 a { color: inherit; text-decoration: none; }
   .now h2 a:hover { text-decoration: underline; }
-  .line, .now :global(.updated) { margin: 0; font-size: var(--text-lg); font-weight: 900; line-height: 1.3; color: var(--on-colour); }
+  .line { margin: 0; font-size: var(--text-lg); font-weight: 900; line-height: 1.3; color: var(--on-colour); }
   .line-0 { color: var(--now-first); }
   .line-2 { color: var(--now-third); }
   .line :global(a) { color: inherit; }
-  .now :global(.updated) { color: var(--now-soft); }
-  .with-cover .line, .with-cover :global(.updated) { margin-right: 8.5rem; }
-  .lately { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; }
-  .lately a { color: inherit; }
+  /* The latest change reads on from what Jack is doing, in a softer colour; when Now was updated sits small under it. */
+  .lately { color: var(--now-soft); }
+  .with-cover .line { margin-right: 8.5rem; }
+  .now :global(.updated) { margin: var(--space-3) 0 0; color: var(--on-colour); font-size: var(--text-sm); font-weight: 600; }
   .snapshot { position: absolute; top: var(--space-6); right: var(--space-6); transform: rotate(7deg); }
   .snapshot :global(img) { display: block; width: 104px; height: 139px; object-fit: cover; border-radius: var(--radius-md); box-shadow: var(--shadow-cover); }
 
   /* The Lab: green, today's toy on the left, the words and the ways in on the right. */
-  .lab { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); background: linear-gradient(120deg, var(--lab-from), var(--lab-to)); color: var(--on-colour); }
+  .lab { --focus: var(--on-colour); display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); background: linear-gradient(120deg, var(--lab-from), var(--lab-to)); color: var(--on-colour); }
   .lab-toy { min-height: 19rem; padding: var(--space-4) 0 var(--space-4) var(--space-4); }
   .lab-words { display: flex; flex-direction: column; padding: var(--space-6) var(--space-6) var(--space-5); }
   .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
@@ -304,10 +301,10 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
     .tile.github { width: 54px; padding: 0; justify-content: center; }
     .tile.github .handle { display: none; }
     .now { padding: var(--space-5); }
-    .line, .now :global(.updated) { font-size: var(--text-md); }
+    .line { font-size: var(--text-md); }
     .snapshot { top: var(--space-5); right: var(--space-5); }
     .snapshot :global(img) { width: 64px; height: 86px; }
-    .with-cover .line, .with-cover :global(.updated) { margin-right: 5rem; }
+    .with-cover .line { margin-right: 5rem; }
     .lab-toy { height: 15rem; }
     .lab-words { padding: var(--space-5); }
     .section-title { margin-top: var(--space-5); }

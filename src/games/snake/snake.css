@@ -1,8 +1,9 @@
 /* Snake on the "Jack's Snake" post (game.js): the snake in the Games topic colour, the food in the page's ink.
    Every rule starts with .snk, so the post text's own styles (.prose p and so on) can't win over these. */
 
-/* The game on the left and its leaderboard on the right; on narrower screens, the leaderboard goes under it. */
-.snk { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 22rem); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
+/* The game on the left and its leaderboard on the right, out to the page's edge like the top card above; on
+   narrower screens, the leaderboard goes under it. */
+.snk { display: grid; grid-template-columns: minmax(0, var(--game-width)) minmax(16rem, 1fr); align-items: start; gap: var(--space-6); margin: 0 0 var(--space-6); user-select: none; -webkit-user-select: none; }
 .snk .snk-play { min-width: 0; }
 .snk .lb.lb-board { margin: 0; }
 @media (max-width: 859px) {

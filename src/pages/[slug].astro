@@ -43,8 +43,9 @@ const topic = topicOf(data.topic);
 const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 ---
 <Base title={data.title} description={summaryOf(post)} image={coverOf(post)} topic={{ id: topic.id, name: topic.name }} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
-  <article class="wrap post" style={`--c: var(--lane-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
-    <header>
+  <article class="wrap post" style={`--c: var(--lane-${data.topic}); --deep: var(--topic-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
+    <header class="post-top">
+      <Icon name={topic.icon} class="mark" />
       <p class="topic" data-pagefind-ignore><Go href={`/writing/#${data.topic}`}>{topic.name}</Go></p>
       <h1 class="title">{data.title}</h1>
       <div class="meta" data-pagefind-ignore>
@@ -108,22 +109,28 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 </Base>
 
 <style>
-  /* The topic's lane runs down the left of the whole post, from the dot beside the topic name. */
-  .post { --node: 12px; --stroke: 2.5px; --post-pad: clamp(2rem, 5vw, 3.5rem); position: relative; margin-bottom: var(--space-8); padding-top: var(--post-pad); padding-left: calc(var(--gutter) + 2.25rem); }
-  .post::before { content: ''; position: absolute; top: calc(var(--post-pad) + 0.75rem); bottom: 0; left: calc(var(--gutter) + var(--node) / 2 - var(--stroke) / 2); width: var(--stroke); background: var(--c); }
-  .topic { position: relative; margin: 0 0 var(--space-3); color: var(--c); font-size: var(--text-ui); font-weight: 700; }
-  .topic::before { content: ''; position: absolute; top: 0.75rem; left: -2.25rem; width: var(--node); height: var(--node); margin-top: calc(var(--node) / -2); border-radius: 50%; background: var(--c); }
-  .title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1.04; letter-spacing: calc(var(--display-tracking) * 0.8); text-wrap: balance; }
-  .meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin-top: 1.25rem; color: var(--muted); font-size: var(--text-ui); }
-  .meta time, .views span { color: var(--ink); font-weight: 650; }
+  /* The top: a card in the topic's deep colour, like the other pages' tops, with the topic's icon large in its
+     corner; the words in white. */
+  .post { margin-bottom: var(--space-8); padding-top: var(--space-6); }
+  .post-top { --focus: var(--on-colour); position: relative; overflow: hidden; padding: var(--space-6); border-radius: var(--radius-2xl); background: linear-gradient(150deg, transparent, var(--on-colour-chip)), var(--deep); color: var(--on-colour); }
+  /* The words stay clear of the icon. */
+  .post-top > :not(.mark) { position: relative; }
+  .meta, .actions { max-width: calc(100% - 9rem); }
+  .post-top :global(.mark) { position: absolute; top: 50%; right: var(--space-7); width: 8.5rem; height: 8.5rem; translate: 0 -50%; rotate: -10deg; opacity: 0.22; stroke-width: 1.5; }
+  .topic { margin: 0 0 var(--space-3); font-size: var(--text-ui); font-weight: 800; }
+  .topic :global(.go:hover), .topic :global(.go:focus-visible) { background: var(--on-colour-chip); }
+  .title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: 900; line-height: 1.04; letter-spacing: -0.04em; text-wrap: balance; }
+  .meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin-top: 1.25rem; color: var(--on-colour-soft); font-size: var(--text-ui); }
+  .meta time, .views span { color: var(--on-colour); font-weight: 800; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); margin-top: var(--space-4); }
   .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-  .tags a { display: inline-block; padding: var(--space-1) var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-pill); font-size: 0.8125rem; font-weight: 650; text-decoration: none; }
-  .tags a:hover { border-color: var(--c); }
-  /* A button, not a link: under the mouse it takes the tinted pill of the site's standalone links, without the arrow. */
-  .copy-link { display: inline-flex; align-items: center; gap: 0.375rem; margin: 0 -0.625rem; padding: 0.375rem 0.625rem; border: 0; border-radius: var(--radius-pill); background: none; color: var(--ink); font-size: var(--text-sm); font-weight: 650; cursor: pointer; transition: background-color 0.2s ease; }
-  .copy-link:hover { background: var(--wash); }
+  .tags a { display: inline-block; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: 0.8125rem; font-weight: 800; text-decoration: none; }
+  .tags a:hover { background: var(--on-colour-chip-hover); }
+  /* A button, not a link: a white-tinted chip under the mouse, like the tags. */
+  .copy-link { display: inline-flex; align-items: center; gap: 0.375rem; margin: 0 -0.625rem; padding: 0.375rem 0.625rem; border: 0; border-radius: var(--radius-pill); background: none; color: var(--on-colour); font-size: var(--text-sm); font-weight: 800; cursor: pointer; transition: background-color 0.2s ease; }
+  .copy-link:hover { background: var(--on-colour-chip); }
   .copy-link :global(.icon) { width: 18px; height: 18px; }
+  .post :global(.cover-banner) { margin-top: var(--space-5); border: 0; border-radius: var(--radius-2xl); }
 
   .grid { display: grid; grid-template-columns: minmax(0, 40rem) minmax(11rem, 15rem); justify-content: space-between; gap: var(--space-8); margin-top: 2.5rem; }
   .grid .prose { grid-row: 1; grid-column: 1; }
@@ -134,7 +141,7 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .license { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-sm); }
   .older-newer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
   /* Room at the sides for a link's arrow (.go in global.css) to slide out inside the box. */
-  .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: 0.875rem var(--space-5); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); }
+  .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
   .older-newer > div:last-child { align-items: flex-end; text-align: right; }
   .label { color: var(--muted); font-size: 0.8125rem; }
   .older-newer .go { font-size: 1.0625rem; font-weight: 650; }
@@ -142,15 +149,19 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
 
   .related { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
   .empty { margin: 0; color: var(--muted); }
-  .author { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-7); margin-top: var(--space-6); padding: 1.25rem; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); font-size: var(--text-ui); }
+  .author { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-7); margin-top: var(--space-6); padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); font-size: var(--text-ui); }
 
   @media (max-width: 1099px) {
     .grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
     .grid .prose { grid-row: auto; }
   }
   @media (max-width: 719px) {
-    .post { padding-left: calc(var(--gutter) + 1.5rem); }
-    .topic::before { left: -1.5rem; }
+    .post { padding-top: var(--space-5); }
+    .post-top { padding: var(--space-5); }
+    .meta, .actions { max-width: none; }
+    .title { padding-right: 3.5rem; }
+    .post-top :global(.mark) { top: var(--space-4); right: var(--space-4); width: 3.5rem; height: 3.5rem; translate: none; }
+    .author { padding: var(--space-5); }
     .older-newer { grid-template-columns: minmax(0, 1fr); }
     .older-newer > div:last-child { align-items: flex-start; text-align: left; }
     .author { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }

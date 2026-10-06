@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
 import PageTop from '../components/PageTop.astro';
 import PostList from '../components/PostList.astro';
 import { featured, topicCounts } from '../lib/posts.js';
@@ -12,27 +13,38 @@ const start = featured(posts);
 ---
 <Base title="Writing" description="Posts grouped by topic.">
   <div class="wrap page">
-    <PageTop title="Writing" lead="Posts grouped by topic." />
+    <PageTop tone="writing" icon="pen" title="Writing" lead="Posts grouped by topic." />
     {topics.length === 0 && <p class="empty">No posts yet.</p>}
-    {start.length > 0 && (
-      <section class="topic start" aria-labelledby="start-here">
-        <h2 id="start-here">Start here</h2>
-        <PostList posts={start} />
-      </section>
-    )}
-    {topics.map((t) => (
-      <section class="topic" id={t.id} style={`--c: var(--lane-${t.id})`} aria-labelledby={`topic-${t.id}`}>
-        <h2 id={`topic-${t.id}`}><span class="dot" aria-hidden="true" />{t.name} <span class="count">{t.count}</span></h2>
-        <PostList posts={posts.filter((p) => p.data.topic === t.id)} showTopic={false} />
-      </section>
-    ))}
+    <div class="topics">
+      {start.length > 0 && (
+        <section class="topic start" aria-labelledby="start-here">
+          <h2 id="start-here"><Icon name="star" />Start here</h2>
+          <PostList posts={start} />
+        </section>
+      )}
+      {topics.map((t) => (
+        <section class="topic" id={t.id} style={`--c: var(--topic-${t.id})`} aria-labelledby={`topic-${t.id}`}>
+          <h2 id={`topic-${t.id}`}><Icon name={t.icon} />{t.name} <span class="count">{t.count}</span></h2>
+          <PostList posts={posts.filter((p) => p.data.topic === t.id)} showTopic={false} />
+        </section>
+      ))}
+    </div>
   </div>
 </Base>
 
 <style>
-  .topic { max-width: 44rem; margin-top: var(--space-7); scroll-margin-top: var(--space-5); }
-  h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: var(--text-lg); font-weight: 750; }
-  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
-  .start h2 { font-size: var(--text-lg); }
-  .count { color: var(--muted); font-size: var(--text-ui); font-weight: 600; font-variant-numeric: tabular-nums; }
+  /* The topics as cards in two columns, each as tall as its posts: a band of its topic's colour (Start here in
+     Writing's pink) over its posts. */
+  .topics { columns: 2; column-gap: var(--space-5); }
+  .topic { overflow: hidden; margin-bottom: var(--space-5); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); break-inside: avoid; scroll-margin-top: var(--space-5); }
+  h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4) var(--space-5); background: linear-gradient(150deg, transparent, var(--on-colour-chip)), var(--c); color: var(--on-colour); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
+  .start h2 { background: linear-gradient(150deg, var(--writing-top-from), var(--writing-top-to)); }
+  h2 :global(.icon) { width: 22px; height: 22px; stroke-width: 2.2; }
+  .count { margin-left: auto; min-width: 1.75rem; padding: 0.0625rem var(--space-2); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+  .topic :global(.list) { padding: var(--space-2) var(--space-5) var(--space-3); }
+  .topic :global(li:last-child a) { border-bottom: 0; }
+
+  @media (max-width: 959px) {
+    .topics { columns: 1; }
+  }
 </style>

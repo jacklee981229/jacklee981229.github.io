@@ -41,8 +41,8 @@ const items = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3)
 </script>
 
 <style>
-  .toc { position: sticky; top: var(--space-5); grid-row: 1; grid-column: 2; align-self: start; padding: var(--space-4) 1.125rem; border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); font-size: var(--text-sm); }
-  summary { font-weight: 700; cursor: pointer; }
+  .toc { position: sticky; top: var(--space-5); grid-row: 1; grid-column: 2; align-self: start; padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); font-size: var(--text-sm); }
+  summary { font-weight: 900; cursor: pointer; }
   .toc[open] summary { margin-bottom: var(--space-3); }
   ol { display: grid; gap: var(--space-2); margin: 0; padding: 0 0 0 0.875rem; border-left: 1px solid var(--rule); list-style: none; }
   a { position: relative; display: block; color: var(--muted); line-height: 1.35; text-decoration: none; }

@@ -1,6 +1,7 @@
 ---
-// A card on the Lab home. Like a post card it has a cover: a tool's example (what goes in, what comes out),
-// or a post's own cover for experiments. Without an address it's a tool still to come.
+// A card on the Lab home, all in its kind's colour, like the home page's doors: a bright picture on top (a tool's
+// example, what goes in and what comes out, on a dark pane; a game's cover; an effect's drawing, in white; a world's
+// picture), the name and description on a deeper colour under it. Without an address it's a tool still to come.
 import Icon from './Icon.astro';
 
 interface Props {
@@ -9,15 +10,17 @@ interface Props {
   name: string;
   description: string;
   example?: readonly string[];
+  /** Whose colours it wears: a tool's group (text, preview, image), or a game, an effect or a little world. */
+  kind: 'text' | 'preview' | 'image' | 'game' | 'effect' | 'world';
 }
 
-const { href, icon, name, description, example } = Astro.props;
+const { href, icon, name, description, example, kind } = Astro.props;
 const Tag = href ? 'a' : 'div';
 ---
 <li>
-  <Tag class:list={['lab-card', { soon: !href }]} href={href}>
+  <Tag class:list={['lab-card', kind, { soon: !href }]} href={href}>
     {example ? (
-      <span class="example" aria-hidden="true"><span class="in">{example[0]}</span><span class="out">{example[1]}</span></span>
+      <span class="example" aria-hidden="true"><span class="code"><span class="in">{example[0]}</span><span class="out">{example[1]}</span></span></span>
     ) : (
       <slot name="cover" />
     )}
@@ -30,28 +33,37 @@ const Tag = href ? 'a' : 'div';
 
 <style>
   li { display: flex; }
-  .lab-card { display: flex; flex-direction: column; width: 100%; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); text-decoration: none; transition: transform 0.2s ease, border-color 0.2s ease; }
-  a.lab-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; transform: scale(1.02); }
-  /* Mouse only: on a touch screen, a tapped card would stay enlarged. */
+  .lab-card { display: flex; flex-direction: column; width: 100%; overflow: hidden; border-radius: var(--radius-xl); background: var(--base); color: var(--on-colour); text-decoration: none; transition: transform 0.2s ease; }
+  .text { --from: var(--kind-text-from); --to: var(--kind-text-to); --base: var(--kind-text-base); }
+  .preview { --from: var(--kind-preview-from); --to: var(--kind-preview-to); --base: var(--kind-preview-base); }
+  .image { --from: var(--kind-image-from); --to: var(--kind-image-to); --base: var(--kind-image-base); }
+  .game { --from: var(--kind-game-from); --to: var(--kind-game-to); --base: var(--kind-game-base); }
+  .effect { --from: var(--kind-effect-from); --to: var(--kind-effect-to); --base: var(--kind-effect-base); }
+  .world { --from: var(--kind-world-from); --to: var(--kind-world-to); --base: var(--kind-world-base); }
+  /* Like the home page's cards: the one pointed at rises. */
+  a.lab-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; transform: translateY(-4px); }
+  /* Mouse only: on a touch screen, a tapped card would stay raised. */
   @media (hover: hover) {
-    a.lab-card:hover { border-color: var(--ink); transform: scale(1.02); }
+    a.lab-card:hover { transform: translateY(-4px); }
   }
+
+  /* The picture: the kind's bright colours behind whatever shows. Inside it the topic colours an effect draws with,
+     and a game cover's faint word, turn white. */
+  .example, .lab-card :global(.cover) { --lane-flutter: var(--on-colour); --lane-games: var(--on-colour); --lane-hexo: var(--on-colour); --lane-chatgpt: var(--on-colour); --lane-git: var(--on-colour); --muted: var(--on-colour); height: 7rem; background: linear-gradient(150deg, var(--from), var(--to)); }
+  .lab-card :global(.cover) { aspect-ratio: auto; }
   /* The code font has one weight, so the two lines differ by colour, not boldness. */
-  .example { display: grid; align-content: center; gap: 0.2rem; min-height: 5.5rem; padding: var(--space-3) var(--space-4); background: var(--wash); font-family: var(--font-code); font-size: 0.8125rem; line-height: 1.45; }
-  .in { overflow: hidden; color: var(--muted); white-space: pre; text-overflow: ellipsis; }
-  .out { color: var(--ink); }
-  /* A post's cover, cut to the same height as the examples. */
-  .lab-card :global(.cover) { height: 5.5rem; aspect-ratio: auto; }
+  .example { display: grid; align-content: center; padding: var(--space-3) var(--space-4); }
+  .code { display: grid; gap: 0.2rem; padding: 0.625rem 0.875rem; border-radius: var(--radius-image); background: var(--on-colour-glass); font-family: var(--font-code); font-size: 0.8125rem; line-height: 1.45; }
+  .in { overflow: hidden; color: var(--on-colour-soft); white-space: pre; text-overflow: ellipsis; }
+  .out { color: var(--on-colour); }
+
   .body { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4) var(--space-4); }
-  .name { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: 750; }
+  .name { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: 900; }
   .name :global(.icon) { width: 20px; height: 20px; }
-  .description { color: var(--muted); font-size: var(--text-sm); line-height: 1.45; }
-  .badge { margin-left: auto; padding: 0.0625rem 0.5rem; border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
-  .soon { border-style: dashed; box-shadow: none; }
-  .soon .out { color: var(--muted); }
+  .description { color: var(--on-colour-soft); font-size: var(--text-sm); line-height: 1.45; }
+  .badge { margin-left: auto; padding: 0.0625rem 0.5rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-xs); font-weight: 800; }
 
   @media (max-width: 719px) {
-    .example { min-height: 4.5rem; }
-    .lab-card :global(.cover) { height: 4.5rem; }
+    .example, .lab-card :global(.cover) { height: 6rem; }
   }
 </style>

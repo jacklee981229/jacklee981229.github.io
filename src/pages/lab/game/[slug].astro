@@ -29,7 +29,7 @@ const GAMES: Record<string, typeof Game2048> = { '2048': Game2048, 'catch-the-ca
 const Game = GAMES[post.id];
 if (!Game) throw new Error(`The Lab's game "${post.id}" has no game component. Add it to GAMES in src/pages/lab/game/[slug].astro.`);
 ---
-<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }} area="lab">
+<Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
   <div class="wrap page">
     <LabHeader title={data.title} description={summaryOf(post)} back="/lab/#mini-games" />
     <!-- .play is what the command palette's Fullscreen shows (SearchDialog.astro): the game alone, in the middle. -->

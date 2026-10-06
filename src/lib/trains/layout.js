@@ -224,7 +224,7 @@ function tryFit(W, H, k, colours) {
   const beside = Math.floor((f.depot.left + clear) / spacing) + Math.floor((f.depot.right + clear) / spacing);
   const across = f.depot.reach + (span - S.gap) / 2 + S.gap > span ? 1 + beside : 0;
   // The places across from the two-platform station.
-  const facing = f.station.double + f.stationReach + S.gap > span ? 1 + 2 * Math.floor((f.half + f.clear) / spacing) : 0;
+  const facing = f.station.double + f.stationReach + S.gap > span ? 1 + 2 * Math.floor((f.half + clear) / spacing) : 0;
   if (2 * colours + 2 + beside + across + facing > Math.floor(0.8 * 2 * slots)) return null;
   return { ...f, k, colours, storage, slots, spacing, first, usable, mid, span, clear };
 }

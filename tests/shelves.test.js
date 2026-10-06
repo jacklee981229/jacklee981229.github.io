@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MOST_STARS, PICTURE_TYPES, galleryOf, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars } from '../src/lib/shelves.js';
+import { MOST_STARS, PICTURE_TYPES, cardColours, galleryOf, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars, whiteContrast } from '../src/lib/shelves.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 test('stars go from 1 to 5, in halves', () => {
@@ -92,4 +92,36 @@ test('the turntable starts and stops gently, and stands furthest back half-way r
 
 test("the new pages' addresses are kept from posts", () => {
   assert.ok(RESERVED_SLUGS.includes('collections') && RESERVED_SLUGS.includes('travel'));
+});
+
+const fill = (rgb, n = 24) => Array.from({ length: n }, () => rgb).flat();
+const rgbOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const hueOf = ([r, g, b]) => {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  if (max === min) return undefined;
+  const d = max - min;
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return h * 60;
+};
+
+test("a card takes its cover's colour, deep enough that white text keeps 5:1, darker at its foot", () => {
+  for (const cover of [[220, 30, 40], [250, 230, 60], [40, 90, 230], [30, 200, 120], [255, 255, 255]]) {
+    const { top, bottom } = cardColours(fill(cover));
+    assert.match(top, /^#[0-9A-F]{6}$/);
+    assert.match(bottom, /^#[0-9A-F]{6}$/);
+    assert.ok(whiteContrast(rgbOf(top)) >= 5, `${cover} gives ${top}`);
+    assert.ok(whiteContrast(rgbOf(bottom)) > whiteContrast(rgbOf(top)), `${cover}: ${bottom} is darker than ${top}`);
+  }
+  // A red cover stays red, a blue one blue.
+  assert.ok(Math.abs(hueOf(rgbOf(cardColours(fill([220, 30, 40])).top)) - 356) < 8);
+  assert.ok(Math.abs(hueOf(rgbOf(cardColours(fill([40, 90, 230])).top)) - 224) < 8);
+});
+
+test('the colourful part of a cover counts more than its dark or grey parts, and a grey cover stays grey', () => {
+  // Mostly near-black with some strong blue: the card is blue.
+  const poster = [...fill([12, 12, 14], 80), ...fill([30, 80, 220], 20)];
+  const hue = hueOf(rgbOf(cardColours(poster).top));
+  assert.ok(hue > 200 && hue < 240, `hue ${hue}`);
+  const [r, g, b] = rgbOf(cardColours(fill([128, 128, 128])).top);
+  assert.ok(r === g && g === b, `${r} ${g} ${b}`);
 });

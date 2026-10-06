@@ -12,7 +12,7 @@ const { items, note, updated } = nowFile();
 ---
 <Base title="Now" description="What Jack is up to at the moment.">
   <div class="wrap page">
-    <PageTop title="Now" lead="What I'm up to at the moment." />
+    <PageTop tone="now" icon="clock" title="Now" lead="What I'm up to at the moment." />
     <div class="body">
       {items.length ? <NowList items={items} /> : <p class="empty">Nothing here right now.</p>}
       {note && <div class="prose note" set:html={blockHtml(note, String(Astro.site))} />}
@@ -22,7 +22,8 @@ const { items, note, updated } = nowFile();
 </Base>
 
 <style>
-  .body { display: grid; gap: var(--space-6); max-width: 40rem; margin-top: var(--space-6); }
+  .body { display: grid; gap: var(--space-6); }
+  .note { max-width: 44rem; }
   .note :global(> :first-child) { margin-top: 0; }
   .note :global(> :last-child) { margin-bottom: 0; }
 </style>
