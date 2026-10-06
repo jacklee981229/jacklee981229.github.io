@@ -8,7 +8,7 @@ export const SITE = {
   started: '2023-02-23',
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
   // GoatCounter counts page views, without cookies. Every page's script reports its view here, and the build reads
-  // the Lab pages' public counts from here to rank Most Popular (D13 in docs/plan/done/lab-brief.md).
+  // the Lab pages' public counts from here to rank Most Popular.
   goatcounter: 'https://jacklee981229.goatcounter.com',
 } as const;
 

@@ -1,9 +1,9 @@
-// Jack's Train World's network (D75 to D97 in docs/plan/done/little-worlds-trains.md): a double-track main line round
+// Jack's Train World's network: a double-track main line round
 // the window, one way on each track, trains keeping left; branches to the stations and to the depot. A station is an
 // outpost whose branch ends in a loop, so trains never reverse, in one of three shapes: a plain loop, a round head, or
 // a loop with two platforms; all three stand straight up from the main line. The depot is a stack of parallel sidings
 // that curve off one track and back onto another. A line out leaves the main line and runs out of the picture: trains
-// come onto the railway along it and leave by it (D97). Every piece is a straight or an arc that meets the next one on the same heading, as in
+// come onto the railway along it and leave by it. Every piece is a straight or an arc that meets the next one on the same heading, as in
 // a toy train set, so every join is smooth. Where a branch leaves the main line, a look-ahead signal stands at each
 // way in and a plain signal at each way out; a train books its whole way through a junction before it goes in, so no
 // train ever stops inside one. Long stretches are cut into blocks by plain signals. Made to fit the window, a new one
@@ -53,7 +53,7 @@ const STEP = 2;
 const PHONE = 500;
 /** A train at scale 1: an engine and its wagons, coupled, each as wide as `width`. */
 export const TRAIN = { engine: 24, wagon: 20, coupling: 3, wagons: 3, width: 9 };
-/** The cargo colours: a pickup and a drop-off of each (D77). */
+/** The cargo colours: a pickup and a drop-off of each. */
 export const COLOURS = 3;
 /** A train's length at scale `k`. */
 export const trainLength = (k) => k * (TRAIN.engine + TRAIN.wagons * (TRAIN.coupling + TRAIN.wagon));

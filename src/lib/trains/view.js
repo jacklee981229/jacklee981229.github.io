@@ -1,4 +1,4 @@
-// Following a train in Jack's Train World (D85 in docs/plan/done/little-worlds-trains.md): the view zooms in until
+// Following a train in Jack's Train World: the view zooms in until
 // the whole train fills half the stage's shorter side, and keeps the middle of the train in the middle of the stage,
 // even near the network's edge (where the page beyond it shows). A click picks the train nearest the
 // pointer. src/worlds/trains.js draws with these; tested by tests/trains.test.js.

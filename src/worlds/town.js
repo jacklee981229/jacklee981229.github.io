@@ -5,7 +5,7 @@
 // glide at any frame rate. Over the cars, now and then a thought bubble (src/lib/town/thoughts.js) pops up and
 // fades; a click on a car pops up what it's thinking of. The page's Add car and Remove car buttons bring a car in from
 // outside town and send one away. At night (the dark theme, and the night sky) every stop line glows in its colour,
-// as the Train World's lamps do, and the homes and places have lit windows (D103; the cars have no headlights, D106).
+// as the Train World's lamps do, and the homes and places have lit windows (the cars have no headlights, at Jack's word).
 // The stage brings Pause, the still picture under reduced motion, and rest while off screen. The stage's --c1 to --c4
 // are the homes' colours, --c5 to --c7 the lights' go, wait and stop, and --c8 the ground.
 import { BAY_DEPTH, buildTown, CAR_LENGTH, CAR_WIDTH, JUNCTION, ROAD } from '../lib/town/layout.js';

@@ -1,4 +1,4 @@
-// Jack's Train World's trains (D77 to D100 in docs/plan/done/little-worlds-trains.md). Signals cut every track into
+// Jack's Train World's trains. Signals cut every track into
 // blocks; a train may only go where it has booked, one train to a block. It books the block ahead while it's still
 // far enough back to stop, so the lamps ahead turn amber before it arrives, red as it passes and green again behind
 // it. At a look-ahead signal it books its whole way through the junction, and on until there's room for all of it, or
@@ -10,7 +10,7 @@
 // turn on the straight before the platform), but a colour has up to four at work: two at or on their way to its
 // pickup, two to its drop-off; a loaded train waits at the pickup's platform while its drop-off has two coming. Add
 // train brings one more onto the railway along the line from outside, to a free siding; Remove train sends a parked
-// one, picked at random, out along it and off the railway (D97). Trains pick up speed and slow down where you can see it, run fastest along the main
+// one, picked at random, out along it and off the railway. Trains pick up speed and slow down where you can see it, run fastest along the main
 // line, and slow down well before a red. It runs in fixed steps from a seed, so the same seed always plays out the
 // same. Tested by tests/trains.test.js.
 import { seeded } from '../town/layout.js';
@@ -38,7 +38,7 @@ const LOAD = 0.2;
 /** No more than this many trains head for one station at once, and this many work for one colour. */
 const LIMIT = 2;
 const JOBS = 4;
-/** A train waiting this many seconds is taken off the network and comes back at the depot (D80). */
+/** A train waiting this many seconds is taken off the network and comes back at the depot. */
 export const STUCK = 120;
 /** A train waiting longer than this at a look-ahead signal, the longest of any, goes next. */
 const FIRST_AFTER = 8;
@@ -346,7 +346,7 @@ export function startTrains(network, seed) {
     }
   };
 
-  /** A train waiting too long is taken off and put back in a free siding (D80); its job is dropped. */
+  /** A train waiting too long is taken off and put back in a free siding; its job is dropped. */
   const takeOff = (train) => {
     for (const { piece } of train.pieces) if (piece.owner === train) piece.owner = null;
     const job = train.job;

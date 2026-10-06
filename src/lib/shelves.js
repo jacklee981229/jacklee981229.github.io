@@ -5,7 +5,7 @@
 export const MOST_STARS = 5;
 /**
  * The picture files a collection takes. Other kinds (AVIF, HEIC, GIF...) are left out on purpose: the picture
- * library behind this version of Astro has known holes in some of them (D24 in docs/plan/done/collections-travel-map.md).
+ * library behind this version of Astro has known holes in some of them.
  */
 export const PICTURE_TYPES = ['jpg', 'jpeg', 'png', 'webp'];
 

@@ -74,7 +74,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
     </div>
   </div>
 
-  <!-- An item's gallery (D109, D112): one dialog, filled with whichever item's pictures are asked for. It looks like
+  <!-- An item's gallery: one dialog, filled with whichever item's pictures are asked for. It looks like
        a post's enlarged picture (PostScripts.astro): the same dark backdrop and Close button. -->
   <dialog class="gallery" aria-labelledby="gallery-name" data-gallery>
     <!-- First in the dialog, so the Tab key reaches Close first, as its place at the top right suggests. -->
@@ -100,7 +100,7 @@ const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ??
   const MOST_RADIUS = 340;
   /** The gallery's middle picture at most this share of its width (more on a phone, where the sides only peek in),
       the gap between pictures as a share of it too, and how the pictures beside it look: smaller, turned in a
-      little, dimmed and a touch blurred (mockup A, D112); the ones past them smaller still, and out of sight. */
+      little, dimmed and a touch blurred; the ones past them smaller still, and out of sight. */
   const MIDDLE_SHARE = 0.5;
   const MIDDLE_SHARE_NARROW = 0.64;
   const GAP_SHARE = 0.03;

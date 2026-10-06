@@ -1,4 +1,4 @@
-// The 2048 bot's brain (D64 in docs/plan/done/2048-bot.md): an expectimax search. For each direction it plays the
+// The 2048 bot's brain: an expectimax search. For each direction it plays the
 // move with the game's own `move()`, so the rules live in rules.js only; then it averages over every cell where the
 // next tile could appear (a 2 nine times in ten, else a 4), looks one more move ahead (two when the board is nearly
 // full), and scores the boards it reaches. It plays the direction with the best average. Tested by

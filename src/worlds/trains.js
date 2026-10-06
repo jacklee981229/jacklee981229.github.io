@@ -8,7 +8,7 @@
 // follows it (src/lib/trains/view.js); click anywhere else, or press Esc, and it glides back out. The page's Add train
 // and Remove train buttons bring a train onto the railway along the line from outside, and send a parked one off. At
 // night (the dark theme, and the night sky) each running train's headlight throws a soft cone of light along the track
-// ahead, and every signal lamp glows in its colour (D99). Zoomed in, what never
+// ahead, and every signal lamp glows in its colour. Zoomed in, what never
 // moves is drawn afresh each frame, only what's in view, so it stays sharp. The stage's --c1 to --c3 are the cargo
 // colours, --c5 to --c7 the signals' go, wait and stop, and --c8 the ground (the same as the Town's).
 import { buildNetwork, sizesAt } from '../lib/trains/layout.js';

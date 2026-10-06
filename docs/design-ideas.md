@@ -333,13 +333,13 @@ These need a backend or an external service: **B1** (the Q&A part), **E2** (the 
 
 Fill this in as choices are made, so later design sessions know what's settled.
 
-- **Base direction:** _undecided_. Choose between ImQi1-style (quiet, text-first) and Heo-style (app-like, feature-packed), based on what the site is mainly for and who reads it.
+- **Base direction:** a quiet, personal home (6 Oct 2026): ImQi1-style calm, with the Lab as its one lively part.
 - **Accent color:** _undecided_
 - **Typefaces:** _undecided_
 - **Adopted:** _(ID, date, note)_
-  - D1, 4 Oct 2026: the Changelog (`/changelog/` and the fold at the bottom of the home page), each change labelled New, Improved, Design or Fix (D50 in [foundation-now-changelog-palette.md](plan/done/foundation-now-changelog-palette.md)).
-  - C7 (the random part), 4 Oct 2026: Random and the palette's Surprise me (D45).
-  - Close to C5, 4 Oct 2026: the Ctrl/⌘+K or `/` command palette finds pages, Lab tools, games, effects and posts (D43). No scope tabs.
+  - D1, 4 Oct 2026: the Changelog (`/changelog/`), each change labelled New, Improved, Design or Fix.
+  - C7 (the random part), 4 Oct 2026: Random and the palette's Surprise me.
+  - Close to C5, 4 Oct 2026: the Ctrl/⌘+K or `/` command palette finds pages, Lab tools, games, effects and posts. No scope tabs.
   - B7 (already there before this file): code blocks can carry a file name, and every page has a skip-to-content link.
 - **Note:** the home page's welcome screen is a full-screen first-visit greeting, the kind of thing section 4 warns against. It was a deliberate choice; weigh it if this comes up.
 - **Rejected:** _(ID, reason)_

@@ -1,4 +1,4 @@
-// Jack's Town's thought bubbles (D86 to D91 in docs/plan/done/little-worlds-town.md). Now and then a car that's
+// Jack's Town's thought bubbles. Now and then a car that's
 // driving thinks of where it's going, in a comic thought cloud beside it: the place it's heading to, home, or a
 // waving hand when it's leaving town; a car stuck in a jam is angry. A click on a car (or sending it out of town)
 // asks it what it's thinking, whatever the limit. Each bubble pops up and fades on the town's own clock. This only
@@ -10,7 +10,7 @@ import { carPlace, LONGEST_RED, STEP } from './sim.js';
 /** Seconds a thought lasts, from its first small circle to the end of its fade; how long the fade takes. */
 export const THINK = 5;
 export const FADE = 0.35;
-/** A driving car standing still longer than the longest red light is stuck in a jam, and angry (D88). */
+/** A driving car standing still longer than the longest red light is stuck in a jam, and angry. */
 export const ANGRY = LONGEST_RED + 1;
 /** At most this many angry cars show it at once. */
 const ANGRY_AT_ONCE = 3;
@@ -66,7 +66,7 @@ export const goingSomewhere = (car) => (car.mode === 'driving' || car.mode === '
 export function startThoughts(traffic, seed) {
   const random = seeded(seed ^ 0x2c1b3c6d);
   const { town } = traffic;
-  /** At most one thought at a time for every eight homes, at least one and at most four (D87); asked ones aside. */
+  /** At most one thought at a time for every eight homes, at least one and at most four; asked ones aside. */
   const most = Math.min(4, Math.max(1, Math.floor(town.buildings.filter((b) => b.kind === 'home').length / 8)));
   /** @type {Bubble[]} */
   const bubbles = [];

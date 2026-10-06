@@ -1,7 +1,6 @@
 // 2048 on the "Jack's 2048" post: draws the board and plays the rules from rules.js, with a clock, Undo for the
 // move just made, and the games' leaderboard (../leaderboard.js) for finished games. Bot plays the game for you
-// (./bot.js); a game it played in is marked, and never reaches the leaderboard or Best (D64 to D67 in
-// docs/plan/done/2048-bot.md).
+// (./bot.js); a game it played in is marked, and never reaches the leaderboard or Best.
 // Smoothness: each tile is one element moved by a GPU-friendly transform; joins pop and new tiles appear once
 // the slide ends; a key pressed mid-slide finishes the current step at once, so input never waits for animation.
 import { bringIntoView, onGameKeys, onSwipe } from '../controls.js';
@@ -282,7 +281,7 @@ function play(root) {
   };
 
   // The bot: one move every BOT_MS, through the same step as the keys. It stops when a message comes up (2048 or
-  // no more moves), when it finds no move, and when you stop it, take over or start a new game (D66).
+  // no more moves), when it finds no move, and when you stop it, take over or start a new game.
   let botTimer = 0;
   const botOn = () => botTimer !== 0;
   const showBot = () => {

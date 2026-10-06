@@ -1,11 +1,11 @@
-// Jack's Town's traffic (D60 to D62 in docs/plan/done/little-worlds-town.md): every car lives at a home, parked nose
+// Jack's Town's traffic: every car lives at a home, parked nose
 // in on its drive. When its wait is over it backs out onto the lane, drives to a free bay at a place of its home's
 // colour, turns in and parks there a while, then backs out again and drives home. Now and then it drives out of town
 // instead, and comes back a while later. Visitors come in along the roads out of town, park at a place of their
 // colour and drive out again, so the number of cars in town keeps changing. The lights answer the traffic: a road
-// keeps its green while nobody waits on the other one, and gives it over as soon as nobody's coming (D96). Add car brings one more in from outside,
+// keeps its green while nobody waits on the other one, and gives it over as soon as nobody's coming. Add car brings one more in from outside,
 // to live in an empty home or else to stay, driving from place to place; Remove car sends a parked car, picked at
-// random, out of town for good (D92). Each car decides every step for
+// random, out of town for good. Each car decides every step for
 // itself: keep its distance, slow for a turn, stop at the line for red, and cross a junction only when no path that
 // crosses its own is in use and there's room for it beyond; a car that has waited long at a junction, with its way
 // on still blocked, takes another way that's free and finds its way from there, so queues can't lock up. A car backing out waits for a clear stretch of lane;
@@ -24,11 +24,11 @@ const TURN = 0.24;
 const INTO_BAY = 0.14;
 const BACKING = 0.12;
 /** How fast a car speeds up, how hard it plans to brake, and how hard it can brake when it must, in blocks a second
- *  each second: gently, so a car takes about two seconds to get up to speed and a second to slow to a stop (D98). */
+ *  each second: gently, so a car takes about two seconds to get up to speed and a second to slow to a stop. */
 const SPEED_UP = 0.2;
 const BRAKE = 0.35;
 const HARD_BRAKE = 4;
-/** A car that hasn't moved for this many seconds is taken off the road (D62); its trip starts again later. */
+/** A car that hasn't moved for this many seconds is taken off the road; its trip starts again later. */
 export const STUCK = 60;
 /** A car that has waited this long at a junction with its way on blocked goes another way: longer than a red light,
  *  so nobody turns off just for a red. */
@@ -430,7 +430,7 @@ export function startTraffic(town, seed) {
     else Object.assign(car, { to: null, leaves: traffic.time + 0.5 });
   };
 
-  /** A car stuck too long is taken off the road (D62): a resident is back on its drive and sets off again later, a
+  /** A car stuck too long is taken off the road: a resident is back on its drive and sets off again later, a
    *  visitor is gone. */
   const takeOff = (car) => {
     const here = car.route[car.part];
