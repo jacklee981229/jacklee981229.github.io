@@ -2,7 +2,11 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: var(--space-5); }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 400 var(--text-base)/1.55 var(--font-sans); }
+body { margin: 0; background: var(--paper-end); color: var(--ink); font: 400 var(--text-base)/1.55 var(--font-sans); }
+/* The page's colour fades from --paper at the top of the screen to --paper-end at its bottom (the light theme's pale
+   blue into white), the same however long the page grows: a layer fixed behind everything, which phones keep in
+   place too (they ignore a fixed background). */
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(var(--paper), var(--paper-end)); pointer-events: none; }
 img { max-width: 100%; height: auto; }
 a { color: inherit; }
 button, input { font: inherit; }

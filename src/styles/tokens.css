@@ -3,24 +3,28 @@
 :root {
   color-scheme: light;
 
-  --paper: #F5F6F8;
-  --surface: #FFFFFF;
+  /* A soft blue-grey light theme: a pale blue page and near-white cards, nothing glaring white. */
+  --paper: #E4EAF2;
+  --surface: #F6F8FB;
   --ink: #172030;
-  --muted: #536073;
-  --rule: #D5DBE3;
+  --muted: #4D5A6B;
+  --rule: #CCD5E0;
+  /* The page fades from --paper at its top to this at its foot (global.css). */
+  --paper-end: #FFFFFF;
   --focus: #1B5FD1;
   --wash: rgb(23 32 48 / 0.06);
   /* The band that closes a page (MoreBand.astro), a shade apart from the page and from the cards in it. */
   --band: rgb(23 32 48 / 0.06);
   /* The Travel Map's visited places: home in the first colour, the farthest place in the second, the rest in
-     between (red through orange to yellow, after ColorBrewer's YlOrRd). Each is at least 3:1 against --paper. */
+     between (red through orange to yellow, after ColorBrewer's YlOrRd). Each is at least 3:1 against --surface, the
+     card the map lies on. */
   --visited-near: #BD0026;
   --visited-far: #B07A00;
   /* Jack's Town's traffic lights, from colours the site already has; each theme's own values follow from them. */
   --signal-go: var(--lane-games);
   --signal-wait: var(--visited-far);
   --signal-stop: var(--visited-near);
-  /* White cards sit on a very light page, so in the light theme they get a faint ink-tinted lift to stand apart. */
+  /* In the light theme, cards get a faint ink-tinted lift to stand apart from the page. */
   --shadow-card: 0 1px 2px rgb(23 32 48 / 0.06), 0 8px 24px -8px rgb(23 32 48 / 0.2);
   --shadow-float: 0 8px 24px rgb(0 0 0 / 0.2);
   --shadow-cover: 0 14px 32px rgb(0 0 0 / 0.24);
@@ -119,11 +123,11 @@
 
   /* Each topic's deep colour: a post's top card in both themes (white text keeps 4.5:1 on it), and the light
      theme's lane. */
-  --topic-hexo: #0A7780;
-  --topic-git: #BF4326;
+  --topic-hexo: #096A72;
+  --topic-git: #A83B21;
   --topic-chatgpt: #7143B5;
-  --topic-games: #2C7A31;
-  --topic-flutter: #1C60C8;
+  --topic-games: #276D2C;
+  --topic-flutter: #1B5BBE;
   /* Topic lanes: colour always means topic, and always sits next to the topic's name. */
   --lane-hexo: var(--topic-hexo);
   --lane-git: var(--topic-git);
@@ -176,7 +180,9 @@
   --radius-pill: 999px;
 }
 
-:root[data-theme="dark"] {
+/* The dark theme; and, in either theme, a piece marked data-dark (the home page's toy, a dark screen). */
+:root[data-theme="dark"],
+[data-dark] {
   color-scheme: dark;
 
   /* A near-black grey page with dark grey cards, every part of the site alike. */
@@ -188,6 +194,8 @@
   --focus: #7DB0FF;
   --wash: rgb(255 255 255 / 0.07);
   --band: rgb(255 255 255 / 0.03);
+  /* No fade in the dark: the page is one colour. */
+  --paper-end: var(--paper);
   --visited-near: #E31A1C;
   --visited-far: #FED976;
   /* Dark cards already stand apart from the page. */

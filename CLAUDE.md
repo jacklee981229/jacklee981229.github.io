@@ -46,7 +46,6 @@ Read the code for how a part works; this says where to start.
 - **Fonts** are self-hosted (`public/fonts/`, licences beside them). The share pictures use WOFF copies in `src/assets/share-fonts/`, because satori can't read WOFF2.
 - **No third-party scripts** besides GoatCounter, and no full-page loaders besides the welcome screen.
 - [docs/design-ideas.md](docs/design-ideas.md) is an idea bank: read it only when Jack asks for design ideas.
-- **No TESTING.md here** (Jack, 7 Oct 2026: it wasn't used): test steps go in the report only.
 
 ## Games
 

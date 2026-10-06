@@ -10,8 +10,9 @@ export const HEIGHT = 630;
 
 /** A block's custom properties in tokens.css, e.g. the dark theme's. @param {string} css @param {string} selector */
 export function tokensOf(css, selector) {
-  const at = css.indexOf(`${selector} {`);
-  if (at < 0) return {};
+  // The selector may open a list of them ("a,\n b {"), as the dark theme's does.
+  const at = [`${selector} {`, `${selector},`].map((s) => css.indexOf(s)).filter((i) => i >= 0).sort((a, b) => a - b)[0];
+  if (at === undefined) return {};
   const block = css.slice(css.indexOf('{', at), css.indexOf('}', at));
   return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 }

@@ -56,3 +56,6 @@
 - 2026-10-07 design: Put the [Travel Map](/travel/) and the Little Worlds on cards
 - 2026-10-07 design: Turned the dark theme into a near-black grey
 - 2026-10-07 design: Gave every page bold colour cards, like the home page
+- 2026-10-07 design: Gave the light theme a pale blue-to-white fade, toy on a dark screen
+- 2026-10-07 design: Signed the footer: built with Astro and love
+- 2026-10-07 design: Gave the [Changelog](/changelog/)'s labels bold colours
