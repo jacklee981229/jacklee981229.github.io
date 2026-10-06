@@ -48,3 +48,5 @@
 - 2026-10-06 new: Gave every game in my [Collection](/collections/) a gallery of its own
 - 2026-10-06 fix: Stopped the [Collection](/collections/) galleries jumping two pictures at a stray click
 - 2026-10-06 design: Made the home page calmer: what I'm up to, the Lab and a few doors
+- 2026-10-06 design: Gave the menu a coloured icon for each part of the site
+- 2026-10-06 design: Turned the home page into bold colour cards

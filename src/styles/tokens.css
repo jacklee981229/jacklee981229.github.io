@@ -27,6 +27,46 @@
   --backdrop-dark: rgb(8 12 18 / 0.88);
   --on-backdrop: #E3E8EF;
 
+  /* Each part of the site has a colour of its own: its icon in the menu, its card on the home page. */
+  --accent-writing: #FF375F;
+  --accent-lab: #30D158;
+  --accent-collection: #FF9F0A;
+  --accent-travel: #0A84FF;
+  --accent-about: #BF5AF2;
+  /* The home page's colour cards, the same in both themes: each fades between two colours and sets white text on
+     them; a door card's words sit on its third, deeper colour. */
+  --on-colour: #FFFFFF;
+  --on-colour-soft: rgb(255 255 255 / 0.92);
+  --on-colour-chip: rgb(0 0 0 / 0.22);
+  --on-colour-chip-hover: rgb(0 0 0 / 0.32);
+  --now-from: #4F46E5;
+  --now-to: #6D28D9;
+  --now-first: #FFE066;
+  --now-third: #A6F4C5;
+  --now-soft: #E6DDFF;
+  --lab-from: #0C7D52;
+  --lab-to: #0A5F4E;
+  --collection-from: #FFA41B;
+  --collection-to: #F0662A;
+  --collection-base: #B4361A;
+  --travel-from: #0A84FF;
+  --travel-to: #5E5CE6;
+  --travel-base: #3730A3;
+  --writing-from: #FF375F;
+  --writing-to: #C83BDB;
+  --writing-base: #9D174D;
+  /* Jack's links on the home page: LinkedIn and GitHub in their own colours. */
+  --tile-resume: #FF9F0A;
+  --tile-linkedin: #0A66C2;
+  --tile-email: #FF375F;
+  --tile-github: #0D1117;
+  --tile-github-edge: #30363D;
+  /* The Writing card's sheets of paper. */
+  --sheet: #FFFFFF;
+  --sheet-back: #E5E5EA;
+  --sheet-line: #C7C7CC;
+  --sheet-ink: #1C1C1E;
+
   /* Topic lanes: colour always means topic, and always sits next to the topic's name. */
   --lane-hexo: #0A7780;
   --lane-git: #BF4326;
@@ -48,8 +88,8 @@
   --text-xl: 1.75rem;
   --text-2xl: clamp(2.25rem, 6vw, 3.75rem);
   --text-display: clamp(3.25rem, 9.5vw, 7rem);
-  /* The home page's title: about 128px on one line on a desktop, 64px on two lines on a phone. */
-  --text-hero: clamp(4rem, 10vw, 8rem);
+  /* The home page's title, in its card beside Jack's picture. */
+  --text-hero: clamp(2.25rem, 4vw, 2.75rem);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -74,6 +114,8 @@
   --radius-md: 14px;
   --radius-lg: 18px;
   --radius-xl: 22px;
+  /* The home page's cards. */
+  --radius-2xl: 28px;
   --radius-pill: 999px;
 }
 

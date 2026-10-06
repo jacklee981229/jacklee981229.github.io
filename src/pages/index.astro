@@ -1,7 +1,7 @@
 ---
-// The home page: a place that belongs to Jack, not a dashboard. Jack's Space itself, then what he's up to (Now, as
-// one sentence), the Lab as the one lively part, and three quiet doors to the rest. No counts and no tiles: the
-// other pages hold the details. The rules are in src/lib/home.js.
+// The home page: bold colour cards on the page's dark (or light) ground. Jack's card and what he's up to side by side,
+// then the Lab, the most playful card, then three cards that lead around the rest of the site. Every card shows the
+// site's own data; the rules are in src/lib/home.js.
 import { Image } from 'astro:assets';
 import { getCollection, getEntry } from 'astro:content';
 import world from 'world-atlas/countries-110m.json';
@@ -10,7 +10,6 @@ import fine from 'world-atlas/countries-50m.json';
 import Base from '../layouts/Base.astro';
 import Welcome from '../components/Welcome.astro';
 import HomeToy from '../components/HomeToy.astro';
-import Go from '../components/Go.astro';
 import Icon from '../components/Icon.astro';
 import Updated from '../components/Updated.astro';
 import avatar from '../assets/avatar.png';
@@ -19,6 +18,7 @@ import { LINKS, SITE } from '../site';
 import { isExternal, NEW_TAB } from '../lib/links.js';
 import { listedPosts } from '../lib/collections';
 import { topicOf } from '../lib/topics.js';
+import { WORLDS, worldUrl } from '../lib/lab/tools.js';
 import { nowFile } from '../lib/now-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
@@ -30,17 +30,21 @@ import { placesFor } from '../lib/travel/places.js';
 
 const site = String(Astro.site);
 
-// The title types itself out, a letter at a time; where the window is too narrow for one line, it breaks at the space.
+// The title types itself out, a letter at a time.
 const letters = [...SITE.title];
 const at = typingTimeline(SITE.title);
 
-// Now, as one sentence: "Right now I'm playing Shape of Dreams and building Jack's Space." Each line's label is a
-// doing word, so it reads on in small letters; its emoji is left for the Now page. The first item that names
-// something in the Collection lends its cover.
+// Jack's links as coloured tiles; GitHub's carries his name there.
+const links = LINKS.map((link) => ({ ...link, external: isExternal(link.href, site) }));
+const github = links.find((link) => link.icon === 'github');
+const tiles = links.filter((link) => link !== github);
+
+// Now: up to three lines, each "label value" (the label's emoji stays on the Now page); the first item that names
+// something in the Collection lends its cover. Then when it changed, and the newest change to the site.
 const now = nowFile();
 const nowItems = await Promise.all(
   now.items.slice(0, 3).map(async (item) => ({
-    doing: lowerFirst(splitEmoji(item.label ?? '').text),
+    label: splitEmoji(item.label ?? '').text,
     html: inlineHtml(item.value, site),
     found: await shelfItemNamed(plainText(item.value)),
   })),
@@ -48,108 +52,120 @@ const nowItems = await Promise.all(
 const snapshot = nowItems.find((item) => item.found?.picture)?.found;
 const change = lately(changelogFile());
 
-// The doors: three covers taken from each collection in turn, the globe facing Jack's places, and a Start here post
-// on the front sheet of paper.
+// The three cards around the site: covers from each collection in turn, the globe facing Jack's places, and the
+// Start here posts.
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
 const covers = interleave(
-  shelves.map((shelf) => shelf.data.items.map((item) => pictureOf(pictures, shelf.id, item)?.default).filter((picture) => picture !== undefined)),
+  shelves.map((shelf) => shelf.data.items.flatMap((item) => {
+    const picture = pictureOf(pictures, shelf.id, item)?.default;
+    return picture ? [{ name: item.name, picture }] : [];
+  })),
   3,
 );
 const visited = (await getEntry('travel', 'visited'))?.data.visited ?? [];
 const places = placesFor(visited, namesIn(world), namesIn(fine));
-const GLOBE = 128;
+const GLOBE = 152;
 const globe = smallGlobe(world, land, places, colourSteps(middles(fine, places.map((p) => p.name))), GLOBE);
-const [sheet] = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(topic).legacy), 1);
+const picks = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(topic).legacy), 3);
+const list = (names: string[]) => names.map((name, i) => joiner(i, names.length) + name).join('');
 ---
 <Base>
   <Welcome slot="top" />
+  <div class="wrap home">
 
-  <section class="wrap hero" aria-labelledby="site-title">
-    <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
-    <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
-      <!-- On one line: any line break between the letters would show as a space after each one. -->
-      <span aria-hidden="true">{letters.map((ch, i) => <span class="ch" style={`--at: ${at[i]}ms; --for: ${(at[i + 1] ?? at[i]) - at[i]}ms`}>{ch}</span>)}</span>
-    </h1>
-    <p class="tagline">{SITE.tagline}.</p>
-    <div class="signature">
-      <div class="who">
-        <Image class="avatar" src={avatar} alt="" width={80} height={80} />
-        <p><span class="name">{SITE.author}</span><span class="role">{SITE.role}</span></p>
+    <div class="top">
+      <section class="card me" aria-labelledby="site-title">
+        <div class="me-main">
+          <Image class="avatar" src={avatar} alt="" width={192} height={192} />
+          <div>
+            <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
+            <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
+              <!-- On one line: any line break between the letters would show as a space after each one. -->
+              <span aria-hidden="true">{letters.map((ch, i) => <span class="ch" style={`--at: ${at[i]}ms; --for: ${(at[i + 1] ?? at[i]) - at[i]}ms`}>{ch}</span>)}</span>
+            </h1>
+            <p class="tagline">{SITE.tagline}.</p>
+            <p class="who"><strong>{SITE.author}</strong> <span class="likes" aria-hidden="true">💻🎮🎬✈️</span></p>
+          </div>
+        </div>
+        <ul class="tiles" aria-label="Find me">
+          {github && (
+            <li><a class="tile github" href={github.href} title={github.label} aria-label={github.label} {...(github.external ? NEW_TAB : {})}><Icon name="github" /><span class="handle">{new URL(github.href).pathname.slice(1)}</span></a></li>
+          )}
+          {tiles.map((link) => (
+            <li><a class:list={['tile', link.icon]} href={link.href} title={link.label} aria-label={link.label} {...(link.external ? NEW_TAB : {})}><Icon name={link.icon} /></a></li>
+          ))}
+        </ul>
+      </section>
+
+      <section class:list={['card', 'now', { 'with-cover': snapshot?.picture }]} aria-labelledby="now-title">
+        <p class="wave" aria-hidden="true">👋</p>
+        <h2 id="now-title"><a href="/now/">Right now</a></h2>
+        {nowItems.length ? nowItems.map((item, i) => <p class:list={['line', `line-${i}`]}>{item.label && `${item.label} `}<span set:html={item.html} /></p>) : <p class="line">Nothing much.</p>}
+        {now.updated && <Updated date={now.updated} />}
+        {change && <p class="lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
+        {snapshot?.picture && (
+          <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
+            <Image src={snapshot.picture} alt="" width={208} height={278} fit="cover" />
+          </a>
+        )}
+      </section>
+    </div>
+
+    <section aria-labelledby="lab-title">
+      <h2 class="section-title" id="lab-title">Jack's Lab <span aria-hidden="true">🧪</span></h2>
+      <div class="card lab" data-area="lab">
+        <div class="lab-toy"><HomeToy /></div>
+        <div class="lab-words">
+          <p class="label">Lab</p>
+          <p class="lab-line">Games, toys and little worlds I made for fun.</p>
+          <ul class="worlds">
+            {WORLDS.map((w) => <li><a class="chip" href={worldUrl(w.slug)}><Icon name={w.icon} />{w.name}</a></li>)}
+          </ul>
+          <div class="lab-actions">
+            <a class="explore" href="/lab/">Explore the Lab<Icon name="arrow" /></a>
+            <button type="button" class="chip surprise" data-surprise><Icon name="dice" />Surprise me</button>
+          </div>
+          <p class="toy-note">Today's toy: <a href="/lab/#effects" data-toy-link>one of the Lab's effects</a>. A new one every day.</p>
+        </div>
       </div>
-      <ul class="find-me" aria-label="Find me">
-        {LINKS.map(({ label, href }) => <li><Go href={href} {...(isExternal(href, site) ? NEW_TAB : {})}>{label}</Go></li>)}
+    </section>
+
+    <nav aria-labelledby="around-title">
+      <h2 class="section-title" id="around-title">Around my space <span aria-hidden="true">🧭</span></h2>
+      <ul class="doors">
+        <li>
+          <a class="door collection" href="/collections/">
+            <span class="pic covers" aria-hidden="true">
+              {covers.map(({ picture }) => <Image src={picture} alt="" width={152} height={228} fit="cover" />)}
+            </span>
+            <span class="words"><span class="label">Collection</span><span class="door-title">Films and games I love</span><span class="door-meta">{covers.length > 1 ? `${covers[0].name}, ${covers[1].name} and more` : 'My films and games'}</span></span>
+          </a>
+        </li>
+        <li>
+          <a class="door travel" href="/travel/">
+            <span class="pic" aria-hidden="true">
+              <svg class="globe" viewBox={`0 0 ${GLOBE} ${GLOBE}`} width={GLOBE} height={GLOBE} focusable="false">
+                <path class="sphere" d={globe.sphere} />
+                <path class="land" d={globe.land} />
+                {globe.shapes.map((shape) => <path class="place" d={shape.d} style={`--step: ${shape.step}`} />)}
+              </svg>
+            </span>
+            <span class="words"><span class="label">Travel</span><span class="door-title">Places I've been</span><span class="door-meta">{visited.length > 1 ? `From ${visited[0]} to ${visited.at(-1)}` : visited[0]}</span></span>
+          </a>
+        </li>
+        <li>
+          <a class="door writing" href="/writing/">
+            <span class="pic sheets" aria-hidden="true">
+              <span class="sheet"><i></i><i></i><i></i><i></i></span>
+              <span class="sheet front">{picks[0] && <b>{picks[0].data.title}</b>}<i></i><i></i><i></i></span>
+            </span>
+            <span class="words"><span class="label">Writing</span><span class="door-title">Notes I've written</span><span class="door-meta">{list(picks.map((p) => p.data.title))}</span></span>
+          </a>
+        </li>
       </ul>
-    </div>
-  </section>
+    </nav>
 
-  <section class:list={['wrap', 'now', { bare: !snapshot }]} aria-labelledby="now-title">
-    <h2 id="now-title">Now</h2>
-    {nowItems.length ? (
-      <p class="sentence">Right now I'm {nowItems.map((item, i) => <>{joiner(i, nowItems.length)}{item.doing && `${item.doing} `}<strong set:html={item.html} /></>)}.</p>
-    ) : (
-      <p class="sentence">Nothing much, right now.</p>
-    )}
-    {snapshot?.picture && (
-      <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
-        <Image src={snapshot.picture} alt="" width={192} height={256} fit="cover" />
-      </a>
-    )}
-    {change && <p class="lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
-    <div class="meta">
-      {now.updated && <Updated date={now.updated} />}
-      {now.updated && <span aria-hidden="true">·</span>}
-      <Go href="/now/">More on the Now page</Go>
-    </div>
-  </section>
-
-  <section class="lab" data-area="lab" aria-labelledby="lab-title">
-    <div class="wrap lab-inner">
-      <div class="lab-words">
-        <h2 id="lab-title">Jack's Lab</h2>
-        <p>Games, toys and little worlds I made for fun.</p>
-      </div>
-      <div class="lab-actions">
-        <a class="explore" href="/lab/">Explore the Lab<Icon name="arrow" /></a>
-        <button type="button" class="surprise" data-surprise><Icon name="dice" />Surprise me</button>
-      </div>
-      <HomeToy />
-    </div>
-  </section>
-
-  <nav class="wrap doors" aria-label="More of Jack's Space">
-    <ul>
-      <li>
-        <a class="door" href="/collections/">
-          <span class="thing covers" aria-hidden="true">
-            {covers.map((picture) => <Image src={picture} alt="" width={160} height={240} fit="cover" />)}
-          </span>
-          <span class="words"><span class="door-name">Collection<Icon name="arrow" /></span><span class="door-line">Films and games I love.</span></span>
-        </a>
-      </li>
-      <li>
-        <a class="door" href="/travel/">
-          <span class="thing" aria-hidden="true">
-            <svg class="globe" viewBox={`0 0 ${GLOBE} ${GLOBE}`} width={GLOBE} height={GLOBE} focusable="false">
-              <path class="sphere" d={globe.sphere} />
-              <path class="land" d={globe.land} />
-              {globe.shapes.map((shape) => <path class="place" d={shape.d} style={`--step: ${shape.step}`} />)}
-            </svg>
-          </span>
-          <span class="words"><span class="door-name">Travel<Icon name="arrow" /></span><span class="door-line">Places I've been.</span></span>
-        </a>
-      </li>
-      <li>
-        <a class="door" href="/writing/">
-          <span class="thing sheets" aria-hidden="true">
-            <span class="sheet"><i></i><i></i><i></i><i></i></span>
-            <span class="sheet"><i></i><i></i><i></i><i></i></span>
-            <span class="sheet front">{sheet && <b>{sheet.data.title}</b>}<i></i><i></i><i></i></span>
-          </span>
-          <span class="words"><span class="door-name">Writing<Icon name="arrow" /></span><span class="door-line">Notes I've written.</span></span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+  </div>
 </Base>
 
 <script>
@@ -164,21 +180,36 @@ const [sheet] = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(top
 </script>
 
 <style>
-  /* Jack's Space: the title on its own, big, with room around it; Jack and his links sign off at its foot. */
-  .hero { padding-top: clamp(3.5rem, 9vw, 7rem); }
-  h1 { margin: 0; font-size: var(--text-hero); font-weight: var(--display-weight); line-height: 0.92; letter-spacing: var(--display-tracking); }
-  .tagline { margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-xl); }
-  .signature { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-6); margin-top: var(--space-8); }
-  .who { display: flex; align-items: center; gap: var(--space-3); }
-  .who :global(.avatar) { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--rule); }
-  .who p { display: grid; margin: 0; line-height: 1.35; }
-  .name { font-weight: 600; }
-  .role { color: var(--muted); font-size: var(--text-sm); }
-  .find-me { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--text-ui); }
+  .home { padding-block: var(--space-6) var(--space-9); }
+  ul { margin: 0; padding: 0; list-style: none; }
+  .card { border-radius: var(--radius-2xl); overflow: hidden; }
+  .label { margin: 0; font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-colour-soft); }
+  .section-title { margin: var(--space-6) 0 var(--space-4); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; }
+
+  .top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+
+  /* Jack's card: the site's name beside his picture, his links as coloured tiles in a band at its foot. */
+  .me { display: flex; flex-direction: column; background: var(--surface); box-shadow: var(--shadow-card); }
+  .me-main { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-6) var(--space-6) var(--space-5); }
+  .me :global(.avatar) { flex: none; width: 96px; height: 96px; border-radius: 50%; background: var(--rule); }
+  h1 { margin: 0; font-size: var(--text-hero); font-weight: 900; line-height: 0.95; letter-spacing: -0.04em; white-space: nowrap; }
+  .tagline { margin: var(--space-2) 0 0; color: var(--muted); }
+  .who { margin: var(--space-1) 0 0; color: var(--muted); font-size: var(--text-sm); }
+  .who strong { color: var(--ink); font-weight: 800; }
+  .likes { letter-spacing: 2px; }
+  .tiles { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: auto; padding: var(--space-4) var(--space-6) var(--space-5); border-top: 1px solid var(--rule); }
+  .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border-radius: var(--radius-md); color: var(--on-colour); text-decoration: none; transition: transform 0.15s ease; }
+  .tile :global(.icon) { width: 23px; height: 23px; }
+  .tile.github { display: inline-flex; align-items: center; gap: var(--space-2); width: auto; padding: 0 var(--space-4); border: 1px solid var(--tile-github-edge); background: var(--tile-github); font-size: var(--text-sm); font-weight: 800; }
+  .tile.github :global(.icon) { width: 20px; height: 20px; }
+  .tile.file { background: var(--tile-resume); }
+  .tile.linkedin { background: var(--tile-linkedin); }
+  .tile.mail { background: var(--tile-email); }
+  .tile:hover, .tile:focus-visible { transform: translateY(-2px); }
 
   /* The title types itself (as before): every letter is laid out from the start, each shows from its moment
-     (--at, after --type-start when the welcome screen plays first), with the cursor after the newest one. The
-     cursor blinks once at the end and goes, so nothing trails after the name. */
+     (--at, after --type-start when the welcome screen plays first), with the cursor after the newest one; it blinks
+     once at the end and goes. */
   .ch { position: relative; animation: type-in 1ms calc(var(--at) + var(--type-start, 0ms)) both; }
   .ch::after { content: ''; position: absolute; top: 0.1em; bottom: 0.08em; right: -0.12em; width: 0.05em; background: currentColor; opacity: 0; animation: cursor var(--for) calc(var(--at) + var(--type-start, 0ms)); }
   .ch:last-child::after { animation: cursor-blink var(--cursor) calc(var(--at) + var(--type-start, 0ms)) step-end; }
@@ -186,56 +217,58 @@ const [sheet] = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(top
   @keyframes cursor { from, to { opacity: 1; } }
   @keyframes cursor-blink { 0%, 50% { opacity: 1; } 25%, 75%, 100% { opacity: 0; } }
 
-  /* Now: a note, not a table. The sentence beside a photo-like cover, then what changed lately and when. */
-  .now { display: grid; grid-template-columns: 6rem minmax(0, 40rem); grid-template-areas: 'photo head' 'photo sentence' 'photo lately' 'photo meta'; justify-content: start; column-gap: var(--space-7); padding-block: clamp(4.5rem, 10vw, 7.5rem) clamp(4rem, 10vw, 8rem); }
-  .now.bare { grid-template-columns: minmax(0, 40rem); grid-template-areas: 'head' 'sentence' 'lately' 'meta'; }
-  .now h2 { grid-area: head; margin: 0; color: var(--muted); font-size: var(--text-ui); font-weight: 600; }
-  .sentence { grid-area: sentence; margin: var(--space-3) 0 0; font-size: var(--text-xl); font-weight: 500; line-height: 1.3; letter-spacing: -0.015em; }
-  .sentence strong { font-weight: 700; }
-  .snapshot { grid-area: photo; align-self: start; margin-top: var(--space-2); transform: rotate(-5deg); }
-  .snapshot :global(img) { display: block; width: 96px; height: 128px; object-fit: cover; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); }
-  .lately { grid-area: lately; margin: var(--space-6) 0 0; color: var(--muted); }
-  .lately a { color: var(--ink); }
-  .meta { grid-area: meta; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); color: var(--muted); font-size: var(--text-sm); }
-  .meta .go { color: var(--ink); font-weight: 600; }
+  /* Now: a purple card of big lines, the first in yellow, with a cover tilted in its corner. */
+  .now { position: relative; padding: var(--space-6) var(--space-6) var(--space-5); background: linear-gradient(150deg, var(--now-from), var(--now-to)); color: var(--on-colour); }
+  .wave { margin: 0; font-size: var(--text-xl); line-height: 1; }
+  .now h2 { margin: var(--space-3) 0 var(--space-1); font-size: var(--text-sm); font-weight: 800; color: var(--on-colour-soft); }
+  .now h2 a { color: inherit; text-decoration: none; }
+  .now h2 a:hover { text-decoration: underline; }
+  .line, .now :global(.updated) { margin: 0; font-size: var(--text-lg); font-weight: 900; line-height: 1.3; color: var(--on-colour); }
+  .line-0 { color: var(--now-first); }
+  .line-2 { color: var(--now-third); }
+  .line :global(a) { color: inherit; }
+  .now :global(.updated) { color: var(--now-soft); }
+  .with-cover .line, .with-cover :global(.updated) { margin-right: 8.5rem; }
+  .lately { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; }
+  .lately a { color: inherit; }
+  .snapshot { position: absolute; top: var(--space-6); right: var(--space-6); transform: rotate(7deg); }
+  .snapshot :global(img) { display: block; width: 104px; height: 139px; object-fit: cover; border-radius: var(--radius-md); box-shadow: var(--shadow-cover); }
 
-  /* The Lab: the one lively band, in its own colours (the deep green of its dark theme). */
-  .lab { border-block: 1px solid var(--rule); background: var(--surface); }
-  :global([data-theme='dark']) .lab { background: var(--paper); }
-  /* The words and buttons beside the toy, together in the middle of its height; on a phone the toy comes between them. */
-  .lab-inner { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); grid-template-areas: 'words toy' 'actions toy'; gap: var(--space-6) var(--space-8); padding-block: var(--space-8); }
-  .lab-words { grid-area: words; align-self: end; }
-  .lab h2 { margin: 0; font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 1; letter-spacing: var(--display-tracking); }
-  .lab-words p { margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-md); }
-  .lab-actions { grid-area: actions; align-self: start; display: flex; flex-wrap: wrap; gap: var(--space-3); }
-  .explore, .surprise { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: 0 var(--space-5); border-radius: var(--radius-pill); font: inherit; font-size: var(--text-ui); font-weight: 700; text-decoration: none; cursor: pointer; }
-  .explore { background: var(--ink); color: var(--paper); }
-  .surprise { border: 1px solid var(--rule); background: var(--surface); color: var(--ink); }
-  .surprise:hover { border-color: var(--ink); }
-  .explore :global(.icon), .surprise :global(.icon) { width: 18px; height: 18px; }
-  .lab-inner > :global(.home-toy) { grid-area: toy; align-self: center; min-width: 0; }
+  /* The Lab: green, today's toy on the left, the words and the ways in on the right. */
+  .lab { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); background: linear-gradient(120deg, var(--lab-from), var(--lab-to)); color: var(--on-colour); }
+  .lab-toy { min-height: 19rem; padding: var(--space-4) 0 var(--space-4) var(--space-4); }
+  .lab-words { display: flex; flex-direction: column; padding: var(--space-6) var(--space-6) var(--space-5); }
+  .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
+  .worlds { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+  .chip { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.25rem; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-sm); font-weight: 800; text-decoration: none; cursor: pointer; }
+  .chip :global(.icon) { width: 16px; height: 16px; }
+  .chip:hover { background: var(--on-colour-chip-hover); }
+  .lab-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; padding-top: var(--space-5); }
+  .explore { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-size: var(--text-ui); font-weight: 900; text-decoration: none; }
+  .explore :global(.icon) { width: 18px; height: 18px; transition: translate 0.15s ease; }
+  .explore:hover :global(.icon) { translate: 0.2em 0; }
+  .surprise { min-height: 2.75rem; padding: 0 var(--space-4); font-size: var(--text-ui); }
+  .toy-note { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; color: var(--on-colour-soft); }
+  .toy-note a { color: var(--on-colour); font-weight: 800; }
 
-  /* The doors: one shape each, a tilted thing, its name and one line. */
-  .doors { padding-block: clamp(3.5rem, 8vw, 6rem) clamp(4rem, 9vw, 7rem); }
-  /* Three across down to a tablet's width; the fans may reach a little into the gap there. */
-  .doors ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-7) clamp(var(--space-5), 4vw, var(--space-8)); margin: 0; padding: 0; list-style: none; }
-  .door { display: grid; gap: var(--space-5); color: var(--ink); text-decoration: none; }
-  .thing { display: flex; align-items: flex-end; height: 8.75rem; padding-left: var(--space-2); transition: transform 0.2s ease; }
-  .words { display: grid; gap: 0.375rem; }
-  .door-name { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.01em; }
-  .door-name :global(.icon) { width: 1em; height: 1em; stroke-width: 2.2; transition: translate 0.2s ease; }
-  .door-line { color: var(--muted); }
-  .door:hover .thing, .door:focus-visible .thing { transform: translateY(-4px); }
-  .door:hover .door-name :global(.icon), .door:focus-visible .door-name :global(.icon) { translate: 0.25em 0; }
+  /* The three cards around the site: a bright picture on top, the words on the card's deeper colour. */
+  .doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+  .door { display: flex; flex-direction: column; height: 100%; border-radius: var(--radius-2xl); overflow: hidden; background: var(--base); color: var(--on-colour); text-decoration: none; transition: transform 0.2s ease; }
+  .door:hover, .door:focus-visible { transform: translateY(-4px); }
+  .collection { --from: var(--collection-from); --to: var(--collection-to); --base: var(--collection-base); }
+  .travel { --from: var(--travel-from); --to: var(--travel-to); --base: var(--travel-base); }
+  .writing { --from: var(--writing-from); --to: var(--writing-to); --base: var(--writing-base); }
+  .pic { display: flex; align-items: center; justify-content: center; height: 11.875rem; background: linear-gradient(150deg, var(--from), var(--to)); }
+  .words { display: grid; gap: 0.375rem; padding: var(--space-4) var(--space-5) var(--space-5); }
+  .door-title { font-size: var(--text-lg); font-weight: 900; line-height: 1.25; }
+  .door-meta { color: var(--on-colour-soft); font-size: var(--text-sm); font-weight: 600; }
 
-  /* Covers and sheets fan out a little, like things set down by hand. */
-  .covers :global(img), .sheet { flex: none; border-radius: var(--radius-sm); box-shadow: var(--shadow-cover); }
-  .covers :global(img) { width: 80px; height: 120px; object-fit: cover; }
-  .covers :global(img:nth-child(1)), .sheet:nth-child(1) { transform: rotate(-5deg); }
-  .covers :global(img:nth-child(2)), .sheet:nth-child(2) { margin-left: -16px; transform: rotate(1deg) translateY(-6px); }
-  .covers :global(img:nth-child(3)), .sheet:nth-child(3) { margin-left: -16px; transform: rotate(6deg); }
+  .covers :global(img) { flex: none; width: 76px; height: 114px; object-fit: cover; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); }
+  .covers :global(img:nth-child(1)) { transform: rotate(-9deg); }
+  .covers :global(img:nth-child(2)) { margin-left: -20px; transform: translateY(-8px); }
+  .covers :global(img:nth-child(3)) { margin-left: -20px; transform: rotate(9deg); }
 
-  .globe { flex: none; filter: drop-shadow(var(--shadow-cover)); }
+  .globe { filter: drop-shadow(var(--shadow-cover)); }
   .sphere { fill: color-mix(in srgb, var(--surface), var(--ink) 6%); stroke: var(--rule); }
   .land { fill: color-mix(in srgb, var(--muted) 28%, transparent); }
   .place { --colour: var(--visited-near); fill: var(--colour); }
@@ -243,44 +276,41 @@ const [sheet] = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(top
     .place { --colour: color-mix(in oklch, var(--visited-far) calc(var(--step) * 100%), var(--visited-near)); }
   }
 
-  /* Paper: white in the light theme, the page's light ink in the dark one; the front sheet carries a post's title. */
-  .sheet { --line: var(--rule); display: flex; flex-direction: column; gap: var(--space-2); box-sizing: border-box; width: 84px; height: 112px; padding: var(--space-4) var(--space-3); background: var(--surface); }
-  .sheet:nth-child(-n + 2) { background: color-mix(in srgb, var(--surface) 90%, var(--muted)); }
-  :global([data-theme='dark']) .sheet { --line: var(--muted); background: var(--ink); color: var(--paper); }
-  :global([data-theme='dark']) .sheet:nth-child(-n + 2) { background: color-mix(in srgb, var(--ink) 82%, var(--muted)); }
-  .sheet i { display: block; height: 3px; border-radius: var(--radius-2xs); background: var(--line); }
+  .sheet { display: flex; flex-direction: column; gap: var(--space-2); box-sizing: border-box; width: 84px; height: 112px; padding: var(--space-4) var(--space-3); border-radius: var(--radius-sm); background: var(--sheet-back); box-shadow: var(--shadow-cover); transform: rotate(-7deg); }
+  .sheet.front { margin-left: -18px; padding: var(--space-3) var(--space-2); background: var(--sheet); transform: rotate(6deg) translateY(-6px); }
+  .sheet i { display: block; height: 3px; border-radius: var(--radius-2xs); background: var(--sheet-line); }
   .sheet i:nth-child(odd) { width: 86%; }
   .sheet i:nth-child(even) { width: 64%; }
-  .sheet.front { padding: var(--space-3) var(--space-2); }
-  .sheet b { font-size: var(--text-xs); font-weight: 800; line-height: 1.15; letter-spacing: -0.01em; }
+  .sheet b { color: var(--sheet-ink); font-size: var(--text-xs); font-weight: 900; line-height: 1.15; }
 
   @media (prefers-reduced-motion: reduce) {
-    .thing, .door-name :global(.icon) { transition: none; }
+    .tile, .door, .explore :global(.icon) { transition: none; }
   }
 
-  /* Too narrow for the toy beside the words: it goes between them and the buttons. */
-  @media (max-width: 899px) {
-    .lab-inner { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'words' 'toy' 'actions'; }
+  /* Narrower: Jack's card above Now; the Lab's toy above its words. */
+  @media (max-width: 959px) {
+    .top { grid-template-columns: minmax(0, 1fr); }
+    .lab { grid-template-columns: minmax(0, 1fr); }
+    .lab-toy { min-height: 0; height: 17rem; padding: var(--space-4) var(--space-4) 0; }
   }
-
-  /* Phones: the title breaks onto two lines by itself; the cover sits beside the sentence; the doors become rows. */
+  /* Phones: the doors one under another, the picture and the cover a little smaller. */
   @media (max-width: 719px) {
-    .tagline { font-size: var(--text-lg); }
-    .signature { flex-direction: column; align-items: flex-start; margin-top: var(--space-6); }
-    .find-me .go { padding-block: 0.625rem; }
-    .now { grid-template-columns: minmax(0, 1fr) 4rem; grid-template-areas: 'head head' 'sentence photo' 'lately lately' 'meta meta'; column-gap: var(--space-4); }
-    .now.bare { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'head' 'sentence' 'lately' 'meta'; }
-    .sentence { font-size: var(--text-lg); }
-    .lab-inner { padding-block: var(--space-7); }
-    .lab-actions { gap: var(--space-2); }
-    .explore, .surprise { padding-inline: var(--space-4); }
-    .snapshot { margin-top: var(--space-3); transform: rotate(5deg); }
+    .home { padding-top: var(--space-5); }
+    .me-main { gap: var(--space-4); padding: var(--space-5) var(--space-5) var(--space-4); }
+    .me :global(.avatar) { width: 72px; height: 72px; }
+    h1 { white-space: normal; }
+    .tiles { padding: var(--space-4) var(--space-5); }
+    /* Four tiles in one row: GitHub's drops the name it shows beside its icon. */
+    .tile.github { width: 54px; padding: 0; justify-content: center; }
+    .tile.github .handle { display: none; }
+    .now { padding: var(--space-5); }
+    .line, .now :global(.updated) { font-size: var(--text-md); }
+    .snapshot { top: var(--space-5); right: var(--space-5); }
     .snapshot :global(img) { width: 64px; height: 86px; }
-    .doors ul { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
-    .door { grid-template-columns: 8.25rem minmax(0, 1fr); align-items: center; }
-    .thing { height: 6.5rem; }
-    /* The covers and sheets as a whole, shrunk to fit beside their words. */
-    .covers, .sheets { zoom: 0.62; height: 10.5rem; }
-    .globe { width: 96px; height: 96px; }
+    .with-cover .line, .with-cover :global(.updated) { margin-right: 5rem; }
+    .lab-toy { height: 15rem; }
+    .lab-words { padding: var(--space-5); }
+    .section-title { margin-top: var(--space-5); }
+    .doors { grid-template-columns: minmax(0, 1fr); }
   }
 </style>

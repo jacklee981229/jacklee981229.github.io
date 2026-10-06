@@ -3,19 +3,17 @@
 // src/lib/home.js): the same for everyone on a day, another the next. It runs on the effects' own stage
 // (src/effects/stage.js): only while it's on screen, with a pointer or a finger, and as a still picture when less
 // motion is asked for. A finger can still scroll the page across it, and it never takes the keyboard's focus.
-// The stage opts into the Lab's colours (data-area="lab", tokens.css).
+// The stage opts into the Lab's colours (data-area="lab", tokens.css). It fills the box the page gives it; the
+// page's [data-toy-link] (anywhere on it) gets the toy's name and address.
 import { EFFECTS, effectUrl } from '../lib/lab/tools.js';
 
 // Key Jam is left out: it plays sounds from the keyboard, which a page you've only opened shouldn't.
 const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.slug, name: e.name, href: effectUrl(e.slug), description: e.description }));
 ---
-<figure class="home-toy">
-  <div class="toy" data-area="lab" data-toy>
-    <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
-    <script is:inline type="application/json" data-toys set:html={JSON.stringify(toys)} />
-  </div>
-  <figcaption>Today's toy: <a href="/lab/#effects" data-toy-link>one of the Lab's effects</a>. A new one every day.</figcaption>
-</figure>
+<div class="toy" data-area="lab" data-toy>
+  <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
+  <script is:inline type="application/json" data-toys set:html={JSON.stringify(toys)} />
+</div>
 
 <script>
   import { runStage } from '../effects/stage.js';
@@ -39,15 +37,8 @@ const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.s
 </script>
 
 <style>
-  .home-toy { margin: 0; }
   /* --c1 onward are the colours the effects draw with: the site's topic colours, as on an effect's own page. */
-  .toy { --c1: var(--lane-flutter); --c2: var(--lane-games); --c3: var(--lane-hexo); --c4: var(--lane-chatgpt); --c5: var(--lane-git); position: relative; aspect-ratio: 2 / 1; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--paper); }
+  .toy { --c1: var(--lane-flutter); --c2: var(--lane-games); --c3: var(--lane-hexo); --c4: var(--lane-chatgpt); --c5: var(--lane-git); position: relative; width: 100%; height: 100%; min-height: 15rem; overflow: hidden; border-radius: var(--radius-lg); background: var(--paper); box-shadow: var(--shadow-cover); }
   /* A finger dragging up or down scrolls the page; across, it plays. */
   canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: pan-y; cursor: crosshair; }
-  figcaption { margin-top: var(--space-3); color: var(--muted); font-size: var(--text-sm); }
-  figcaption a { color: var(--ink); font-weight: 600; }
-  /* A phone's toy is taller than half its width, so there's something to play with. */
-  @media (max-width: 719px) {
-    .toy { aspect-ratio: auto; height: 15rem; border-radius: var(--radius-md); }
-  }
 </style>

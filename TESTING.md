@@ -715,20 +715,20 @@ It plays once per browser tab, and only when the tab's visit starts on the home 
    npm run preview
    ```
    Expected: "65 page(s) built", then "Indexed 14 pages"; the site runs at http://localhost:4321/.
-2. Open http://localhost:4321/ at full width in the dark theme. Expected: "Jack's Space" types itself in on one line, a cursor after the newest letter that blinks once at the end and goes; "Things I build, play and love." under it; at the foot of this part your avatar, name and job on the left, and Resume, LinkedIn, GitHub and Email on the right. No box around any of it.
-3. Below it, Now: the Shape of Dreams cover, tilted, beside "Right now I'm playing **Shape of Dreams** and building **Jack's Space**.", then "Lately I made the home page calmer: what I'm up to, the Lab and a few doors." and "Updated … ago · More on the Now page".
-4. The Lab, a deep green band: "Jack's Lab", "Games, toys and little worlds I made for fun.", Explore the Lab and Surprise me on one line, and today's toy big on the right with "Today's toy: (its name). A new one every day." under it. Move the mouse over the toy: it follows. Click its name: that effect's page opens. Back home, click Surprise me: something on the site opens.
-5. Three doors: Collection (three covers fanned out), Travel (the globe) and Writing (three sheets of paper, the front one titled "Flutter Get Started"), each with its name, an arrow and one line. Point at one: its picture lifts a little and the arrow moves. Each opens its page.
-6. Make the window phone-wide (375 px). Expected: the title on two lines; your links in a row under your name; the cover to the right of the sentence; the toy between the Lab's words and its buttons; the doors as rows, picture on the left. Nothing scrolls sideways (the menu row at the top scrolls on its own, as on every page).
-7. Switch to the light theme. Expected: the Lab band is white between two lines, Explore the Lab is a dark pill, the sheets of paper are white.
-8. Open http://localhost:4321/page/2/. Expected: it forwards to Writing.
+2. Open http://localhost:4321/ at full width in the dark theme. Expected: the menu at the top has a small coloured icon before each word (Writing pink, Lab green, Collection orange, Travel blue, About purple), as on every page.
+3. Top left, your card: your picture, "Jack's Space" typing itself in (a cursor after the newest letter that blinks once at the end and goes), "Things I build, play and love.", "Jack Lee 💻🎮🎬✈️"; under a line, a GitHub tile with "jacklee981229" and orange, blue and pink tiles for Resume, LinkedIn and Email. Point at a tile: it lifts a little. Each opens its page.
+4. Top right, the purple Now card: 👋, "Right now", "Playing Shape of Dreams" in yellow, "Building Jack's Space" in white, "Updated … ago", "Lately I turned the home page into bold colour cards." and the Shape of Dreams cover tilted in the corner. "Right now" opens the Now page.
+5. "Jack's Lab 🧪": a green card with today's toy on the left (move the mouse over it: it follows) and on the right "Games, toys and little worlds I made for fun.", Jack's Town and Jack's Train World, Explore the Lab, Surprise me and "Today's toy: (its name). A new one every day." Click Surprise me: something on the site opens.
+6. "Around my space 🧭": three cards, a bright picture on top and the words underneath: Collection (orange, three covers, "Stranger Things, Terraria and more"), Travel (blue, the globe, "From Malaysia to Taiwan"), Writing (pink, sheets of paper, the Start here posts). Point at one: it lifts a little. Each opens its page.
+7. Make the window phone-wide (375 px). Expected: the cards one under another; your four tiles in one row (GitHub's without its name); the toy above the Lab's words. Nothing scrolls sideways (the menu row at the top scrolls on its own, as on every page).
+8. Switch to the light theme. Expected: your card turns white; the colour cards stay as they are.
+9. Open http://localhost:4321/page/2/. Expected: it forwards to Writing.
 
 ## Links without underlines
 
-1. Open http://localhost:4321/ and point at Resume, LinkedIn, GitHub, Email and "More on the Now page". Expected: no underline; a soft pill comes up behind the words and an arrow slides out. Nothing beside them moves.
-2. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
-3. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
-4. Press Tab through the home page. Expected: each of these links shows its pill and arrow along with the focus ring.
+1. Open http://localhost:4321/writing/ and point at a post. Expected: the row tints, no underline.
+2. Open a post, e.g. http://localhost:4321/g1/. Point at the topic (Git) above the title, "Copy link", the Older post title and the footer's Changelog. Expected: pills and arrows (Copy link: a pill without an arrow). A link inside the post's text is still underlined.
+3. Press Tab through that post. Expected: each of these links shows its pill and arrow along with the focus ring.
 
 ## 2048 Bot
 

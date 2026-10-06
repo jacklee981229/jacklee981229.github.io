@@ -7,20 +7,20 @@ import { experimentPosts, listedPosts, postUrl, summaryOf } from './collections'
 export type PaletteItem = { title: string; group: 'Pages' | 'Lab'; href: string; icon: string; description?: string; words?: string[] };
 export type Openable = { title: string; href: string; kind: 'Post' | 'Tool' | 'Game' | 'Effect' | 'World'; description?: string };
 
-/** Each menu page's icon and the other words it can be found by. */
-const PAGE_EXTRAS: Record<string, { icon: string; words: string[] }> = {
-  '/': { icon: 'home', words: ['start', 'blog', 'latest'] },
-  '/writing/': { icon: 'pen', words: ['topics', 'posts', 'articles', 'all', 'archives'] },
-  '/lab/': { icon: 'flask', words: ['tools', 'games', 'effects', 'worlds'] },
-  '/collections/': { icon: 'books', words: ['movies', 'games', 'favourites', 'favorites', 'shows'] },
-  '/travel/': { icon: 'globe', words: ['map', 'countries', 'places', 'visited'] },
-  '/about/': { icon: 'user', words: ['jack', 'me', 'contact', 'links'] },
+/** The other words each menu page can be found by. */
+const PAGE_WORDS: Record<string, string[]> = {
+  '/': ['start', 'blog', 'latest'],
+  '/writing/': ['topics', 'posts', 'articles', 'all', 'archives'],
+  '/lab/': ['tools', 'games', 'effects', 'worlds'],
+  '/collections/': ['movies', 'games', 'favourites', 'favorites', 'shows'],
+  '/travel/': ['map', 'countries', 'places', 'visited'],
+  '/about/': ['jack', 'me', 'contact', 'links'],
 };
 
 /** The palette's pages and Lab items, in the order they're offered. */
 export async function paletteItems(): Promise<PaletteItem[]> {
   return [
-    ...NAV.map(({ href, label }) => ({ title: label, group: 'Pages' as const, href, icon: PAGE_EXTRAS[href]?.icon ?? 'file', words: PAGE_EXTRAS[href]?.words })),
+    ...NAV.map(({ href, label, icon }) => ({ title: label, group: 'Pages' as const, href, icon, words: PAGE_WORDS[href] })),
     { title: 'Now', group: 'Pages', href: '/now/', icon: 'clock', words: ['doing', 'currently', 'playing', 'building'] },
     { title: 'Changelog', group: 'Pages', href: '/changelog/', icon: 'list', words: ['changes', 'updates', 'history', 'new'] },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool'] })),

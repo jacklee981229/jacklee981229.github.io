@@ -21,12 +21,14 @@ export const LINKS = [
   { label: 'Email', href: 'mailto:jackjiunyihlee@gmail.com', icon: 'mail' },
 ] as const;
 
+// The menu: each page with its icon (also the palette's) and, for the parts of the site, its colour (an
+// --accent-* token in tokens.css).
 export const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/writing/', label: 'Writing' },
-  { href: '/lab/', label: 'Lab' },
-  { href: '/collections/', label: 'Collection' },
-  { href: '/travel/', label: 'Travel' },
-  { href: '/about/', label: 'About' },
+  { href: '/', label: 'Home', icon: 'home' },
+  { href: '/writing/', label: 'Writing', icon: 'pen', accent: 'writing' },
+  { href: '/lab/', label: 'Lab', icon: 'flask', accent: 'lab' },
+  { href: '/collections/', label: 'Collection', icon: 'books', accent: 'collection' },
+  { href: '/travel/', label: 'Travel', icon: 'globe', accent: 'travel' },
+  { href: '/about/', label: 'About', icon: 'user', accent: 'about' },
 ] as const;
 
