@@ -29,6 +29,8 @@ test('the verdict: exact within half a second, close within 5, else off, and whi
   assert.deepEqual(verdictOf(1234, 20), { level: 'close', title: 'Your clock is 1.23 s behind.', detail: "Checked against this site's server (±0.02 s)." });
   assert.equal(verdictOf(-125000, 40).title, 'Your clock is 2 min 5 s ahead.');
   assert.deepEqual([499, 500, 4999, 5000].map((ms) => verdictOf(ms, 0).level), ['exact', 'close', 'close', 'off']);
+  // A margin too small to show still reads as one.
+  assert.equal(verdictOf(60, 3).detail, "It's 0.06 s behind this site's server (±0.01 s).");
 });
 
 test("ISO weeks start on Monday, and week 1 holds the year's first Thursday", () => {

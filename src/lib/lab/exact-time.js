@@ -58,7 +58,8 @@ export function gapOf(ms) {
 export function verdictOf(offset, within) {
   const off = Math.abs(offset);
   const way = offset > 0 ? 'behind' : 'ahead of';
-  const sure = `(±${gapOf(within)})`;
+  // Never "±0.00 s": on a quick connection the margin rounds to nothing, which would claim a perfect check.
+  const sure = `(±${gapOf(Math.max(within, 10))})`;
   if (off < 500) return { level: 'exact', title: 'Your clock is exact.', detail: `It's ${gapOf(off)} ${way} this site's server ${sure}.` };
   return { level: off < 5000 ? 'close' : 'off', title: `Your clock is ${gapOf(off)} ${offset > 0 ? 'behind' : 'ahead'}.`, detail: `Checked against this site's server ${sure}.` };
 }
