@@ -1,7 +1,8 @@
 ---
 // Changelog days as cards, one under another: the date, then each change with a label for its kind (New, Improved,
 // Design, Fix). Quiet days in a row share a card, each change with its day (cardsOf in changelog.js). Used by
-// /changelog/.
+// /changelog/, where About's calendar links to each day by its date: a card's own, or in a shared card, its change's
+// (a shared card's days have one change each).
 import ChangeKind from './ChangeKind.astro';
 import { type KINDS, dayToDate, shortDay, spanOf } from '../lib/changelog.js';
 import { formatDate } from '../lib/dates.js';
@@ -19,11 +20,11 @@ const site = String(Astro.site);
   {cards.map((card) => {
     const shared = card.length > 1;
     return (
-      <section class:list={['day', { shared }]}>
+      <section class:list={['day', { shared }]} id={shared ? undefined : card[0].day}>
         <h3 class="date">{shared ? spanOf(card) : <time datetime={card[0].day}>{formatDate(dayToDate(card[0].day))}</time>}</h3>
         <ul>
           {card.flatMap(({ day, changes }) => changes.map((change) => (
-            <li>
+            <li id={shared ? day : undefined}>
               {shared && <time class="when" datetime={day}>{shortDay(day)}</time>}
               <ChangeKind kind={change.kind} />
               <span class="text" set:html={inlineHtml(change.text, site)} />
@@ -38,6 +39,8 @@ const site = String(Astro.site);
 <style>
   .days { display: grid; gap: var(--space-4); }
   .day { padding: var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  /* A day the calendar jumps to stops a little below the window's top edge. */
+  .day, li { scroll-margin-top: var(--space-5); }
   .date { margin: 0 0 var(--space-3); font-size: var(--text-md); font-weight: 900; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
   ul { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   li { display: grid; grid-template-columns: 6.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }

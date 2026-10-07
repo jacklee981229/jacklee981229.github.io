@@ -77,6 +77,14 @@
   --about-top-to: #6B21A8;
   --changelog-top-from: #0E7490;
   --changelog-top-to: #155E75;
+  /* The month's changes on About (ChangelogMonth.astro), on the Changelog's colours in both themes: a day's square
+     whiter the more changes it had, and the outline of a day still to come. */
+  --changelog-step-0: rgb(255 255 255 / 0.14);
+  --changelog-step-1: rgb(255 255 255 / 0.36);
+  --changelog-step-2: rgb(255 255 255 / 0.56);
+  --changelog-step-3: rgb(255 255 255 / 0.78);
+  --changelog-step-4: #FFFFFF;
+  --changelog-later: rgb(255 255 255 / 0.3);
   /* The Lab's cards, one colour for each kind of thing, as the home page's doors: a bright picture over the words on
      a deep colour (white keeps 4.5:1 on each base). */
   --kind-text-from: #0A84FF;
@@ -98,14 +106,16 @@
   --kind-world-to: #0A84FF;
   --kind-world-base: #164E63;
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
-     things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the site in
-     the Lab's green. */
+     things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
+     changes in the Changelog's teal, the site in the Lab's green. */
   --about-work-from: #0A66C2;
   --about-work-to: #004182;
   --about-likes-from: var(--collection-top-from);
   --about-likes-to: var(--collection-top-to);
   --about-links-from: #3A3A3C;
   --about-links-to: #1C1C1E;
+  --about-changes-from: var(--changelog-top-from);
+  --about-changes-to: var(--changelog-top-to);
   --about-site-from: var(--lab-from);
   --about-site-to: var(--lab-to);
   /* Jack's links as coloured tiles: LinkedIn and GitHub in their own colours. The resume's orange is deep enough for

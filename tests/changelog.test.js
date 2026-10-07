@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { KINDS, byDay, byYear, cardsOf, fold, isDay, readChangelog, shortDay, spanOf } from '../src/lib/changelog.js';
+import { KINDS, byDay, byYear, calendarMonth, cardsOf, changesSince, fold, isDay, readChangelog, shortDay, spanOf, stepOf } from '../src/lib/changelog.js';
 
 test("changes come out newest first, a day's later lines first", () => {
   const changes = readChangelog('<!-- note -->\n- 2026-09-26 new: Rebuilt\n- 2026-10-02 new: First that day\n- 2023-02-23 new: Started\n- 2026-10-02 fix: Second that day');
@@ -65,4 +65,29 @@ test('the newest cards show at once and the rest wait behind Expand, none lost; 
   assert.deepEqual(folded.map((y) => [y.year, y.continued, y.cards.map((card) => card[0].day)]), [['2026', true, ['2026-09-26']], ['2023', false, ['2023-02-23']]]);
   // Fewer cards than the fold: everything shows, nothing waits.
   assert.equal(fold(years, 10).folded.length, 0);
+});
+
+test("a day's square gets lighter in steps: none, 1, 2–4, 5–9, 10 or more", () => {
+  assert.deepEqual([0, 1, 2, 4, 5, 9, 10, 18].map(stepOf), [0, 1, 2, 2, 3, 3, 4, 4]);
+});
+
+test('the changes since the rebuild count that day and after, not the Hexo years', () => {
+  const changes = readChangelog('- 2023-10-04 new: A\n- 2026-09-26 new: B\n- 2026-10-05 new: C\n- 2026-10-05 fix: D');
+  assert.equal(changesSince(changes, '2026-09-26'), 3);
+});
+
+test("the calendar is today's month: each day's count and step, today and the days to come", () => {
+  const changes = readChangelog('- 2026-09-30 new: A\n- 2026-10-05 new: B\n- 2026-10-05 fix: C\n- 2026-10-07 new: D');
+  const month = calendarMonth(changes, '2026-10-07');
+  assert.deepEqual([month.name, month.blank, month.days.length], ['Oct 2026', 3, 31]);
+  const day = (d) => month.days.find((x) => x.day === d);
+  assert.deepEqual(day('2026-10-01'), { day: '2026-10-01', changes: 0, step: 0, today: false, later: false });
+  assert.deepEqual(day('2026-10-05'), { day: '2026-10-05', changes: 2, step: 2, today: false, later: false });
+  assert.deepEqual(day('2026-10-07'), { day: '2026-10-07', changes: 1, step: 1, today: true, later: false });
+  assert.deepEqual(day('2026-10-08'), { day: '2026-10-08', changes: 0, step: 0, today: false, later: true });
+});
+
+test("the calendar's weeks start on Monday, and its month has the right days", () => {
+  // February 2026 starts on a Sunday, June 2026 on a Monday, January 2027 on a Friday; February 2028 has 29 days.
+  assert.deepEqual(['2026-02-10', '2026-06-30', '2027-01-01', '2028-02-29'].map((d) => { const m = calendarMonth([], d); return [m.name, m.blank, m.days.length]; }), [['Feb 2026', 6, 28], ['Jun 2026', 0, 30], ['Jan 2027', 4, 31], ['Feb 2028', 1, 29]]);
 });

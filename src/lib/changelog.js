@@ -121,3 +121,30 @@ export function spanOf(days) {
 
 /** The day as a Date at the start of that day in Malaysia, where the site's dates are kept. @param {string} day */
 export const dayToDate = (day) => new Date(`${day}T00:00:00+08:00`);
+
+/**
+ * How light a day's square is in the calendar: 0 for no changes, then a step each for 1, 2–4, 5–9, and 10 or more.
+ * @param {number} count
+ */
+export const stepOf = (count) => (count === 0 ? 0 : count === 1 ? 1 : count < 5 ? 2 : count < 10 ? 3 : 4);
+
+/** How many changes since `from`, that day included. @param {{ day: string }[]} changes @param {string} from YYYY-MM-DD */
+export const changesSince = (changes, from) => changes.filter((change) => change.day >= from).length;
+
+/**
+ * The calendar of `today`'s month: its name, how many days of its first week come before the 1st (weeks start on
+ * Monday), and its days, each with its count of changes, its step, and whether it's today or still to come.
+ * @param {{ day: string }[]} changes
+ * @param {string} today YYYY-MM-DD
+ */
+export function calendarMonth(changes, today) {
+  const month = today.slice(0, 7);
+  const [y, m] = month.split('-').map(Number);
+  const length = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const days = Array.from({ length }, (_, i) => {
+    const day = `${month}-${String(i + 1).padStart(2, '0')}`;
+    const count = changes.filter((change) => change.day === day).length;
+    return { day, changes: count, step: stepOf(count), today: day === today, later: day > today };
+  });
+  return { name: `${MONTHS[m - 1]} ${y}`, blank: (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7, days };
+}

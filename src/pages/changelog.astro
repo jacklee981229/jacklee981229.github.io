@@ -37,6 +37,16 @@ const { open, folded } = fold(byYear(changelogFile()), SHOWN);
   </div>
 </Base>
 
+<script>
+  // About's calendar links to days here; one behind Expand opens it first, as not every browser does that itself.
+  const target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+  const older = target?.closest('details');
+  if (target && older && !older.open) {
+    older.open = true;
+    target.scrollIntoView();
+  }
+</script>
+
 <style>
   .year + .year { margin-top: var(--space-6); }
   h2 { margin: 0 0 var(--space-4); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

@@ -1,18 +1,22 @@
 ---
 // About: who Jack is, in a few sections. The words (the intro, the work timeline, the tools) are in
-// src/content/pages/about.md; the favourites come from the Collection's and the Lab's own lists, and the links from
-// src/site.ts. The site's activity (Now, Most Popular, the changelog list) belongs to the home page.
+// src/content/pages/about.md; the favourites come from the Collection's and the Lab's own lists, the links from
+// src/site.ts, and this month's changes from the changelog. The rest of the site's activity (Now, Most Popular)
+// belongs to the home page.
 import { Image } from 'astro:assets';
 import { getCollection, getEntry, render } from 'astro:content';
 import PageTop from '../components/PageTop.astro';
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
+import ChangelogMonth from '../components/ChangelogMonth.astro';
 import ProfileLinks from '../components/ProfileLinks.astro';
 import { SITE } from '../site';
 import { daysBetween, formatDate } from '../lib/dates.js';
 import { itemKey, pictureOf } from '../lib/shelves.js';
 import { pictures } from '../lib/shelf-pictures';
 import { experimentPosts, postUrl } from '../lib/collections';
+import { changesSince } from '../lib/changelog.js';
+import { changelogFile } from '../lib/changelog-file.js';
 import '../styles/prose.css';
 
 const about = await getEntry('pages', 'about');
@@ -33,6 +37,7 @@ const favourites = shelves
 const games = (await experimentPosts()).map((post) => ({ name: post.data.title.replace(/^Jack's /, ''), href: postUrl(post) }));
 const started = new Date(`${SITE.started}T00:00:00+08:00`);
 const rebuilt = new Date(`${SITE.rebuilt}T00:00:00+08:00`);
+const changes = changelogFile();
 ---
 <Base title={about.data.title} description="About Jack Lee and this site.">
   <div class="wrap page">
@@ -80,6 +85,14 @@ const rebuilt = new Date(`${SITE.rebuilt}T00:00:00+08:00`);
         <ProfileLinks labels />
       </section>
 
+      <section class="card changes" aria-labelledby="changelog">
+        <div class="changes-words">
+          <h2 id="changelog"><Icon name="list" />Changelog</h2>
+          <p class="more"><a href="/changelog/">My Changelog</a>: {changesSince(changes, SITE.rebuilt)} changes since I rebuilt this site.</p>
+        </div>
+        <ChangelogMonth changes={changes} />
+      </section>
+
       <section class="card site" aria-labelledby="this-site">
         <h2 id="this-site"><Icon name="home" />This site</h2>
         <!-- The days are counted again in the visitor's browser (src/lib/running.js), as the page is only rebuilt now and then. -->
@@ -102,16 +115,21 @@ const rebuilt = new Date(`${SITE.rebuilt}T00:00:00+08:00`);
 </script>
 
 <style>
-  /* Every part a card, as on the home page: the intro across the top, the rest two by two, each in the colour of
-     what it's about (tokens.css), with white words. */
+  /* Every part a card, as on the home page: the intro across the top, the rest two by two and This site across the
+     foot, each in the colour of what it's about (tokens.css), with white words. */
   .about { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
   .card { padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
-  .work, .likes, .find, .site { --focus: var(--on-colour); background: linear-gradient(150deg, var(--from), var(--to)); box-shadow: none; color: var(--on-colour); }
+  .work, .likes, .find, .changes, .site { --focus: var(--on-colour); background: linear-gradient(150deg, var(--from), var(--to)); box-shadow: none; color: var(--on-colour); }
   .work { --from: var(--about-work-from); --to: var(--about-work-to); }
   .likes { --from: var(--about-likes-from); --to: var(--about-likes-to); }
   .find { --from: var(--about-links-from); --to: var(--about-links-to); }
+  .changes { --from: var(--about-changes-from); --to: var(--about-changes-to); }
   .site { --from: var(--about-site-from); --to: var(--about-site-to); }
-  .intro { grid-column: 1 / -1; }
+  .intro, .site { grid-column: 1 / -1; }
+  /* The month beside the title and the line under it, keeping the card as short as Find me beside it; under them
+     where the card is too narrow for both. */
+  .changes { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-4) var(--space-6); }
+  .changes-words { flex: 1 1 12rem; }
   .intro :global(.prose > :first-child) { margin-top: 0; }
   .intro :global(.prose > :last-child) { margin-bottom: 0; }
   h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-4); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
@@ -137,8 +155,9 @@ const rebuilt = new Date(`${SITE.rebuilt}T00:00:00+08:00`);
   .covers a:hover :global(img), .covers a:focus-visible :global(img) { transform: translateY(-3px); }
   .more { margin: 0; line-height: 1.6; }
   .more + .more { margin-top: var(--space-2); }
-  /* Your links on the colour: the names on dark-tinted pills, each tile in its own colour. */
-  .find :global(.links.labels a) { background: var(--on-colour-chip); color: var(--on-colour); }
+  /* Your links on the colour: the names on dark-tinted pills, each tile in its own colour. With .card too: ProfileLinks'
+     own rule is as strong, and which of the two comes later in the built CSS changes with the page's imports. */
+  .card.find :global(.links.labels a) { background: var(--on-colour-chip); color: var(--on-colour); }
 
   @media (max-width: 719px) {
     .about { grid-template-columns: minmax(0, 1fr); }

@@ -68,3 +68,4 @@
 - 2026-10-07 improved: Hid Surprise me for now
 - 2026-10-07 fix: Long lines of code now wrap on phones
 - 2026-10-07 design: Put every Lab effect on a card
+- 2026-10-07 new: Added a calendar of this month's changes to [About](/about/)
