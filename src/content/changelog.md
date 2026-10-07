@@ -59,3 +59,8 @@
 - 2026-10-07 design: Gave the light theme a pale blue-to-white fade, toy on a dark screen
 - 2026-10-07 design: Signed the footer: built with Astro and love
 - 2026-10-07 design: Gave the [Changelog](/changelog/)'s labels bold colours
+- 2026-10-07 design: Gave the site a logo: my pixel face, in the tab and the menu
+- 2026-10-07 design: Swapped my picture for the new logo on the home page and posts
+- 2026-10-07 design: Gave the welcome screen my logo and a sweep of light
+- 2026-10-07 new: Added a loading screen with my logo for pages that load slowly
+- 2026-10-07 fix: Removed a faint line beside the current page in the menu

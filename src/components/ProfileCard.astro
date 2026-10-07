@@ -1,8 +1,7 @@
 ---
-import { Image } from 'astro:assets';
-import avatar from '../assets/avatar.png';
 import ProfileLinks from './ProfileLinks.astro';
 import { SITE } from '../site';
+import { logoSvg } from '../lib/logo.js';
 
 interface Props {
   posts: number;
@@ -13,7 +12,7 @@ interface Props {
 const { posts, topics, tags } = Astro.props;
 ---
 <div class="profile">
-  <Image class="avatar" src={avatar} alt="" width={112} height={112} />
+  <Fragment set:html={logoSvg('profile', 'width="56" height="56" aria-hidden="true"')} />
   <h2 class="name">{SITE.author}</h2>
   <p class="role">{SITE.role}</p>
   <p class="counts">
@@ -26,7 +25,6 @@ const { posts, topics, tags } = Astro.props;
 
 <style>
   .profile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-1) var(--space-4); }
-  .profile :global(.avatar) { width: 56px; height: 56px; border-radius: 50%; background: var(--rule); object-fit: cover; }
   .name { margin: 0; font-size: var(--text-md); font-weight: 700; }
   /* Full width under the name: the job title is too long to sit beside the avatar. */
   .role { grid-column: 1 / -1; margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-ui); }

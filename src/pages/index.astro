@@ -8,12 +8,11 @@ import world from 'world-atlas/countries-110m.json';
 import land from 'world-atlas/land-110m.json';
 import fine from 'world-atlas/countries-50m.json';
 import Base from '../layouts/Base.astro';
-import Welcome from '../components/Welcome.astro';
 import HomeToy from '../components/HomeToy.astro';
 import Icon from '../components/Icon.astro';
 import Updated from '../components/Updated.astro';
-import avatar from '../assets/avatar.png';
 import { CURSOR_MS, typingTimeline } from '../lib/typing.js';
+import { logoSvg } from '../lib/logo.js';
 import { LINKS, SITE } from '../site';
 import { isExternal, NEW_TAB } from '../lib/links.js';
 import { listedPosts } from '../lib/collections';
@@ -70,13 +69,12 @@ const picks = writingPicks(await listedPosts(), (topic) => Boolean(topicOf(topic
 const list = (names: string[]) => names.map((name, i) => joiner(i, names.length) + name).join('');
 ---
 <Base>
-  <Welcome slot="top" />
   <div class="wrap home">
 
     <div class="top">
       <section class="card me" aria-labelledby="site-title">
         <div class="me-main">
-          <Image class="avatar" src={avatar} alt="" width={192} height={192} />
+          <Fragment set:html={logoSvg('home', 'class="avatar" width="96" height="96" aria-hidden="true"')} />
           <div>
             <!-- One span per letter for the typing effect; the label keeps screen readers from spelling the name out. -->
             <h1 id="site-title" aria-label={SITE.title} style={`--cursor: ${CURSOR_MS}ms`}>
@@ -191,7 +189,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   /* Jack's card: the site's name beside his picture, his links as coloured tiles in a band at its foot. */
   .me { display: flex; flex-direction: column; background: var(--surface); box-shadow: var(--shadow-card); }
   .me-main { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-6) var(--space-6) var(--space-5); }
-  .me :global(.avatar) { flex: none; width: 96px; height: 96px; border-radius: 50%; background: var(--rule); }
+  .me :global(.avatar) { flex: none; width: 96px; height: 96px; }
   h1 { margin: 0; font-size: var(--text-hero); font-weight: 900; line-height: 0.95; letter-spacing: -0.04em; white-space: nowrap; }
   .tagline { margin: var(--space-2) 0 0; color: var(--muted); }
   .who { margin: var(--space-1) 0 0; color: var(--muted); font-size: var(--text-sm); }

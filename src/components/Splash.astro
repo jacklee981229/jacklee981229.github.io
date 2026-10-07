@@ -1,0 +1,111 @@
+---
+// The site's one full-screen screen: the logo in the middle, on the page's own ground, in two moods.
+// - The welcome, on the first page of a visit that starts at the home page (the head script in Base.astro adds
+//   html.welcome): a light sweeps over the logo once and "Welcome to Jack's Space" rises under it, the two centred
+//   together; at 2 s it fades and the home page's title types (--type-start, index.astro). Its timeline is all CSS,
+//   so it clears even if the script below never runs.
+// - The loading screen, on any other page that takes more than 0.4 s to load, so a quick or saved page never shows
+//   it: the logo fades to half and back once a second until the page has loaded (the pictures on screen, fonts and
+//   scripts; pictures further down load as they're scrolled to, so they don't count), at 6 s at the latest.
+//   ?loading in the address makes a page pretend to take 3 s.
+// A click, a key or a scroll ends either at once. With less motion the logo stays still and nothing fades.
+import { SITE } from '../site';
+import { logoSvg } from '../lib/logo.js';
+
+const words = SITE.title.split(' ');
+---
+<div class="splash" aria-hidden="true">
+  <div class="mark"><Fragment set:html={logoSvg('splash', 'width="120" height="120"')} /></div>
+  <div class="words">
+    <p class="kicker line"><span class="word" style="--d: 0.15s">Welcome</span> <span class="word" style="--d: 0.23s">to</span></p>
+    <p class="name line">{words.map((word, i) => <>{i > 0 && ' '}<span class="word" style={`--d: ${0.4 + i * 0.12}s`}>{word}</span></>)}</p>
+  </div>
+</div>
+
+<script is:inline>
+  // Inline and first in the page, so the 0.4 s count starts as the page does. If it never runs, the loading screen
+  // never shows.
+  (function () {
+    var root = document.documentElement;
+    var splash = document.querySelector('.splash');
+    var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var listen = function (method, handler) {
+      ['pointerdown', 'keydown', 'wheel'].forEach(function (type) { window[method](type, handler, true); });
+    };
+
+    if (root.classList.contains('welcome')) {
+      var leave = function () {
+        listen('removeEventListener', skip);
+        splash.remove();
+      };
+      var skip = function () {
+        listen('removeEventListener', skip);
+        // The title's typing waits for --type-start (index.astro); move that to the moment the fade ends.
+        var typing = document.querySelector('#site-title .ch');
+        var first = typing && typing.getAnimations()[0];
+        var elapsed = first && first.startTime != null ? document.timeline.currentTime - first.startTime : 0;
+        root.style.setProperty('--type-start', Math.round(elapsed) + (still ? 0 : 300) + 'ms');
+        if (still) return leave();
+        splash.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease', fill: 'forwards' }).finished.then(leave);
+      };
+      // The fade at 2 s is the screen's own animation; its children's animations bubble up here too.
+      splash.addEventListener('animationend', function (e) { if (e.target === splash) leave(); });
+      listen('addEventListener', skip);
+      return;
+    }
+
+    var pretend = new URLSearchParams(location.search).has('loading');
+    var done = function () {
+      clearTimeout(show);
+      clearTimeout(latest);
+      removeEventListener('load', loaded);
+      listen('removeEventListener', done);
+      root.classList.remove('loading');
+    };
+    var loaded = function () { if (!pretend) done(); };
+    var show = setTimeout(function () { root.classList.add('loading'); }, 400);
+    var latest = setTimeout(done, pretend ? 3000 : 6000);
+    addEventListener('load', loaded);
+    listen('addEventListener', done);
+  })();
+</script>
+
+<style>
+  /* Hidden unless a mood is on. The welcome shows from the page's first paint; the loading screen fades in quickly
+     once the page turns out slow, and out a little slower. */
+  .splash { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(var(--paper), var(--paper-end)) var(--paper-end); opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s 0.3s; }
+  :global(html.welcome) .splash, :global(html.loading) .splash { opacity: 1; visibility: visible; transition: opacity 0.2s ease; }
+  :global([data-sky='night']) .splash { background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
+  .mark { position: relative; }
+  .mark :global(svg) { display: block; }
+
+  /* The loading screen: the logo fades to half and back. Its beats run only while the screen shows, and pause where
+     they are as it fades out, so the logo doesn't jump. */
+  .mark :global(svg) { animation: splash-fade 1s ease-in-out infinite paused; }
+  :global(html.loading) .mark :global(svg) { animation-play-state: running; }
+  @keyframes splash-fade { 50% { opacity: 0.5; } }
+  /* In both moods, now and then a glint on the glasses. */
+  .mark :global(.glint) { animation: splash-glint 2.4s ease-in-out infinite paused; }
+  :global(html.welcome) .mark :global(.glint), :global(html.loading) .mark :global(.glint) { animation-play-state: running; }
+  @keyframes splash-glint { 0%, 55%, 100% { opacity: 0.25; } 65% { opacity: 1; } 75% { opacity: 0.25; } }
+
+  /* The welcome: a band of light passes over the logo once while the words rise under it; at 2 s the screen fades. */
+  :global(html.welcome) .splash { animation: splash-end 0.4s 2s ease forwards; }
+  :global(html.welcome) { --type-start: 2200ms; }
+  .mark::after { content: ''; position: absolute; inset: 2%; border-radius: 50%; background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--on-colour) 50%, transparent) 50%, transparent 65%) 130% 0 / 250% 100% no-repeat; pointer-events: none; }
+  :global(html.welcome) .mark::after { animation: splash-sweep 0.9s 0.35s ease-in-out both; }
+  .words { display: none; margin-top: var(--space-5); text-align: center; white-space: nowrap; }
+  :global(html.welcome) .words { display: block; }
+  /* Each line is a mask the words rise into; the bottom padding keeps the descenders (the "p") inside it. */
+  .line { display: block; overflow: hidden; margin: 0 0 -0.14em; padding: 0.04em 0.08em 0.18em; }
+  .kicker { margin-bottom: 0.2em; color: var(--muted); font-size: var(--text-lg); font-weight: 500; letter-spacing: -0.01em; }
+  .name { font-size: var(--text-2xl); font-weight: var(--display-weight); line-height: 0.95; letter-spacing: var(--display-tracking); }
+  .word { display: inline-block; animation: splash-word 1s var(--d) cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes splash-end { to { opacity: 0; visibility: hidden; } }
+  @keyframes splash-sweep { from { background-position: 130% 0; } to { background-position: -30% 0; } }
+  @keyframes splash-word { from { transform: translateY(110%); } }
+  /* Less motion turns every animation off (global.css), the welcome's end too; this one stays, done in an instant. */
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.welcome) .splash { animation: splash-end 1ms 2s forwards !important; }
+  }
+</style>

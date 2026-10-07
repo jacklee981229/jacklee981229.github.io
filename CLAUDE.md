@@ -19,6 +19,7 @@ Package versions are pinned to ones that run on Node 20.18, including the `@astr
 Read the code for how a part works; this says where to start.
 
 - Site-wide facts (name, job title, links, menu, tagline): `src/site.ts`. The page frame (head, header, footer, palette, night sky, visitor counter): `src/layouts/Base.astro`.
+- The logo: `src/lib/logo.js`, one drawing for the tab icon (`src/pages/favicon.svg.ts`), the menu bar, Jack's picture, and the welcome and loading screen (`src/components/Splash.astro`).
 - The rules and logic: `src/lib/`, each `.js` there tested in `tests/`. Every colour, font, size and spacing: `src/styles/tokens.css`.
 - The home page: `src/pages/index.astro`, its picks in `src/lib/home.js`.
 - Posts: `src/content/posts/<address>/index.md`; their fields in `src/content.config.ts`; topics in `src/lib/topics.js`.
@@ -44,7 +45,7 @@ Read the code for how a part works; this says where to start.
 - **Visitor counter:** GoatCounter only (its address in `src/site.ts`), counting since 1 Oct 2026; its setting "Allow adding visitor counts on your website" must stay on. It runs only on the live site; locally it shows a dash. The Lab's Most Popular is ranked from its counts at build time; the daily run in `deploy.yml` keeps it fresh.
 - **Now** shows on the home page as lines that read on ("Playing Shape of Dreams"), so each label in `now.md` is a doing word (Playing, Building, Watching). Its date is the file's last commit, so any edit to it, even its comment, shows as an update; and the deploy fetches the whole history for it: don't make the checkout shallow.
 - **Fonts** are self-hosted (`public/fonts/`, licences beside them). The share pictures use WOFF copies in `src/assets/share-fonts/`, because satori can't read WOFF2.
-- **No third-party scripts** besides GoatCounter, and no full-page loaders besides the welcome screen.
+- **No third-party scripts** besides GoatCounter, and no full-page loaders besides the welcome and the loading screen (only when a page is slow).
 - [docs/design-ideas.md](docs/design-ideas.md) is an idea bank: read it only when Jack asks for design ideas.
 
 ## Games
@@ -70,6 +71,7 @@ In the sweep, after Jack confirms a feature, every UI change passes these:
 
 - My preview ports (`C:\repos\Jack\.claude\launch.json`): 4600 serves `dist/`, 4602 is dev (shows drafts), 4604 serves a build in a separate folder. Jack's own preview is 4321: while it runs, never build into `dist/`; build with `--outDir` into another folder and serve that on my port. A build into a folder outside the project moves its `.astro/` folder into the output: finish with `npm run check` to bring it back.
 - Probe with headless Chrome over CDP; Node 20 needs `node --experimental-websocket`. Probes stay in the scratchpad.
+- `?loading` on any address shows the loading screen (the page pretends to take 3 s). The welcome plays on the home page once per tab: open a new tab to see it again.
 - CDP: focus events need `Emulation.setFocusEmulationEnabled`; Enter on a button needs `text: '\r'`; scroll an element into view before clicking; measure after smooth scrolling ends (about a second); pin `Math.random` with `addScriptToEvaluateOnNewDocument`; click with `Input.dispatchMouseEvent`, since an event dispatched on an element skips hit-testing; reopening the same address with only a new `#…` fires no load event, so add a query string.
 - To test a theme change, press the site's own theme button: emulating the colour scheme only applies on the next load.
 - To prove a built file's fingerprint changes, make a real code change: the minifier drops comment-only edits.

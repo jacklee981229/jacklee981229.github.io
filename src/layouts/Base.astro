@@ -9,6 +9,7 @@ import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
 import SearchDialog from '../components/SearchDialog.astro';
 import NightSky from '../components/NightSky.astro';
+import Splash from '../components/Splash.astro';
 import { shareLabel, sharePath } from '../lib/share.js';
 import { SITE } from '../site';
 
@@ -76,11 +77,11 @@ const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.
       })();
     </script>
     <script is:inline>
-      // The welcome screen (Welcome.astro) greets a visit that starts on the home page: once per tab, never when less motion is asked for.
+      // The welcome (Splash.astro) greets a visit that starts on the home page, once per tab.
       try {
         if (!sessionStorage.getItem('visited')) {
           sessionStorage.setItem('visited', '1');
-          if (location.pathname === '/' && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('welcome');
+          if (location.pathname === '/') document.documentElement.classList.add('welcome');
         }
       } catch (e) {}
     </script>
@@ -95,13 +96,14 @@ const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.
         views.crossOrigin = 'anonymous';
         views.integrity = 'sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ';
         views.dataset.goatcounter = goatcounter + '/count';
-        document.head.appendChild(views);
+        // Only once the page has loaded, so a slow counter never holds up the loading screen (Splash.astro).
+        addEventListener('load', function () { document.head.appendChild(views); });
       }
     </script>
   </head>
   <body>
-    <!-- First in the page, so a full-screen layer such as the welcome screen covers it from the first paint. -->
-    <slot name="top" />
+    <!-- First in the page, so the welcome or the loading screen covers it from the first paint. -->
+    <Splash />
     <a class="skip" href="#main">Skip to content</a>
     <Header />
     <main id="main" tabindex="-1">
