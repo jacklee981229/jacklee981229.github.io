@@ -135,7 +135,8 @@ export function runStage(root, create) {
   /** @param {number} now */
   const loop = (now) => {
     // After a hitch (or a background tab), one long step would fling everything: cap it.
-    step(Math.min(0.05, (now - last) / 1000));
+    // The first frame's time stamp can be a little older than the moment the loop started: never a step below zero.
+    step(Math.max(0, Math.min(0.05, (now - last) / 1000)));
     last = now;
     if (running) handle = requestAnimationFrame(loop);
   };

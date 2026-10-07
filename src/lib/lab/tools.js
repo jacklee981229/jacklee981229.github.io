@@ -70,6 +70,7 @@ export const EFFECTS = [
 export const WORLDS = [
   { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: "Click a car to see where it's going, or add and remove cars.", icon: 'car', words: ['traffic', 'cars'], controls: [{ id: 'add-car', label: 'Add car' }, { id: 'remove-car', label: 'Remove car' }] },
   { slug: 'trains', name: "Jack's Train World", description: 'A little railway whose trains fetch and deliver cargo by themselves.', hint: 'Click a train to follow it, or add and remove trains.', icon: 'train', words: ['railway', 'trains', 'cargo'], controls: [{ id: 'add-train', label: 'Add train' }, { id: 'remove-train', label: 'Remove train' }] },
+  { slug: 'pond', name: "Jack's Pond", description: 'A clear spring pond whose koi swim by themselves.', hint: 'Just watch. Switch the site to dark for night.', icon: 'fish', words: ['koi', 'fish', 'pond', 'water'] },
 ];
 
 /** @param {string} slug */
