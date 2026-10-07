@@ -1,10 +1,13 @@
 // Blocks on the "Jack's Blocks" post, a falling-blocks game: draws the well and plays the
-// rules from rules.js, with a clock, and the games' leaderboard (../leaderboard.js) for finished games.
+// rules from rules.js, with a clock, and the games' leaderboard (../leaderboard.js) for finished games. Its sounds and
+// music come from sound.js, turned on and off by two buttons under New game, or both at once with M.
 // Smoothness: the well is a grid whose cells change class only where something moved; the game is timed by
 // animation frames; a held key (or a held button on a phone) repeats after a short wait, like a real console.
+import { ICONS } from '../../lib/icons.js';
 import { bringIntoView, onGameKeys } from '../controls.js';
 import { formatTime, leaderboard } from '../leaderboard.js';
-import { cells, drop, dropMs, ghost, HEIGHT, HIDDEN, hardDrop, hold, levelOf, lock, move, newGame, rotate, WIDTH } from './rules.js';
+import { cells, drop, dropMs, ghost, HEIGHT, HIDDEN, hardDrop, hold, inDanger, levelOf, lock, move, newGame, rotate, settleSounds, WIDTH } from './rules.js';
+import * as sound from './sound.js';
 
 const BEST = 'blocks-best';
 // A move key kept pressed repeats after this wait, then this often; a pressed down key drops a row this often.
@@ -50,10 +53,11 @@ function play(root) {
           <p class="blk-stat"><span class="blk-label">Level</span><strong data-level>1</strong></p>
           <p class="blk-stat"><span class="blk-label">Time</span><strong data-time>00:00.00</strong></p>
           <button type="button" class="button" data-new>New game</button>
+          <div class="blk-toggles">${['sound', 'music'].map((part) => `<button type="button" class="button" data-toggle="${part}" aria-pressed="true"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"></svg><span class="visually-hidden">${part === 'sound' ? 'Sound' : 'Music'}</span></button>`).join('')}</div>
         </div>
       </div>
       <div class="blk-pad" data-pad>${PAD.map(([act, label]) => `<button type="button" class="button" data-act="${act}">${label}</button>`).join('')}</div>
-      <p class="blk-help" id="blk-help">Use the arrow keys (or W, A, S and D): left and right move, up turns, down drops faster. Z turns back, Space drops, C or R holds. P pauses.</p>
+      <p class="blk-help" id="blk-help">Use the arrow keys (or W, A, S and D): left and right move, up turns, down drops faster. Z turns back, Space drops, C or R holds. P pauses, M mutes.</p>
     </div>
     <section data-leaderboard></section>
     <p class="visually-hidden" aria-live="polite" data-status></p>`;
@@ -72,6 +76,8 @@ function play(root) {
   let fallen = 0;
   let landed = 0;
   let resets = 0;
+  /** Pieces in a row that cleared rows: a combo lifts the row chime (settleSounds in rules.js). */
+  let combo = 0;
   /** Full rows flashing before they go: when the flash ends, which rows, and the well with them still in it. */
   let clearing = null;
   /** Keys or buttons kept pressed: how long, and how many moves they've made. */
@@ -153,8 +159,13 @@ function play(root) {
   };
   const toActions = () => $('[data-actions] button').focus();
 
-  // After a piece sets: flash any full rows, bring the next piece, or end the game.
-  const settled = (r) => {
+  // After a piece sets: its sounds, then flash any full rows, bring the next piece, or end the game. A hard drop
+  // (`dropped`) thuds instead of the click a piece makes setting by itself.
+  const settled = (r, dropped = false) => {
+    const cue = settleSounds(game.lines, r.game.lines, r.cleared.length, dropped, combo);
+    combo = cue.combo;
+    for (const [name, rows, step, delay] of cue.sounds) sound.play(name, rows, step, delay);
+    sound.setLevel(levelOf(r.game.lines));
     game = r.game;
     landed = 0;
     resets = 0;
@@ -165,8 +176,12 @@ function play(root) {
     }
     drawNext();
     if (game.over) over();
+    else sound.danger(inDanger(game.well));
   };
   const over = () => {
+    sound.stopMusic();
+    sound.danger(false);
+    sound.play('over');
     state = 'over';
     pressed = {};
     clearing = null;
@@ -174,25 +189,28 @@ function play(root) {
     showStats();
     say('Game over.', [['Play again', restart]], scores.finish(game.score, time, toActions));
   };
-  // A move or turn that worked while the piece is landed gives it a little longer before it sets.
+  // A move or turn that worked while the piece is landed gives it a little longer before it sets. True if it worked,
+  // so it makes its sound.
   const moved = (next) => {
-    if (next === game) return;
+    if (next === game) return false;
     game = next;
     if (!canFall() && resets < LOCK_RESETS) {
       landed = 0;
       resets++;
     }
+    return true;
   };
   const act = (action) => {
     if (state !== 'playing' || clearing) return;
-    if (action === 'left') moved(move(game, -1));
-    else if (action === 'right') moved(move(game, 1));
-    else if (action === 'turn') moved(rotate(game, 1));
-    else if (action === 'back') moved(rotate(game, -1));
-    else if (action === 'drop') settled(hardDrop(game));
+    if (action === 'left' || action === 'right') {
+      if (moved(move(game, action === 'left' ? -1 : 1))) sound.play('move');
+    } else if (action === 'turn' || action === 'back') {
+      if (moved(rotate(game, action === 'turn' ? 1 : -1))) sound.play('turn');
+    } else if (action === 'drop') settled(hardDrop(game), true);
     else if (action === 'hold') {
       const next = hold(game);
       if (next === game) return;
+      sound.play('hold');
       // A piece coming in from the side starts fresh at the top.
       game = next;
       fallen = 0;
@@ -210,6 +228,7 @@ function play(root) {
     draw();
   };
   const press = (action) => {
+    sound.wake();
     if (REPEATING.has(action)) pressed[action] = { t: 0, moves: 1 };
     act(action);
   };
@@ -229,7 +248,7 @@ function play(root) {
         const due = 1 + (key.t >= WAIT_MS ? 1 + Math.floor((key.t - WAIT_MS) / REPEAT_MS) : 0);
         while (key.moves < due) {
           key.moves++;
-          moved(move(game, side === 'left' ? -1 : 1));
+          if (moved(move(game, side === 'left' ? -1 : 1))) sound.play('move');
         }
       }
       const every = pressed.down ? Math.min(SOFT_MS, dropMs(levelOf(game.lines))) : dropMs(levelOf(game.lines));
@@ -260,6 +279,9 @@ function play(root) {
   };
   const start = () => {
     bringIntoView(board, getComputedStyle(pad).display === 'none' ? board : pad);
+    sound.wake();
+    sound.startMusic(levelOf(game.lines));
+    sound.danger(inDanger(game.well));
     run();
     board.focus({ preventScroll: true });
   };
@@ -268,10 +290,16 @@ function play(root) {
     state = 'paused';
     pressed = {};
     cancelAnimationFrame(frame);
+    sound.holdMusic(false);
+    sound.danger(false);
     say('Paused.', [['Continue', resume]]);
   };
   const resume = () => {
     if (state !== 'paused') return;
+    sound.wake();
+    // Danger first, so music coming back in a high pile comes back dipped under the heartbeat.
+    sound.danger(inDanger(game.well));
+    sound.holdMusic(true);
     run();
     board.focus({ preventScroll: true });
   };
@@ -282,6 +310,7 @@ function play(root) {
     fallen = 0;
     landed = 0;
     resets = 0;
+    combo = 0;
     clearing = null;
     pressed = {};
     draw();
@@ -290,8 +319,33 @@ function play(root) {
     start();
   };
 
+  // The Sound and Music buttons: each shows its icon crossed out while off, and says so when pointed at.
+  const toggles = [...root.querySelectorAll('[data-toggle]')];
+  const showToggles = () => {
+    for (const button of toggles) {
+      const part = button.dataset.toggle;
+      const name = part === 'sound' ? 'Sound' : 'Music';
+      button.setAttribute('aria-pressed', String(sound.on[part]));
+      button.title = `${name} ${sound.on[part] ? 'on' : 'off'}`;
+      button.querySelector('svg').innerHTML = ICONS[sound.on[part] ? part : `${part}-off`];
+    }
+  };
+  const setSound = (parts, value) => {
+    sound.wake();
+    for (const part of parts) sound.setOn(part, value);
+    showToggles();
+    $('[data-status]').textContent = parts.length > 1 ? `Sound and music ${value ? 'on' : 'off'}.` : `${parts[0] === 'sound' ? 'Sound' : 'Music'} ${value ? 'on' : 'off'}.`;
+  };
+  for (const button of toggles) button.addEventListener('click', () => setSound([button.dataset.toggle], !sound.on[button.dataset.toggle]));
+  // M mutes both, or brings both back once both are off.
+  const muteAll = () => setSound(['sound', 'music'], !(sound.on.sound || sound.on.music));
+
   onGameKeys(board, {
     down: (e) => {
+      if (e.key === 'm' || e.key === 'M') {
+        muteAll();
+        return true;
+      }
       if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         if (state === 'playing') pause();
         else if (state === 'paused') resume();
@@ -328,5 +382,6 @@ function play(root) {
   draw();
   drawNext();
   showStats();
+  showToggles();
   say('Ready?', [['Start', start]], undefined, false);
 }

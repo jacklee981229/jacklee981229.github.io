@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bag, cells, dropMs, drop, fits, ghost, HEIGHT, HIDDEN, hardDrop, hold, levelOf, lock, move, newGame, PIECES, rotate, WIDTH } from '../src/games/blocks/rules.js';
+import { bag, cells, dropMs, drop, fits, ghost, HEIGHT, HIDDEN, hardDrop, hold, inDanger, levelOf, lock, move, newGame, PIECES, rotate, settleSounds, WIDTH } from '../src/games/blocks/rules.js';
 
 const ROWS = HEIGHT + HIDDEN;
 // A well from the bottom rows up: '#' is a filled cell, '.' an empty one; the rows above are empty.
@@ -110,6 +110,40 @@ test('holding sets the piece aside: the next comes in, and later the held one sw
   assert.deepEqual({ turn: swapped.piece.turn, y: swapped.piece.y }, { turn: 0, y: HIDDEN - 1 });
   assert.equal(swapped.held, set.piece.type);
   assert.equal(swapped.canHold, false);
+});
+
+test('a piece setting clicks, a hard drop thuds instead, and rows chime', () => {
+  assert.deepEqual(settleSounds(0, 0, 0, false, 0), { sounds: [['set', 0, 0, 0]], combo: 0 });
+  assert.deepEqual(settleSounds(0, 0, 0, true, 0), { sounds: [['drop', 0, 0, 0]], combo: 0 });
+  assert.deepEqual(settleSounds(0, 2, 2, false, 0), { sounds: [['rows', 2, 0, 0]], combo: 1 });
+  assert.deepEqual(settleSounds(0, 3, 3, true, 0), { sounds: [['drop', 0, 0, 0], ['rows', 3, 0, 0]], combo: 1 });
+  assert.deepEqual(settleSounds(0, 4, 4, true, 0).sounds, [['drop', 0, 0, 0], ['four', 4, 0, 0]]);
+});
+
+test('rows cleared with pieces one after another lift the chime a step each, up to eight; a piece clearing nothing ends it', () => {
+  let combo = 0;
+  const steps = [];
+  for (let piece = 0; piece < 11; piece++) {
+    const r = settleSounds(piece, piece + 1, 1, false, combo);
+    steps.push(r.sounds[0][2]);
+    combo = r.combo;
+  }
+  assert.deepEqual(steps, [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8]);
+  assert.equal(settleSounds(11, 11, 0, false, combo).combo, 0);
+});
+
+test('a new level rings a moment after the rows that reach it', () => {
+  assert.deepEqual(settleSounds(9, 10, 1, false, 0).sounds, [['rows', 1, 0, 0], ['level', 0, 0, 0.35]]);
+  assert.equal(settleSounds(8, 9, 1, false, 0).sounds.length, 1);
+});
+
+test('the pile is in danger once a block reaches the top six visible rows', () => {
+  const well = Array.from({ length: ROWS }, () => Array(WIDTH).fill(''));
+  assert.equal(inDanger(well), false);
+  well[HIDDEN + 6][0] = 'X';
+  assert.equal(inDanger(well), false);
+  well[HIDDEN + 5][5] = 'X';
+  assert.equal(inDanger(well), true);
 });
 
 test('levels come every 10 rows, and pieces fall quicker each level, to a floor', () => {

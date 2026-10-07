@@ -137,6 +137,29 @@ export function lock(game, random = Math.random) {
   return { game: spawn(next, random), cleared: full, merged };
 }
 
+// The top visible rows where a set block puts the game in danger, and its heartbeat starts: six, so it warns a few
+// pieces before the end, not only on the last one.
+const DANGER_ROWS = 6;
+/** True once a set block reaches the top six visible rows (or the hidden ones above). @param {string[][]} well */
+export const inDanger = (well) => well.slice(0, HIDDEN + DANGER_ROWS).some((row) => row.some(Boolean));
+
+/**
+ * The sounds a piece setting makes (sound.js plays them), and the combo it leaves. Pieces that clear rows one after
+ * another build a combo, which lifts each row chime a step, up to eight; a piece that clears nothing ends it. A hard
+ * drop thuds instead of the setting click, and a new level rings a moment after the rows.
+ * @param {number} linesBefore @param {number} linesAfter @param {number} cleared rows cleared by this piece
+ * @param {boolean} dropped @param {number} combo pieces in a row that cleared rows before this one
+ * @returns {{ sounds: [string, number, number, number][], combo: number }} each sound as [name, rows, step, delay in seconds]
+ */
+export function settleSounds(linesBefore, linesAfter, cleared, dropped, combo) {
+  /** @type {[string, number, number, number][]} */
+  const sounds = dropped ? [['drop', 0, 0, 0]] : [];
+  if (cleared) sounds.push([cleared === 4 ? 'four' : 'rows', cleared, Math.min(8, combo), 0]);
+  else if (!dropped) sounds.push(['set', 0, 0, 0]);
+  if (levelOf(linesAfter) > levelOf(linesBefore)) sounds.push(['level', 0, 0, 0.35]);
+  return { sounds, combo: cleared ? combo + 1 : 0 };
+}
+
 /** Drops the piece straight to where it lands and sets it there, 2 points a row. @param {Game} game */
 export function hardDrop(game, random = Math.random) {
   if (game.over) return { game, cleared: [], merged: game.well };

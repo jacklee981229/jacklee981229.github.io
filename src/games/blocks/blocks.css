@@ -52,6 +52,12 @@
    in the middle of a tray the size of the longest piece, so the box never changes size. */
 :root:not([data-game-look='old']) .blk .blk-mini { width: calc(4 * var(--mini) + 6px + 8px); height: calc(2 * var(--mini) + 2px + 8px); padding: 4px; justify-content: center; align-content: center; border-radius: var(--radius-xs); background: var(--board); }
 .blk .blk-side .button { justify-content: center; margin-top: var(--space-1); padding-inline: var(--space-2); }
+/* Sound and Music side by side under New game, as icons only: the panel is too narrow for their names (2048's buttons
+   hide theirs the same way). Each is crossed out and dimmed while off. */
+.blk .blk-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.blk .blk-side .blk-toggles .button { margin-top: 0; padding-inline: 0; }
+.blk .blk-toggles .icon { width: 18px; height: 18px; }
+.blk .blk-toggles .button[aria-pressed='false'] { color: var(--muted); }
 
 /* The buttons under the well, only where there's a touch screen and no mouse. */
 .blk .blk-pad { display: none; }
