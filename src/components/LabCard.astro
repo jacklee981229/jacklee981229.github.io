@@ -10,8 +10,8 @@ interface Props {
   name: string;
   description: string;
   example?: readonly string[];
-  /** Whose colours it wears: a tool's group (text, preview, image), or a game, an effect or a little world. */
-  kind: 'text' | 'preview' | 'image' | 'game' | 'effect' | 'world';
+  /** Whose colours it wears: a tool's group (text, preview, image, misc), or a game, an effect or a little world. */
+  kind: 'text' | 'preview' | 'image' | 'misc' | 'game' | 'effect' | 'world';
 }
 
 const { href, icon, name, description, example, kind } = Astro.props;
@@ -37,6 +37,7 @@ const Tag = href ? 'a' : 'div';
   .text { --from: var(--kind-text-from); --to: var(--kind-text-to); --base: var(--kind-text-base); }
   .preview { --from: var(--kind-preview-from); --to: var(--kind-preview-to); --base: var(--kind-preview-base); }
   .image { --from: var(--kind-image-from); --to: var(--kind-image-to); --base: var(--kind-image-base); }
+  .misc { --from: var(--kind-misc-from); --to: var(--kind-misc-to); --base: var(--kind-misc-base); }
   .game { --from: var(--kind-game-from); --to: var(--kind-game-to); --base: var(--kind-game-base); }
   .effect { --from: var(--kind-effect-from); --to: var(--kind-effect-to); --base: var(--kind-effect-base); }
   .world { --from: var(--kind-world-from); --to: var(--kind-world-to); --base: var(--kind-world-base); }

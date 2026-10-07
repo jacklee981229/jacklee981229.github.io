@@ -1,0 +1,159 @@
+---
+// Jack's Exact Time, like time.is: this device's clock checked against the site's server (exact-time.js), then the
+// exact time big, where the visitor is, the date and its week, and six cities' times. The times are all filled in by
+// the browser: the page is built without them.
+import ToolShell from '../../components/ToolShell.astro';
+import { CITIES } from '../../lib/lab/exact-time.js';
+---
+<ToolShell slug="exact-time">
+  <div class="exact">
+    <section class="panel clock" aria-label="The exact time" data-clock>
+      <p class="verdict" data-verdict data-level="checking"><strong data-title>Checking your clock…</strong><span data-detail></span></p>
+      <p class="where" data-where></p>
+      <p class="face"><span data-hours>--</span><i>:</i><span data-minutes>--</span><i>:</i><span data-seconds>--</span><small data-half></small></p>
+      <p class="date"><span data-date></span><span class="week"><span class="dot" aria-hidden="true"> · </span><span data-week></span></span></p>
+      <div class="controls">
+        <fieldset class="choices">
+          <legend class="visually-hidden">Clock</legend>
+          <div class="pills">
+            <label class="pill"><input class="visually-hidden" type="radio" name="hours" value="24" checked />24-hour</label>
+            <label class="pill"><input class="visually-hidden" type="radio" name="hours" value="12" />12-hour</label>
+          </div>
+        </fieldset>
+        <button type="button" class="button" data-full hidden>Full screen</button>
+      </div>
+    </section>
+    <ul class="world" aria-label="Around the world">
+      {CITIES.map(([name, zone]) => <li class="panel" data-zone={zone}><b>{name}</b><span data-time>--:--</span><em data-day></em></li>)}
+    </ul>
+  </div>
+</ToolShell>
+
+<script>
+  import { dayWord, faceOf, offsetOf, placeOf, readTimer, verdictOf } from '../../lib/lab/exact-time.js';
+  import { offsetName } from '../../lib/lab/timestamp.js';
+
+  const one = (selector: string) => document.querySelector<HTMLElement>(selector)!;
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  /** The server's clock minus this device's, once checked: the time shown is the device's corrected by it. */
+  let offset = 0;
+  let twelve = false;
+  try { twelve = localStorage.getItem('clock-hours') === '12'; } catch { /* the 24-hour clock, then */ }
+
+  const show = () => {
+    const now = Date.now() + offset;
+    const face = faceOf(now, zone, twelve);
+    one('[data-hours]').textContent = face.hours;
+    one('[data-minutes]').textContent = face.minutes;
+    one('[data-seconds]').textContent = face.seconds;
+    one('[data-half]').textContent = face.half;
+    one('[data-date]').textContent = face.date;
+    one('[data-week]').textContent = `Week ${face.week}`;
+    for (const city of document.querySelectorAll<HTMLElement>('[data-zone]')) {
+      const there = faceOf(now, city.dataset.zone, twelve);
+      city.querySelector('[data-time]')!.textContent = `${there.hours}:${there.minutes}${there.half && ` ${there.half}`}`;
+      city.querySelector('[data-day]')!.textContent = dayWord(there.day, face.day);
+    }
+  };
+  // On each new second of the exact time.
+  const tick = () => {
+    show();
+    setTimeout(tick, 1000 - ((Date.now() + offset) % 1000));
+  };
+  one('[data-where]').textContent = `Time in ${placeOf(zone)}, ${offsetName(Date.now(), zone).replace('GMT', 'UTC')}`;
+  tick();
+
+  // The 24- or 12-hour clock, kept in this browser.
+  for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="hours"]')) {
+    radio.checked = (radio.value === '12') === twelve;
+    radio.addEventListener('change', () => {
+      twelve = radio.value === '12';
+      try { localStorage.setItem('clock-hours', radio.value); } catch { /* only for this visit, then */ }
+      show();
+    });
+  }
+
+  // Full screen, where the browser can (iPhones can't).
+  const full = one('[data-full]');
+  if (document.fullscreenEnabled) {
+    full.hidden = false;
+    full.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : one('[data-clock]').requestFullscreen()));
+    document.addEventListener('fullscreenchange', () => { full.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
+  }
+
+  // The check: a few quick asks of this page's headers, keeping the surest. GitHub Pages' CDN stamps each answer with
+  // when the ask reached it (X-Timer); a local preview doesn't, so there the device's time stays.
+  const check = async () => {
+    let best: ReturnType<typeof offsetOf> | null = null;
+    for (let i = 0; i < 4; i++) {
+      const sent = Date.now();
+      const start = performance.now();
+      const answer = await fetch(location.pathname, { method: 'HEAD', cache: 'no-store' });
+      const timer = readTimer(answer.headers.get('x-timer'));
+      if (!timer) return null;
+      const found = offsetOf({ sent, answered: sent + (performance.now() - start), ...timer });
+      if (!best || found.within < best.within) best = found;
+    }
+    return best;
+  };
+  const say = (level: string, title: string, detail: string) => {
+    one('[data-verdict]').dataset.level = level;
+    one('[data-title]').textContent = title;
+    one('[data-detail]').textContent = detail;
+  };
+  check()
+    .then((best) => {
+      if (!best) return say('unknown', "Couldn't check your clock here.", "This is your device's time.");
+      offset = best.offset;
+      const verdict = verdictOf(best.offset, best.within);
+      say(verdict.level, verdict.title, verdict.detail);
+      show();
+    })
+    .catch(() => say('unknown', "Couldn't check your clock.", "This is your device's time."));
+</script>
+
+<style>
+  .exact { display: grid; gap: var(--space-5); }
+  .clock { display: grid; justify-items: center; padding: var(--space-6) var(--space-6) var(--space-5); text-align: center; }
+  /* The verdict with a light in the town's traffic colours: go when exact, wait when close, stop when off. */
+  .verdict { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: var(--space-1) var(--space-2); margin: 0; font-size: var(--text-md); }
+  .verdict strong { display: inline-flex; align-items: center; gap: var(--space-2); font-weight: 800; }
+  .verdict strong::before { content: ''; flex: none; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--muted); }
+  .verdict[data-level='exact'] strong::before { background: var(--signal-go); }
+  .verdict[data-level='close'] strong::before { background: var(--signal-wait); }
+  .verdict[data-level='off'] strong::before { background: var(--signal-stop); }
+  .verdict span { color: var(--muted); font-size: var(--text-sm); }
+  .where { margin: var(--space-4) 0 0; color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  /* As big as the card allows, AM or PM included; figures of one width, so the time doesn't shift as it ticks. */
+  .face { margin: 0; font-size: clamp(3rem, 15vw, 12.5rem); font-weight: 900; line-height: 1; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .face i { position: relative; top: -0.07em; padding: 0 0.02em; color: var(--muted); font-style: normal; font-weight: 700; }
+  .face small { margin-left: 0.15em; color: var(--muted); font-size: 0.28em; letter-spacing: 0; }
+  .date { margin: var(--space-2) 0 0; font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.01em; }
+  .week { color: var(--muted); font-weight: 650; white-space: nowrap; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); margin-top: var(--space-5); }
+  [data-full][hidden] { display: none; }
+  .world { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+  .world li { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); }
+  .world b { font-size: var(--text-sm); font-weight: 800; }
+  .world span { font-size: var(--text-lg); font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .world em { color: var(--muted); font-size: var(--text-xs); font-style: normal; font-weight: 650; }
+  /* Full screen: the card alone, the time as big as the screen allows. */
+  .clock:fullscreen { align-content: center; border: 0; border-radius: 0; }
+  .clock:fullscreen .face { font-size: min(16vw, 40vh); }
+
+  @media (max-width: 959px) {
+    .world { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  /* Narrow phones: the switch alone on its row, as Full screen would wrap under it; turned sideways, it's back. */
+  @media (max-width: 479px) {
+    [data-full] { display: none; }
+  }
+  @media (max-width: 719px) {
+    .clock { padding: var(--space-5) var(--space-4); }
+    .date { font-size: var(--text-md); }
+    /* The week on a line of its own, rather than wrapping on its own with a dot before it. */
+    .week { display: block; }
+    .week .dot { display: none; }
+    .world { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>

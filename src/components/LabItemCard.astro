@@ -15,7 +15,7 @@ const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/assets/world
 const picture = world && pictures[`/src/assets/worlds/${world.slug}.png`]?.default;
 ---
 {tool ? (
-  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={tool.group as 'text' | 'preview' | 'image'} />
+  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={tool.group as 'text' | 'preview' | 'image' | 'misc'} />
 ) : post ? (
   <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)} kind="game">
     <Cover slot="cover" post={post} variant="mini" />

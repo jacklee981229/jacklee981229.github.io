@@ -70,3 +70,4 @@
 - 2026-10-07 design: Put every Lab effect on a card
 - 2026-10-07 new: Added a calendar of this month's changes to [About](/about/)
 - 2026-10-07 design: Gave the mini games new colours, with a switch back to the old green
+- 2026-10-07 new: Added Jack's Exact Time to the [Lab](/lab/)

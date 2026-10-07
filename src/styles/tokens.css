@@ -105,6 +105,9 @@
   --kind-world-from: #40C8E0;
   --kind-world-to: #0A84FF;
   --kind-world-base: #164E63;
+  --kind-misc-from: #2DD4BF;
+  --kind-misc-to: #0F766E;
+  --kind-misc-base: #134E4A;
   /* The Lab's games, each on a colour card of its own like the home page's, the same in both themes: 2048 on Now's
      violet, Snake on the Lab's green, Blocks on Travel's blue, Catch the Cat on the Collection's orange. On them sit
      white, see-through white and these soft colours (with Now's), 2048's numbers in a deep violet, and the cat, dark

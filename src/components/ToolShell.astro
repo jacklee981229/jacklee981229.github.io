@@ -9,8 +9,8 @@ import '../styles/lab.css';
 
 interface Props {
   slug: string;
-  /** For example "Your text stays in your browser." */
-  stays: string;
+  /** For example "Your text stays in your browser." Left out, the top shows no line under the tool's name. */
+  stays?: string;
 }
 
 const { slug, stays } = Astro.props;
@@ -18,7 +18,7 @@ const tool = toolBySlug(slug);
 ---
 <Base title={tool.name} description={tool.description}>
   <div class="wrap page">
-    <LabHeader title={tool.name} description={`${tool.description} ${stays}`} />
+    <LabHeader title={tool.name} description={stays && `${tool.description} ${stays}`} />
     <slot />
   </div>
   <LabMore current={slug} />

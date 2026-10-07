@@ -5,6 +5,7 @@ export const GROUPS = [
   { id: 'text', name: 'Text' },
   { id: 'preview', name: 'Preview' },
   { id: 'image', name: 'Images' },
+  { id: 'misc', name: 'Misc' },
 ];
 
 /**
@@ -24,6 +25,7 @@ export const TOOLS = [
   { slug: 'resize-image', name: 'Resize Image', description: "Change an image's size, keeping its shape.", group: 'image', icon: 'resize', status: 'soon', example: ['4032 × 3024', '1200 × 900'] },
   { slug: 'compress-image', name: 'Compress Image', description: 'Make an image file smaller.', group: 'image', icon: 'compress', status: 'soon', example: ['3.2 MB', '480 KB'] },
   { slug: 'qr-code', name: 'Make a QR Code', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'soon', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
+  { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
 ];
 
 /**
