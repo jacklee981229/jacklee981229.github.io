@@ -1,4 +1,5 @@
-/* 2048 on the "Jack's 2048" post (game.js). Tiles are shades of the Games topic colour, from faint to full.
+/* 2048 on the "Jack's 2048" post (game.js). The board is a violet card with see-through white and soft tiles; the
+   switch on the page's top card can bring back the old look, tiles in shades of the Games green (the end of this file).
    Every rule starts with .g2048, so the post text's own styles (.prose p and so on) can't win over these. */
 
 /* The game on the left and its leaderboard on the right, out to the page's edge like the top card above; on
@@ -18,7 +19,7 @@
 .g2048 .g2048-score strong { font-size: var(--text-md); font-weight: 800; font-variant-numeric: tabular-nums; }
 /* Wide enough for the running time, so the boxes beside it never shift as its digits change. */
 .g2048 .g2048-time { min-width: 7.25rem; }
-.g2048 .g2048-gain { position: absolute; right: 0; bottom: 50%; left: 0; color: var(--lane-games); font-size: var(--text-sm); font-weight: 800; pointer-events: none; animation: g2048-gain 700ms ease-out forwards; }
+.g2048 .g2048-gain { position: absolute; right: 0; bottom: 50%; left: 0; color: var(--game-accent); font-size: var(--text-sm); font-weight: 800; pointer-events: none; animation: g2048-gain 700ms ease-out forwards; }
 .g2048 .g2048-buttons { display: flex; gap: var(--space-2); }
 .g2048 .button { color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 /* Undo with no move to take back. */
@@ -44,15 +45,19 @@
   .g2048 .g2048-label-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
-.g2048 .g2048-board { position: relative; padding: var(--gap); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
+/* The game's colours. The accent is for what sits on the page (the score's rise, the leaderboard's latest row). */
+.g2048 { --board: linear-gradient(135deg, var(--now-from), var(--now-to)); --empty: color-mix(in srgb, var(--on-colour) 12%, transparent); --game-accent: var(--now-to); }
+:root[data-theme='dark'] .g2048 { --game-accent: var(--accent-about); }
+
+.g2048 .g2048-board { position: relative; padding: var(--gap); border-radius: var(--radius-lg); background: var(--board); touch-action: none; }
 .g2048 .g2048-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .g2048 .g2048-cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
-.g2048 .g2048-cells > div { aspect-ratio: 1; border-radius: var(--radius-md); background: color-mix(in srgb, var(--lane-games) 9%, var(--surface)); }
+.g2048 .g2048-cells > div { aspect-ratio: 1; border-radius: var(--radius-md); background: var(--empty); }
 .g2048 .g2048-tiles { position: absolute; inset: var(--gap); }
 
 /* A tile is placed by --x and --y; changing them slides it (transform only, so it stays on the GPU). */
-.g2048 .g2048-tile { --fg: var(--ink); position: absolute; top: 0; left: 0; width: calc((100% - 3 * var(--gap)) / 4); aspect-ratio: 1; transform: translate(calc(var(--x) * (100% + var(--gap))), calc(var(--y) * (100% + var(--gap)))); transition: transform var(--slide) ease-in-out; will-change: transform; }
-.g2048 .g2048-tile span { display: grid; place-items: center; width: 100%; height: 100%; border-radius: var(--radius-md); background: color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); color: var(--fg); font-size: 10.5cqw; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.g2048 .g2048-tile { --fg: var(--game-words); position: absolute; top: 0; left: 0; width: calc((100% - 3 * var(--gap)) / 4); aspect-ratio: 1; transform: translate(calc(var(--x) * (100% + var(--gap))), calc(var(--y) * (100% + var(--gap)))); transition: transform var(--slide) ease-in-out; will-change: transform; }
+.g2048 .g2048-tile span { display: grid; place-items: center; width: 100%; height: 100%; border-radius: var(--radius-md); background: var(--bg); color: var(--fg); font-size: 10.5cqw; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
 .g2048 .d3 span { font-size: 8.5cqw; }
 .g2048 .d4 span { font-size: 6.8cqw; }
 .g2048 .d5 span { font-size: 5.4cqw; }
@@ -61,6 +66,26 @@
 .g2048 .is-new span { animation: g2048-appear 180ms ease-out both; }
 .g2048 .is-merged span { animation: g2048-pop 180ms ease-out both; }
 
+/* Each value's tile: see-through white for 2 and 4, then soft colours warming up to pink at 2048, and deep violet
+   beyond. White numbers on the see-through, the pink and the deep violet, deep violet ones on the rest. Measured:
+   every number at least 3.2:1, all of them large text. */
+.g2048 .v2 { --bg: color-mix(in srgb, var(--on-colour) 14%, transparent); --fg: var(--on-colour); }
+.g2048 .v4 { --bg: color-mix(in srgb, var(--on-colour) 24%, transparent); --fg: var(--on-colour); }
+.g2048 .v8 { --bg: var(--now-soft); }
+.g2048 .v16 { --bg: var(--on-colour); }
+.g2048 .v32 { --bg: var(--now-third); }
+.g2048 .v64 { --bg: var(--game-mint); }
+.g2048 .v128 { --bg: var(--now-first); }
+.g2048 .v256 { --bg: var(--game-amber); }
+.g2048 .v512 { --bg: var(--accent-collection); }
+.g2048 .v1024 { --bg: var(--game-coral); }
+.g2048 .v2048 { --bg: var(--accent-writing); --fg: var(--on-colour); }
+.g2048 .vbig { --bg: var(--game-words); --fg: var(--on-colour); }
+
+/* The old look, which the switch on the page's top card brings back (data-game-look on the page): the board and the
+   tiles in shades of the Games green, from faint to full. */
+:root[data-game-look='old'] .g2048 { --board: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); --empty: color-mix(in srgb, var(--lane-games) 9%, var(--surface)); --game-accent: var(--lane-games); }
+:root[data-game-look='old'] .g2048 .g2048-tile { --bg: color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); --fg: var(--ink); }
 .g2048 .v2 { --p: 14%; }
 .g2048 .v4 { --p: 24%; }
 .g2048 .v8 { --p: 36%; }
@@ -72,11 +97,11 @@
 .g2048 .v512 { --p: 88%; }
 .g2048 .v1024 { --p: 94%; }
 .g2048 .v2048 { --p: 100%; }
-.g2048 .vbig span { background: var(--ink); color: var(--surface); }
+:root[data-game-look='old'] .g2048 .vbig { --bg: var(--ink); --fg: var(--surface); }
 /* Numbers switch to the page colour once the green behind them is strong: from 512 in the light theme,
    and from 64 in the dark theme, whose green is light. Measured: every value is at least 3.9:1 in both themes. */
-.g2048 :is(.v512, .v1024, .v2048) { --fg: var(--surface); }
-:root[data-theme='dark'] .g2048 :is(.v64, .v128, .v256) { --fg: var(--surface); }
+:root[data-game-look='old'] .g2048 :is(.v512, .v1024, .v2048) { --fg: var(--surface); }
+:root[data-game-look='old'][data-theme='dark'] .g2048 :is(.v64, .v128, .v256) { --fg: var(--surface); }
 
 .g2048 .g2048-message { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: var(--space-3); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 84%, transparent); text-align: center; animation: g2048-fade 300ms ease both; }
 .g2048 .g2048-message[hidden] { display: none; }

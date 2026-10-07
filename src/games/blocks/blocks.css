@@ -1,5 +1,6 @@
-/* Blocks on the "Jack's Blocks" post (game.js): the pieces in shades of the Games topic colour, one shade each.
-   Every rule starts with .blk, so the post text's own styles (.prose p and so on) can't win over these. */
+/* Blocks on the "Jack's Blocks" post (game.js). The well is a blue card with each piece in a soft colour of its own;
+   the switch on the page's top card can bring back the old look, the pieces in shades of the Games green (the end of
+   this file). Every rule starts with .blk, so the post text's own styles (.prose p and so on) can't win over these. */
 
 /* A cell's size: as big as fits the screen, in height (the whole well of 20 rows, once the page glides to it at the
    start) and in width (10 columns, with the scores beside them), between a small and a comfortable size. The columns
@@ -13,21 +14,25 @@
 .blk .blk-main { display: flex; align-items: flex-start; gap: var(--space-3); }
 .blk .button { color: var(--ink); cursor: pointer; }
 
-.blk .blk-board { position: relative; flex: none; padding: 6px; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
+/* The game's colours: the well, an empty cell, the flash of a cleared row, and the accent for what sits on the page
+   (the leaderboard's latest row). */
+.blk { --board: linear-gradient(160deg, var(--travel-from), var(--travel-to)); --empty: color-mix(in srgb, var(--on-colour) 10%, transparent); --flash: var(--on-colour); --game-accent: var(--accent-travel); }
+
+.blk .blk-board { position: relative; flex: none; padding: 6px; border-radius: var(--radius-lg); background: var(--board); touch-action: none; }
 .blk .blk-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .blk .blk-grid { display: grid; grid-template-columns: repeat(10, var(--cell)); grid-auto-rows: var(--cell); gap: 2px; }
-.blk .blk-cell { border-radius: var(--radius-xs); background: color-mix(in srgb, var(--lane-games) 7%, var(--surface)); }
-/* One shade of the Games colour for each piece, from full to light. */
-.blk .p-I { --p: 100%; }
-.blk .p-O { --p: 86%; }
-.blk .p-T { --p: 72%; }
-.blk .p-S { --p: 60%; }
-.blk .p-Z { --p: 50%; }
-.blk .p-J { --p: 40%; }
-.blk .p-L { --p: 32%; }
-.blk .blk-cell:is(.p-I, .p-O, .p-T, .p-S, .p-Z, .p-J, .p-L) { background: color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); }
-/* Where the piece will land: an outline in its shade. */
-.blk .blk-cell.blk-cell.is-ghost { background: transparent; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); opacity: 0.7; }
+.blk .blk-cell { border-radius: var(--radius-xs); background: var(--empty); }
+/* A soft colour of its own for each piece. */
+.blk .p-I { --piece: var(--on-colour); }
+.blk .p-O { --piece: var(--now-first); }
+.blk .p-T { --piece: var(--now-soft); }
+.blk .p-S { --piece: var(--now-third); }
+.blk .p-Z { --piece: var(--game-pink); }
+.blk .p-J { --piece: var(--game-sky); }
+.blk .p-L { --piece: var(--game-peach); }
+.blk .blk-cell:is(.p-I, .p-O, .p-T, .p-S, .p-Z, .p-J, .p-L) { background: var(--piece); }
+/* Where the piece will land: an outline in its colour. */
+.blk .blk-cell.blk-cell.is-ghost { background: transparent; box-shadow: inset 0 0 0 2px var(--piece); opacity: 0.7; }
 .blk .is-clearing { animation: blk-clear 180ms ease-out forwards; }
 
 .blk .blk-side { display: grid; gap: var(--space-2); width: 6.5rem; }
@@ -43,6 +48,9 @@
 /* An empty Hold box keeps the height of a piece; once used, it fades until the piece sets. */
 .blk .blk-mini:empty { height: calc(2 * var(--mini) + 2px); }
 .blk .blk-next.is-used .blk-mini { opacity: 0.35; }
+/* The next and held pieces sit in a small tray of the well's blue, as their soft colours would fade on the page, each
+   in the middle of a tray the size of the longest piece, so the box never changes size. */
+:root:not([data-game-look='old']) .blk .blk-mini { width: calc(4 * var(--mini) + 6px + 8px); height: calc(2 * var(--mini) + 2px + 8px); padding: 4px; justify-content: center; align-content: center; border-radius: var(--radius-xs); background: var(--board); }
 .blk .blk-side .button { justify-content: center; margin-top: var(--space-1); padding-inline: var(--space-2); }
 
 /* The buttons under the well, only where there's a touch screen and no mouse. */
@@ -60,5 +68,17 @@
 .blk .blk-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
 .blk .blk-help { max-width: 30rem; margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); }
 
-@keyframes blk-clear { 40% { background: var(--ink); } to { background: var(--ink); opacity: 0; transform: scaleY(0.2); } }
+/* The old look, which the switch on the page's top card brings back (data-game-look on the page): the well and the
+   pieces in shades of the Games green, one shade each, from full to light. */
+:root[data-game-look='old'] .blk { --board: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); --empty: color-mix(in srgb, var(--lane-games) 7%, var(--surface)); --flash: var(--ink); --game-accent: var(--lane-games); }
+:root[data-game-look='old'] .blk :is(.p-I, .p-O, .p-T, .p-S, .p-Z, .p-J, .p-L) { --piece: color-mix(in srgb, var(--lane-games) var(--p), var(--surface)); }
+.blk .p-I { --p: 100%; }
+.blk .p-O { --p: 86%; }
+.blk .p-T { --p: 72%; }
+.blk .p-S { --p: 60%; }
+.blk .p-Z { --p: 50%; }
+.blk .p-J { --p: 40%; }
+.blk .p-L { --p: 32%; }
+
+@keyframes blk-clear { 40% { background: var(--flash); } to { background: var(--flash); opacity: 0; transform: scaleY(0.2); } }
 @keyframes blk-fade { from { opacity: 0; } }

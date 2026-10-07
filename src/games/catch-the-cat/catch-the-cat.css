@@ -1,5 +1,7 @@
-/* Catch the Cat on its post (game.js): dots in shades of the Games topic colour, like 2048.
-   Every rule starts with .ctc, so the post text's own styles (.prose p and so on) can't win over these. */
+/* Catch the Cat on its post (game.js). The board is an orange card with see-through white dots, blocked ones deep
+   orange, and a dark cat; the switch on the page's top card can bring back the old look, dots in shades of the Games
+   green (the end of this file). Every rule starts with .ctc, so the post text's own styles (.prose p and so on) can't
+   win over these. */
 
 /* As big as the other games (--game-width), and never taller than the screen with its buttons: the board is about
    0.85 times as tall as it is wide. */
@@ -11,30 +13,33 @@
 .ctc .ctc-score strong { font-size: var(--text-md); font-weight: 800; font-variant-numeric: tabular-nums; }
 .ctc .button { color: var(--ink); cursor: pointer; }
 
-.ctc .ctc-board { position: relative; padding: 3%; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 16%, var(--surface)); }
+/* The game's colours: the board, a free dot (and under the mouse), a blocked one, the cat and its eyes, and the
+   keyboard's ring, dark like the cat as the page's blue would vanish on the orange. Free and blocked dots are at
+   least 3:1 apart. */
+.ctc { --board: linear-gradient(135deg, var(--collection-from), var(--collection-to)); --dot: color-mix(in srgb, var(--on-colour) 26%, transparent); --dot-hover: color-mix(in srgb, var(--on-colour) 50%, transparent); --blocked: var(--collection-top-to); --cat: var(--game-cat); --cat-eye: var(--on-colour); --ring: var(--game-cat); }
+
+.ctc .ctc-board { position: relative; padding: 3%; border-radius: var(--radius-lg); background: var(--board); }
 /* No outline on a click: the browser's own style for SVG draws a thick ring on any focus, mouse included. */
 /* No tap highlight: phones would flash a blue patch over each dot tapped, and the dot turning dark already shows it. */
 .ctc svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; outline: none; -webkit-tap-highlight-color: transparent; }
-.ctc svg:focus-visible { outline: 2px solid var(--focus); outline-offset: 8px; border-radius: var(--radius-xs); }
-/* Free dots are pale, blocked ones take the full Games colour (at least 3:1 apart in both themes). */
-.ctc .ctc-dot { fill: color-mix(in srgb, var(--lane-games) 36%, var(--surface)); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill 150ms ease; }
-.ctc .ctc-dot.is-blocked { fill: var(--lane-games); cursor: default; }
+.ctc svg:focus-visible { outline: 2px solid var(--ring); outline-offset: 8px; border-radius: var(--radius-xs); }
+.ctc .ctc-dot { fill: var(--dot); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill 150ms ease; }
+.ctc .ctc-dot.is-blocked { fill: var(--blocked); cursor: default; }
 .ctc .ctc-dot.is-new { animation: ctc-pop 220ms ease-out; }
 /* Mouse only: a tapped dot on a touch screen would otherwise stay highlighted. */
 @media (hover: hover) {
-  .ctc .ctc-dot:not(.is-blocked):hover { fill: color-mix(in srgb, var(--lane-games) 62%, var(--surface)); }
+  .ctc .ctc-dot:not(.is-blocked):hover { fill: var(--dot-hover); }
 }
-.ctc .ctc-cursor { fill: none; stroke: var(--focus); stroke-width: 0.07; opacity: 0; pointer-events: none; }
+.ctc .ctc-cursor { fill: none; stroke: var(--ring); stroke-width: 0.07; opacity: 0; pointer-events: none; }
 .ctc svg:focus-visible .ctc-cursor { opacity: 1; }
 
 /* The cat: one pose shows at a time, sitting unless an animation below swaps it (every 70ms in a stride).
    steps(1, end) holds each keyframe until the next, so the poses swap like sprite frames. */
 .ctc .ctc-cat { pointer-events: none; transition: transform var(--move) ease-in-out, opacity var(--move) ease; }
 .ctc .ctc-cat.is-gone { opacity: 0; }
-.ctc .ctc-ink { fill: var(--ink); }
-.ctc .ctc-line { fill: none; stroke: var(--ink); stroke-width: 0.075; stroke-linecap: round; }
-/* The page colour: the opposite of the cat's in both themes, so the eyes always show. */
-.ctc .ctc-eye { fill: var(--paper); }
+.ctc .ctc-ink { fill: var(--cat); }
+.ctc .ctc-line { fill: none; stroke: var(--cat); stroke-width: 0.075; stroke-linecap: round; }
+.ctc .ctc-eye { fill: var(--cat-eye); }
 .ctc .ctc-pose { visibility: hidden; }
 .ctc .ctc-sit { visibility: visible; }
 /* Sitting still, the tail sways and the cat blinks now and then. */
@@ -67,6 +72,11 @@
 .ctc .ctc-message p { margin: 0; font-size: var(--text-xl); font-weight: 800; letter-spacing: -0.02em; }
 .ctc .ctc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
 .ctc .ctc-help { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }
+
+/* The old look, which the switch on the page's top card brings back (data-game-look on the page): the board in a
+   faint Games green, free dots pale and blocked ones in the full green (at least 3:1 apart in both themes), the cat in
+   the page's ink with eyes in the page colour, the opposite of the cat's, so they always show. */
+:root[data-game-look='old'] .ctc { --board: color-mix(in srgb, var(--lane-games) 16%, var(--surface)); --dot: color-mix(in srgb, var(--lane-games) 36%, var(--surface)); --dot-hover: color-mix(in srgb, var(--lane-games) 62%, var(--surface)); --blocked: var(--lane-games); --cat: var(--ink); --cat-eye: var(--paper); --ring: var(--focus); }
 
 @keyframes ctc-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes ctc-fade { from { opacity: 0; } }

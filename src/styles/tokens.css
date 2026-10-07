@@ -105,6 +105,18 @@
   --kind-world-from: #40C8E0;
   --kind-world-to: #0A84FF;
   --kind-world-base: #164E63;
+  /* The Lab's games, each on a colour card of its own like the home page's, the same in both themes: 2048 on Now's
+     violet, Snake on the Lab's green, Blocks on Travel's blue, Catch the Cat on the Collection's orange. On them sit
+     white, see-through white and these soft colours (with Now's), 2048's numbers in a deep violet, and the cat, dark
+     on its orange in both themes. The switch on a game's top card brings back the old Games green instead. */
+  --game-words: #2E1A87;
+  --game-mint: #6EE7B7;
+  --game-amber: #FFC53D;
+  --game-coral: #FF7A59;
+  --game-pink: #FFB3C7;
+  --game-sky: #BDE3FF;
+  --game-peach: #FFC98B;
+  --game-cat: #172030;
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
      things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
      changes in the Changelog's teal, the site in the Lab's green. */

@@ -1,5 +1,7 @@
-/* Snake on the "Jack's Snake" post (game.js): the snake in the Games topic colour, the food in the page's ink.
-   Every rule starts with .snk, so the post text's own styles (.prose p and so on) can't win over these. */
+/* Snake on the "Jack's Snake" post (game.js). The board is a green card with a white snake and yellow food; the
+   switch on the page's top card can bring back the old look, the snake in the Games green and the food in the page's
+   ink (the end of this file). Every rule starts with .snk, so the post text's own styles (.prose p and so on) can't
+   win over these. */
 
 /* The game on the left and its leaderboard on the right, out to the page's edge like the top card above; on
    narrower screens, the leaderboard goes under it. */
@@ -18,35 +20,39 @@
 .snk .snk-score strong { font-size: var(--text-md); font-weight: 800; font-variant-numeric: tabular-nums; }
 .snk .button { color: var(--ink); cursor: pointer; }
 
-.snk .snk-board { position: relative; padding: 2.5%; border-radius: var(--radius-lg); background: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); touch-action: none; }
+/* The game's colours: the board, the field inside it and its faint cells, the snake's body, head and eyes, the food,
+   and the words before play starts. */
+.snk { --board: linear-gradient(135deg, var(--kind-game-from), var(--kind-game-to)); --field: var(--on-colour-chip); --grid: color-mix(in srgb, var(--on-colour) 8%, transparent); --body: color-mix(in srgb, var(--on-colour) 80%, transparent); --head: var(--on-colour); --eye: var(--kind-game-to); --food: var(--now-first); --hint: var(--on-colour); }
+
+.snk .snk-board { position: relative; padding: 2.5%; border-radius: var(--radius-lg); background: var(--board); touch-action: none; }
 .snk .snk-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-.snk .snk-field { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-md); background: color-mix(in srgb, var(--lane-games) 8%, var(--surface)); }
+.snk .snk-field { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-md); background: var(--field); }
 
 /* The grid the snake moves on: faint cells the size and shape of its parts. */
 .snk .snk-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--size), 1fr); grid-template-rows: repeat(var(--size), 1fr); }
-.snk .snk-grid i { margin: 7%; border-radius: 30%; background: color-mix(in srgb, var(--lane-games) 14%, var(--surface)); }
+.snk .snk-grid i { margin: 7%; border-radius: 30%; background: var(--grid); }
 
 /* A part of the snake (or the food) is placed by --x and --y, in cells. No transition: it jumps there, old-school. */
 .snk .snk-part, .snk .snk-food { position: absolute; top: 0; left: 0; width: calc(100% / var(--size)); aspect-ratio: 1; transform: translate(calc(var(--x) * 100%), calc(var(--y) * 100%)); }
-.snk .snk-part::before { content: ''; position: absolute; inset: 7%; border-radius: 30%; background: color-mix(in srgb, var(--lane-games) 70%, var(--surface)); }
+.snk .snk-part::before { content: ''; position: absolute; inset: 7%; border-radius: 30%; background: var(--body); }
 .snk .snk-part.is-head { z-index: 1; }
-.snk .snk-part.is-head::before { inset: 2%; border-radius: 36%; background: var(--lane-games); }
+.snk .snk-part.is-head::before { inset: 2%; border-radius: 36%; background: var(--head); }
 /* Eyes on the side the head is facing (drawn facing right, then turned). */
 .snk .snk-eyes { position: absolute; inset: 0; }
 .snk [data-dir='down'] .snk-eyes { transform: rotate(90deg); }
 .snk [data-dir='left'] .snk-eyes { transform: rotate(180deg); }
 .snk [data-dir='up'] .snk-eyes { transform: rotate(-90deg); }
-.snk .snk-eyes i { position: absolute; right: 22%; width: 18%; aspect-ratio: 1; border-radius: 50%; background: var(--surface); }
+.snk .snk-eyes i { position: absolute; right: 22%; width: 18%; aspect-ratio: 1; border-radius: 50%; background: var(--eye); }
 .snk .snk-eyes i:first-child { top: 22%; }
 .snk .snk-eyes i:last-child { bottom: 22%; }
 
-.snk .snk-food::before { content: ''; position: absolute; inset: 24%; border-radius: 50%; background: var(--ink); animation: snk-pulse 900ms ease-in-out infinite alternate; }
+.snk .snk-food::before { content: ''; position: absolute; inset: 24%; border-radius: 50%; background: var(--food); animation: snk-pulse 900ms ease-in-out infinite alternate; }
 .snk .snk-food.is-new::before { animation: snk-appear 220ms ease-out, snk-pulse 900ms ease-in-out 220ms infinite alternate; }
 .snk .snk-food[hidden] { display: none; }
 .snk .is-crashed .is-head { animation: snk-shake 380ms ease-in-out; }
 
 /* Near the top of the board, as a big board's lower part can start below the screen's edge until play begins. */
-.snk .snk-hint { position: absolute; top: 22%; right: 0; left: 0; margin: 0; color: var(--ink); font-weight: 700; text-align: center; pointer-events: none; }
+.snk .snk-hint { position: absolute; top: 22%; right: 0; left: 0; margin: 0; color: var(--hint); font-weight: 700; text-align: center; pointer-events: none; }
 .snk .snk-hint[hidden] { display: none; }
 .snk .snk-message { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--surface) 84%, transparent); text-align: center; animation: snk-fade 300ms ease both; }
 .snk .snk-message[hidden] { display: none; }
@@ -59,6 +65,10 @@
 .snk .snk-mode input { width: 1.125rem; height: 1.125rem; margin: 0; accent-color: var(--lane-games); cursor: inherit; }
 .snk .snk-mode:has(input:disabled) { color: var(--muted); cursor: not-allowed; }
 .snk .snk-help { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-sm); text-align: center; }
+
+/* The old look, which the switch on the page's top card brings back (data-game-look on the page): the board in a
+   faint Games green, the snake in the full green, the food in the page's ink. */
+:root[data-game-look='old'] .snk { --board: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); --field: color-mix(in srgb, var(--lane-games) 8%, var(--surface)); --grid: color-mix(in srgb, var(--lane-games) 14%, var(--surface)); --body: color-mix(in srgb, var(--lane-games) 70%, var(--surface)); --head: var(--lane-games); --eye: var(--surface); --food: var(--ink); --hint: var(--ink); }
 
 @keyframes snk-pulse { from { transform: scale(0.86); } to { transform: scale(1.04); } }
 @keyframes snk-appear { from { transform: scale(0); } }

@@ -53,6 +53,7 @@ Read the code for how a part works; this says where to start.
 - Every game is as big as the window's height allows (`--game-width` in `tokens.css`), and the page glides to show the whole game when play starts (`bringIntoView` in `src/games/controls.js`). It fits the window while playing at every size under UI checks.
 - Keys act whenever the game is on screen, whatever has focus, but never while typing in a field or with a dialog open; off screen, the arrows scroll the page. A mouse click must not take the keys (prevent default on mousedown); keyboard play starts after Tab. Accept the keys people naturally try (R to hold a piece).
 - Simple and old-school over fancy (cell jumps, a faint grid), gentle difficulty, and ask before picking an animation style. Tap targets get `-webkit-tap-highlight-color: transparent`.
+- Every game has two looks: its own colour card (the default) and the old Games green, which the New colours | Old green switch on its top card brings back for all of them (`data-game-look="old"` on the page, kept in this browser; `src/components/games/GameLook.astro`). A new game needs both. Its picture on the Lab's card is a photo of its board in the new look.
 
 ## UI checks
 

@@ -1,0 +1,40 @@
+---
+// The switch between the games' two looks, on a game's top card: the new colours (each game on a colour card of its
+// own) or the old Games green. One choice for all the games, kept in this browser; their styles read it from
+// data-game-look="old" on the page.
+import Switch from '../Switch.astro';
+---
+<Switch name="game-look" label="The games' colours" choices={[{ value: 'new', label: 'New colours' }, { value: 'old', label: 'Old green' }]} />
+<script is:inline>
+  // Read while the page loads, before any game draws, so a game kept in the old green never shows the new colours first.
+  (function () {
+    var look;
+    try { look = localStorage.getItem('game-look'); } catch (e) {}
+    if (look !== 'old') return;
+    document.documentElement.dataset.gameLook = 'old';
+    document.querySelector('input[name="game-look"][value="old"]').checked = true;
+  })();
+</script>
+
+<script>
+  const inputs = [...document.querySelectorAll<HTMLInputElement>('input[name="game-look"]')];
+  const show = (look: string) => {
+    if (look === 'old') document.documentElement.dataset.gameLook = 'old';
+    else delete document.documentElement.dataset.gameLook;
+    for (const input of inputs) input.checked = input.value === look;
+  };
+  // A change shows at once and is kept for the other games.
+  for (const input of inputs) {
+    input.addEventListener('change', () => {
+      show(input.value);
+      try { localStorage.setItem('game-look', input.value); } catch {}
+    });
+  }
+  // Coming Back to this page (the browser keeps it as it was), follow a choice made on another game since.
+  addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    let look = 'new';
+    try { look = localStorage.getItem('game-look') === 'old' ? 'old' : 'new'; } catch {}
+    show(look);
+  });
+</script>

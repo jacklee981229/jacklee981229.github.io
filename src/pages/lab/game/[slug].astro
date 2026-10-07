@@ -4,6 +4,7 @@ import Base from '../../../layouts/Base.astro';
 import Blocks from '../../../components/games/Blocks.astro';
 import CatchTheCat from '../../../components/games/CatchTheCat.astro';
 import Game2048 from '../../../components/games/Game2048.astro';
+import GameLook from '../../../components/games/GameLook.astro';
 import Snake from '../../../components/games/Snake.astro';
 import LabHeader from '../../../components/LabHeader.astro';
 import LabMore from '../../../components/LabMore.astro';
@@ -31,7 +32,7 @@ if (!Game) throw new Error(`The Lab's game "${post.id}" has no game component. A
 ---
 <Base title={data.title} description={summaryOf(post)} image={coverOf(post)} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
   <div class="wrap page">
-    <LabHeader title={data.title} description={summaryOf(post)} back="/lab/#mini-games" />
+    <LabHeader title={data.title} description={summaryOf(post)} back="/lab/#mini-games"><GameLook /></LabHeader>
     <!-- .play is what the command palette's Fullscreen shows (SearchDialog.astro): the game alone, in the middle. -->
     <div class="prose"><div class="play" data-fullscreen="Play the game on the whole screen"><Game /></div><Content /></div>
   </div>
