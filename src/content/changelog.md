@@ -66,3 +66,5 @@
 - 2026-10-07 fix: Removed a faint line beside the current page in the menu
 - 2026-10-07 improved: Small tweaks
 - 2026-10-07 improved: Hid Surprise me for now
+- 2026-10-07 fix: Long lines of code now wrap on phones
+- 2026-10-07 design: Put every Lab effect on a card

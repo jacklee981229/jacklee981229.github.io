@@ -17,7 +17,7 @@ git init
 - *origin* is just a naming for your remote
 
 ```bash
-git remote add *origin* {url}
+git remote add origin {url}
 ```
 
 - fetch all from remote
@@ -30,7 +30,7 @@ git fetch --all
 - *--hard* will delete all your local changes!
 
 ```bash
-git reset --hard *origin*/{branch_name}
+git reset --hard origin/{branch_name}
 ```
 
 - show list of branches

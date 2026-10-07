@@ -24,8 +24,7 @@ const days = daysBetween(new Date(), new Date(`${SITE.started}T00:00:00+08:00`))
 <script>
   import { showRunningDays } from '../lib/running.js';
   import { showVisits } from '../lib/visits.js';
-  import Go from './Go.astro';
-import { SITE } from '../site';
+  import { SITE } from '../site';
 
   showRunningDays();
   // The visit count, on the live site only; a local preview says so.

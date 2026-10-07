@@ -47,4 +47,8 @@
 
 @media (max-width: 719px) {
   .prose { font-size: 1.0625rem; }
+  /* Phones: a long line of code wraps rather than hiding its end off the side, the wrapped part lined up after the
+     line's number. Each line is an inline block, so the line breaks between them stay the only ones. */
+  .prose .astro-code { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .prose .astro-code .line { display: inline-block; padding-left: 3.25rem; text-indent: -3.25rem; }
 }

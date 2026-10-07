@@ -1,6 +1,6 @@
 ---
-// One effect (EFFECTS in lab/tools.js): a small top, so the stage gets the window, then the stage, then other Lab
-// items.
+// One effect (EFFECTS in lab/tools.js): a small top, so the stage gets the window, then the stage on a card, then
+// other Lab items. Laid out like a Little World's page.
 import Base from '../../../layouts/Base.astro';
 import EffectStage from '../../../components/EffectStage.astro';
 import LabHeader from '../../../components/LabHeader.astro';
@@ -21,11 +21,15 @@ const { effect } = Astro.props;
   <div class="wrap top">
     <LabHeader compact title={effect.name} description={`${effect.description} ${effect.hint}`} back="/lab/#effects" />
   </div>
-  <EffectStage slug={effect.slug} label={effect.description} />
+  <div class="wrap effect">
+    <EffectStage slug={effect.slug} label={effect.description} />
+  </div>
   <LabMore current={effect.slug} />
 </Base>
 
 <style>
   /* Less room above than other pages: the stage below wants the height. */
   .top { padding-top: var(--space-5); }
+  /* The effect lies on a card (EffectStage.astro), with room under it before the band. */
+  .effect { padding-bottom: var(--space-6); }
 </style>
