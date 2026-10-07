@@ -96,6 +96,19 @@
   --about-top-to: #6B21A8;
   --changelog-top-from: #0E7490;
   --changelog-top-to: #155E75;
+  /* The guestbook's amber: its page's top and the home page's Guestbook card. */
+  --guestbook-top-from: #B45309;
+  --guestbook-top-to: #92400E;
+  /* The guestbook's notes, on paper in six colours whatever the theme, with dark ink. */
+  --note-1: #FDE68A;
+  --note-2: #FBCFE8;
+  --note-3: #BBF7D0;
+  --note-4: #BAE6FD;
+  --note-5: #DDD6FE;
+  --note-6: #FED7AA;
+  --note-ink: #2A2116;
+  --note-reply: rgb(255 255 255 / 0.55);
+  --shadow-note: 0 10px 24px -12px rgb(0 0 0 / 0.35);
   /* The month's changes on About (ChangelogMonth.astro), on the Changelog's colours in both themes: a day's square
      whiter the more changes it had, and the outline of a day still to come. */
   --changelog-step-0: rgb(255 255 255 / 0.14);

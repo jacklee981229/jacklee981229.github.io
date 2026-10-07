@@ -81,6 +81,7 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/about/' },
     { path: '/now/', lastmod: nowFile().updated },
     { path: '/changelog/' },
+    { path: '/guestbook/' },
     // The Lab: its finished tools, its games, its effects and its worlds. /random/ stays out (it's marked noindex).
     { path: '/lab/' },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),

@@ -74,3 +74,4 @@
 - 2026-10-07 fix: Stopped Jack's Exact Time from claiming a ±0.00 s margin
 - 2026-10-07 new: Added Jack's Pond, a koi pond, to the [Lab](/lab/)
 - 2026-10-07 fix: Stopped Jack's Exact Time from sometimes being a second out
+- 2026-10-08 new: Opened a [Guestbook](/guestbook/): please say hi!

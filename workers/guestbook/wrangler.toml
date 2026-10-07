@@ -1,0 +1,9 @@
+# Jack's Space guestbook: the Worker (index.js) and its D1 database (schema.sql). README.md has the commands.
+name = "jacks-space-guestbook"
+main = "index.js"
+compatibility_date = "2026-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "jacks-space-guestbook"
+database_id = "e585cdf1-f247-4175-ad24-2778f83de540"

@@ -12,7 +12,7 @@ Run these in this folder.
 - `npm run check`: type check. `npm test`: the unit tests in `tests/`.
 - `npm run new "Title" topic`: starts a draft post.
 
-Package versions are pinned to ones that run on Node 20.18, including the `@astrojs/language-server` override in `package.json` that keeps `npm run check` working. Don't upgrade them, and ignore Astro's "new version available": it needs Node 22.
+Package versions are pinned to ones that run on Node 20.18, including the `@astrojs/language-server` override in `package.json` that keeps `npm run check` working, and wrangler 4.86.0, the last for Node 20. Don't upgrade them, and ignore Astro's and wrangler's "new version available": they need Node 22.
 
 ## Where to look
 
@@ -25,6 +25,7 @@ Read the code for how a part works; this says where to start.
 - Posts: `src/content/posts/<address>/index.md`; their fields in `src/content.config.ts`; topics in `src/lib/topics.js`.
 - Words Jack edits by hand: `src/content/now.md`, `src/content/changelog.md`, `src/content/pages/about.md`, each collection's `index.yaml` ([the README](src/content/collections/README.md) says how) and `src/content/travel/visited.yaml`.
 - The Lab: `src/lib/lab/tools.js` is the one list of tools, games, effects and little worlds, and `tests/lab-tools.test.js` checks that each has what it needs (page, file, picture, icon): to add one, start there and copy a sibling. Effects are `src/effects/<slug>.js` on `src/effects/stage.js`; the worlds `src/worlds/<slug>.js`, their logic in `src/lib/town/` and `src/lib/trains/`; the games `src/games/<name>/`.
+- The guestbook: `src/pages/guestbook.astro` and the home page's Guestbook card, the notes' logic in `src/lib/guestbook.js` and their looks in `src/lib/guestbook-view.js`. The notes live in Jack's Cloudflare Worker and its D1 database, `workers/guestbook/` (its README: setting up, deploying, and Jack's SQL to show, hide, pin and reply).
 - Collections: `src/pages/collections.astro`, the logic in `src/lib/shelves.js`. In the code a collection is a "shelf", because "collections" is Astro's word for content folders.
 - Travel Map: `src/pages/travel.astro`, the logic in `src/lib/travel/`, the shapes from the `world-atlas` package.
 - Command palette: `src/components/SearchDialog.astro`, its items in `src/lib/palette-items.ts`, matching in `src/lib/palette.js`. Icons: `src/lib/icons.js`, the site's one set.
@@ -46,6 +47,7 @@ Read the code for how a part works; this says where to start.
 - **Now** shows on the home page as lines that read on ("Playing Shape of Dreams"), so each label in `now.md` is a doing word (Playing, Building, Watching). Its date is the file's last commit, so any edit to it, even its comment, shows as an update; and the deploy fetches the whole history for it: don't make the checkout shallow.
 - **Fonts** are self-hosted (`public/fonts/`, licences beside them). The share pictures use WOFF copies in `src/assets/share-fonts/`, because satori can't read WOFF2.
 - **No third-party scripts** besides GoatCounter, and no full-page loaders besides the welcome and the loading screen (only when a page is slow).
+- **Guestbook:** a visitor's words go into the page only as text, never as HTML. The Worker takes notes only from the site and previews on Jack's laptop (`allowedOrigin` in `notes.js`). It goes live with `npx wrangler deploy --config workers/guestbook/wrangler.toml`, not with the site's deploy. Its database is Jack's: tables and fixes as SQL he runs, and checks use a local copy (`--local`), never `--remote`. The word list that holds notes back is in the database, not the repo (a starter list in `docs/`).
 - [docs/design-ideas.md](docs/design-ideas.md) is an idea bank: read it only when Jack asks for design ideas.
 
 ## Games
@@ -70,7 +72,7 @@ In the sweep, after Jack confirms a feature, every UI change passes these:
 
 ## Testing habits
 
-- My preview ports (`C:\repos\Jack\.claude\launch.json`): 4600 serves `dist/`, 4602 is dev (shows drafts), 4604 serves a build in a separate folder. Jack's own preview is 4321: while it runs, never build into `dist/`; build with `--outDir` into another folder and serve that on my port. A build into a folder outside the project moves its `.astro/` folder into the output: finish with `npm run check` to bring it back.
+- My preview ports (`C:\repos\Jack\.claude\launch.json`): 4600 serves `dist/`, 4602 is dev (shows drafts), 4604 serves a build in a separate folder, 8790 is the guestbook's Worker with a local copy of its database. A preview's guestbook asks the real Worker: to test posting, answer those requests from 8790 instead (CDP `Fetch`). Jack's own preview is 4321: while it runs, never build into `dist/`; build with `--outDir` into another folder and serve that on my port. A build into a folder outside the project moves its `.astro/` folder into the output: finish with `npm run check` to bring it back.
 - Probe with headless Chrome over CDP; Node 20 needs `node --experimental-websocket`. Probes stay in the scratchpad.
 - `?loading` on any address shows the loading screen (the page pretends to take 3 s). The welcome plays on the home page once per tab: open a new tab to see it again.
 - Jack's Exact Time checks the clock with the `X-Timer` header GitHub Pages' CDN adds to every answer. A local preview has none, so the page says it couldn't check: fake the header (CDP `Fetch`), or check on the live site.

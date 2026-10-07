@@ -23,7 +23,7 @@ export function shareLabel(pathname, topic) {
   if (p.startsWith('/lab/')) return 'Lab · Tool';
   if (p === '/writing/') return 'Writing';
   if (p.startsWith('/tags/')) return 'Writing · Tag';
-  const pages = { '/collections/': 'Collection', '/travel/': 'Travel', '/about/': 'About', '/now/': 'Now', '/changelog/': 'Changelog', '/404/': 'Not found' };
+  const pages = { '/collections/': 'Collection', '/travel/': 'Travel', '/about/': 'About', '/now/': 'Now', '/changelog/': 'Changelog', '/guestbook/': 'Guestbook', '/404/': 'Not found' };
   if (pages[p]) return pages[p];
   return topic ? `Writing · ${topic}` : 'Writing';
 }

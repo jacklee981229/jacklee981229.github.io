@@ -23,6 +23,7 @@ export async function paletteItems(): Promise<PaletteItem[]> {
     ...NAV.map(({ href, label, icon }) => ({ title: label, group: 'Pages' as const, href, icon, words: PAGE_WORDS[href] })),
     { title: 'Now', group: 'Pages', href: '/now/', icon: 'clock', words: ['doing', 'currently', 'playing', 'building'] },
     { title: 'Changelog', group: 'Pages', href: '/changelog/', icon: 'list', words: ['changes', 'updates', 'history', 'new'] },
+    { title: 'Guestbook', group: 'Pages', href: '/guestbook/', icon: 'message', words: ['notes', 'comments', 'messages', 'say hi'] },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool'] })),
     ...(await experimentPosts()).map((post) => ({ title: post.data.title, group: 'Lab' as const, href: postUrl(post), icon: 'gamepad', description: summaryOf(post), words: ['game', 'play'] })),
     ...EFFECTS.map((e) => ({ title: e.name, group: 'Lab' as const, href: effectUrl(e.slug), icon: 'pointer', description: e.description, words: ['effect'] })),

@@ -26,6 +26,7 @@ import { changelogFile } from '../lib/changelog-file.js';
 import { interleave, joiner, lately, lowerFirst, splitEmoji, writingPicks } from '../lib/home.js';
 import { colourSteps, middles, namesIn, smallGlobe } from '../lib/travel/map.js';
 import { placesFor } from '../lib/travel/places.js';
+import '../styles/guestbook.css';
 
 const site = String(Astro.site);
 
@@ -50,6 +51,9 @@ const nowItems = await Promise.all(
 );
 const snapshot = nowItems.find((item) => item.found?.picture)?.found;
 const change = lately(changelogFile());
+const changed = change && lowerFirst(plainText(change.text));
+// A change that already ends in "!" or "?" gets no full stop after it.
+const stop = changed && /[.!?]$/.test(changed) ? '' : '.';
 
 // The three cards around the site: covers from each collection in turn, the globe facing Jack's places, and the
 // Start here posts.
@@ -99,7 +103,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
         <p class="wave" aria-hidden="true">👋</p>
         <h2 id="now-title"><a href="/now/">Right now</a></h2>
         {nowItems.length ? nowItems.map((item, i) => <p class:list={['line', `line-${i}`]}>{item.label && `${item.label} `}<span set:html={item.html} /></p>) : <p class="line">Nothing much.</p>}
-        {change && <p class="line lately">Lately I <a href="/changelog/">{lowerFirst(plainText(change.text))}</a>.</p>}
+        {changed && <p class="line lately">Lately I <a href="/changelog/">{changed}</a>{stop}</p>}
         {now.updated && <Updated date={now.updated} />}
         {snapshot?.picture && (
           <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
@@ -163,11 +167,42 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
       </ul>
     </nav>
 
+    <section aria-labelledby="guestbook-title">
+      <h2 class="section-title" id="guestbook-title">Guestbook <span aria-hidden="true">✍️</span></h2>
+      <div class="card guestbook">
+        <div class="guestbook-words">
+          <p class="label">Guestbook</p>
+          <p class="guestbook-line">Leave me a note</p>
+          <p class="guestbook-sub">Please say hi!</p>
+          <a class="explore guestbook-go" href="/guestbook/">Write in the guestbook<Icon name="arrow" /></a>
+        </div>
+        <!-- The newest notes, from the guestbook's Worker once the page has loaded. -->
+        <div class="guestbook-notes" data-guestbook-notes></div>
+        <template data-face><Fragment set:html={logoSvg('home-note', 'width="22" height="22" aria-hidden="true"')} /></template>
+      </div>
+    </section>
+
   </div>
 </Base>
 
 <script>
+  import { SITE } from '../site';
+  import { ON_HOME } from '../lib/guestbook.js';
+  import { emptyNote, paperNote } from '../lib/guestbook-view.js';
   import { pickOne } from '../lib/palette.js';
+
+  // The Guestbook card's newest notes; if they can't be fetched, the card simply goes without.
+  const notesBox = document.querySelector<HTMLElement>('[data-guestbook-notes]');
+  const face = document.querySelector<HTMLTemplateElement>('[data-face]')?.innerHTML ?? '';
+  if (notesBox) {
+    fetch(`${SITE.guestbook}/notes`)
+      .then((answer) => answer.json())
+      .then((data) => {
+        const newest = data.notes.slice(0, ON_HOME);
+        notesBox.replaceChildren(...(newest.length ? newest.map((n: Parameters<typeof paperNote>[0]) => paperNote(n, face)) : [emptyNote()]));
+      })
+      .catch(() => {});
+  }
 
   // Surprise me: the same pick as the command palette's, out of the same list (SearchDialog.astro carries it).
   document.querySelector('[data-surprise]')?.addEventListener('click', () => {
@@ -283,6 +318,15 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .sheet i:nth-child(even) { width: 64%; }
   .sheet b { color: var(--sheet-ink); font-size: var(--text-xs); font-weight: 900; line-height: 1.15; }
 
+  /* The Guestbook: amber, the words and the way in on the left, the newest notes on paper on the right. */
+  .guestbook { --focus: var(--on-colour); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; gap: var(--space-6); padding: var(--space-6); background: linear-gradient(120deg, var(--guestbook-top-from), var(--guestbook-top-to)); color: var(--on-colour); }
+  .guestbook-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
+  .guestbook-sub { margin: var(--space-2) 0 var(--space-5); color: var(--on-colour-soft); font-weight: 600; }
+  .guestbook-go { flex: none; color: var(--guestbook-top-to); }
+  .guestbook-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); align-items: start; gap: var(--space-4); }
+  .guestbook-notes :global(.paper) { padding: var(--space-4); }
+  .guestbook-notes :global(.paper .note-text) { font-size: var(--text-sm); }
+
   @media (prefers-reduced-motion: reduce) {
     .tile, .door, .explore :global(.icon) { transition: none; }
   }
@@ -290,6 +334,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   /* Narrower: Jack's card above Now; the Lab's toy above its words. */
   @media (max-width: 959px) {
     .top { grid-template-columns: minmax(0, 1fr); }
+    .guestbook { grid-template-columns: minmax(0, 1fr); }
     .lab { grid-template-columns: minmax(0, 1fr); }
     .lab-toy { min-height: 0; height: 17rem; padding: var(--space-4) var(--space-4) 0; }
   }

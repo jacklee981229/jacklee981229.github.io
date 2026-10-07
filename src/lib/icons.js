@@ -29,6 +29,7 @@ export const ICONS = {
   compare: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5V15a3 3 0 0 0 3 3h6.5M18 15.5V9a3 3 0 0 0-3-3H8.5"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   watch: '<circle cx="12" cy="12" r="6"/><path d="M12 9.5V12l1.5 1.5M8.6 7.2 9.3 3h5.4l.7 4.2M8.6 16.8l.7 4.2h5.4l.7-4.2"/>',
+  message: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4V16h-1a.5.5 0 0 1-.5-.5z"/><path d="M8 8.5h8M8 11.5h5"/>',
   fish: '<path d="M2.5 12c2.4-3.4 5.7-5 9.2-5 3 0 5.5 1.8 6.8 5-1.3 3.2-3.8 5-6.8 5-3.5 0-6.8-1.6-9.2-5z"/><path d="m18.5 12 3-3.5v7z"/><circle cx="7" cy="11" r=".6"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',
   resize: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',

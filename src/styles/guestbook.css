@@ -1,0 +1,20 @@
+/* The guestbook's notes, built in the browser (src/lib/guestbook-view.js), so their styles can't be scoped to a page:
+   on the wall and the home page's card, squares of coloured paper with dark ink in both themes, a little askew; in the
+   list under the wall, cards. A note's colour comes in as --note. */
+
+.note-text { margin: 0; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.note-by { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); margin: var(--space-3) 0 0; font-size: var(--text-sm); }
+.note-name { font-weight: 800; color: inherit; overflow-wrap: anywhere; }
+.note-when { opacity: 0.8; white-space: nowrap; }
+.note-reply { display: flex; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius-sm); background: var(--note-reply); font-size: var(--text-sm); line-height: 1.45; }
+.note-reply svg { flex: none; width: 22px; height: 22px; }
+.note-reply p { margin: 0; overflow-wrap: anywhere; }
+
+.paper { --tilt: 0deg; margin: 0; padding: var(--space-5); border-radius: var(--radius-md); background: var(--note); color: var(--note-ink); box-shadow: var(--shadow-note); rotate: var(--tilt); }
+.paper .note-text { font-size: var(--text-md); }
+
+.card-note { margin: 0; padding: var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+.card-note .note-reply { background: var(--wash); }
+.note-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.note-head .note-by { flex: 1; margin: 0; }
+.note-initial { display: grid; place-items: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--note); color: var(--note-ink); font-weight: 900; }

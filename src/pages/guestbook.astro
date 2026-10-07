@@ -1,0 +1,128 @@
+---
+// The Guestbook: a form to leave Jack a note, then the notes, from the guestbook's Worker (workers/guestbook, its
+// address in SITE.guestbook): up to nine on a wall of paper notes, the pinned first and then the newest, and all the
+// rest in a list under it (arrange in guestbook.js). The page is built without notes; the browser fetches them.
+import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
+import { logoSvg } from '../lib/logo.js';
+import { LIMITS } from '../../workers/guestbook/notes.js';
+import '../styles/guestbook.css';
+---
+<Base title="Guestbook" description="Leave Jack a note.">
+  <div class="wrap page">
+    <PageTop tone="guestbook" icon="message" title="Guestbook" lead="Please say hi!" />
+    <form class="write" data-write>
+      <h2>Leave a note</h2>
+      <div class="fields">
+        <div class="field"><label for="gb-name">Name</label><input id="gb-name" name="name" maxlength={LIMITS.name} required autocomplete="name" /></div>
+        <div class="field"><label for="gb-email">Email <span>(only I see it)</span></label><input id="gb-email" name="email" type="email" maxlength={LIMITS.email} autocomplete="email" /></div>
+        <div class="field"><label for="gb-website">Website <span>(if you like)</span></label><input id="gb-website" name="website" maxlength={LIMITS.website} inputmode="url" placeholder="https://" autocomplete="url" /></div>
+      </div>
+      <div class="field">
+        <label for="gb-message">Message</label>
+        <textarea id="gb-message" name="message" maxlength={LIMITS.message} required></textarea>
+        <span class="left" data-left>{LIMITS.message} left</span>
+      </div>
+      <!-- A field people can't see: only a bot fills it in (the Worker then keeps nothing). -->
+      <div class="visually-hidden" aria-hidden="true"><label for="gb-company">Company</label><input id="gb-company" name="company" tabindex="-1" autocomplete="off" /></div>
+      <div class="send">
+        <p class="kind">Be kind!</p>
+        <button type="submit" class="post" data-post>Post your note</button>
+      </div>
+      <p class="said" data-said role="status"></p>
+    </form>
+    <p class="count" data-count>Loading the notes…</p>
+    <div class="wall" data-wall></div>
+    <div class="list" data-list></div>
+    <template data-face><Fragment set:html={logoSvg('note', 'width="22" height="22" aria-hidden="true"')} /></template>
+  </div>
+</Base>
+
+<script>
+  import { SITE } from '../site';
+  import { arrange, countLine, type Note } from '../lib/guestbook.js';
+  import { cardNote, emptyNote, paperNote } from '../lib/guestbook-view.js';
+
+  const API = `${SITE.guestbook}/notes`;
+  const one = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
+  const form = one<HTMLFormElement>('[data-write]');
+  const message = one<HTMLTextAreaElement>('#gb-message');
+  const said = one('[data-said]');
+  const post = one<HTMLButtonElement>('[data-post]');
+  const face = one<HTMLTemplateElement>('[data-face]').innerHTML;
+  let notes: Note[] = [];
+
+  const show = () => {
+    const { wall, list } = arrange(notes);
+    one('[data-wall]').replaceChildren(...(wall.length ? wall.map((n) => paperNote(n, face)) : [emptyNote()]));
+    one('[data-list]').replaceChildren(...list.map((n) => cardNote(n, face)));
+    one('[data-count]').textContent = notes.length ? countLine(notes.length) : 'No notes yet.';
+  };
+  fetch(API)
+    .then((answer) => answer.json())
+    .then((data) => {
+      notes = data.notes;
+      show();
+    })
+    .catch(() => { one('[data-count]').textContent = "Couldn't load the notes. Please try again later."; });
+
+  const left = () => { one('[data-left]').textContent = `${message.maxLength - [...message.value].length} left`; };
+  message.addEventListener('input', left);
+
+  // The browser checks the required fields first; the Worker checks everything again and says what's wrong.
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    post.disabled = true;
+    said.textContent = 'Posting…';
+    try {
+      const answer = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+      const data = await answer.json();
+      if (!answer.ok) {
+        said.textContent = data.error ?? "Couldn't post your note. Please try again.";
+        return;
+      }
+      if (data.held) said.textContent = "Thanks! Your note will show once I've had a look.";
+      else {
+        notes = [data.note, ...notes];
+        show();
+        said.textContent = 'Thanks! Your note is up.';
+      }
+      form.reset();
+      left();
+    } catch {
+      said.textContent = "Couldn't post your note. Please try again.";
+    } finally {
+      post.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  /* The form, a card like the site's others: the three short fields side by side, the message under them. */
+  .write { display: grid; gap: var(--space-4); margin-bottom: var(--space-6); padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  h2 { margin: 0; font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
+  .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+  .field { display: grid; gap: var(--space-2); }
+  label { font-size: var(--text-sm); font-weight: 650; }
+  label span { color: var(--muted); font-weight: 500; }
+  input, textarea { box-sizing: border-box; width: 100%; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--paper); color: var(--ink); font: inherit; }
+  input:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  textarea { min-height: 7rem; resize: vertical; }
+  .left { justify-self: end; color: var(--muted); font-size: var(--text-xs); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .send { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .kind { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .post { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--space-5); border: 0; border-radius: var(--radius-pill); background: linear-gradient(120deg, var(--guestbook-top-from), var(--guestbook-top-to)); color: var(--on-colour); font: inherit; font-weight: 800; cursor: pointer; }
+  .post:disabled { opacity: 0.7; cursor: default; }
+  .said { margin: 0; font-weight: 650; }
+  .said:empty { display: none; }
+  .count { margin: 0 0 var(--space-4); color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  /* The wall: columns of paper notes, each kept whole. */
+  .wall { columns: 3 17rem; column-gap: var(--space-5); }
+  .wall :global(.paper) { break-inside: avoid; margin-bottom: var(--space-5); }
+  .list { display: grid; gap: var(--space-4); max-width: 48rem; margin-top: var(--space-4); }
+
+  @media (max-width: 719px) {
+    .write { padding: var(--space-5); }
+    .fields { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
