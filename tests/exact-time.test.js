@@ -7,6 +7,10 @@ test("the CDN's timer header reads as when the request arrived and how long it w
   assert.ok(Math.abs(t.at - 1791374542156.116) < 0.01);
   assert.equal(t.kept, 270);
   assert.deepEqual(readTimer('S1791374542,VS0,VE0'), { at: 1791374542000, kept: 0 });
+  // Fastly rounds the whole seconds: from half a second on, they're one too many.
+  assert.ok(Math.abs(readTimer('S1791382278.639171,VS0,VE1').at - 1791382277639.171) < 0.01);
+  assert.ok(Math.abs(readTimer('S1791382278.496273,VS0,VE1').at - 1791382278496.273) < 0.01);
+  assert.ok(Math.abs(readTimer('S1791382279.500000,VS0,VE1').at - 1791382278500) < 0.01);
   for (const bad of [null, undefined, '', 'garbage', 'S12,VS0', 'VE5']) assert.equal(readTimer(bad), null, String(bad));
 });
 

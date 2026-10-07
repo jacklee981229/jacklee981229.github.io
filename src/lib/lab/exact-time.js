@@ -16,12 +16,16 @@ export const CITIES = [
 /**
  * When the site's server got a request and how long it kept it, from the `X-Timer` header that GitHub Pages' CDN
  * (Fastly) adds to every answer: "S1791374542.156116,VS0,VE270" is { at: 1791374542156.116, kept: 270 }, both in
- * milliseconds. Null when the header is missing (a local preview) or isn't in that shape.
+ * milliseconds. Fastly writes the whole seconds rounded rather than cut off, so from half a second on they're one
+ * ahead of the fraction beside them (seen on 7 Oct 2026: "S…278.639171" in an answer dated :17): those lose the extra
+ * second. Null when the header is missing (a local preview) or isn't in that shape.
  * @param {string | null | undefined} header
  */
 export function readTimer(header) {
-  const m = /^S(\d+(?:\.\d+)?),.*\bVE(\d+)$/.exec(header?.trim() ?? '');
-  return m ? { at: Number(m[1]) * 1000, kept: Number(m[2]) } : null;
+  const m = /^S(\d+)(?:\.(\d+))?,.*\bVE(\d+)$/.exec(header?.trim() ?? '');
+  if (!m) return null;
+  const fraction = Number(`0.${m[2] ?? 0}`);
+  return { at: (Number(m[1]) - (fraction >= 0.5 ? 1 : 0) + fraction) * 1000, kept: Number(m[3]) };
 }
 
 /**
