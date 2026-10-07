@@ -3,3 +3,4 @@ dist/
 .astro/
 .env
 npm-debug.log*
+docs/design-ideas.md
