@@ -55,6 +55,13 @@ export const pictureOf = (pictures, shelf, item) => (item.image ? pictureNamed(p
 export const galleryOf = (pictures, shelf, item) => [item.image, ...(item.gallery ?? [])].filter((file) => file !== undefined).map((file) => pictureNamed(pictures, shelf, item, file));
 
 /**
+ * An item's name in a link to it (/collections/#movies/zhu-yu, from About's favourites): its cover's file name
+ * without the type, else its place in the list, from 1.
+ * @param {{ image?: string }} item @param {number} index its place in the list, from 0
+ */
+export const itemKey = (item, index) => (item.image ? item.image.replace(/\.[^.]+$/, '') : String(index + 1));
+
+/**
  * How many steps picture `i` is from the one in the gallery's middle, going round the shorter way: 0 is the middle
  * one, -1 the one on its left, 1 the one on its right. Halfway round counts as the right.
  * @param {number} i @param {number} current the middle one @param {number} n how many there are

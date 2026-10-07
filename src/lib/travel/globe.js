@@ -1,6 +1,6 @@
 // The Travel Map as a globe, drawn in the browser: a drag turns it (so do the arrow keys), a flick keeps it turning
-// for a moment, and until it's first touched it turns slowly by itself. It colours the same places as the flat map,
-// in the same colours. A place under the mouse (or tapped) rises out of the globe like a picture made of light, with
+// for a moment, and it turns slowly by itself; a few seconds after it was last turned by hand, it turns back to where
+// it started and carries on by itself from there. It colours the same places as the flat map, in the same colours. A place under the mouse (or tapped) rises out of the globe like a picture made of light, with
 // its name over it. The globe can open out into the flat map and close up again. It only works while it's on screen.
 import { geoCircle, geoClipAntimeridian, geoClipCircle, geoContains, geoGraticule10, geoPath } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
@@ -9,6 +9,11 @@ import { WIDTH, flatProjection, inView, openingOut } from './map.js';
 
 /** Degrees a second it turns by itself. */
 const SPIN = 6;
+/** Seconds after it was last turned by hand before it turns back to where it started, seconds that takes, and
+    seconds it then takes to get up to SPIN. */
+const RESUME = 5;
+const RETURN = 1.2;
+const SPIN_UP = 2;
 /** Degrees one press of an arrow key turns it. */
 const KEY_STEP = 10;
 /** How far it tips towards a pole: any further and the world would roll upside down. */
@@ -83,7 +88,15 @@ export function runGlobe(root, places) {
   // both set in the page's styles.
   let lift = 1;
   let room = 0;
-  let touched = false;
+  // When it was last turned by hand (on the page's clock), whether it has been since it last turned by itself, and
+  // the timer that wakes it to go back. Then, while it goes back, where from and since when; and when it last started
+  // turning by itself, for the speed-up.
+  let handled = -Infinity;
+  let wandered = false;
+  let resume = 0;
+  /** @type {{ lon: number, lat: number, began: number } | null} */
+  let returning = null;
+  let spunUp = -Infinity;
   let dragging = false;
   let onScreen = false;
   // The place under the mouse, or tapped: the one that rises. And where the mouse is while it's over the globe.
@@ -94,6 +107,8 @@ export function runGlobe(root, places) {
 
   const tilt = (/** @type {number} */ degrees) => Math.max(-MAX_TILT, Math.min(MAX_TILT, degrees));
   lat = tilt(lat);
+  // Where it started, to go back to.
+  const home = { lon, lat };
 
   const readColors = () => {
     const style = getComputedStyle(root);
@@ -270,11 +285,13 @@ export function runGlobe(root, places) {
 
   let handle = 0;
   let last = 0;
-  // It turns by itself until touched, but holds still while a place is risen, so its name can be read.
-  const spinning = () => !touched && !still && over < 0;
+  // It turns by itself until it's turned by hand; RESUME seconds after the last turn by hand, it goes back to where it
+  // started and turns by itself from there. Either way it holds still while a place is risen, so its name can be read.
+  const spinning = () => !still && !dragging && !wandered && !returning && over < 0;
+  const homeward = () => !still && !dragging && wandered && !returning && over < 0 && performance.now() - handled >= RESUME * 1000;
   const settled = () => visited.every((place, i) => place.rise === (i === over ? 1 : 0));
   // Opened out flat, nothing moves: the page's own flat map is what's on show then.
-  const moving = () => !!opening || (!flatness && (spinning() || !settled() || (!dragging && (speed.lon !== 0 || speed.lat !== 0))));
+  const moving = () => !!opening || (!flatness && (spinning() || homeward() || !!returning || !settled() || (!dragging && (speed.lon !== 0 || speed.lat !== 0))));
   /** @param {number} now */
   const loop = (now) => {
     handle = 0;
@@ -293,7 +310,21 @@ export function runGlobe(root, places) {
         done();
         return run();
       }
-    } else if (spinning()) lon -= SPIN * dt;
+    } else if (returning) {
+      const part = Math.min(1, (now - returning.began) / (RETURN * 1000));
+      const eased = part < 0.5 ? 4 * part ** 3 : 1 - (2 - 2 * part) ** 3 / 2;
+      // The shorter way round.
+      lon = returning.lon + ((((home.lon - returning.lon) % 360) + 540) % 360 - 180) * eased;
+      lat = returning.lat + (home.lat - returning.lat) * eased;
+      if (part === 1) {
+        returning = null;
+        spunUp = now;
+      }
+    } else if (homeward()) {
+      wandered = false;
+      speed = { lon: 0, lat: 0 };
+      returning = { lon, lat, began: now };
+    } else if (spinning()) lon -= SPIN * Math.min(1, (now - spunUp) / (SPIN_UP * 1000)) * dt;
     else if (!dragging) {
       lon += speed.lon * dt;
       lat = tilt(lat + speed.lat * dt);
@@ -335,13 +366,22 @@ export function runGlobe(root, places) {
     draw();
   };
 
+  /** Stops it turning by itself, or going back: it goes back RESUME seconds from now, unless it's turned again first. */
+  const turnedByHand = () => {
+    handled = performance.now();
+    wandered = true;
+    returning = null;
+    clearTimeout(resume);
+    resume = window.setTimeout(run, RESUME * 1000);
+  };
+
   // A drag moves the surface with the pointer: a point at the middle of the globe stays under it. Nothing answers
   // the pointer or the keys while the globe is opened out, or on its way.
   let at = { x: 0, y: 0, time: 0 };
   let pressed = { x: 0, y: 0 };
   root.addEventListener('pointerdown', (e) => {
     if (flatness) return;
-    touched = true;
+    turnedByHand();
     dragging = true;
     speed = { lon: 0, lat: 0 };
     at = { x: e.clientX, y: e.clientY, time: e.timeStamp };
@@ -370,6 +410,7 @@ export function runGlobe(root, places) {
     if (!dragging) return;
     dragging = false;
     if (flatness) return;
+    turnedByHand();
     // Held still before letting go, or less motion asked for: it stays where it was left.
     if (still || e.timeStamp - at.time > 100) speed = { lon: 0, lat: 0 };
     const there = placeAt(spotOf(e));
@@ -396,7 +437,7 @@ export function runGlobe(root, places) {
     const turn = { ArrowLeft: [-KEY_STEP, 0], ArrowRight: [KEY_STEP, 0], ArrowUp: [0, KEY_STEP], ArrowDown: [0, -KEY_STEP] }[e.key];
     if (!turn || flatness) return;
     e.preventDefault();
-    touched = true;
+    turnedByHand();
     speed = { lon: 0, lat: 0 };
     lon += turn[0];
     lat = tilt(lat + turn[1]);
@@ -432,6 +473,9 @@ export function runGlobe(root, places) {
         mouse = null;
         over = -1;
         dragging = false;
+        // On its way back: it carries on going back once it's a globe again.
+        if (returning) wandered = true;
+        returning = null;
         speed = { lon: 0, lat: 0 };
         for (const place of visited) place.rise = 0;
         if (still || flatness === to) {

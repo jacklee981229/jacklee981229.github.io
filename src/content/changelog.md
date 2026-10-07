@@ -64,3 +64,5 @@
 - 2026-10-07 design: Gave the welcome screen my logo and a sweep of light
 - 2026-10-07 new: Added a loading screen with my logo for pages that load slowly
 - 2026-10-07 fix: Removed a faint line beside the current page in the menu
+- 2026-10-07 improved: Small tweaks
+- 2026-10-07 improved: Hid Surprise me for now

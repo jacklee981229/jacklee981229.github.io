@@ -4,6 +4,7 @@ import PageTop from '../../components/PageTop.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
 import { EFFECTS, GROUPS, TOOLS, WORLDS } from '../../lib/lab/tools.js';
 import { experimentPosts, popularLabItems } from '../../lib/collections';
+import { SITE } from '../../site';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
 const experiments = await experimentPosts();
@@ -17,7 +18,7 @@ const popular = await popularLabItems();
         <a href="#mini-games">Mini Games</a>
         <a href="#effects">Effects</a>
         <a href="#little-worlds">Little Worlds</a>
-        <a href="#random">Random</a>
+        {SITE.surprise && <a href="#random">Random</a>}
       </nav>
     </PageTop>
 
@@ -66,13 +67,15 @@ const popular = await popularLabItems();
       <p class="note">They run by themselves. Nothing to do but watch.</p>
     </section>
 
-    <section id="random" aria-labelledby="random-title">
-      <h2 id="random-title">Random</h2>
-      <div class="random">
-        <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game, an effect or a little world.</p>
-        <a class="surprise" href="/random/">Surprise me</a>
-      </div>
-    </section>
+    {SITE.surprise && (
+      <section id="random" aria-labelledby="random-title">
+        <h2 id="random-title">Random</h2>
+        <div class="random">
+          <p><strong>Feeling lucky?</strong> One click opens something at random: a post, a tool, a game, an effect or a little world.</p>
+          <a class="surprise" href="/random/">Surprise me</a>
+        </div>
+      </section>
+    )}
   </div>
 </Base>
 

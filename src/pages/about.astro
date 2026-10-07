@@ -1,7 +1,7 @@
 ---
 // About: who Jack is, in a few sections. The words (the intro, the work timeline, the tools) are in
-// src/content/pages/about.md; the things he likes come from the Collection and the Travel Map's own lists, and the
-// links from src/site.ts. The site's activity (Now, Most Popular, the changelog list) belongs to the home page.
+// src/content/pages/about.md; the favourites come from the Collection's and the Lab's own lists, and the links from
+// src/site.ts. The site's activity (Now, Most Popular, the changelog list) belongs to the home page.
 import { Image } from 'astro:assets';
 import { getCollection, getEntry, render } from 'astro:content';
 import PageTop from '../components/PageTop.astro';
@@ -9,9 +9,10 @@ import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import ProfileLinks from '../components/ProfileLinks.astro';
 import { SITE } from '../site';
-import { formatDate } from '../lib/dates.js';
-import { pictureOf } from '../lib/shelves.js';
+import { daysBetween, formatDate } from '../lib/dates.js';
+import { itemKey, pictureOf } from '../lib/shelves.js';
 import { pictures } from '../lib/shelf-pictures';
+import { experimentPosts, postUrl } from '../lib/collections';
 import '../styles/prose.css';
 
 const about = await getEntry('pages', 'about');
@@ -23,13 +24,15 @@ const { work, tools } = about.data;
 const FAVOURITES = 5;
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity));
 const favourites = shelves
-  .flatMap((shelf) => shelf.data.items.map((item) => ({ item, shelf: shelf.id, picture: pictureOf(pictures, shelf.id, item)?.default })))
+  .flatMap((shelf) => shelf.data.items.map((item, index) => ({ item, picture: pictureOf(pictures, shelf.id, item)?.default, href: `/collections/#${shelf.id}/${itemKey(item, index)}` })))
   .filter((f) => f.picture)
   // Best rated first; equal ratings keep the Collection's own order.
   .sort((a, b) => b.item.stars - a.item.stars)
   .slice(0, FAVOURITES);
-const places = (await getEntry('travel', 'visited'))?.data.visited ?? [];
+// The Lab's mini games, by their names without the "Jack's" every game's title starts with.
+const games = (await experimentPosts()).map((post) => ({ name: post.data.title.replace(/^Jack's /, ''), href: postUrl(post) }));
 const started = new Date(`${SITE.started}T00:00:00+08:00`);
+const rebuilt = new Date(`${SITE.rebuilt}T00:00:00+08:00`);
 ---
 <Base title={about.data.title} description="About Jack Lee and this site.">
   <div class="wrap page">
@@ -42,7 +45,7 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
           <h2 id="work"><Icon name="code" />Work</h2>
           <ol class="jobs">
             {work.map((job) => (
-              <li><span class="job"><span class="role">{job.role}</span><span class="place">{job.place}</span></span><span class="years">{job.years}</span></li>
+              <li><span class="job"><span class="role">{job.role}</span>{job.what && <span class="what">{job.what}</span>}<span class="place">{job.place}</span></span><span class="years">{job.years}</span></li>
             ))}
           </ol>
         </section>
@@ -61,16 +64,15 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
       )}
 
       <section class="card likes" aria-labelledby="likes">
-        <h2 id="likes"><Icon name="star" />Things I like</h2>
+        <h2 id="likes"><Icon name="star" />Favourites</h2>
         {favourites.length > 0 && (
-          <a class="covers" href="/collections/" aria-label="My Collection: films and games I rate highly">
-            {favourites.map(({ item, picture }) => picture && <Image src={picture} alt={item.name} title={item.name} width={160} />)}
-          </a>
+          <div class="covers">
+            {/* Each opens its own gallery on the Collection page. */}
+            {favourites.map(({ item, picture, href }) => picture && <a href={href}><Image src={picture} alt={item.name} title={item.name} width={160} /></a>)}
+          </div>
         )}
-        <p class="more"><a href="/collections/">My Collection</a>: films and games, with my stars.</p>
-        {places.length > 0 && (
-          <p class="more"><a href="/travel/">My Travel Map</a>: {places.length === 1 ? '1 place' : `${places.length} places`} so far, {places.join(', ')}.</p>
-        )}
+        <p class="more"><a href="/collections/">My Collection</a>: shows and games, with my stars.</p>
+        <p class="more"><a href="/lab/#mini-games">My Mini Games</a>: {games.map((game, i) => <>{i > 0 && (i === games.length - 1 ? ' and ' : ', ')}<a href={game.href}>{game.name}</a></>)}.</p>
       </section>
 
       <section class="card find" aria-labelledby="find-me">
@@ -80,12 +82,24 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
 
       <section class="card site" aria-labelledby="this-site">
         <h2 id="this-site"><Icon name="home" />This site</h2>
-        <p class="more">Running since {formatDate(started)}, first on Hexo, rebuilt with Astro in 2026.</p>
-        <p class="more">What's changed lately is in the <a href="/changelog/">Changelog</a>.</p>
+        <!-- The days are counted again in the visitor's browser (src/lib/running.js), as the page is only rebuilt now and then. -->
+        <p class="more">Running for <span data-running-since={SITE.started}>{daysBetween(new Date(), started).toLocaleString('en-US')}</span> days.</p>
+        <p class="more">Rebuilt with Astro and love, since {formatDate(rebuilt)}. Built with Claude.</p>
+        <p class="more">Originally on Hexo, since {formatDate(started)}.</p>
       </section>
     </div>
   </div>
 </Base>
+
+<script>
+  import { showRunningDays } from '../lib/running.js';
+  import { showVisits } from '../lib/visits.js';
+  import { SITE } from '../site';
+
+  showRunningDays();
+  // The visitor number in the intro, on the live site only.
+  showVisits(SITE.goatcounter, new URL(import.meta.env.SITE).hostname);
+</script>
 
 <style>
   /* Every part a card, as on the home page: the intro across the top, the rest two by two, each in the colour of
@@ -98,7 +112,6 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
   .find { --from: var(--about-links-from); --to: var(--about-links-to); }
   .site { --from: var(--about-site-from); --to: var(--about-site-to); }
   .intro { grid-column: 1 / -1; }
-  .intro .prose { max-width: 44rem; }
   .intro :global(.prose > :first-child) { margin-top: 0; }
   .intro :global(.prose > :last-child) { margin-bottom: 0; }
   h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-4); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
@@ -107,16 +120,21 @@ const started = new Date(`${SITE.started}T00:00:00+08:00`);
   .jobs { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
   /* The years beside the job, or under it where the card is too narrow for both on one line. */
   .jobs li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--space-3); }
-  .job { display: grid; }
-  .role { font-weight: 800; }
+  /* The job takes the room left by the years, so its line on what Jack does wraps beside them. */
+  .job { display: grid; flex: 1 1 14rem; }
+  /* The job's title stands out; what Jack does there and the company's name are smaller. */
+  .role { font-size: var(--text-md); font-weight: 800; }
+  .what { margin: var(--space-1) 0; line-height: 1.5; }
+  .what, .place { font-size: var(--text-sm); }
   .place, .years { color: var(--on-colour-soft); }
   .years { font-size: var(--text-sm); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .group + .group { margin-top: var(--space-4); }
   .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
   .chips li { padding: 0.25rem 0.75rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 700; }
   .covers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
-  .covers :global(img) { width: 100%; height: auto; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform 0.2s ease; }
-  .covers:hover :global(img) { transform: translateY(-3px); }
+  .covers a { display: block; border-radius: var(--radius-art); }
+  .covers :global(img) { display: block; width: 100%; height: auto; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform 0.2s ease; }
+  .covers a:hover :global(img), .covers a:focus-visible :global(img) { transform: translateY(-3px); }
   .more { margin: 0; line-height: 1.6; }
   .more + .more { margin-top: var(--space-2); }
   /* Your links on the colour: the names on dark-tinted pills, each tile in its own colour. */

@@ -1,8 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MOST_STARS, PICTURE_TYPES, cardColours, galleryOf, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars, whiteContrast } from '../src/lib/shelves.js';
+import { MOST_STARS, PICTURE_TYPES, cardColours, galleryOf, itemKey, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars, whiteContrast } from '../src/lib/shelves.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
+
+test("an item's name in links is its cover's file name, else its place in the list", () => {
+  assert.equal(itemKey({ image: 'zhu-yu.jpg' }, 6), 'zhu-yu');
+  assert.equal(itemKey({ image: 'the.last.of.us.webp' }, 0), 'the.last.of.us');
+  assert.equal(itemKey({}, 2), '3');
+});
 
 test('stars go from 1 to 5, in halves', () => {
   for (const stars of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) assert.ok(validStars(stars), `${stars}`);

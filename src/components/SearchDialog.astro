@@ -30,6 +30,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
 <script>
   import { fingerprint, pickOne, search } from '../lib/palette.js';
   import { isNight, nightFound, setNight, switchTheme, themeLabel } from '../lib/theme';
+  import { SITE } from '../site';
   import { announce } from '../lib/lab/page';
 
   type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void };
@@ -68,7 +69,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     const night = isNight();
     return [
       { title: themeLabel(), group: 'Actions', icon: night ? 'star' : document.documentElement.dataset.theme === 'dark' ? 'sun' : 'moon', words: ['theme', 'dark', 'light', 'mode', 'colours', 'colors'], run: switchTheme },
-      { title: 'Surprise me', group: 'Actions', icon: 'dice', description: 'Open something at random', words: ['random', 'lucky', 'anything'], run: surprise },
+      ...(SITE.surprise ? [{ title: 'Surprise me', group: 'Actions', icon: 'dice', description: 'Open something at random', words: ['random', 'lucky', 'anything'], run: surprise }] : []),
       ...(target ? [{ title: document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen', group: 'Actions', icon: document.fullscreenElement ? 'shrink' : 'expand', description: document.fullscreenElement ? undefined : target.dataset.fullscreen, words: ['full', 'screen', 'big', 'expand'], run: toggleFullscreen }] : []),
       // Once found, the night sky can be gone back to; while it's on, the theme item above leaves it.
       ...(nightFound() && !night ? [{ title: 'Starry Night', group: 'Actions', icon: 'star', description: 'Turn the site into a night sky', words: ['night', 'sky', 'stars', 'space'], run: () => setNight(true) }] : []),
@@ -104,10 +105,10 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
 
   /** The short list for an empty box. */
   function suggestions(): Option[] {
-    const [theme, surpriseMe, ...rest] = actions();
+    const [theme, ...rest] = actions();
     const home = data.items.find((i) => i.href === '/');
     const lab = data.items.find((i) => i.href === '/lab/');
-    return [theme, ...(home ? [home] : []), ...(lab ? [lab] : []), surpriseMe, ...rest].map((o) => ({ ...o, group: '' }));
+    return [theme, ...(home ? [home] : []), ...(lab ? [lab] : []), ...rest].map((o) => ({ ...o, group: '' }));
   }
 
   function draw() {

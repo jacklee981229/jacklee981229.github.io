@@ -6,6 +6,11 @@ export const SITE = {
   author: 'Jack Lee',
   role: 'Senior Software Engineer at Squarebox Technology',
   started: '2023-02-23',
+  // When it moved from Hexo to Astro.
+  rebuilt: '2026-09-26',
+  // "Surprise me" (a random page) stays hidden until Jack wants it live: in the command palette, on the home page's Lab
+  // card and on the Lab page. /random/ itself is still built, with nothing linking to it.
+  surprise: false as boolean,
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
   // GoatCounter counts page views, without cookies. Every page's script reports its view here, and the build reads
   // the Lab pages' public counts from here to rank Most Popular.

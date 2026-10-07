@@ -121,9 +121,9 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
           </ul>
           <div class="lab-actions">
             <a class="explore" href="/lab/">Explore the Lab<Icon name="arrow" /></a>
-            <button type="button" class="chip surprise" data-surprise><Icon name="dice" />Surprise me</button>
+            {SITE.surprise && <button type="button" class="chip surprise" data-surprise aria-label="Surprise me" title="Surprise me"><Icon name="dice" /></button>}
           </div>
-          <p class="toy-note">Today's toy: <a href="/lab/#effects" data-toy-link>one of the Lab's effects</a>. A new one every day.</p>
+          <p class="toy-note">Today's toy: <a href="/lab/#effects" data-toy-link>one of the Lab's effects</a>.</p>
         </div>
       </div>
     </section>
@@ -136,7 +136,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
             <span class="pic covers" aria-hidden="true">
               {covers.map(({ picture }) => <Image src={picture} alt="" width={152} height={228} fit="cover" />)}
             </span>
-            <span class="words"><span class="label">Collection</span><span class="door-title">Films and games I love</span><span class="door-meta">{covers.length > 1 ? `${covers[0].name}, ${covers[1].name} and more` : 'My films and games'}</span></span>
+            <span class="words"><span class="label">Collection</span><span class="door-title">Shows and games I love</span><span class="door-meta">{covers.length > 1 ? `${covers[0].name}, ${covers[1].name} and more` : 'My shows and games'}</span></span>
           </a>
         </li>
         <li>
@@ -222,8 +222,9 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .line-0 { color: var(--now-first); }
   .line-2 { color: var(--now-third); }
   .line :global(a) { color: inherit; }
-  /* The latest change reads on from what Jack is doing, in a softer colour; when Now was updated sits small under it. */
-  .lately { color: var(--now-soft); }
+  /* The latest change reads on from what Jack is doing, in a softer colour and smaller, as it's often long; when Now
+     was updated sits small under it. */
+  .line.lately { color: var(--now-soft); font-size: var(--text-base); font-weight: 700; line-height: 1.45; }
   .with-cover .line { margin-right: 8.5rem; }
   .now :global(.updated) { margin: var(--space-3) 0 0; color: var(--on-colour); font-size: var(--text-sm); font-weight: 600; }
   .snapshot { position: absolute; top: var(--space-6); right: var(--space-6); transform: rotate(7deg); }
@@ -234,16 +235,20 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .lab-toy { min-height: 19rem; padding: var(--space-4) 0 var(--space-4) var(--space-4); }
   .lab-words { display: flex; flex-direction: column; padding: var(--space-6) var(--space-6) var(--space-5); }
   .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
-  .worlds { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
-  .chip { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.25rem; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-sm); font-weight: 800; text-decoration: none; cursor: pointer; }
+  /* Every button the same height, their edges lined up: the worlds two equal ones (one above the other where the card
+     is narrow), then a wide Explore the Lab with a round dice beside it. */
+  .worlds { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-2); margin-top: var(--space-4); }
+  .chip { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-ui); font-weight: 800; text-decoration: none; white-space: nowrap; cursor: pointer; }
+  .worlds .chip { width: 100%; }
   .chip :global(.icon) { width: 16px; height: 16px; }
   .chip:hover { background: var(--on-colour-chip-hover); }
-  .lab-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: auto; padding-top: var(--space-5); }
-  .explore { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-size: var(--text-ui); font-weight: 900; text-decoration: none; }
+  .lab-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+  .explore { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-size: var(--text-ui); font-weight: 900; text-decoration: none; }
   .explore :global(.icon) { width: 18px; height: 18px; transition: translate 0.15s ease; }
   .explore:hover :global(.icon) { translate: 0.2em 0; }
-  .surprise { min-height: 2.75rem; padding: 0 var(--space-4); font-size: var(--text-ui); }
-  .toy-note { margin: var(--space-3) 0 0; font-size: var(--text-sm); font-weight: 600; color: var(--on-colour-soft); }
+  .surprise { width: 2.75rem; padding: 0; }
+  .surprise :global(.icon) { width: 20px; height: 20px; }
+  .toy-note { margin: auto 0 0; padding-top: var(--space-4); font-size: var(--text-sm); font-weight: 600; color: var(--on-colour-soft); }
   .toy-note a { color: var(--on-colour); font-weight: 800; }
 
   /* The three cards around the site: a bright picture on top, the words on the card's deeper colour. */

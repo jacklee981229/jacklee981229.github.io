@@ -39,8 +39,9 @@ const pages = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/pages' }),
   schema: z.object({
     title: z.string(),
-    // About: where Jack has worked, newest first. Shown only once there's an entry.
-    work: z.array(z.object({ role: z.string().min(1), place: z.string().min(1), years: z.string().min(1) })).default([]),
+    // About: where Jack has worked, newest first, each with a line on what he does there. Shown only once there's an
+    // entry.
+    work: z.array(z.object({ role: z.string().min(1), what: z.string().min(1).optional(), place: z.string().min(1), years: z.string().min(1) })).default([]),
     // About: what Jack works with, in a few named groups.
     tools: z.array(z.object({ group: z.string().min(1), items: z.array(z.string().min(1)).min(1) })).default([]),
   }),

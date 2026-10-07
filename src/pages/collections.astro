@@ -5,7 +5,7 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
 import Icon from '../components/Icon.astro';
-import { galleryOf, pictureOf } from '../lib/shelves.js';
+import { galleryOf, itemKey, pictureOf } from '../lib/shelves.js';
 import { cardColoursOf, pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
@@ -42,12 +42,12 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
             <section class="card" id={`shelf-${shelf.id}`} role="tabpanel" aria-labelledby={`tab-${shelf.id}`} hidden={i !== 0}>
               <div class="board">
                 <ul class="items">
-                  {shelf.data.items.map((item) => {
+                  {shelf.data.items.map((item, index) => {
                     const picture = pictureOf(pictures, shelf.id, item)?.default;
                     const shown = galleryOf(pictures, shelf.id, item).map((p) => p.default);
                     const colour = colours.get(`${shelf.id}/${item.name}`);
                     return (
-                      <li style={colour && `--card: ${colour.top}; --card-deep: ${colour.bottom}`}>
+                      <li style={colour && `--card: ${colour.top}; --card-deep: ${colour.bottom}`} data-key={itemKey(item, index)}>
                         <button type="button" class="item" aria-haspopup="dialog" data-item>
                           {/* The name is right under the cover, so the picture needs no words of its own. */}
                           {picture ? (
@@ -98,6 +98,8 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 
   /** How long half a turn of the table takes, in milliseconds. */
   const TURN_MS = 950;
+  /** How long the gallery takes to open out of an item's card, in milliseconds. */
+  const OPEN_MS = 420;
   /** How far each card stands from the table's middle: this share of the table's width, up to so many pixels. */
   const RADIUS_SHARE = 0.3;
   const MOST_RADIUS = 340;
@@ -245,6 +247,23 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     lay();
     stage.getBoundingClientRect();
     stage.classList.remove('placing');
+    openOut(item);
+  }
+
+  /** The gallery opens out of the item's card: its first picture grows from the card's cover into the middle, and the
+      rest (the pictures beside it, the name, the buttons) fade in as it lands. Less motion: it's just there. */
+  function openOut(item: HTMLElement) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const middle = slides[current];
+    const from = (item.querySelector('.cover') ?? item).getBoundingClientRect();
+    const to = middle.getBoundingClientRect();
+    const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+    const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+    const placed = middle.style.transform;
+    // The same list of steps at both ends, so each one runs smoothly from its start to its end.
+    middle.animate([{ transform: `translate(${dx}px, ${dy}px) ${placed} scale(${from.width / to.width})` }, { transform: `translate(0px, 0px) ${placed} scale(1)` }], { duration: OPEN_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    const rest = [...slides.filter((slide) => slide !== middle), ...gallery.querySelectorAll<HTMLElement>('.gallery-head, .step, .gallery-count, .close')];
+    for (const el of rest) el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: OPEN_MS * 0.7, delay: OPEN_MS * 0.4, easing: 'ease', fill: 'backwards' });
   }
 
   for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) item.addEventListener('click', () => openGallery(item));
@@ -281,9 +300,22 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     opener?.focus();
   });
 
-  // A link to a tab (/collections/#games) opens the page on it, without the turn.
-  const linked = tabs.findIndex((tab) => `#${tab.dataset.tab}` === location.hash);
+  // A link to a tab (/collections/#games) opens the page on it, without the turn. A link to an item in it
+  // (/collections/#movies/zhu-yu, from About's favourites) then opens the item's gallery, half a second after the page
+  // has loaded; the address is left at the tab, so going back to the page doesn't open it again.
+  const [tabPart, itemPart] = location.hash.slice(1).split('/');
+  const linked = tabs.findIndex((tab) => tab.dataset.tab === tabPart);
   if (linked > 0) show(linked, false);
+  const linkedItem = itemPart ? cards[linked]?.querySelector<HTMLElement>(`[data-key="${CSS.escape(decodeURIComponent(itemPart))}"] [data-item]`) : null;
+  if (linkedItem) {
+    history.replaceState(null, '', `#${tabPart}`);
+    const later = () => {
+      linkedItem.scrollIntoView({ block: 'nearest' });
+      setTimeout(() => openGallery(linkedItem), 500);
+    };
+    if (document.readyState === 'complete') later();
+    else addEventListener('load', later, { once: true });
+  }
 </script>
 
 <style>
@@ -338,12 +370,14 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   /* The gallery: the whole window, over the dark backdrop of a post's enlarged picture; the name and stars at the
      top, the pictures in the middle, how far along under them. The page stays put behind it. */
   :global(html:has(.gallery[open])) { overflow: hidden; }
-  .gallery { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; background: transparent; color: var(--on-backdrop); }
+  /* Nothing in it can be selected: two quick clicks on a step button would otherwise select the pictures. */
+  .gallery { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; background: transparent; color: var(--on-backdrop); user-select: none; -webkit-user-select: none; }
   .gallery[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
   /* The Close button's form takes no row of its own: the button sits fixed at the top right. */
   .gallery form { display: contents; }
   /* The page behind is blurred too, so its covers don't compete with the gallery's dimmed side pictures. */
-  .gallery::backdrop { background: var(--backdrop-dark); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .gallery::backdrop { background: var(--backdrop-dark); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: gallery-dim 0.3s ease; }
+  @keyframes gallery-dim { from { opacity: 0; } }
   .gallery-head { display: grid; justify-items: center; gap: var(--space-1); padding: var(--space-5) 8.5rem var(--space-3); text-align: center; }
   .gallery-head h2 { margin: 0; font-size: var(--text-lg); line-height: 1.25; }
   .gallery :global(.stars) { --star-shadow: color-mix(in srgb, var(--on-backdrop) 28%, transparent); }
@@ -373,5 +407,7 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   }
   @media (prefers-reduced-motion: reduce) {
     .gallery-stage :global(.slide) { transition: none; }
+    /* global.css stops every element's animations, but not the backdrop's. */
+    .gallery::backdrop { animation: none; }
   }
 </style>
