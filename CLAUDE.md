@@ -56,7 +56,7 @@ Read the code for how a part works; this says where to start.
 - Keys act whenever the game is on screen, whatever has focus, but never while typing in a field or with a dialog open; off screen, the arrows scroll the page. A mouse click must not take the keys (prevent default on mousedown); keyboard play starts after Tab. Accept the keys people naturally try (R to hold a piece).
 - Simple and old-school over fancy (cell jumps, a faint grid), gentle difficulty, and ask before picking an animation style. Tap targets get `-webkit-tap-highlight-color: transparent`.
 - Every game has two looks: its own colour card (the default) and the old Games green, which the New colours | Old green switch on its top card brings back for all of them (`data-game-look="old"` on the page, kept in this browser; `src/components/games/GameLook.astro`). A new game needs both. Its picture on the Lab's card is a photo of its board in the new look.
-- Sound is made in the browser, with no sound files (Blocks' `src/games/blocks/sound.js`, after Key Jam's `src/effects/synth.js`). A game with sound stays silent until the first key or tap, has Sound and Music buttons (M for both, kept in this browser), and its sounds and music follow the game look.
+- Sound is made in the browser with no sound files: the games' kit is `src/games/sound.js` (after Key Jam's `src/effects/synth.js`), each game's sounds its own `sound.js`. A game with sound stays silent until the first key or tap, and has a Sound button (Music too where there's music) with M to mute, kept in this browser. Blocks' sounds and music follow the game look; 2048 has a few soft sounds for both looks and no music, since a simple game keeps its sound simple.
 
 ## UI checks
 

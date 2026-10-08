@@ -1,6 +1,7 @@
 // 2048 on the "Jack's 2048" post: draws the board and plays the rules from rules.js, with a clock, Undo for the
 // move just made, and the games' leaderboard (../leaderboard.js) for finished games. Bot plays the game for you
-// (./bot.js); a game it played in is marked, and never reaches the leaderboard or Best.
+// (./bot.js); a game it played in is marked, and never reaches the leaderboard or Best. Its sounds come from
+// sound.js, turned on and off by the Sound button or M.
 // Smoothness: each tile is one element moved by a GPU-friendly transform; joins pop and new tiles appear once
 // the slide ends; a key pressed mid-slide finishes the current step at once, so input never waits for animation.
 import { bringIntoView, onGameKeys, onSwipe } from '../controls.js';
@@ -8,6 +9,7 @@ import { formatTime, leaderboard } from '../leaderboard.js';
 import { ICONS } from '../../lib/icons.js';
 import { botMove } from './bot.js';
 import { move, newGame, SIZE, undo } from './rules.js';
+import * as sound from './sound.js';
 
 const KEYS = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', a: 'left', d: 'right', w: 'up', s: 'down', A: 'left', D: 'right', W: 'up', S: 'down' };
 const SAVED = 'g2048-game';
@@ -44,6 +46,7 @@ function play(root) {
           <button type="button" class="button" data-bot aria-pressed="false" title="Bot">${face('bot', 'Bot')}</button>
           <button type="button" class="button" data-undo title="Undo" disabled>${face('undo', 'Undo')}</button>
           <button type="button" class="button" data-new title="New game">${face('restart', 'New game')}</button>
+          <button type="button" class="button" data-sound></button>
         </div>
       </div>
       <div class="g2048-board" tabindex="0" role="application" aria-label="2048 board" aria-describedby="g2048-help">
@@ -51,7 +54,7 @@ function play(root) {
         <div class="g2048-tiles" aria-hidden="true" data-tiles></div>
         <div class="g2048-message" data-message hidden><p data-message-text></p><div data-extra hidden></div><div class="g2048-actions" data-actions></div></div>
       </div>
-      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board. Z undoes one move. Bot plays for you; a game it plays in stays off the leaderboard.</p>
+      <p class="g2048-help" id="g2048-help">Use the arrow keys (or W, A, S and D), or swipe on the board. Z undoes one move, M mutes. Bot plays for you; a game it plays in stays off the leaderboard.</p>
     </div>
     <section data-leaderboard></section>
     <p class="visually-hidden" aria-live="polite" data-status></p>`;
@@ -65,6 +68,7 @@ function play(root) {
   const timeEl = $('[data-time]');
   const undoButton = $('[data-undo]');
   const botButton = $('[data-bot]');
+  const soundButton = $('[data-sound]');
   const scores = leaderboard($('[data-leaderboard]'), '2048');
   /** @type {Map<number, HTMLElement>} */
   const tiles = new Map();
@@ -198,7 +202,10 @@ function play(root) {
   const toActions = () => $('[data-actions] button').focus();
   // A game the bot played in ends without the leaderboard's name box.
   const onBoard = () => (game.bot ? undefined : scores.finish(game.score, elapsed(), toActions));
-  const ended = () => say('No more moves.', [['Try again', restart]], onBoard());
+  const ended = () => {
+    sound.play('over');
+    say('No more moves.', [['Try again', restart]], onBoard());
+  };
 
   // The end of a move (joins, the new tile, messages) waits for the slide, unless another move needs it now.
   const finishNow = () => {
@@ -217,6 +224,7 @@ function play(root) {
     finishNow();
     const r = move(game, direction);
     if (!r.moved) return;
+    sound.play('slide');
     const wonNow = r.game.won && !game.won;
     game = r.game;
     store.set(SAVED, JSON.stringify(game));
@@ -240,9 +248,13 @@ function play(root) {
       }
       if (r.spawned) make(r.spawned, 'new');
       // Reaching 2048 goes on the leaderboard straight away, so starting a new game from here keeps it; playing
-      // on, the final score replaces it when it's higher.
-      if (wonNow) say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], onBoard());
-      else if (game.over) ended();
+      // on, the final score replaces it when it's higher. One sound as the slide ends: the notes for 2048 or for the
+      // end, in place of a pop, or the pop of the biggest tile the move made.
+      if (wonNow) {
+        sound.play('win');
+        say('You made 2048!', [['Keep going', keepGoing], ['New game', restart]], onBoard());
+      } else if (game.over) ended();
+      else if (r.merged.length) sound.play('join', Math.max(...r.merged.map((t) => t.value)));
     };
     if (slideMs) pending = { timer: setTimeout(finishNow, slideMs), finish };
     else finish();
@@ -298,6 +310,7 @@ function play(root) {
   };
   const startBot = () => {
     if (botOn() || !message.hidden || game.over) return;
+    sound.wake();
     // The mark goes on before the bot's first move, so Undo keeps it, and is saved with the game.
     game = { ...game, bot: true };
     store.set(SAVED, JSON.stringify(game));
@@ -314,10 +327,29 @@ function play(root) {
     if (message.hidden) $('[data-status]').textContent = 'The bot stopped.';
   }
 
+  // The Sound button, its icon alone (2048.css): its speaker is crossed out while sound is off, and it says which when
+  // pointed at.
+  const showSound = () => {
+    soundButton.innerHTML = `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[sound.on ? 'sound' : 'sound-off']}</svg><span class="visually-hidden">Sound</span>`;
+    soundButton.title = `Sound ${sound.on ? 'on' : 'off'}`;
+    soundButton.setAttribute('aria-pressed', String(sound.on));
+  };
+  const toggleSound = () => {
+    sound.wake();
+    sound.setOn(!sound.on);
+    showSound();
+    $('[data-status]').textContent = `Sound ${sound.on ? 'on' : 'off'}.`;
+  };
+
   // Keys and swipes (../controls.js); a message over the board, where a name may be typed, keeps them. A move or
-  // Z while the bot plays takes the game back from it.
+  // Z while the bot plays takes the game back from it. A move also gets the sound going: a browser allows sound only
+  // once its visitor has done something.
   onGameKeys(board, {
     down: (e) => {
+      if (e.key === 'm' || e.key === 'M') {
+        toggleSound();
+        return true;
+      }
       if (e.key === 'z' || e.key === 'Z') {
         stopBot();
         takeBack();
@@ -325,15 +357,17 @@ function play(root) {
       }
       const direction = KEYS[e.key];
       if (!direction || !message.hidden) return false;
+      sound.wake();
       stopBot();
       step(direction);
       return true;
     },
   });
-  onSwipe(board, { swipe: (direction) => { stopBot(); step(direction); }, ignore: () => !message.hidden });
+  onSwipe(board, { swipe: (direction) => { sound.wake(); stopBot(); step(direction); }, ignore: () => !message.hidden });
   $('[data-new]').addEventListener('click', restart);
   undoButton.addEventListener('click', () => { stopBot(); takeBack(); });
   botButton.addEventListener('click', () => (botOn() ? stopBot() : startBot()));
+  soundButton.addEventListener('click', toggleSound);
 
   // Leaving the page stops the clock and saves its time. Coming back with the Back button starts it again; a
   // background tab is still open, so its time goes on counting and is only saved in case the tab gets closed.
@@ -358,6 +392,7 @@ function play(root) {
   showScore(0);
   showTime();
   showUndo();
+  showSound();
   if (game.over) ended();
   // A game left at "You made 2048!" still waits: its clock starts again with the next move.
   else if (started && !(game.won && game.back && !game.back.won)) run();
