@@ -86,3 +86,4 @@
 - 2026-10-09 new: Added [Compare Text](/lab/compare-text/): paste two versions and see the words that changed
 - 2026-10-09 new: Added [Convert Image](/lab/convert-image/): pictures to JPG, PNG, WebP or PDF, many at once
 - 2026-10-09 new: Added [Image Editor](/lab/image-editor/): crop, resize, flip and compress, with Undo
+- 2026-10-10 new: Added [Jack's Build Log](/build-log/): this site's history, replayed in lights

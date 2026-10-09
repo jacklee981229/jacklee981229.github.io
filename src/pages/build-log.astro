@@ -1,0 +1,85 @@
+---
+// Jack's Build Log: the site's own history replayed on a clock, a landscape card as wide as the page's top (a tall one
+// on narrower screens), drawn by src/build-log/poster.js on the effects' stage. Everything on it is counted while the
+// site is built (build-log-file.js), so every publish and the daily rebuild bring it up to date. Linked from the
+// Changelog.
+import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
+import { buildLogFile } from '../lib/build-log-file.js';
+import { PARTS } from '../lib/build-log.js';
+import { formatDate } from '../lib/dates.js';
+import { COUNTING_SINCE } from '../lib/visits.js';
+import { NAV, SITE } from '../site';
+
+const log = await buildLogFile(SITE);
+// Each part's name from the menu; Home is the one without a colour of its own there.
+const parts = PARTS.map((id) => ({ name: NAV.find((n) => ('accent' in n ? n.accent : 'home') === id)?.label ?? id }));
+const data = { ...log, parts, visitsSince: COUNTING_SINCE };
+const { totals } = log;
+const label = `A clock tilted back like a dial, midnight at the top, the ${totals.days} days since ${formatDate(new Date(`${log.rebuilt}T12:00:00+08:00`))} as rings going outwards. Each of the ${totals.changes.toLocaleString('en-US')} files changed in this site's ${totals.commits} commits stands up off the face at the hour and on the day its commit was made, as tall as its lines, and is wound round the ring at the rim like a coil's wire. ${totals.afterMidnight} of the commits came between midnight and 4 am.`;
+---
+<Base title="Jack's Build Log" description="This site's history, replayed on a clock: every file a commit changed stands up at the hour it was made, with the numbers around it.">
+  <div class="wrap page">
+    <PageTop tone="changelog" icon="branch" title="Jack's Build Log" lead="This site's history on a clock: every file a commit changed, at the hour and on the day it was made." />
+    <div class="show">
+      <div class="poster" data-build-log data-log={JSON.stringify(data)} data-fullscreen="Show the build log on the whole screen">
+        <canvas role="img" aria-label={label}></canvas>
+        <div class="controls">
+          <button type="button" class="button" data-restart>Restart</button>
+          <button type="button" class="button" data-stage-toggle>Pause</button>
+          <button type="button" class="button" data-full hidden>Full screen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { runStage } from '../effects/stage.js';
+  import { createPoster } from '../build-log/poster.js';
+
+  const root = document.querySelector<HTMLElement>('[data-build-log]');
+  if (root) {
+    const data = JSON.parse(root.dataset.log ?? '{}');
+    let poster: ReturnType<typeof createPoster> | undefined;
+    runStage(root, (stage) => (poster = createPoster(stage, data, root)));
+    // The replay plays once and stays finished; Restart plays it again, starting it if it's paused (or still, when
+    // less motion is asked for).
+    const toggle = root.querySelector<HTMLButtonElement>('[data-stage-toggle]');
+    root.querySelector('[data-restart]')?.addEventListener('click', () => {
+      poster?.restart();
+      if (toggle?.textContent === 'Play') toggle.click();
+    });
+    // Full screen, where the browser can (iPhones can't), as on Jack's Exact Time.
+    const full = root.querySelector<HTMLButtonElement>('[data-full]');
+    if (full && document.fullscreenEnabled) {
+      full.hidden = false;
+      full.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen()));
+      document.addEventListener('fullscreenchange', () => { full.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
+    }
+  }
+</script>
+
+<style>
+  .show { display: grid; justify-items: center; }
+  /* The card: a landscape screen as wide as the page's top. --c1 onward are the colours it draws with (poster.js): the
+     six parts in the menu's order, then its own. */
+  .poster { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--log-late); --c8: var(--log-late-dot); --c9: var(--log-added); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-frame); --c15: var(--log-panel); --c16: var(--log-ground); --c17: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-ground); box-shadow: var(--shadow-card); }
+  /* Nothing follows the pointer: a finger on it scrolls the page. */
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: auto; }
+  /* Its buttons in its own look: square-edged, in the monospace, on its dark ground. */
+  .controls { position: absolute; top: var(--space-3); right: var(--space-4); display: flex; gap: var(--space-2); }
+  .controls .button { padding: var(--space-1) var(--space-3); border-color: var(--log-frame); border-radius: var(--radius-xs); background: var(--log-panel); color: var(--log-text); font: 500 var(--text-xs) var(--font-code); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .controls .button:hover { border-color: var(--log-soft); }
+  [data-full][hidden] { display: none; }
+  /* Full screen: the poster as big as the screen allows, on its own ground. */
+  .poster:fullscreen { border-radius: 0; box-shadow: none; }
+  /* Narrower screens: a tall card, as big as the window's height allows; poster.js draws its tall version in it. */
+  @media (max-width: 999px) {
+    .poster { width: min(100%, max(20rem, calc((100svh - var(--space-7)) * 0.8))); aspect-ratio: 4 / 5; }
+  }
+  /* Narrow phones: the card is the screen's width already. */
+  @media (max-width: 479px) {
+    [data-full] { display: none; }
+  }
+</style>

@@ -1,7 +1,10 @@
 // Visitor numbers from GoatCounter's public counter (its "Allow adding visitor counts on your website" setting must
 // stay on), for Site info and each post's views. One place, so the numbers are easy to move when pages change.
 // GoatCounter answers {"count": "1,234", "count_unique": "1,234"}: the two have always been the same number here (it
-// counts visits), so one number is shown. Counting started on 1 Oct 2026, when GoatCounter was added.
+// counts visits), so one number is shown. Counting started when GoatCounter was added (COUNTING_SINCE).
+
+/** The day GoatCounter started counting. */
+export const COUNTING_SINCE = '2026-10-01';
 
 /** The counter's address for a page's path, or "TOTAL" for the whole site. @param {string} base @param {string} path */
 export const counterUrl = (base, path) => `${base.replace(/\/$/, '')}/counter/${encodeURIComponent(path)}.json`;

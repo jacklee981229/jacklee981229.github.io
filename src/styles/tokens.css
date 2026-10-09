@@ -162,6 +162,27 @@
   --diff-add-word: #A8E3BC;
   --diff-remove: #FCE8E6;
   --diff-remove-word: #F5B8B2;
+  /* Jack's Build Log (src/build-log/poster.js), in the site's colours, following the theme. By day: the six parts in
+     the muted ink and the deep colours of their pages' tops; the small hours in the guestbook's amber, their spots in
+     the Travel Map's red; lines added in the Lab's green; words, lines and frames as any card's, on a card's colour;
+     and the Changelog's teal behind the clock. Every colour used for words keeps 4.5:1 on the card. */
+  --log-home: var(--muted);
+  --log-writing: var(--writing-base);
+  --log-lab: var(--lab-from);
+  --log-collection: var(--collection-top-from);
+  --log-travel: var(--travel-top-from);
+  --log-about: var(--about-top-from);
+  --log-late: var(--guestbook-top-to);
+  --log-late-dot: var(--visited-near);
+  --log-added: var(--lab-from);
+  --log-text: var(--ink);
+  --log-soft: var(--muted);
+  --log-faint: var(--muted);
+  --log-line: var(--rule);
+  --log-frame: var(--rule);
+  --log-panel: var(--surface);
+  --log-ground: var(--surface);
+  --log-haze: var(--changelog-top-from);
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
      things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
      changes in the Changelog's teal, the site in the Lab's green. */
@@ -277,6 +298,17 @@
   --diff-add-word: #1E6236;
   --diff-remove: #3B1A18;
   --diff-remove-word: #7A2C27;
+  /* Jack's Build Log in the dark: the parts in their bright accents and Home in the ink, glowing; the small hours in
+     Now's yellow; the panels set into the card in the page's colour. */
+  --log-home: var(--ink);
+  --log-writing: var(--accent-writing);
+  --log-lab: var(--accent-lab);
+  --log-collection: var(--accent-collection);
+  --log-travel: var(--accent-travel);
+  --log-about: var(--accent-about);
+  --log-late: var(--now-first);
+  --log-added: var(--accent-lab);
+  --log-panel: var(--paper);
 
   /* Jack's Pond by night: the same pond under the moon, in the Moonlit Pond mockup's deep blues; the light is the moon's. */
   --pond-sand: #142336;
@@ -316,4 +348,6 @@
   --aurora-4: #6F5FE0;
   --aurora-5: #8EF0AE;
   --star: #F4F1FF;
+  /* Jack's Build Log under the night sky: the aurora behind its clock. */
+  --log-haze: var(--aurora-1);
 }

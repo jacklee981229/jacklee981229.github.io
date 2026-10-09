@@ -28,6 +28,7 @@ Read the code for how a part works; this says where to start.
 - The guestbook: `src/pages/guestbook.astro` and the home page's Guestbook card, the notes' logic in `src/lib/guestbook.js` and their looks in `src/lib/guestbook-view.js`. The notes live in Jack's Cloudflare Worker and its D1 database, `workers/guestbook/` (its README: setting up, deploying, and Jack's SQL to show, hide, pin and reply).
 - Collections: `src/pages/collections.astro`, the logic in `src/lib/shelves.js`. In the code a collection is a "shelf", because "collections" is Astro's word for content folders.
 - Travel Map: `src/pages/travel.astro`, the logic in `src/lib/travel/`, the shapes from the `world-atlas` package.
+- Jack's Build Log (`/build-log/`, linked from the Changelog's top): `src/pages/build-log.astro`. Its numbers are worked out while the site is built, in `src/lib/build-log.js` (which part of the site each file belongs to, Malaysia time), from what `src/lib/build-log-file.js` reads (git, the Changelog, the Lab's lists, GoatCounter); the drawing is `src/build-log/poster.js` on the effects' stage, in the `--log-*` tokens.
 - Command palette: `src/components/SearchDialog.astro`, its items in `src/lib/palette-items.ts`, matching in `src/lib/palette.js`. Icons: `src/lib/icons.js`, the site's one set.
 - Share pictures: made at the end of the build (`astro.config.mjs`, `src/lib/share.js`, `src/lib/share-image.js`).
 - Search engines: the sitemaps and robots.txt from `publicPages()` in `src/lib/collections.ts`; the site's name and author for Google as structured data on the home page (`Base.astro`). The site is in Jack's Google Search Console, its sitemap sent there.
@@ -74,6 +75,7 @@ In the sweep, after Jack confirms a feature, every UI change passes these:
 
 ## Testing habits
 
+- The dev preview runs in this folder (`cwd` in launch.json): run from anywhere else, whatever the build reads from git or files (Now's date, the Changelog, the Build Log) comes up empty.
 - My preview ports (`C:\repos\Jack\.claude\launch.json`): 4600 serves `dist/`, 4602 is dev (shows drafts), 4604 serves a build in a separate folder, 8790 is the guestbook's Worker with a local copy of its database. A preview's guestbook asks the real Worker: to test posting, answer those requests from 8790 instead (CDP `Fetch`). Jack's own preview is 4321: while it runs, never build into `dist/`; build with `--outDir` into another folder and serve that on my port. A build into a folder outside the project moves its `.astro/` folder into the output: finish with `npm run check` to bring it back.
 - Probe with headless Chrome over CDP; Node 20 needs `node --experimental-websocket`. Probes stay in the scratchpad.
 - `?loading` on any address shows the loading screen (the page pretends to take 3 s). The welcome plays on the home page once per tab: open a new tab to see it again.
