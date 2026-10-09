@@ -69,5 +69,8 @@ export default defineConfig({
     // The two games from the old site moved into the Lab (30 Sep), where every game lives at /lab/game/<name>/.
     '/game_1': '/lab/game/2048/',
     '/game_2': '/lab/game/catch-the-cat/',
+    // Change Case and Clean Text left the Lab (9 Oct 2026); their old addresses lead to its other tools.
+    '/lab/change-case': '/lab/#tools',
+    '/lab/clean-text': '/lab/#tools',
   },
 });

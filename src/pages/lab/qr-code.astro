@@ -1,0 +1,73 @@
+---
+import PreviewTool from '../../components/PreviewTool.astro';
+import ToolShell from '../../components/ToolShell.astro';
+
+// The box starts with the site's own address, so a code shows on arrival.
+const SAMPLE = new URL(Astro.site!).origin;
+---
+<ToolShell slug="qr-code" stays="Your text stays in your browser.">
+  <PreviewTool label="Link or message" sample={SAMPLE} hint="Your QR code shows here." view="qr-view">
+    <button slot="actions" type="button" class="button" data-download="png" disabled>Download PNG</button>
+    <button slot="actions" type="button" class="button" data-download="svg" disabled>Download SVG</button>
+  </PreviewTool>
+</ToolShell>
+
+<script>
+  import { qrFileName, qrPixels, qrSquares, qrSvg } from '../../lib/lab/qr.js';
+  import { setupPreview } from '../../lib/lab/page.ts';
+
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-download]')];
+  const tokens = getComputedStyle(document.documentElement);
+  const colours = { ink: tokens.getPropertyValue('--qr-ink').trim(), paper: tokens.getPropertyValue('--qr-paper').trim() };
+  /** The code on show, for the downloads; none while the box is empty or too long. */
+  let shown: { text: string; squares: { size: number; dark: boolean[][] } } | null = null;
+
+  setupPreview((text, view) => {
+    const squares = qrSquares(text);
+    shown = squares && 'dark' in squares ? { text, squares } : null;
+    for (const button of buttons) button.disabled = !shown;
+    if (!squares) return view.replaceChildren();
+    if ('over' in squares) {
+      const note = document.createElement('p');
+      note.textContent = `Too long for one QR code: ${squares.over.toLocaleString('en-US')} ${squares.over === 1 ? 'character' : 'characters'} over.`;
+      return view.replaceChildren(note);
+    }
+    // The SVG is made from the squares alone, never from the text, so nothing typed can reach the page as markup.
+    view.innerHTML = qrSvg(squares, colours);
+    const svg = view.querySelector('svg')!;
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', 'QR code of the link or message');
+  });
+
+  const save = (blob: Blob, name: string) => {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+  };
+  for (const button of buttons) {
+    button.addEventListener('click', () => {
+      if (!shown) return;
+      const { text, squares } = shown;
+      if (button.dataset.download === 'svg') return save(new Blob([qrSvg(squares, colours)], { type: 'image/svg+xml' }), qrFileName(text, 'svg'));
+      const { width, height, data } = qrPixels(squares, colours);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d')!.putImageData(new ImageData(data, width, height), 0, 0);
+      canvas.toBlob((blob) => blob && save(blob, qrFileName(text, 'png')), 'image/png');
+    });
+  }
+</script>
+
+<style is:global>
+  /* The code at the top of its box, as the other previews start, so it's whole on screen on arrival: as wide as the box,
+     and no taller than it. The too-long line sits where the hint does. */
+  .qr-view:not(:empty) { display: grid; place-items: start center; }
+  .qr-view svg { display: block; width: 100%; height: auto; max-height: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); }
+  .qr-view p { justify-self: start; margin: 0; font-weight: 600; }
+  /* With no code to save, the downloads are greyed out. */
+  .actions .button:disabled { color: var(--muted); cursor: default; }
+  .actions .button:disabled:hover { border-color: var(--rule); }
+</style>

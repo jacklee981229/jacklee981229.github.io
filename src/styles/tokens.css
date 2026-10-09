@@ -153,6 +153,9 @@
   --game-sky: #BDE3FF;
   --game-peach: #FFC98B;
   --game-cat: #172030;
+  /* The QR Code Generator's codes, black on white in both themes, as scanners need dark squares on light. */
+  --qr-ink: #000000;
+  --qr-paper: #FFFFFF;
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
      things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
      changes in the Changelog's teal, the site in the Lab's green. */

@@ -24,8 +24,6 @@ export const ICONS = {
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   restart: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>',
   hash: '<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
-  case: '<path d="M3 19 8 5l5 14M4.8 14h6.4"/><circle cx="18" cy="15.5" r="3.5"/><path d="M21.5 12v7"/>',
-  eraser: '<path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L13 19.1M7 21h14M9 11l6 6"/>',
   compare: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5V15a3 3 0 0 0 3 3h6.5M18 15.5V9a3 3 0 0 0-3-3H8.5"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   watch: '<circle cx="12" cy="12" r="6"/><path d="M12 9.5V12l1.5 1.5M8.6 7.2 9.3 3h5.4l.7 4.2M8.6 16.8l.7 4.2h5.4l.7-4.2"/>',
