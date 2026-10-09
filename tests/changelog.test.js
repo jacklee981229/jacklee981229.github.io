@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { KINDS, byDay, byYear, calendarMonth, cardsOf, changesSince, fold, isDay, readChangelog, shortDay, spanOf, stepOf } from '../src/lib/changelog.js';
+import { KINDS, byDay, byYear, calendarMonth, cardsOf, changesSince, dayToDate, fold, isDay, readChangelog, shortDay, spanOf, stepOf } from '../src/lib/changelog.js';
+import { changelogFile, lastUpdate } from '../src/lib/changelog-file.js';
+import { isoDay } from '../src/lib/dates.js';
 
 test("changes come out newest first, a day's later lines first", () => {
   const changes = readChangelog('<!-- note -->\n- 2026-09-26 new: Rebuilt\n- 2026-10-02 new: First that day\n- 2023-02-23 new: Started\n- 2026-10-02 fix: Second that day');
@@ -90,4 +92,15 @@ test("the calendar is today's month: each day's count and step, today and the da
 test("the calendar's weeks start on Monday, and its month has the right days", () => {
   // February 2026 starts on a Sunday, June 2026 on a Monday, January 2027 on a Friday; February 2028 has 29 days.
   assert.deepEqual(['2026-02-10', '2026-06-30', '2027-01-01', '2028-02-29'].map((d) => { const m = calendarMonth([], d); return [m.name, m.blank, m.days.length]; }), [['Feb 2026', 6, 28], ['Jun 2026', 0, 30], ['Jan 2027', 4, 31], ['Feb 2028', 1, 29]]);
+});
+
+test('the site was last updated on the newer of its newest post and its newest change, the same day in the sitemap', () => {
+  const newest = changelogFile()[0].day;
+  const changed = dayToDate(newest);
+  const later = new Date(changed.getTime() + 24 * 3600 * 1000);
+  assert.equal(lastUpdate()?.getTime(), changed.getTime());
+  assert.equal(lastUpdate(new Date(0))?.getTime(), changed.getTime());
+  assert.equal(lastUpdate(later)?.getTime(), later.getTime());
+  // A day's midnight in Malaysia is the evening before in UTC, where GitHub builds: the sitemap must keep the day.
+  assert.equal(isoDay(changed), newest);
 });

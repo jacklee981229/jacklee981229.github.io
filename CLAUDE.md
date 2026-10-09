@@ -30,7 +30,7 @@ Read the code for how a part works; this says where to start.
 - Travel Map: `src/pages/travel.astro`, the logic in `src/lib/travel/`, the shapes from the `world-atlas` package.
 - Command palette: `src/components/SearchDialog.astro`, its items in `src/lib/palette-items.ts`, matching in `src/lib/palette.js`. Icons: `src/lib/icons.js`, the site's one set.
 - Share pictures: made at the end of the build (`astro.config.mjs`, `src/lib/share.js`, `src/lib/share-image.js`).
-- Sitemaps and robots.txt: `publicPages()` in `src/lib/collections.ts`.
+- Search engines: the sitemaps and robots.txt from `publicPages()` in `src/lib/collections.ts`; the site's name and author for Google as structured data on the home page (`Base.astro`). The site is in Jack's Google Search Console, its sitemap sent there.
 - A page's top: `src/components/PageTop.astro`. A two-way switch (Globe | Flat): `src/components/Switch.astro`.
 - When Jack says "CSS" about the Lab, he means the Effects.
 

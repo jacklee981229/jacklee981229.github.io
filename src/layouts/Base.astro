@@ -11,7 +11,7 @@ import SearchDialog from '../components/SearchDialog.astro';
 import NightSky from '../components/NightSky.astro';
 import Splash from '../components/Splash.astro';
 import { shareLabel, sharePath } from '../lib/share.js';
-import { SITE } from '../site';
+import { LINKS, SITE } from '../site';
 
 interface Props {
   title?: string;
@@ -31,6 +31,16 @@ const { title, description = `${SITE.tagline}. ${SITE.intro}`, image, topic, art
 const pageTitle = title ? `${title} | ${SITE.title}` : `${SITE.title} - ${SITE.tagline}`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.min(image.width, 1200), format: 'jpeg' })).src : sharePath(Astro.url.pathname), Astro.site);
+// On the home page, the site's name and its author for search engines: Google takes the name it shows in its results
+// from here, and the handle in the address is a name people search for too. Only the site's own facts go in, none
+// with a "<", so the JSON can't end its script early.
+const structured = Astro.url.pathname === '/' && {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', '@id': `${canonical.href}#website`, url: canonical.href, name: SITE.title, alternateName: canonical.hostname.split('.')[0], inLanguage: 'en', author: { '@id': `${canonical.href}#jack` } },
+    { '@type': 'Person', '@id': `${canonical.href}#jack`, name: SITE.author, url: new URL('/about/', Astro.site).href, sameAs: LINKS.filter((link) => link.icon === 'linkedin' || link.icon === 'github').map((link) => link.href) },
+  ],
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -59,6 +69,7 @@ const shareImageUrl = new URL(image ? (await getImage({ src: image, width: Math.
     <meta name="twitter:card" content="summary_large_image" />
     {!image && <meta name="share:label" content={shareLabel(Astro.url.pathname, topic?.name)} />}
     {!image && topic && <meta name="share:accent" content={topic.id} />}
+    {structured && <script type="application/ld+json" set:html={JSON.stringify(structured)} />}
     <!-- Keeps the site verified in Google Search Console (same token as the old site). -->
     <meta name="google-site-verification" content="jSWL6ULyDHu6BWdCYblWse_SuDVpLxTjWvooOx0Xgpw" />
 

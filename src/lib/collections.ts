@@ -6,6 +6,7 @@ import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
 import { EFFECTS, EXPERIMENTS, TOOLS, WORLDS, effectUrl, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
+import { lastUpdate } from './changelog-file.js';
 import { SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -73,14 +74,15 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
   const posts = await listedPosts();
   const newest = lastUpdated(posts);
   return [
-    { path: '/', lastmod: newest },
+    // The home page shows the newest changes as well as the newest posts.
+    { path: '/', lastmod: lastUpdate(newest) },
     { path: '/writing/', lastmod: newest },
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/collections/' },
     { path: '/travel/' },
     { path: '/about/' },
     { path: '/now/', lastmod: nowFile().updated },
-    { path: '/changelog/' },
+    { path: '/changelog/', lastmod: lastUpdate() },
     { path: '/guestbook/' },
     // The Lab: its finished tools, its games, its effects and its worlds. /random/ stays out (it's marked noindex).
     { path: '/lab/' },
