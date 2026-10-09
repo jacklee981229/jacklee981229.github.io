@@ -5,12 +5,28 @@
 // lays them down with the ripples, the shadows, the fish, the leaves and the glints over them. The swimming is the old
 // fishing pond's: a spine that bends as the head turns, a wave down it, calm wandering, changing depth, keeping off the
 // edges and out of each other's way. Every colour is a --pond-* token (tokens.css) or a lighter or darker mix of one.
+// By night (the dark theme, the night sky too) the same pond lies under the moon, in the Moonlit Pond mockup's colours:
+// the sunlight on the bed gives way to the moon's reflection breaking on the ripples, glints near it, a few stars and
+// fireflies. Switching the theme fades the pond from one to the other.
 
 const TAU = Math.PI * 2;
 /** The stage at which the mockup's sizes hold: 1280 by 800. Sizes grow with the stage's area, not its count of things. */
 const MOCK = Math.sqrt(1280 * 800);
 /** The pond's colours, each from its --pond-* token. */
-const NAMES = ['sand', 'pebble-grey', 'pebble-tan', 'pebble-brown', 'water', 'shade', 'stone', 'moss', 'leaf-red', 'leaf-orange', 'koi-red', 'koi-white', 'koi-ink', 'koi-gold', 'koi-brown', 'light'];
+const NAMES = ['sand', 'pebble-grey', 'pebble-tan', 'pebble-brown', 'water', 'shade', 'stone', 'moss', 'leaf-red', 'leaf-orange', 'koi-red', 'koi-white', 'koi-ink', 'koi-gold', 'koi-brown', 'light', 'firefly'];
+/** Where the moon's reflection lies, as shares of the stage: the Moonlit Pond mockup's place for it. */
+const MOON = { x: 0.6875, y: 0.29 };
+/** Where the fireflies gather (shares of the stage) and how far they spread (pixels at the mockup's size). */
+const FLY_SPOTS = [[0.1875, 0.2875, 160], [0.828, 0.75, 140], [0.547, 0.15, 260]];
+/** A firefly's round, as the mockup's: how bright it glows through it, and where it drifts (pixels at the mockup's size),
+ *  each at a share of the way. */
+const FLY_GLOW = [[0, 0], [0.35, 1], [0.55, 0.9], [0.8, 0], [1, 0]];
+const FLY_PATH = [[0, 0, 0], [0.55, 14, -10], [0.8, 22, -4], [1, 0, 0]];
+/** Seconds the pond takes to fade from day to night or back. */
+const FADE = 2;
+/** How far the ripples and the moon's glints reach past the stage's edges, so their drift never shows an edge (pixels
+ *  at the mockup's size). */
+const PAD = 80;
 /** Sunlight comes from the top right, so shadows fall down and a little to the right. */
 const SHADOW = { x: 0.55, y: 0.85 };
 /** The koi: their looks and lengths, in pixels at the mockup's size. */
@@ -34,6 +50,15 @@ const darker = (c, t) => mix(c, [0, 0, 0], t);
 const css = (c, a = 1) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
 /** A gaussian number, for the swimming's wander. */
 const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(TAU * Math.random());
+/** Eases in and out, as CSS's ease-in-out does between two keyframes. @param {number} u */
+const smooth = (u) => u * u * (3 - 2 * u);
+/** The values at a share `u` of the way through keyframes [share, ...values], eased between each two. @param {number[][]} keys @param {number} u */
+const keyframe = (keys, u) => {
+  let i = 1;
+  while (i < keys.length - 1 && u > keys[i][0]) i++;
+  const a = keys[i - 1], b = keys[i], e = smooth(clamp((u - a[0]) / (b[0] - a[0]), 0, 1));
+  return a.slice(1).map((v, j) => lerp(v, b[j + 1], e));
+};
 
 /** Seeded, so the pond and its fish look the same every time it opens; only the swimming uses Math.random. @param {number} seed */
 function makeRand(seed) {
@@ -148,21 +173,40 @@ export default function pond(stage) {
     if (set[0] === '#') return [1, 3, 5].map((i) => parseInt(set.slice(i, i + 2), 16));
     return (set.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
   };
+  /** The theme's colours as its tokens give them; `C` is what each frame draws with, which differs from them only while
+   *  the pond fades from one theme to the other. @type {Record<string, number[]>} */
+  let target = {};
   /** @type {Record<string, number[]>} */
   let C = {};
   let colorsSeen = stage.colors;
+  /** Night is the dark theme, the night sky included. */
+  const isNight = () => document.documentElement.dataset.theme === 'dark';
+  let nightTo = isNight();
+  /** How far into night the frame being drawn is: 0 by day, 1 by night, in between while fading. */
+  let night = nightTo ? 1 : 0;
   const readTokens = () => {
     const style = getComputedStyle(ctx.canvas);
-    C = Object.fromEntries(NAMES.map((n) => [n, rgbOf(style.getPropertyValue(`--pond-${n}`) || '#808080')]));
+    target = Object.fromEntries(NAMES.map((n) => [n, rgbOf(style.getPropertyValue(`--pond-${n}`) || '#808080')]));
   };
 
   let W = 1, H = 1, unit = 1, density = 1;
   /** @type {HTMLCanvasElement | null} */ let bed = null;
   /** @type {HTMLCanvasElement | null} */ let over = null;
-  /** @type {(HTMLImageElement | null)[]} */ let ripples = [null, null];
+  /** @type {(HTMLCanvasElement | null)[]} */ let ripples = [null, null];
   /** The fish's and the leaves' shadows, drawn small and scaled up, which softens them for free. */
   let shade = layer(1, 1, 1);
-  let built = 0;
+  /** @type {{ mottle: HTMLCanvasElement | null, grain: HTMLCanvasElement | null, ripples: (HTMLCanvasElement | null)[], glints: HTMLCanvasElement | null } | null} */
+  let noise = null;
+  let noiseFor = 0;
+  /** The glints near the moon: streaks of the browser's noise, faded out away from it. @type {HTMLCanvasElement | null} */
+  let moonGlints = null;
+  /** The moon's slivers, drawn small round the moon and scaled up: soft at their edges, as on the ripples. */
+  let moonBox = { ...layer(1, 1, 1), x: 0, y: 0, w: 1, h: 1 };
+  /** A firefly's glow, drawn once for its colour and laid down at each firefly's size. */
+  let flyGlow = { c: document.createElement('canvas'), colour: '' };
+  /** While fading between day and night: the pictures and colours being left, and when the fade began. */
+  /** @type {{ bed: HTMLCanvasElement | null, over: HTMLCanvasElement | null, C: Record<string, number[]>, night: number, start: number } | null} */
+  let fading = null;
 
   // The pond's layout, seeded: the same pond every time, laid out over whatever size the stage has.
   const lay = makeRand(2026);
@@ -170,6 +214,27 @@ export default function pond(stage) {
   const boulderSpots = [[-40, 0.14, 150], [30, 0.54, 105], [-60, 0.9, 150], [150, 0.34, 40], [118, 0.73, 30]];
   const glints = Array.from({ length: 18 }, () => ({ x: lerp(0.766, 0.97, lay()), y: lerp(0.05, 0.3, lay()), s: 3 + lay() * 5, at: lay() * 2.8 }));
   const leaves = LEAVES.map(([x, y, angle, R, colour], i) => ({ x, y, angle: (Number(angle) * Math.PI) / 180, R: Number(R), colour: String(colour), shape: maple(Number(R)), at: -i * 2.3 }));
+
+  // The night's things, as the Moonlit Pond mockup lays them out, from a seed of their own so the day pond stays as it was.
+  const dark = makeRand(777);
+  // The moon breaks into uneven slivers on the ripples: bright near its middle, scattered and faint further out. Each
+  // is an offset from the moon, a width and height, how bright, and when it shimmers (all in pixels at the mockup's size).
+  const slivers = [];
+  for (let i = 0; i < 22; i++) {
+    const dy = (dark() - 0.5) * 96, w = Math.sqrt(Math.max(0, 1 - (dy / 50) ** 2)) * 40;
+    slivers.push({ dx: (dark() - 0.5) * 26, dy, rx: 4 + w * dark(), ry: 1.4 + dark() * 1.6, o: 0.35 + dark() * 0.55, at: dark() * 2.4 });
+  }
+  for (let i = 0; i < 20; i++) {
+    const dy = (dark() - 0.5) * 240;
+    slivers.push({ dx: (dark() - 0.5) * 190, dy, rx: 3 + dark() * 12, ry: 0.8 + dark(), o: 0.15 + dark() * 0.35, at: dark() * 2.4 });
+  }
+  // Only the brightest stars show beside a moon this bright, reflected here and there; some of them twinkle. The
+  // mockup's 34 at its size: a bigger stage shows more of these, up to twice as many.
+  const stars = Array.from({ length: 68 }, () => ({ x: dark(), y: dark(), r: 0.4 + dark() * 0.8, o: 0.15 + dark() * 0.4, twinkle: dark() < 0.3, at: dark() * 3.2 }));
+  const flies = Array.from({ length: 16 }, (_, i) => {
+    const [x, y, spread] = FLY_SPOTS[i % FLY_SPOTS.length];
+    return { x, y, dx: (dark() - 0.5) * spread * 2, dy: (dark() - 0.5) * spread, r: 6 + dark() * 5, at: dark() * 5, period: 3.6 + dark() * 2.4 };
+  });
 
   /** Draws `paint` at a fraction `k` of the size and lays it down scaled up: a soft blur that works in every browser,
    *  where the canvas's own blur filter doesn't (Safari). @param {CanvasRenderingContext2D} g @param {number} k
@@ -184,14 +249,25 @@ export default function pond(stage) {
   /** The bed (sand, its mottle and grain, a sunk leaf, the gravel, the boulders' shade on the water) and what lies over
    *  the fish (the boulders and the sun's glow), drawn for this size and these colours. */
   const build = () => {
-    const stamp = ++built;
+    // Built in the theme's own colours, by day or by night.
+    const C = target, moonlit = nightTo;
+    const moon = { x: MOON.x * W, y: MOON.y * H };
     const { c: bedC, g } = layer(W, H, density);
     const sand = g.createLinearGradient(0, 0, W, H);
-    sand.addColorStop(0, css(lighter(C.sand, 0.4)));
+    // By night the bank's side isn't the bright one: the light is round the moon.
+    sand.addColorStop(0, css(lighter(C.sand, moonlit ? 0.1 : 0.4)));
     sand.addColorStop(0.6, css(C.sand));
     sand.addColorStop(1, css(darker(C.sand, 0.12)));
     g.fillStyle = sand;
     g.fillRect(0, 0, W, H);
+    if (moonlit) {
+      const lit = g.createRadialGradient(moon.x, moon.y, 0, moon.x, moon.y, Math.max(W, H) * 0.85);
+      lit.addColorStop(0, css(C.light, 0.16));
+      lit.addColorStop(0.45, css(C.light, 0.05));
+      lit.addColorStop(1, css(C.light, 0));
+      g.fillStyle = lit;
+      g.fillRect(0, 0, W, H);
+    }
 
     // A leaf that sank long ago, soft under the water.
     const sunk = maple(38 * unit);
@@ -247,9 +323,18 @@ export default function pond(stage) {
     });
     bed = bedC;
 
-    // What lies over the fish: the boulders, wet and mossy, and the sun's glow from the top right.
+    // What lies over the fish: the boulders, wet and mossy, and the sun's glow from the top right; by night the moon's
+    // halo on the water under the boulders, and the dark closing in at the edges over everything.
     const top = layer(W, H, density);
     const o = top.g;
+    if (moonlit) {
+      const halo = o.createRadialGradient(moon.x, moon.y, 0, moon.x, moon.y, 190 * unit);
+      halo.addColorStop(0, css(lighter(C.light, 0.3), 0.3));
+      halo.addColorStop(0.35, css(C.light, 0.1));
+      halo.addColorStop(1, css(C.light, 0));
+      o.fillStyle = halo;
+      o.fillRect(0, 0, W, H);
+    }
     // The water darkens round each boulder where it meets the stone.
     soften(o, 0.2, (s) => {
       s.strokeStyle = css(darker(C.shade, 0.25), 0.55);
@@ -280,27 +365,84 @@ export default function pond(stage) {
       });
       o.restore();
     }
-    const glow = o.createRadialGradient(W * 0.88, H * 0.12, 0, W * 0.88, H * 0.12, Math.max(W, H) * 0.45);
-    glow.addColorStop(0, css(C.light, 0.22));
-    glow.addColorStop(1, css(C.light, 0));
-    o.fillStyle = glow;
-    o.fillRect(0, 0, W, H);
+    if (moonlit) {
+      const edge = o.createRadialGradient(W * 0.52, H * 0.45, 0, W * 0.52, H * 0.45, Math.hypot(W, H) * 0.55);
+      edge.addColorStop(0.55, css(darker(C.water, 0.6), 0));
+      edge.addColorStop(1, css(darker(C.water, 0.6), 0.6));
+      o.fillStyle = edge;
+      o.fillRect(0, 0, W, H);
+    } else {
+      const glow = o.createRadialGradient(W * 0.88, H * 0.12, 0, W * 0.88, H * 0.12, Math.max(W, H) * 0.45);
+      glow.addColorStop(0, css(C.light, 0.22));
+      glow.addColorStop(1, css(C.light, 0));
+      o.fillStyle = glow;
+      o.fillRect(0, 0, W, H);
+    }
     over = top.c;
 
-    // The bed's mottle and grain, and the sunlight's two ripple layers, from the browser's noise: they come a moment later.
-    const pad = 80 * unit;
+    // The bed's mottle and grain, in this theme's colours, once the noise is made; and the sunlight's two ripple layers
+    // by day, or by night the glints near the moon. Those are kept until the next build for their time of day, so a
+    // fade from one to the other still has them.
+    if (!noise) return;
+    g.save();
+    if (noise.mottle) { g.globalAlpha = 0.55; g.drawImage(inColour(noise.mottle, darker(C.sand, 0.5)), 0, 0, W, H); }
+    if (noise.grain) { g.globalAlpha = 0.4; g.drawImage(inColour(noise.grain, darker(C.sand, 0.62)), 0, 0, W, H); }
+    g.restore();
+    if (!moonlit) ripples = noise.ripples.map((r) => r && inColour(r, C.light));
+    else if (noise.glints) {
+      // The glints show only near the moon: an oval round it, fading out.
+      const lit = inColour(noise.glints, C.light), gl = /** @type {CanvasRenderingContext2D} */ (lit.getContext('2d'));
+      const k = lit.width / (W + PAD * 2 * unit);
+      gl.globalCompositeOperation = 'destination-in';
+      gl.translate((moon.x + PAD * unit) * k, (moon.y + PAD * unit) * k);
+      gl.scale(1, lit.height / lit.width);
+      const fade = gl.createRadialGradient(0, 0, 0, 0, 0, lit.width * 0.42);
+      fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      fade.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
+      fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gl.fillStyle = fade;
+      gl.fillRect(-lit.width * 2, -lit.width * 2, lit.width * 4, lit.width * 4);
+      moonGlints = lit;
+    }
+  };
+
+  /** A white picture of the noise in a colour: the colour wherever the noise shows. @param {HTMLCanvasElement} mask @param {number[]} colour */
+  const inColour = (mask, colour) => {
+    const c = document.createElement('canvas');
+    c.width = mask.width;
+    c.height = mask.height;
+    const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+    g.drawImage(mask, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = css(colour);
+    g.fillRect(0, 0, c.width, c.height);
+    return c;
+  };
+
+  /** The browser's noise for this size, in white: the bed's mottle and grain, the sunlight's two ripple layers and the
+   *  glints near the moon. Making it takes a long moment on a big stage, so it's made once for each size and each
+   *  build only tints it, quickly: a change of theme doesn't stall the fade. It comes a moment after the rest. */
+  const makeNoise = () => {
+    const stamp = ++noiseFor;
+    noise = null;
+    const wide = W + PAD * 2 * unit, high = H + PAD * 2 * unit, fine = Math.min(density, 1.5), white = [255, 255, 255];
+    /** @param {HTMLImageElement | null} img @param {number} w @param {number} h @param {number} d */
+    const raster = (img, w, h, d) => {
+      if (!img) return null;
+      const l = layer(w, h, d);
+      l.g.drawImage(img, 0, 0, w, h);
+      return l.c;
+    };
     Promise.all([
-      turbulence(W, H, density, { type: 'fractalNoise', freq: `${(0.006 / unit).toFixed(5)} ${(0.009 / unit).toFixed(5)}`, octaves: 3, seed: 21, matrix: tint(darker(C.sand, 0.5), '0 0 0 -2.6 1.45') }),
-      turbulence(W, H, density, { type: 'fractalNoise', freq: '0.85', octaves: 2, seed: 7, matrix: tint(darker(C.sand, 0.62), '0 0 0 -1.6 1') }),
-      turbulence(W + pad * 2, H + pad * 2, Math.min(density, 1.5), { type: 'turbulence', freq: `${(0.0105 / unit).toFixed(5)} ${(0.0145 / unit).toFixed(5)}`, octaves: 2, seed: 11, matrix: tint(C.light, '-9 0 0 0 1.3'), blur: 1.1 * unit }),
-      turbulence(W + pad * 2, H + pad * 2, Math.min(density, 1.5), { type: 'turbulence', freq: `${(0.0135 / unit).toFixed(5)} ${(0.0115 / unit).toFixed(5)}`, octaves: 2, seed: 29, matrix: tint(C.light, '-10 0 0 0 1.25'), blur: 1.4 * unit }),
-    ]).then(([mottle, grain, a, b]) => {
-      if (stamp !== built) return;
-      g.save();
-      if (mottle) { g.globalAlpha = 0.55; g.drawImage(mottle, 0, 0, W, H); }
-      if (grain) { g.globalAlpha = 0.4; g.drawImage(grain, 0, 0, W, H); }
-      g.restore();
-      ripples = [a, b];
+      turbulence(W, H, density, { type: 'fractalNoise', freq: `${(0.006 / unit).toFixed(5)} ${(0.009 / unit).toFixed(5)}`, octaves: 3, seed: 21, matrix: tint(white, '0 0 0 -2.6 1.45') }),
+      turbulence(W, H, density, { type: 'fractalNoise', freq: '0.85', octaves: 2, seed: 7, matrix: tint(white, '0 0 0 -1.6 1') }),
+      turbulence(wide, high, fine, { type: 'turbulence', freq: `${(0.0105 / unit).toFixed(5)} ${(0.0145 / unit).toFixed(5)}`, octaves: 2, seed: 11, matrix: tint(white, '-9 0 0 0 1.3'), blur: 1.1 * unit }),
+      turbulence(wide, high, fine, { type: 'turbulence', freq: `${(0.0135 / unit).toFixed(5)} ${(0.0115 / unit).toFixed(5)}`, octaves: 2, seed: 29, matrix: tint(white, '-10 0 0 0 1.25'), blur: 1.4 * unit }),
+      turbulence(wide, high, fine, { type: 'fractalNoise', freq: `${(0.02 / unit).toFixed(5)} ${(0.11 / unit).toFixed(5)}`, octaves: 3, seed: 21, matrix: tint(white, '9 0 0 0 -5.9') }),
+    ]).then(([mottle, grain, a, b, glints]) => {
+      if (stamp !== noiseFor) return;
+      noise = { mottle: raster(mottle, W, H, density), grain: raster(grain, W, H, density), ripples: [raster(a, wide, high, fine), raster(b, wide, high, fine)], glints: raster(glints, wide, high, fine) };
+      build();
       // A still pond (paused, or with reduced motion) gets its picture again, now with these in it.
       if (!stage.playing) draw(0);
     });
@@ -334,7 +476,7 @@ export default function pond(stage) {
   // The scales: a faint net of arcs, one for dark fish and one for light, turned with each fish.
   const scaleTile = (/** @type {boolean} */ light) => {
     const t = layer(9, 8, 2);
-    t.g.strokeStyle = light ? 'rgba(255, 255, 255, 1)' : css(darker(C['koi-brown'] ?? [58, 42, 26], 0.55));
+    t.g.strokeStyle = light ? 'rgba(255, 255, 255, 1)' : css(darker(target['koi-brown'] ?? [58, 42, 26], 0.55));
     t.g.lineWidth = 0.7;
     t.g.beginPath();
     t.g.moveTo(0, 0); t.g.quadraticCurveTo(4.5, 4, 0, 8);
@@ -589,9 +731,9 @@ export default function pond(stage) {
       ctx.fill(f.body);
       ctx.globalAlpha = 1;
     }
-    // Roundness: the sides a little darker, a soft light along the back. Many faint strokes of shrinking width stack
-    // into a smooth fade; a few strong ones would show as stripes.
-    ctx.strokeStyle = css(darker(C.water, 0.7), 0.06);
+    // Roundness: the sides a little darker, a soft light along the back (the sun's, or the moon's). Many faint strokes
+    // of shrinking width stack into a smooth fade; a few strong ones would show as stripes.
+    ctx.strokeStyle = css(darker(C.water, 0.7), lerp(0.06, 0.1, night));
     for (const w of [0.84, 0.66, 0.5, 0.34, 0.18]) {
       ctx.lineWidth = f.wid * w;
       ctx.stroke(f.body);
@@ -604,33 +746,39 @@ export default function pond(stage) {
     }
     smoothOpen(back, spine);
     ctx.lineCap = 'round';
-    ctx.strokeStyle = `rgba(255, 255, 255, ${lk.sheen / 5})`;
+    ctx.strokeStyle = css(mix([255, 255, 255], C.light, night), lk.sheen / 5);
     for (const w of [0.5, 0.4, 0.3, 0.2, 0.1]) {
       ctx.lineWidth = f.wid * w;
       ctx.stroke(back);
     }
     ctx.restore();
-    // The eyes at the sides of the head, a triangle with the nose.
-    ctx.fillStyle = css(darker(C['koi-ink'], 0.1), 0.65);
+    // The eyes at the sides of the head, a triangle with the nose; by night each catches a speck of moonlight.
     for (const side of [1, -1]) {
-      const q = at(f, 0.09, side * 0.8);
+      const q = at(f, 0.09, side * 0.8), r = f.wid * 0.055;
+      ctx.fillStyle = css(darker(C['koi-ink'], 0.1), 0.65);
       ctx.beginPath();
-      ctx.arc(q.x, q.y, f.wid * 0.055, 0, TAU);
+      ctx.arc(q.x, q.y, r, 0, TAU);
+      ctx.fill();
+      if (night < 0.01) continue;
+      ctx.fillStyle = css(lighter(C.light, 0.3), 0.85 * night);
+      ctx.beginPath();
+      ctx.arc(q.x - r * 0.3, q.y - r * 0.3, r * 0.32, 0, TAU);
       ctx.fill();
     }
-    // Deeper fish fade into the water's colour.
-    ctx.fillStyle = css(lighter(C.water, 0.12), f.depth * 0.3);
+    // Deeper fish fade into the water's colour; by night the dark water hides them more.
+    ctx.fillStyle = css(lighter(C.water, 0.12 * (1 - night)), lerp(f.depth * 0.3, 0.24 + f.depth * 0.55, night));
     ctx.fill(f.body);
   };
 
-  /** The fish's and the leaves' shadows on the bed: further from what casts them the nearer it is to the surface. */
+  /** The fish's and the leaves' shadows on the bed: further from what casts them the nearer it is to the surface. The
+   *  moon's are fainter and fall closer than the sun's. */
   const drawShadows = (/** @type {number} */ t) => {
     const g = shade.g, k = shade.c.width / W;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, shade.c.width, shade.c.height);
     g.fillStyle = '#000';
     for (const f of fishes) {
-      const off = (10 + 30 * (1 - f.depth)) * unit;
+      const off = lerp(10 + 30 * (1 - f.depth), 4 + 10 * (1 - f.depth), night) * unit;
       g.setTransform(k, 0, 0, k, SHADOW.x * off * k, SHADOW.y * off * k);
       g.globalAlpha = 0.75 + 0.25 * f.depth;
       g.fill(f.body);
@@ -639,13 +787,13 @@ export default function pond(stage) {
     g.globalAlpha = 1;
     for (const l of leaves) {
       const sway = leafSway(l, t);
-      g.setTransform(k, 0, 0, k, (l.x * W + 26 * unit + sway.dx) * k, (l.y * H + 40 * unit + sway.dy) * k);
+      g.setTransform(k, 0, 0, k, (l.x * W + lerp(26, 5, night) * unit + sway.dx) * k, (l.y * H + lerp(40, 8, night) * unit + sway.dy) * k);
       g.rotate(l.angle + sway.turn);
       g.scale(unit, unit);
       g.fill(l.shape.shape);
     }
     ctx.save();
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = lerp(0.45, 0.3, night);
     ctx.globalCompositeOperation = 'source-over';
     ctx.filter = 'none';
     // The shade is black: drawn through the pond's shadow colour, it takes that colour.
@@ -666,6 +814,89 @@ export default function pond(stage) {
     return tinted.c;
   };
 
+  /** By night: the moon's reflection breaking on the ripples, the glints near it and the stars, on the surface over the
+   *  fish. @param {number} t */
+  const drawMoon = (t) => {
+    const mx = MOON.x * W, my = MOON.y * H;
+    // Its bright middle, breathing a little.
+    ctx.save();
+    ctx.globalAlpha = night * lerp(0.82, 1, (1 - Math.cos((t / 3.6) * Math.PI)) / 2);
+    ctx.translate(mx, my + 2 * unit);
+    ctx.scale(1, 58 / 64);
+    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, 64 * unit);
+    core.addColorStop(0, css(lighter(C.light, 0.4), 0.55));
+    core.addColorStop(0.55, css(C.light, 0.2));
+    core.addColorStop(1, css(C.light, 0));
+    ctx.fillStyle = core;
+    ctx.fillRect(-64 * unit, -64 * unit, 128 * unit, 128 * unit);
+    ctx.restore();
+    // The slivers, each sliding a little to and fro, drawn small and scaled up so their edges come out soft.
+    const b = moonBox, s = b.c.width / b.w;
+    b.g.setTransform(1, 0, 0, 1, 0, 0);
+    b.g.clearRect(0, 0, b.c.width, b.c.height);
+    b.g.setTransform(s, 0, 0, s, (mx - b.x) * s, (my - b.y) * s);
+    b.g.fillStyle = css(lighter(C.light, 0.4));
+    for (const v of slivers) {
+      const e = (1 - Math.cos(((t + v.at) / 2.4) * Math.PI)) / 2;
+      b.g.globalAlpha = v.o * lerp(0.55, 1, e);
+      b.g.beginPath();
+      b.g.ellipse((v.dx + lerp(-5, 5, e)) * unit, v.dy * unit, v.rx * unit, v.ry * unit, 0, 0, TAU);
+      b.g.fill();
+    }
+    ctx.globalAlpha = night;
+    ctx.drawImage(b.c, b.x, b.y, b.w, b.h);
+    // The glints near it, drifting slowly.
+    if (moonGlints) {
+      const e = (1 - Math.cos((t / 12) * Math.PI)) / 2, pad = PAD * unit;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.38 * night;
+      ctx.drawImage(moonGlints, -pad + lerp(-24, 24, e) * unit, -pad + lerp(0, 8, e) * unit, W + pad * 2, H + pad * 2);
+      ctx.restore();
+    }
+    ctx.fillStyle = css(lighter(C.light, 0.2));
+    const many = Math.round((stars.length / 2) * Math.min(2, (W * H) / (MOCK * MOCK)));
+    for (const star of stars.slice(0, many)) {
+      ctx.globalAlpha = night * (star.twinkle ? lerp(0.2, 0.8, (1 - Math.cos(((t + star.at) / 3.2) * TAU)) / 2) : star.o);
+      ctx.beginPath();
+      ctx.arc(star.x * W, star.y * H, Math.max(0.5, star.r * unit), 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+
+  /** By night: the fireflies over the water, each with its reflection below it, glowing up, drifting off and fading,
+   *  each in its own time. @param {number} t */
+  const drawFlies = (t) => {
+    const colour = css(C.firefly);
+    if (flyGlow.colour !== colour) {
+      const R = 32, sprite = layer(R * 2, R * 2, 1);
+      const glow = sprite.g.createRadialGradient(R, R, 0, R, R, R);
+      glow.addColorStop(0, css(lighter(C.firefly, 0.7)));
+      glow.addColorStop(0.25, css(C.firefly, 0.6));
+      glow.addColorStop(1, css(darker(C.firefly, 0.15), 0));
+      sprite.g.fillStyle = glow;
+      sprite.g.fillRect(0, 0, R * 2, R * 2);
+      flyGlow = { c: sprite.c, colour };
+    }
+    ctx.fillStyle = css(lighter(C.firefly, 0.75));
+    for (const f of flies) {
+      const u = (((t + f.at) % f.period) + f.period) % f.period / f.period;
+      const [o] = keyframe(FLY_GLOW, u);
+      if (o < 0.01) continue;
+      const [dx, dy] = keyframe(FLY_PATH, u);
+      const x = f.x * W + (f.dx + dx) * unit, y = f.y * H + (f.dy + dy) * unit, r = f.r * unit;
+      ctx.globalAlpha = o * night * 0.35;
+      ctx.drawImage(flyGlow.c, x - r * 0.7, y + 9 * unit - r * 0.7, r * 1.4, r * 1.4);
+      ctx.globalAlpha = o * night;
+      ctx.drawImage(flyGlow.c, x - r, y - r, r * 2, r * 2);
+      ctx.beginPath();
+      ctx.arc(x, y, 1.3 * unit, 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  };
+
   /** How a floating leaf sways on the ripples: a little turn and drift, back and forth over 9 seconds. */
   const leafSway = (/** @type {typeof leaves[number]} */ l, /** @type {number} */ t) => {
     const k = (1 - Math.cos(((t + l.at) / 9) * Math.PI)) / 2;
@@ -679,6 +910,10 @@ export default function pond(stage) {
     unit = Math.sqrt(W * H) / MOCK;
     density = ctx.canvas.width / W;
     shade = layer(W / 5, H / 5, 1);
+    // The slivers spread about 100 pixels either side of the moon and 120 above and below it, at the mockup's size.
+    const bw = 260 * unit, bh = 300 * unit;
+    moonBox = { ...layer(bw * 0.4, bh * 0.4, 1), x: MOON.x * W - bw / 2, y: MOON.y * H - bh / 2, w: bw, h: bh };
+    makeNoise();
     build();
     for (const f of fishes) {
       if (!f.pts.length) {
@@ -699,37 +934,61 @@ export default function pond(stage) {
   };
 
   readTokens();
+  C = target;
   scales = [scaleTile(false), scaleTile(true)];
   resize();
 
   /** One frame: the fish swim `dt` seconds on, then everything is drawn. @param {number} dt */
   function draw(dt) {
-    // The theme changed: new colours, so the pictures are drawn again.
+    // The theme changed: the pictures are drawn again in its colours, and a playing pond fades across to them; a still
+    // one (paused, or with reduced motion) shows them at once. The night sky keeps the dark theme's pond: no change.
     if (stage.colors !== colorsSeen) {
       colorsSeen = stage.colors;
+      const before = { bed, over, C, night };
+      const was = JSON.stringify(target), wasNight = nightTo;
       readTokens();
-      scales = [scaleTile(false), scaleTile(true)];
-      build();
+      nightTo = isNight();
+      if (JSON.stringify(target) !== was || nightTo !== wasNight) {
+        scales = [scaleTile(false), scaleTile(true)];
+        build();
+        fading = stage.playing ? { ...before, start: stage.time } : null;
+      }
     }
+    // How far the fade has come, eased; the colours between the two themes', and how far into night.
+    let blend = 1;
+    if (fading) {
+      blend = smooth(clamp((stage.time - fading.start) / FADE, 0, 1));
+      if (stage.time - fading.start >= FADE) fading = null;
+    }
+    night = fading ? lerp(fading.night, nightTo ? 1 : 0, blend) : nightTo ? 1 : 0;
+    const from = fading?.C;
+    C = from ? Object.fromEntries(NAMES.map((n) => [n, mix(from[n], target[n], blend)])) : target;
+    const sun = 1 - night;
+
     const t = stage.time;
     for (const f of fishes) swim(f, dt);
     fishes.sort((a, b) => b.depth - a.depth);
     for (const f of fishes) buildBody(f);
 
-    if (bed) ctx.drawImage(bed, 0, 0, W, H);
-    // Sunlight through the ripples: two layers drifting different ways.
-    const pad = 80 * unit;
+    if (fading?.bed) ctx.drawImage(fading.bed, 0, 0, W, H);
+    if (bed) {
+      ctx.globalAlpha = fading ? blend : 1;
+      ctx.drawImage(bed, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+    // Sunlight through the ripples: two layers drifting different ways. By night they're gone.
+    const pad = PAD * unit;
     const ease = (/** @type {number} */ period) => (1 - Math.cos((t / period) * Math.PI)) / 2;
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
-    if (ripples[0]) {
+    if (ripples[0] && sun > 0.01) {
       const k = ease(16);
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.5 * sun;
       ctx.drawImage(ripples[0], -pad + lerp(-34, 34, k) * unit, -pad + lerp(-14, 16, k) * unit, W + pad * 2, H + pad * 2);
     }
-    if (ripples[1]) {
+    if (ripples[1] && sun > 0.01) {
       const k = ease(12), grow = lerp(1.04, 1, k);
-      ctx.globalAlpha = 0.38;
+      ctx.globalAlpha = 0.38 * sun;
       ctx.translate(W / 2 + lerp(28, -26, k) * unit, H / 2 + lerp(20, -18, k) * unit);
       ctx.scale(grow, grow);
       ctx.drawImage(ripples[1], -W / 2 - pad, -H / 2 - pad, W + pad * 2, H + pad * 2);
@@ -744,20 +1003,35 @@ export default function pond(stage) {
     ctx.fillStyle = water;
     ctx.fillRect(0, 0, W, H);
     for (const f of fishes) drawFish(f);
-    if (over) ctx.drawImage(over, 0, 0, W, H);
+    if (night > 0.01) drawMoon(t);
+    if (fading?.over) {
+      ctx.globalAlpha = 1 - blend;
+      ctx.drawImage(fading.over, 0, 0, W, H);
+    }
+    if (over) {
+      ctx.globalAlpha = fading ? blend : 1;
+      ctx.drawImage(over, 0, 0, W, H);
+    }
+    ctx.globalAlpha = 1;
     for (const l of leaves) {
       const sway = leafSway(l, t);
       ctx.save();
       ctx.translate(l.x * W + sway.dx, l.y * H + sway.dy);
       ctx.rotate(l.angle + sway.turn);
       ctx.scale(unit, unit);
+      // Sunlit in the middle by day; by night dark all over, with the moon on its edge.
       const colour = C[l.colour];
       const fill = ctx.createRadialGradient(-l.R * 0.05, 0, 0, 0, 0, l.R);
-      fill.addColorStop(0, css(lighter(colour, 0.25)));
+      fill.addColorStop(0, css(lighter(colour, lerp(0.25, 0.05, night))));
       fill.addColorStop(1, css(colour));
       ctx.fillStyle = fill;
       ctx.fill(l.shape.shape);
-      ctx.strokeStyle = css(lighter(C['leaf-orange'], 0.45), 0.55);
+      if (night > 0.01) {
+        ctx.strokeStyle = css(C.light, 0.3 * night);
+        ctx.lineWidth = 0.8;
+        ctx.stroke(l.shape.shape);
+      }
+      ctx.strokeStyle = css(lighter(C['leaf-orange'], lerp(0.45, 0.15, night)), 0.55);
       ctx.lineWidth = 0.9;
       ctx.stroke(l.shape.veins);
       ctx.strokeStyle = css(darker(C['leaf-red'], 0.4));
@@ -766,7 +1040,9 @@ export default function pond(stage) {
       ctx.stroke(l.shape.stem);
       ctx.restore();
     }
-    // The sun's glints on the ripples, each brightening and fading in turn.
+    // The sun's glints on the ripples, each brightening and fading in turn; by night, the fireflies instead.
+    if (night > 0.01) drawFlies(t);
+    if (sun < 0.01) return;
     ctx.save();
     ctx.fillStyle = css(lighter(C.light, 0.5));
     ctx.shadowColor = css(C.light);
@@ -775,7 +1051,7 @@ export default function pond(stage) {
       const k = Math.sin((((t + g.at) % 2.8) / 2.8) * Math.PI);
       if (k < 0.05) continue;
       const x = g.x * W, y = g.y * H, s = g.s * unit * lerp(0.3, 1, k);
-      ctx.globalAlpha = k;
+      ctx.globalAlpha = k * sun;
       ctx.beginPath();
       ctx.moveTo(x, y - s);
       ctx.lineTo(x + s * 0.18, y - s * 0.18);

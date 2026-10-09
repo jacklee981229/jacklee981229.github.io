@@ -77,3 +77,4 @@
 - 2026-10-08 new: Opened a [Guestbook](/guestbook/): please say hi!
 - 2026-10-08 new: Gave [Jack's Blocks](/lab/game/blocks/) sound effects and music of its own
 - 2026-10-08 new: Gave [Jack's 2048](/lab/game/2048/) soft sound effects
+- 2026-10-09 new: Gave [Jack's Pond](/lab/world/pond/) a moonlit night, in the dark theme

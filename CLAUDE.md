@@ -48,6 +48,7 @@ Read the code for how a part works; this says where to start.
 - **Fonts** are self-hosted (`public/fonts/`, licences beside them). The share pictures use WOFF copies in `src/assets/share-fonts/`, because satori can't read WOFF2.
 - **No third-party scripts** besides GoatCounter, and no full-page loaders besides the welcome and the loading screen (only when a page is slow).
 - **Guestbook:** a visitor's words go into the page only as text, never as HTML. The Worker takes notes only from the site and previews on Jack's laptop (`allowedOrigin` in `notes.js`). It goes live with `npx wrangler deploy --config workers/guestbook/wrangler.toml`, not with the site's deploy. Its database is Jack's: tables and fixes as SQL he runs, and checks use a local copy (`--local`), never `--remote`. The word list that holds notes back is in the database, not the repo (a starter list in `docs/`).
+- **Jack's Pond** (a Little World) is day in the light theme and night in the dark one, the night sky included, fading across when the theme changes: no button or clock of its own. Its colours are only the `--pond-*` tokens, a day set and a night set.
 - [docs/design-ideas.md](docs/design-ideas.md) is an idea bank: read it only when Jack asks for design ideas.
 
 ## Games
