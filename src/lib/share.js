@@ -16,7 +16,7 @@ export function shareLabel(pathname, topic) {
   const p = pathname.replace(/\/?$/, '/');
   if (p === '/') return 'Home';
   if (p === '/lab/') return 'Lab';
-  if (p.startsWith('/lab/effect/')) return 'Lab · Effect';
+  if (p === '/lab/effects/') return 'Lab · Effects';
   if (p.startsWith('/lab/world/')) return 'Lab · Little World';
   if (p.startsWith('/lab/game/')) return 'Lab · Game';
   if (p === '/random/') return 'Lab · Random';

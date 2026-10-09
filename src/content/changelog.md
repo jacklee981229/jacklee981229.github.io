@@ -80,3 +80,9 @@
 - 2026-10-09 new: Gave [Jack's Pond](/lab/world/pond/) a moonlit night, in the dark theme
 - 2026-10-09 new: Added [QR Code Generator](/lab/qr-code/) to the Lab
 - 2026-10-09 improved: Took Change Case and Clean Text out of the Lab
+- 2026-10-09 design: Put all the Lab's effects on one [Effects](/lab/effects/) page, a single card in Misc
+- 2026-10-09 new: Gave [Effects](/lab/effects/) a dice button for another effect, never one you just saw
+- 2026-10-09 design: Drew new pictures for the Little Worlds' cards: roads, rails and a pond
+- 2026-10-09 new: Added [Compare Text](/lab/compare-text/): paste two versions and see the words that changed
+- 2026-10-09 new: Added [Convert Image](/lab/convert-image/): pictures to JPG, PNG, WebP or PDF, many at once
+- 2026-10-09 new: Added [Image Editor](/lab/image-editor/): crop, resize, flip and compress, with Undo

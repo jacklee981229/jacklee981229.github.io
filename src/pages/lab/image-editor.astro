@@ -1,0 +1,454 @@
+---
+import Icon from '../../components/Icon.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import { FORMATS } from '../../lib/lab/convert-image.js';
+import { SHAPES } from '../../lib/lab/image-edit.js';
+
+// The editor saves pictures only: a PDF is Convert Image's job.
+const TYPES = FORMATS.filter((f) => f.id !== 'pdf');
+---
+<ToolShell slug="image-editor" stays="Your picture stays in your browser.">
+  <div class="image-editor">
+    <label class="drop" data-drop>
+      <input class="visually-hidden" type="file" accept="image/*" data-file />
+      <Icon name="image" />
+      <span class="drop-big">Drop a picture here, or <span class="pick">choose one</span></span>
+      <span class="drop-small">JPG, PNG, WebP, GIF, BMP, AVIF: any picture your browser can open.</span>
+    </label>
+    <p class="note" aria-live="polite" data-note></p>
+    <div class="editor" data-editor hidden>
+      <div class="stage">
+        <div class="frame">
+          <canvas role="img" aria-label="The picture as it is now" data-canvas></canvas>
+          <div class="crop" role="group" tabindex="0" aria-label="Crop box. Arrow keys move it, Shift and the arrow keys size it, Enter crops." data-crop hidden>
+            <span class="handle nw" data-corner="nw"></span><span class="handle ne" data-corner="ne"></span><span class="handle sw" data-corner="sw"></span><span class="handle se" data-corner="se"></span>
+          </div>
+        </div>
+        <p class="facts" data-facts></p>
+      </div>
+      <div class="tools">
+        <p class="actions">
+          <button type="button" class="button" data-undo>Undo</button>
+          <button type="button" class="button" data-reset>Start over</button>
+        </p>
+        <fieldset class="choices" data-shapes>
+          <legend>Crop</legend>
+          <div class="pills">
+            {SHAPES.map((s) => <label class="pill"><input class="visually-hidden" type="radio" name="shape" value={s.id} />{s.label}</label>)}
+          </div>
+          <p class="actions" data-crop-actions hidden>
+            <button type="button" class="button" data-crop-apply>Crop</button>
+            <button type="button" class="button" data-crop-cancel>Cancel</button>
+          </p>
+        </fieldset>
+        <div role="group" aria-labelledby="flip-legend">
+          <p class="legend" id="flip-legend">Flip</p>
+          <p class="actions">
+            <button type="button" class="button" data-flip="x">Left to right</button>
+            <button type="button" class="button" data-flip="y">Upside down</button>
+          </p>
+        </div>
+        <form role="group" aria-labelledby="size-legend" novalidate data-size>
+          <p class="legend" id="size-legend">Resize</p>
+          <div class="size-row">
+            <label>Width <input type="number" min="1" max="10000" step="1" inputmode="numeric" data-w /></label>
+            <span class="times" aria-hidden="true">×</span>
+            <label>Height <input type="number" min="1" max="10000" step="1" inputmode="numeric" data-h /></label>
+            <button type="submit" class="button">Resize</button>
+          </div>
+        </form>
+        <fieldset class="choices" data-types>
+          <legend>Save as</legend>
+          <div class="pills">
+            {TYPES.map((t) => <label class="pill"><input class="visually-hidden" type="radio" name="type" value={t.id} />{t.label}</label>)}
+          </div>
+        </fieldset>
+        <label class="quality" data-quality-box>
+          <span>Quality</span>
+          <input type="range" min="10" max="100" step="5" value="85" data-quality />
+          <output data-quality-out>85%</output>
+        </label>
+        <p class="estimate" aria-live="polite" data-estimate></p>
+        <p class="actions">
+          <a class="button" download data-save>Download</a>
+          <button type="button" class="button" data-another>Another picture</button>
+        </p>
+      </div>
+    </div>
+  </div>
+</ToolShell>
+
+<script>
+  import { FORMATS, sizeOf } from '../../lib/lab/convert-image.js';
+  import { dragCorner, editedName, keepShape, moveBox, SHAPES, startBox } from '../../lib/lab/image-edit.js';
+
+  type Box = { x: number; y: number; w: number; h: number };
+  /** One change to the picture. The changes are kept, not the pictures, so Undo makes it again from the one opened. */
+  type Step = { crop: Box } | { flip: 'x' | 'y' } | { size: { w: number; h: number } };
+
+  const $ = <T extends Element = HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+  const drop = $('[data-drop]');
+  const input = $<HTMLInputElement>('[data-file]');
+  const note = $('[data-note]');
+  const editor = $('[data-editor]');
+  const view = $<HTMLCanvasElement>('[data-canvas]');
+  const crop = $('[data-crop]');
+  const cropActions = $('[data-crop-actions]');
+  const facts = $('[data-facts]');
+  const width = $<HTMLInputElement>('[data-w]');
+  const height = $<HTMLInputElement>('[data-h]');
+  const quality = $<HTMLInputElement>('[data-quality]');
+  const qualityBox = $('[data-quality-box]');
+  const estimate = $('[data-estimate]');
+  const save = $<HTMLAnchorElement>('[data-save]');
+  const undo = $<HTMLButtonElement>('[data-undo]');
+  const reset = $<HTMLButtonElement>('[data-reset]');
+
+  /** Phones' browsers can't draw a picture bigger than this many pixels, so a bigger one is made smaller on opening. */
+  const MOST_PIXELS = 16_777_216;
+  /** The picture on screen is a copy at most this many pixels across, to spare a phone's memory. */
+  const SHOWN = 2048;
+
+  let name = '';
+  let ownType = '';
+  let ownSize = 0;
+  /** The picture as opened, every step so far, and the picture they make. */
+  let first!: HTMLCanvasElement;
+  let steps: Step[] = [];
+  let picture!: HTMLCanvasElement;
+  let box: Box | null = null;
+  let ratio: number | null = null;
+  /** Which size was typed last, so the other is worked out from it. */
+  let typed: 'w' | 'h' = 'w';
+  let saved = '';
+
+  // A browser that can't make WebP (Safari) doesn't offer it.
+  const tester = document.createElement('canvas');
+  tester.width = tester.height = 1;
+  const canWebp = tester.toDataURL('image/webp').startsWith('data:image/webp');
+  const typeInput = (id: string) => $<HTMLInputElement>(`input[name="type"][value="${id}"]`);
+  if (!canWebp) {
+    typeInput('webp').disabled = true;
+    typeInput('webp').closest('label')!.title = "Your browser can't make WebP pictures";
+  }
+  const format = () => FORMATS.find((f) => f.id === $<HTMLInputElement>('input[name="type"]:checked').value)!;
+
+  const canvasOf = (w: number, h: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    return canvas;
+  };
+  /** Lets go of a canvas's memory now, not whenever the browser gets round to it. */
+  const release = (canvas: HTMLCanvasElement) => {
+    if (canvas !== first) canvas.width = canvas.height = 0;
+  };
+
+  /** The picture with one step done to it, on a new canvas. */
+  const apply = (from: HTMLCanvasElement, step: Step) => {
+    if ('crop' in step) {
+      const { x, y, w, h } = step.crop;
+      const next = canvasOf(w, h);
+      next.getContext('2d')!.drawImage(from, x, y, w, h, 0, 0, w, h);
+      return next;
+    }
+    if ('size' in step) {
+      const next = canvasOf(step.size.w, step.size.h);
+      const ctx = next.getContext('2d')!;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(from, 0, 0, next.width, next.height);
+      return next;
+    }
+    const across = step.flip === 'x';
+    const next = canvasOf(from.width, from.height);
+    const ctx = next.getContext('2d')!;
+    ctx.translate(across ? from.width : 0, across ? 0 : from.height);
+    ctx.scale(across ? -1 : 1, across ? 1 : -1);
+    ctx.drawImage(from, 0, 0);
+    return next;
+  };
+  const advance = (step: Step) => {
+    const next = apply(picture, step);
+    release(picture);
+    picture = next;
+  };
+
+  /** How many screen pixels a picture pixel takes, as the picture is shown. */
+  const scale = () => view.getBoundingClientRect().width / picture.width;
+  const placeCrop = () => {
+    crop.hidden = cropActions.hidden = !box;
+    if (!box) return;
+    const s = scale();
+    Object.assign(crop.style, { left: `${box.x * s}px`, top: `${box.y * s}px`, width: `${box.w * s}px`, height: `${box.h * s}px` });
+  };
+  const endCrop = () => {
+    box = null;
+    for (const r of document.querySelectorAll<HTMLInputElement>('input[name="shape"]')) r.checked = false;
+    placeCrop();
+  };
+
+  // The file to download is made again a moment after each change, and its size shown. Until it's ready, Download
+  // holds nothing, so it never gives an old one.
+  let pending = 0;
+  let turn = 0;
+  const remake = () => {
+    clearTimeout(pending);
+    save.removeAttribute('href');
+    qualityBox.hidden = format().id === 'png';
+    pending = window.setTimeout(async () => {
+      const mine = ++turn;
+      const out = format();
+      let source = picture;
+      // JPG has no see-through parts: they turn white.
+      if (out.id === 'jpg') {
+        source = canvasOf(picture.width, picture.height);
+        const ctx = source.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, source.width, source.height);
+        ctx.drawImage(picture, 0, 0);
+      }
+      const blob = await new Promise<Blob | null>((resolve) => source.toBlob(resolve, out.type, Number(quality.value) / 100));
+      if (source !== picture) release(source);
+      if (mine !== turn) return;
+      if (saved) URL.revokeObjectURL(saved);
+      saved = blob ? URL.createObjectURL(blob) : '';
+      if (saved) save.href = saved;
+      save.download = editedName(name, out.ext);
+      const words = [blob ? `New file: ${sizeOf(blob.size)}, was ${sizeOf(ownSize)}.` : 'Too big for your browser to save.'];
+      if (out.id === 'jpg' && ownType !== 'image/jpeg') words.push('JPG has no see-through parts: they turn white.');
+      estimate.textContent = words.join(' ');
+    }, 150);
+  };
+
+  const pixels = (w: number, h: number) => `${w.toLocaleString('en-US')} × ${h.toLocaleString('en-US')} pixels`;
+  const show = () => {
+    const k = Math.min(1, SHOWN / Math.max(picture.width, picture.height));
+    view.width = Math.max(1, Math.round(picture.width * k));
+    view.height = Math.max(1, Math.round(picture.height * k));
+    const ctx = view.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(picture, 0, 0, view.width, view.height);
+    facts.textContent = pixels(picture.width, picture.height);
+    width.value = String(picture.width);
+    height.value = String(picture.height);
+    undo.disabled = reset.disabled = !steps.length;
+    placeCrop();
+    remake();
+  };
+  const change = (step: Step) => {
+    note.textContent = '';
+    endCrop();
+    steps.push(step);
+    advance(step);
+    show();
+  };
+  const rebuild = () => {
+    note.textContent = '';
+    endCrop();
+    release(picture);
+    picture = first;
+    for (const step of steps) advance(step);
+    show();
+  };
+
+  const open = async (file: File) => {
+    note.textContent = '';
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      note.textContent = `Your browser can't open ${file.name}.`;
+      return;
+    }
+    const shrink = Math.min(1, Math.sqrt(MOST_PIXELS / (bitmap.width * bitmap.height)));
+    if (first) {
+      release(picture);
+      first.width = first.height = 0;
+    }
+    first = picture = canvasOf(Math.floor(bitmap.width * shrink), Math.floor(bitmap.height * shrink));
+    const ctx = first.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(bitmap, 0, 0, first.width, first.height);
+    bitmap.close();
+    if (shrink < 1) note.textContent = `Made smaller to ${pixels(first.width, first.height)} so your browser can edit it.`;
+    name = file.name;
+    ownType = file.type;
+    ownSize = file.size;
+    steps = [];
+    // It saves as its own type to begin with; a type browsers can't make (GIF, BMP) as PNG.
+    const own = FORMATS.find((f) => f.type === file.type && f.id !== 'pdf' && !(f.id === 'webp' && !canWebp));
+    typeInput(own?.id ?? 'png').checked = true;
+    endCrop();
+    drop.hidden = true;
+    editor.hidden = false;
+    show();
+  };
+
+  input.addEventListener('change', () => {
+    if (input.files?.[0]) open(input.files[0]);
+    input.value = '';
+  });
+  // Dragged over: the box lights up, and a drop opens the picture instead of the browser showing it in the tab.
+  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('is-over');
+  });
+  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files[0];
+    if (file) open(file);
+  });
+
+  // Crop: a shape puts a box on the picture to move and size, and Crop keeps what's inside it.
+  $('[data-shapes]').addEventListener('change', (e) => {
+    const shape = SHAPES.find((s) => s.id === (e.target as HTMLInputElement).value);
+    if (!shape) return;
+    ratio = shape.ratio;
+    box = startBox(ratio, picture.width, picture.height);
+    placeCrop();
+  });
+  const cropNow = () => {
+    if (box) change({ crop: box });
+  };
+  $('[data-crop-apply]').addEventListener('click', cropNow);
+  $('[data-crop-cancel]').addEventListener('click', endCrop);
+
+  // Dragged inside, the box moves; dragged by a corner, that corner moves.
+  crop.addEventListener('pointerdown', (e) => {
+    if (!box || e.button !== 0) return;
+    e.preventDefault();
+    crop.focus({ preventScroll: true });
+    crop.setPointerCapture(e.pointerId);
+    const corner = (e.target as HTMLElement).dataset.corner as 'nw' | 'ne' | 'sw' | 'se' | undefined;
+    const from = { ...box };
+    const [x0, y0, s] = [e.clientX, e.clientY, scale()];
+    const follow = (m: PointerEvent) => {
+      const [dx, dy] = [(m.clientX - x0) / s, (m.clientY - y0) / s];
+      box = corner ? dragCorner(from, corner, dx, dy, ratio, picture.width, picture.height) : moveBox(from, dx, dy, picture.width, picture.height);
+      placeCrop();
+    };
+    const stop = () => {
+      crop.removeEventListener('pointermove', follow);
+      crop.removeEventListener('pointerup', stop);
+      crop.removeEventListener('pointercancel', stop);
+    };
+    crop.addEventListener('pointermove', follow);
+    crop.addEventListener('pointerup', stop);
+    crop.addEventListener('pointercancel', stop);
+  });
+  // From the keyboard: the arrows move the box, with Shift they size it from its bottom right corner.
+  crop.addEventListener('keydown', (e) => {
+    if (!box) return;
+    if (e.key === 'Enter') cropNow();
+    else if (e.key === 'Escape') endCrop();
+    else {
+      const way = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[e.key];
+      if (!way) return;
+      const stride = Math.max(1, Math.round(Math.min(picture.width, picture.height) / 50));
+      const [dx, dy] = [way[0] * stride, way[1] * stride];
+      box = e.shiftKey ? dragCorner(box, 'se', dx, dy, ratio, picture.width, picture.height) : moveBox(box, dx, dy, picture.width, picture.height);
+      placeCrop();
+    }
+    e.preventDefault();
+  });
+  new ResizeObserver(placeCrop).observe(view);
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-flip]')) {
+    button.addEventListener('click', () => change({ flip: button.dataset.flip as 'x' | 'y' }));
+  }
+
+  // Resize: typing one side works out the other, so the shape stays.
+  width.addEventListener('input', () => {
+    typed = 'w';
+    if (Number(width.value) >= 1) height.value = String(keepShape(picture.width, picture.height, { w: Number(width.value) }).h);
+  });
+  height.addEventListener('input', () => {
+    typed = 'h';
+    if (Number(height.value) >= 1) width.value = String(keepShape(picture.width, picture.height, { h: Number(height.value) }).w);
+  });
+  $('[data-size]').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const side = Number(typed === 'w' ? width.value : height.value);
+    if (!(side >= 1)) {
+      width.value = String(picture.width);
+      height.value = String(picture.height);
+      return;
+    }
+    const size = keepShape(picture.width, picture.height, typed === 'w' ? { w: side } : { h: side });
+    if (size.w > 10_000 || size.h > 10_000 || size.w * size.h > MOST_PIXELS) {
+      note.textContent = 'Too big for your browser to edit. Try a smaller size.';
+      return;
+    }
+    if (size.w !== picture.width || size.h !== picture.height) change({ size });
+  });
+
+  $('[data-types]').addEventListener('change', remake);
+  quality.addEventListener('input', () => {
+    $('[data-quality-out]').textContent = `${quality.value}%`;
+    remake();
+  });
+  undo.addEventListener('click', () => {
+    steps.pop();
+    rebuild();
+  });
+  reset.addEventListener('click', () => {
+    steps = [];
+    rebuild();
+  });
+  $('[data-another]').addEventListener('click', () => {
+    clearTimeout(pending);
+    ++turn;
+    release(picture);
+    first.width = first.height = 0;
+    steps = [];
+    endCrop();
+    editor.hidden = true;
+    drop.hidden = false;
+    note.textContent = '';
+    input.focus();
+  });
+</script>
+
+<style is:global>
+  .image-editor { display: grid; gap: var(--space-5); }
+  .image-editor .note { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+  /* The picture beside its tools, under them on a phone. */
+  .image-editor .editor { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: var(--space-5); }
+  .image-editor .stage { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  /* A faint checkerboard behind the picture, so its see-through parts show. */
+  .image-editor .frame { position: relative; max-width: 100%; overflow: hidden; background: repeating-conic-gradient(var(--wash) 0% 25%, transparent 0% 50%) 50% / 16px 16px; }
+  .image-editor .frame canvas { display: block; max-width: 100%; max-height: min(62svh, 40rem); }
+  .image-editor .facts { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  /* The crop box: the picture outside it dimmed, a white edge, a white square in each corner to drag. */
+  .image-editor .crop { position: absolute; box-shadow: 0 0 0 9999px var(--backdrop); outline: 2px solid var(--on-colour); outline-offset: -2px; cursor: move; touch-action: none; }
+  .image-editor .crop:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+  .image-editor .handle { position: absolute; width: 14px; height: 14px; background: var(--on-colour); box-shadow: 0 0 0 1px var(--backdrop); }
+  /* A bigger place to grab than to see, for a finger. */
+  .image-editor .handle::before { content: ''; position: absolute; inset: -10px; }
+  .image-editor .nw { top: 0; left: 0; cursor: nwse-resize; }
+  .image-editor .ne { top: 0; right: 0; cursor: nesw-resize; }
+  .image-editor .sw { bottom: 0; left: 0; cursor: nesw-resize; }
+  .image-editor .se { right: 0; bottom: 0; cursor: nwse-resize; }
+  .image-editor .tools { display: grid; gap: var(--space-5); }
+  .image-editor .legend { margin: 0 0 var(--space-2); font-weight: 650; }
+  .image-editor .tools .actions { margin: 0; }
+  .image-editor .tools .choices .actions { margin-top: var(--space-3); }
+  .image-editor .size-row { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-2); }
+  .image-editor .size-row label { display: grid; gap: var(--space-1); color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  .image-editor .size-row input { width: 6rem; padding: var(--space-2) var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; }
+  .image-editor .size-row input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .image-editor .times { padding-bottom: var(--space-2); color: var(--muted); }
+  .image-editor .size-row .button { cursor: pointer; color: var(--ink); }
+  .image-editor .quality { display: grid; grid-template-columns: auto minmax(0, 1fr) 3rem; align-items: center; gap: var(--space-3); font-weight: 650; }
+  .image-editor .quality input { accent-color: var(--ink); }
+  .image-editor .quality output { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .image-editor .estimate { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .image-editor .actions .button:disabled, .image-editor .actions [data-save]:not([href]) { color: var(--muted); cursor: default; }
+  .image-editor .actions .button:disabled:hover, .image-editor .actions [data-save]:not([href]):hover { border-color: var(--rule); }
+  @media (max-width: 859px) {
+    .image-editor .editor { grid-template-columns: minmax(0, 1fr); }
+  }
+  /* Last, so it wins over each part's own display. */
+  .image-editor [hidden], .image-editor .note:empty, .image-editor .estimate:empty { display: none; }
+</style>

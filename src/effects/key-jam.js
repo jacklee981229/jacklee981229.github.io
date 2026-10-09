@@ -242,7 +242,7 @@ export default function keyJam(stage) {
   };
 
   // Keys work wherever the page was clicked, as in the games; a button in focus keeps Space for itself.
-  onGameKeys(canvas, {
+  const stopKeys = onGameKeys(canvas, {
     down: (e) => {
       if (e.key === ' ') {
         if (e.target instanceof Element && e.target.closest('button, a')) return false;
@@ -296,5 +296,6 @@ export default function keyJam(stage) {
       ctx.fillStyle = rgba(colors.ink, 0.9);
       ctx.fillText(!stage.playing ? 'Press Play first' : finger ? 'Tap anywhere' : 'Press any letter key', width / 2, height / 3);
     },
+    stop: stopKeys,
   };
 }

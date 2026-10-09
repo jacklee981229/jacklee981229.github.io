@@ -156,6 +156,12 @@
   /* The QR Code Generator's codes, black on white in both themes, as scanners need dark squares on light. */
   --qr-ink: #000000;
   --qr-paper: #FFFFFF;
+  /* Compare Text: lines added (green) and removed (red), and in them the changed words, deeper; each line also has
+     its + or −, so colour isn't the only sign. The text on them keeps at least 4.5:1. */
+  --diff-add: #E2F5E8;
+  --diff-add-word: #A8E3BC;
+  --diff-remove: #FCE8E6;
+  --diff-remove-word: #F5B8B2;
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
      things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
      changes in the Changelog's teal, the site in the Lab's green. */
@@ -267,6 +273,10 @@
   --lane-chatgpt: #BA9CF5;
   --lane-games: #74C678;
   --lane-flutter: #7AAAFF;
+  --diff-add: #15301F;
+  --diff-add-word: #1E6236;
+  --diff-remove: #3B1A18;
+  --diff-remove-word: #7A2C27;
 
   /* Jack's Pond by night: the same pond under the moon, in the Moonlit Pond mockup's deep blues; the light is the moon's. */
   --pond-sand: #142336;

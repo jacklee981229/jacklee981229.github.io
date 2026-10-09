@@ -18,13 +18,15 @@ const MAX_DENSITY = 2;
  * }} Stage
  * `pointer.pressed` is true for the one frame after a click or a tap. Sizes are in CSS pixels. `playing` is false
  * while the stage is paused, off screen or in a hidden tab: an effect that makes sound keeps quiet then.
- * @typedef {{ frame: (dt: number) => void, resize?: () => void }} Piece
+ * @typedef {{ frame: (dt: number) => void, resize?: () => void, stop?: () => void }} Piece
+ * `stop`, for an effect that listens beyond its canvas (Key Jam's keys), lets go of that when the stage stops.
  */
 
 /**
  * Starts an effect on its stage. `root` holds the canvas and the Pause button; `create` builds the effect from the
- * stage and returns what draws one frame.
- * @param {HTMLElement} root @param {(stage: Stage) => Piece} create
+ * stage and returns what draws one frame. Returns what stops it for good, so the Effects page can start another on the
+ * same stage (give that one a fresh canvas: this one's own listeners stay on it).
+ * @param {HTMLElement} root @param {(stage: Stage) => Piece} create @returns {() => void}
  */
 export function runStage(root, create) {
   const canvas = /** @type {HTMLCanvasElement} */ (root.querySelector('canvas'));
@@ -156,29 +158,44 @@ export function runStage(root, create) {
   // A paused stage still needs a picture after its size or colours change.
   const redraw = () => { if (!running) step(0); };
 
-  new ResizeObserver(() => {
+  const resized = new ResizeObserver(() => {
     measure();
     piece.resize?.();
     redraw();
-  }).observe(root);
-  new IntersectionObserver(([entry]) => {
+  });
+  resized.observe(root);
+  const seen = new IntersectionObserver(([entry]) => {
     onScreen = entry.isIntersecting;
     sync();
-  }).observe(root);
+  });
+  seen.observe(root);
   document.addEventListener('visibilitychange', sync);
   const recolor = () => {
     readColors();
     redraw();
   };
   // The site's theme button changes these: the theme, and the night sky (which keeps the dark theme, in its own colours).
-  new MutationObserver(recolor).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-sky'] });
-  toggle?.addEventListener('click', () => {
+  const themed = new MutationObserver(recolor);
+  themed.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-sky'] });
+  const flip = () => {
     wanted = !wanted;
     sync();
-  });
+  };
+  toggle?.addEventListener('click', flip);
 
   // With "reduce motion" on, nothing moves until Play is pressed: two seconds of it are worked out unseen, so the
   // still picture shows the effect mid-flow rather than an empty stage.
   if (still) for (let i = 0; i < 120; i++) step(1 / 60);
   sync();
+
+  return () => {
+    wanted = false;
+    sync();
+    resized.disconnect();
+    seen.disconnect();
+    themed.disconnect();
+    document.removeEventListener('visibilitychange', sync);
+    toggle?.removeEventListener('click', flip);
+    piece.stop?.();
+  };
 }

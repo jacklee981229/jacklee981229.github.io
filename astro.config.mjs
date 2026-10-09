@@ -7,6 +7,7 @@ import { dirname } from 'node:path';
 import { compareSitemap, sitemapProblem } from './src/lib/sitemap-check.js';
 import { missingPictures, picturesToMake } from './src/lib/share.js';
 import { sharePicture } from './src/lib/share-image.js';
+import { EFFECTS, effectUrl } from './src/lib/lab/tools.js';
 
 const site = 'https://jacklee981229.github.io';
 
@@ -72,5 +73,8 @@ export default defineConfig({
     // Change Case and Clean Text left the Lab (9 Oct 2026); their old addresses lead to its other tools.
     '/lab/change-case': '/lab/#tools',
     '/lab/clean-text': '/lab/#tools',
+    // Each effect had its own page until they all moved onto the Effects page (9 Oct 2026); an old address opens it on
+    // that effect.
+    ...Object.fromEntries(EFFECTS.map((e) => [`/lab/effect/${e.slug}`, effectUrl(e.slug)])),
   },
 });

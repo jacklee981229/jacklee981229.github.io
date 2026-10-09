@@ -10,20 +10,22 @@ export const GROUPS = [
 
 /**
  * Each tool: its address (/lab/<slug>/), name, one-line description, group and icon; `ready` once its page is built,
- * `soon` until then; and the example its card shows (what goes in, what comes out).
+ * `soon` until then; and the example its card shows (what goes in, what comes out). Effects has none: its card shows
+ * one effect's drawing, a different one each day.
+ * @type {{ slug: string, name: string, description: string, group: string, icon: string, status: 'ready' | 'soon', example?: readonly string[] }[]}
  */
 export const TOOLS = [
   { slug: 'count-words', name: 'Count Words', description: 'Words, characters, lines and reading time, as you type.', group: 'text', icon: 'hash', status: 'ready', example: ['Paste any text', '248 words, 1,402 characters'] },
-  { slug: 'compare-text', name: 'Compare Text', description: 'See what changed between two versions.', group: 'text', icon: 'compare', status: 'soon', example: ['- the old line', '+ the new line'] },
+  { slug: 'compare-text', name: 'Compare Text', description: 'See what changed between two versions.', group: 'text', icon: 'compare', status: 'ready', example: ['- the old line', '+ the new line'] },
   { slug: 'encode-url', name: 'Encode URL', description: 'Make text safe for a web address, or read it back.', group: 'text', icon: 'link', status: 'ready', example: ['a b&c', 'a%20b%26c'] },
   { slug: 'convert-timestamp', name: 'Convert Timestamp', description: 'Unix time to a readable date, and back.', group: 'text', icon: 'clock', status: 'ready', example: ['1727600000', '29 Sep 2024, 16:53:20'] },
   { slug: 'markdown-preview', name: 'Markdown Preview', description: 'See your Markdown as a formatted page, as you type.', group: 'preview', icon: 'markdown', status: 'ready', example: ['# Notes, **done**', 'A heading, with bold'] },
   { slug: 'json-preview', name: 'JSON Preview', description: 'Tidy JSON you can read, fold and check.', group: 'preview', icon: 'braces', status: 'ready', example: ['{"name":"Jack","lab":true}', 'Tidy, coloured, foldable'] },
-  { slug: 'jpg-to-png', name: 'JPG to PNG', description: 'Convert a photo to PNG in your browser.', group: 'image', icon: 'image', status: 'soon', example: ['photo.jpg', 'photo.png'] },
-  { slug: 'resize-image', name: 'Resize Image', description: "Change an image's size, keeping its shape.", group: 'image', icon: 'resize', status: 'soon', example: ['4032 × 3024', '1200 × 900'] },
-  { slug: 'compress-image', name: 'Compress Image', description: 'Make an image file smaller.', group: 'image', icon: 'compress', status: 'soon', example: ['3.2 MB', '480 KB'] },
+  { slug: 'convert-image', name: 'Convert Image', description: 'Change a picture to JPG, PNG, WebP or PDF.', group: 'image', icon: 'image', status: 'ready', example: ['photo.jpg', 'photo.png, .webp or .pdf'] },
+  { slug: 'image-editor', name: 'Image Editor', description: 'Crop, resize, flip and compress a picture.', group: 'image', icon: 'crop', status: 'ready', example: ['4032 × 3024, 3.2 MB', '1200 × 900, 240 KB'] },
   { slug: 'qr-code', name: 'QR Code Generator', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'ready', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
   { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
+  { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },
 ];
 
 /**
@@ -34,8 +36,9 @@ export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
 
 /**
  * Effects: things with no use at all, to look at and play with. Most follow the mouse; Key Jam answers the keyboard,
- * with sounds. Each has its page at /lab/effect/<slug>/, its code in src/effects/<slug>.js and its card's picture in
- * src/components/EffectCover.astro. `hint` says what to do there.
+ * with sounds. All play on one page, the Effects tool's (/lab/effects/?e=<slug> opens one), each from its code in
+ * src/effects/<slug>.js, with its drawing in src/components/EffectCover.astro for the Effects card. `hint` says what to
+ * do.
  */
 export const EFFECTS = [
   { slug: 'dot-grid', name: 'Dot Grid', description: 'A field of dots that leans away from you.', hint: 'Move the mouse, or drag a finger. Click for a ripple.' },
@@ -59,10 +62,10 @@ export const EFFECTS = [
 ];
 
 /**
- * The Little Worlds: things that run by themselves, for watching. Each is
- * drawn by src/worlds/<slug>.js on the effects' stage, at /lab/world/<slug>/, and has a picture of itself in
- * src/assets/worlds/<slug>.png for its card and its link previews. `hint` says what there is to see or do, `icon` is
- * its card's and the palette's icon, `words` are more words the palette finds it by, and `controls` are buttons of
+ * The Little Worlds: things that run by themselves, for watching. Each is drawn by src/worlds/<slug>.js on the
+ * effects' stage, at /lab/world/<slug>/; its card shows a drawing of it (src/components/WorldCover.astro), and its
+ * photo, src/assets/worlds/<slug>.png, is its link previews' picture. `hint` says what there is to see or do, `icon`
+ * is its card's and the palette's icon, `words` are more words the palette finds it by, and `controls` are buttons of
  * its own beside Pause (its code finds each by its id).
  */
 export const WORLDS = [
@@ -73,30 +76,21 @@ export const WORLDS = [
 
 /** @param {string} slug */
 export const toolUrl = (slug) => `/lab/${slug}/`;
-/** @param {string} slug */
-export const effectUrl = (slug) => `/lab/effect/${slug}/`;
+/** An effect on the Effects page. @param {string} slug */
+export const effectUrl = (slug) => `/lab/effects/?e=${slug}`;
 /** @param {string} slug */
 export const worldUrl = (slug) => `/lab/world/${slug}/`;
 
 /**
- * "Check these too!" under a Lab page: the same kind first, in the Lab's order, then the other kinds; never the page
- * itself, and only tools that are ready.
- * @param {string} current a tool's address, a game's post or an effect's address
- * @returns {{ kind: 'tool' | 'experiment' | 'effect', id: string }[]}
+ * "Check these too!" under a Lab page: the same kind first, in the Lab's order, then the other kind; never the page
+ * itself, and only tools that are ready (the Effects page counts as a tool).
+ * @param {string} current a tool's address or a game's post
+ * @returns {{ kind: 'tool' | 'experiment', id: string }[]}
  */
 export function moreLabItems(current, count = 4) {
   const tools = TOOLS.filter((t) => t.status === 'ready' && t.slug !== current).map((t) => ({ kind: /** @type {const} */ ('tool'), id: t.slug }));
   const experiments = EXPERIMENTS.filter((id) => id !== current).map((id) => ({ kind: /** @type {const} */ ('experiment'), id }));
-  const effects = EFFECTS.filter((e) => e.slug !== current).map((e) => ({ kind: /** @type {const} */ ('effect'), id: e.slug }));
-  const order = EFFECTS.some((e) => e.slug === current) ? [effects, experiments, tools] : EXPERIMENTS.includes(current) ? [experiments, tools, effects] : [tools, experiments, effects];
-  return order.flat().slice(0, count);
-}
-
-/** @param {string} slug */
-export function effectBySlug(slug) {
-  const item = EFFECTS.find((e) => e.slug === slug);
-  if (!item) throw new Error(`No effect "${slug}". Add it to EFFECTS in src/lib/lab/tools.js.`);
-  return item;
+  return (EXPERIMENTS.includes(current) ? [experiments, tools] : [tools, experiments]).flat().slice(0, count);
 }
 
 /** @param {string} slug */

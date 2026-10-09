@@ -5,18 +5,28 @@
  * can't wait for its own focus), like the original 2048. Left alone while the visitor types (the search, a name
  * box), while a dialog is open, or with the board scrolled out of sight, where they scroll the page instead.
  * `down` returns true for a key the game used, so the page doesn't also scroll; `up`, if given, hears every release.
+ * Returns what stops listening (Key Jam does, when the Effects page swaps it for another effect).
  * @param {Element} board
  * @param {{ down: (e: KeyboardEvent) => boolean, up?: (e: KeyboardEvent) => void }} handlers
+ * @returns {() => void}
  */
 export function onGameKeys(board, { down, up }) {
   let onScreen = true;
-  new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; }).observe(board);
-  document.addEventListener('keydown', (e) => {
+  const seen = new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; });
+  seen.observe(board);
+  /** @param {KeyboardEvent} e */
+  const press = (e) => {
     if (e.altKey || e.ctrlKey || e.metaKey || !onScreen) return;
     if (e.target.closest('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open]')) return;
     if (down(e)) e.preventDefault();
-  });
+  };
+  document.addEventListener('keydown', press);
   if (up) document.addEventListener('keyup', up);
+  return () => {
+    seen.disconnect();
+    document.removeEventListener('keydown', press);
+    if (up) document.removeEventListener('keyup', up);
+  };
 }
 
 /**

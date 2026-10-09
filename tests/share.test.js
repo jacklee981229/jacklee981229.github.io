@@ -15,7 +15,7 @@ test("a page's picture is named after its address", () => {
 });
 
 test('the label says which part of the site a page is in', () => {
-  const cases = { '/': 'Home', '/lab/': 'Lab', '/lab/json-preview/': 'Lab · Tool', '/lab/effect/orbits/': 'Lab · Effect', '/lab/world/town/': 'Lab · Little World', '/lab/game/snake/': 'Lab · Game', '/random/': 'Lab · Random', '/writing/': 'Writing', '/tags/git/': 'Writing · Tag', '/collections/': 'Collection', '/travel/': 'Travel', '/about/': 'About', '/now/': 'Now', '/changelog/': 'Changelog', '/404': 'Not found' };
+  const cases = { '/': 'Home', '/lab/': 'Lab', '/lab/json-preview/': 'Lab · Tool', '/lab/effects/': 'Lab · Effects', '/lab/world/town/': 'Lab · Little World', '/lab/game/snake/': 'Lab · Game', '/random/': 'Lab · Random', '/writing/': 'Writing', '/tags/git/': 'Writing · Tag', '/collections/': 'Collection', '/travel/': 'Travel', '/about/': 'About', '/now/': 'Now', '/changelog/': 'Changelog', '/404': 'Not found' };
   for (const [path, label] of Object.entries(cases)) assert.equal(shareLabel(path), label, path);
   assert.equal(shareLabel('/g1/', 'Git'), 'Writing · Git');
 });

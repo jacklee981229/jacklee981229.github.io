@@ -1,0 +1,202 @@
+---
+import Icon from '../../components/Icon.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import { FORMATS } from '../../lib/lab/convert-image.js';
+---
+<ToolShell slug="convert-image" stays="Your pictures stay in your browser.">
+  <div class="convert-image">
+    <label class="drop" data-drop>
+      <input class="visually-hidden" type="file" accept="image/*" multiple data-files />
+      <Icon name="image" />
+      <span class="drop-big">Drop pictures here, or <span class="pick">choose them</span></span>
+      <span class="drop-small">JPG, PNG, WebP, GIF, BMP, AVIF: any picture your browser can open.</span>
+    </label>
+    <fieldset class="choices" data-formats>
+      <legend>Save as</legend>
+      <div class="pills">
+        {FORMATS.map((f, i) => <label class="pill"><input class="visually-hidden" type="radio" name="format" value={f.id} checked={i === 0} />{f.label}</label>)}
+      </div>
+    </fieldset>
+    <p class="note" aria-live="polite" data-note></p>
+    <ul class="results" data-results></ul>
+    <p class="actions" data-actions hidden>
+      <a class="button" href="#" download="pictures.zip" data-all>Download all</a>
+      <button type="button" class="button" data-clear>Clear</button>
+    </p>
+  </div>
+</ToolShell>
+
+<script>
+  import { FORMATS, makePdf, outputName, sizeOf, zipFiles } from '../../lib/lab/convert-image.js';
+
+  type Picture = { file: File; bitmap: ImageBitmap | null; preview: string };
+  type Result = { name: string; blob: Blob; from?: Picture; pages?: number };
+
+  const input = document.querySelector<HTMLInputElement>('[data-files]')!;
+  const drop = document.querySelector<HTMLElement>('[data-drop]')!;
+  const list = document.querySelector<HTMLElement>('[data-results]')!;
+  const note = document.querySelector<HTMLElement>('[data-note]')!;
+  const actions = document.querySelector<HTMLElement>('[data-actions]')!;
+  const all = document.querySelector<HTMLAnchorElement>('[data-all]')!;
+  const choice = () => FORMATS.find((f) => f.id === document.querySelector<HTMLInputElement>('input[name="format"]:checked')!.value)!;
+
+  let pictures: Picture[] = [];
+  /** Addresses made for downloads and previews, let go of when they're replaced. */
+  let made: string[] = [];
+  let turn = 0;
+
+  // A browser that can't make WebP (Safari makes PNGs instead) doesn't offer it.
+  const tester = document.createElement('canvas');
+  tester.width = tester.height = 1;
+  const webp = document.querySelector<HTMLInputElement>('input[name="format"][value="webp"]')!;
+  if (!tester.toDataURL('image/webp').startsWith('data:image/webp')) {
+    webp.disabled = true;
+    webp.closest('label')!.title = "Your browser can't make WebP pictures";
+  }
+
+  const make = (tag: string, cls: string, text = '') => {
+    const el = document.createElement(tag);
+    if (cls) el.className = cls;
+    if (text) el.textContent = text;
+    return el;
+  };
+  const url = (blob: Blob) => {
+    const address = URL.createObjectURL(blob);
+    made.push(address);
+    return address;
+  };
+
+  /** A picture drawn into a file of the chosen type. JPG has no see-through parts: they turn white. */
+  const encode = (bitmap: ImageBitmap, type: string) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d')!;
+    if (type === 'image/jpeg') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.drawImage(bitmap, 0, 0);
+    return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.92));
+  };
+
+  const run = async () => {
+    const mine = ++turn;
+    const format = choice();
+    const open = pictures.filter((p) => p.bitmap);
+    const unreadable = pictures.filter((p) => !p.bitmap).map((p) => p.file.name);
+    if (!pictures.length) {
+      for (const address of made) URL.revokeObjectURL(address);
+      made = [];
+      list.replaceChildren();
+      note.textContent = '';
+      actions.hidden = true;
+      return;
+    }
+    note.textContent = 'Converting…';
+    const results: Result[] = [];
+    const tooBig: string[] = [];
+    if (format.id === 'pdf') {
+      const pages = [];
+      for (const p of open) {
+        const blob = await encode(p.bitmap!, 'image/jpeg');
+        if (!blob) tooBig.push(p.file.name);
+        else pages.push({ jpeg: new Uint8Array(await blob.arrayBuffer()), width: p.bitmap!.width, height: p.bitmap!.height });
+      }
+      if (pages.length) results.push({ name: open.length === 1 ? outputName(open[0].file.name, 'pdf') : 'pictures.pdf', blob: new Blob([makePdf(pages)], { type: 'application/pdf' }), pages: pages.length });
+    } else {
+      for (const p of open) {
+        const blob = await encode(p.bitmap!, format.type);
+        if (blob) results.push({ name: outputName(p.file.name, format.ext), blob, from: p });
+        else tooBig.push(p.file.name);
+      }
+    }
+    // Several pictures: one ZIP of them all, made before anything on the page changes, so no button ever holds an old file.
+    const several = format.id !== 'pdf' && results.length > 1;
+    const zip = several ? new Blob([zipFiles(await Promise.all(results.map(async (r) => ({ name: r.name, bytes: new Uint8Array(await r.blob.arrayBuffer()) }))))], { type: 'application/zip' }) : null;
+    // A newer choice or more pictures arrived meanwhile: that run shows instead.
+    if (mine !== turn) return;
+    for (const address of made) if (!pictures.some((p) => p.preview === address)) URL.revokeObjectURL(address);
+    made = pictures.map((p) => p.preview);
+    list.replaceChildren(...results.map((r) => {
+      const item = make('li', 'result');
+      if (r.from) {
+        const thumb = make('img', 'thumb') as HTMLImageElement;
+        thumb.src = r.from.preview;
+        thumb.alt = '';
+        thumb.width = thumb.height = 48;
+        item.append(thumb);
+      } else item.append(make('span', 'thumb pdf', 'PDF'));
+      const words = make('span', 'words');
+      words.append(make('span', 'name', r.name), make('span', 'size', r.from ? `${sizeOf(r.from.file.size)} → ${sizeOf(r.blob.size)}` : `${r.pages} ${r.pages === 1 ? 'page' : 'pages'}, ${sizeOf(r.blob.size)}`));
+      const save = make('a', 'button', 'Download') as HTMLAnchorElement;
+      save.href = url(r.blob);
+      save.download = r.name;
+      save.setAttribute('aria-label', `Download ${r.name}`);
+      item.append(words, save);
+      return item;
+    }));
+    const notes = [];
+    if (unreadable.length) notes.push(`Your browser can't open ${unreadable.join(', ')}.`);
+    if (tooBig.length) notes.push(`${tooBig.join(', ')} ${tooBig.length === 1 ? 'is' : 'are'} too big for your browser to convert.`);
+    if ((format.id === 'jpg' || format.id === 'pdf') && open.some((p) => !/jpe?g$/i.test(p.file.type))) notes.push('JPG has no see-through parts: they turn white.');
+    note.textContent = notes.join(' ');
+    all.hidden = !zip;
+    all.href = zip ? url(zip) : '#';
+    actions.hidden = false;
+  };
+
+  const add = async (files: FileList | File[]) => {
+    const fresh = [...files].filter((f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif|tiff?)$/i.test(f.name));
+    for (const file of fresh) {
+      let bitmap: ImageBitmap | null = null;
+      try {
+        bitmap = await createImageBitmap(file);
+      } catch {}
+      pictures.push({ file, bitmap, preview: URL.createObjectURL(file) });
+    }
+    run();
+  };
+
+  input.addEventListener('change', () => {
+    if (input.files) add(input.files);
+    input.value = '';
+  });
+  // Dragged over: the box lights up, and a drop adds the pictures instead of opening them in the tab.
+  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('is-over');
+  });
+  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer?.files.length) add(e.dataTransfer.files);
+  });
+  document.querySelector('[data-formats]')!.addEventListener('change', run);
+  document.querySelector('[data-clear]')!.addEventListener('click', () => {
+    for (const p of pictures) {
+      p.bitmap?.close();
+      URL.revokeObjectURL(p.preview);
+    }
+    pictures = [];
+    run();
+    input.focus();
+  });
+</script>
+
+<style is:global>
+  .convert-image { display: grid; gap: var(--space-5); }
+  .convert-image .note { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+  .convert-image .note:empty { display: none; }
+  /* Each picture made: a small preview, its new name and sizes, and its own download. */
+  .results { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .results:empty { display: none; }
+  .result { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+  .thumb { flex: none; width: 48px; height: 48px; border-radius: var(--radius-sm); object-fit: cover; background: var(--wash); }
+  .thumb.pdf { display: grid; place-items: center; color: var(--muted); font-size: var(--text-xs); font-weight: 800; }
+  .result .words { display: grid; flex: 1; min-width: 0; }
+  .result .name { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+  .result .size { color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+  .convert-image .actions { margin: 0; }
+  .convert-image .actions[hidden], .convert-image [data-all][hidden] { display: none; }
+</style>

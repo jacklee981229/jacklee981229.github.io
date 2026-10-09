@@ -1,10 +1,11 @@
 ---
 // The stage an effect plays on: a canvas right across the window. src/effects/stage.js runs it, with the effect's
-// own code (src/effects/<slug>.js), which is fetched only on that effect's page. A Little World (`world`, such as
+// own code (src/effects/<slug>.js), fetched only when it's shown. A Little World (`world`, such as
 // Jack's Town) plays on the same stage, from src/worlds/<slug>.js. A world can put buttons of its own beside Pause
 // (the `controls` slot); its code finds them in the stage.
 interface Props {
-  slug: string;
+  /** The effect or world to run; left out, the page runs and swaps the effects itself (the Effects page). */
+  slug?: string;
   /** What the moving picture shows, for someone who can't see it. */
   label: string;
   /** A Little World rather than an effect: its own colours, nothing to point at, and a finger scrolls the page. */
@@ -13,7 +14,7 @@ interface Props {
 
 const { slug, label, world = false } = Astro.props;
 ---
-<div class="stage" data-stage={slug} data-world={world || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
+<div class="stage" data-stage={slug ?? ''} data-world={world || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
   <canvas role="img" aria-label={label}></canvas>
   <div class="controls">
     <slot name="controls" />
@@ -29,7 +30,8 @@ const { slug, label, world = false } = Astro.props;
   const effects = import.meta.glob<Piece>('../effects/*.js');
   const worlds = import.meta.glob<Piece>('../worlds/*.js');
   const root = document.querySelector<HTMLElement>('[data-stage]');
-  const load = root && ('world' in root.dataset ? worlds[`../worlds/${root.dataset.stage}.js`] : effects[`../effects/${root.dataset.stage}.js`]);
+  // With no slug, the page itself runs the effects (the Effects page).
+  const load = root?.dataset.stage && ('world' in root.dataset ? worlds[`../worlds/${root.dataset.stage}.js`] : effects[`../effects/${root.dataset.stage}.js`]);
   if (root && load) load().then((piece) => runStage(root, piece.default));
 </script>
 

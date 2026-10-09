@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EFFECTS, effectBySlug, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
+import { EFFECTS, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -14,13 +14,14 @@ test('every tool has a unique, web-safe address and a unique name', () => {
   assert.equal(toolUrl('count-words'), '/lab/count-words/');
 });
 
-test('every tool has a known group, status, icon and a two-line example', () => {
+test('every tool has a known group, status, icon and a two-line example (Effects has a drawing instead)', () => {
   const groups = GROUPS.map((g) => g.id);
   for (const t of TOOLS) {
     assert.ok(groups.includes(t.group), `${t.slug}: group ${t.group}`);
     assert.ok(['ready', 'soon'].includes(t.status), `${t.slug}: status ${t.status}`);
     assert.match(icons, new RegExp(`^\\s+'?${t.icon}'?: '`, 'm'), `${t.slug}: icon "${t.icon}" is missing from src/lib/icons.js`);
-    assert.equal(t.example.length, 2, t.slug);
+    if (t.slug === 'effects') assert.equal(t.example, undefined, 'the Effects card shows a drawing');
+    else assert.equal(t.example?.length, 2, t.slug);
     assert.ok(t.description.length <= 70, `${t.slug}: keep the description to one short line`);
   }
 });
@@ -57,7 +58,7 @@ test('the Lab addresses are kept from posts', () => {
   assert.throws(() => toolBySlug('no-such-tool'), /No Lab tool "no-such-tool"/);
 });
 
-test('every effect has its code, its card picture, its icon and a web-safe address no other Lab item uses', () => {
+test('every effect has its code, its drawing and a web-safe name to open it by, on the one Effects page', () => {
   const cover = readFileSync(new URL('src/components/EffectCover.astro', ROOT), 'utf8');
   const taken = [...TOOLS.map((t) => t.slug), ...EXPERIMENTS];
   assert.equal(new Set(EFFECTS.map((e) => e.slug)).size, EFFECTS.length);
@@ -70,14 +71,17 @@ test('every effect has its code, its card picture, its icon and a web-safe addre
     assert.ok(e.description.length <= 70 && e.hint.length <= 70, `${e.slug}: keep the description and the hint short`);
   }
   assert.match(icons, /^\s+pointer: '/m, 'the "pointer" icon is missing from src/lib/icons.js');
-  assert.equal(effectUrl('dot-grid'), '/lab/effect/dot-grid/');
-  assert.equal(effectBySlug('dot-grid').name, 'Dot Grid');
-  assert.throws(() => effectBySlug('no-such-thing'), /No effect "no-such-thing"/);
+  assert.equal(effectUrl('dot-grid'), '/lab/effects/?e=dot-grid');
+  assert.equal(toolBySlug('effects').status, 'ready');
+  assert.ok(existsSync(new URL('src/pages/lab/effects.astro', ROOT)), 'the Effects page');
+  assert.ok(!existsSync(new URL('src/pages/lab/effect', ROOT)), 'no page of its own for each effect any more');
 });
 
-test('every Little World has its code, its picture, its icon and a web-safe address of its own', () => {
+test('every Little World has its code, its picture, its card drawing, its icon and a web-safe address of its own', () => {
+  const cover = readFileSync(new URL('src/components/WorldCover.astro', ROOT), 'utf8');
   assert.equal(new Set(WORLDS.map((w) => w.slug)).size, WORLDS.length);
   for (const w of WORLDS) {
+    assert.ok(cover.includes(`slug === '${w.slug}'`), `${w.slug}: no drawing in WorldCover.astro`);
     assert.match(w.slug, /^[a-z0-9]+(-[a-z0-9]+)*$/, w.slug);
     assert.ok(existsSync(new URL(`src/worlds/${w.slug}.js`, ROOT)), `${w.slug}: src/worlds/${w.slug}.js is missing`);
     assert.ok(existsSync(new URL(`src/assets/worlds/${w.slug}.png`, ROOT)), `${w.slug}: src/assets/worlds/${w.slug}.png is missing`);
@@ -91,11 +95,9 @@ test('no tool takes the address the games, the effects or the worlds live under'
   TOOLS.forEach((t) => assert.ok(!['game', 'effect', 'world'].includes(t.slug), t.slug));
 });
 
-test('"check these too" under an effect: other effects first, never itself', () => {
-  const under = moreLabItems(EFFECTS[0].slug);
+test('"check these too" under the Effects page: other tools first, never itself', () => {
+  const under = moreLabItems('effects');
   assert.equal(under.length, 4);
-  assert.ok(under.every((i) => i.kind === 'effect' && i.id !== EFFECTS[0].slug));
-  // A game's and a tool's own kind still come first; effects only fill what's left.
+  assert.ok(under.every((i) => i.kind === 'tool' && i.id !== 'effects'));
   assert.equal(moreLabItems(EXPERIMENTS[0])[0].kind, 'experiment');
-  assert.equal(moreLabItems(TOOLS.find((t) => t.status === 'ready').slug)[0].kind, 'tool');
 });

@@ -1,0 +1,128 @@
+---
+import ToolShell from '../../components/ToolShell.astro';
+
+// What the boxes start with, so the differences show something on arrival.
+const BEFORE = ["Jack's Space is where I keep the things I build.", 'The Lab has small tools and a few games.', 'Posts come out now and then.'].join('\n');
+const AFTER = ["Jack's Space is where I keep the things I build, play and love.", 'The Lab has small tools, games and little worlds.', 'Posts come out now and then.', 'Say hi in the guestbook!'].join('\n');
+---
+<ToolShell slug="compare-text" stays="Your text stays in your browser.">
+  <div class="convert compare">
+    <div class="field">
+      <label for="before">Before</label>
+      <textarea id="before" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" data-before>{BEFORE}</textarea>
+    </div>
+    <div class="field">
+      <label for="after">After</label>
+      <textarea id="after" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" data-after>{AFTER}</textarea>
+    </div>
+  </div>
+  <p class="actions">
+    <button type="button" class="button" data-swap>Swap</button>
+    <button type="button" class="button" data-clear>Clear</button>
+  </p>
+  <div class="pane-head">
+    <p class="pane-label" id="diff-label">Differences</p>
+    <p class="summary" aria-live="polite" data-summary></p>
+  </div>
+  <!-- A box that scrolls must take the keyboard's focus, or its lower part can't be reached without a mouse. -->
+  <div class="panel diff" role="region" aria-labelledby="diff-label" tabindex="0" data-hint="Put two versions above to see what changed." data-diff></div>
+</ToolShell>
+
+<script>
+  import { compareTexts, summaryOf, withContext } from '../../lib/lab/compare.js';
+
+  const before = document.querySelector<HTMLTextAreaElement>('[data-before]')!;
+  const after = document.querySelector<HTMLTextAreaElement>('[data-after]')!;
+  const view = document.querySelector<HTMLElement>('[data-diff]')!;
+  const summary = document.querySelector<HTMLElement>('[data-summary]')!;
+
+  const make = (tag: string, cls: string, text = '') => {
+    const el = document.createElement(tag);
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  };
+  const SIGN = { same: ' ', add: '+', remove: '−' } as const;
+
+  // Everything typed goes in as text, never as markup.
+  const run = () => {
+    if (!before.value && !after.value) {
+      view.replaceChildren();
+      summary.textContent = '';
+      return;
+    }
+    const result = compareTexts(before.value, after.value);
+    if (result.slow) {
+      summary.textContent = '';
+      view.replaceChildren(make('p', 'gap', 'These two are too long and too different to compare here.'));
+      return;
+    }
+    const text = summaryOf(result);
+    if (summary.textContent !== text) summary.textContent = text;
+    view.replaceChildren(...withContext(result.rows).map((row) => {
+      if (row.kind === 'gap') return make('div', 'gap', `${row.count.toLocaleString('en-US')} unchanged ${row.count === 1 ? 'line' : 'lines'}`);
+      const line = make('div', `row ${row.kind}`);
+      const text = make('span', 'text');
+      text.append(...row.parts.map((part) => (part.marked ? make(row.kind === 'add' ? 'ins' : 'del', '', part.text) : part.text)));
+      line.append(make('span', 'num', row.before ? String(row.before) : ''), make('span', 'num', row.after ? String(row.after) : ''), make('span', 'sign', SIGN[row.kind]), text);
+      return line;
+    }));
+  };
+
+  // At most once a frame while typing; a very long text waits until typing pauses.
+  let queued = false;
+  let timer = 0;
+  const soon = () => {
+    if (before.value.length + after.value.length > 100_000) {
+      clearTimeout(timer);
+      timer = window.setTimeout(run, 250);
+    } else if (!queued) {
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        run();
+      });
+    }
+  };
+  before.addEventListener('input', soon);
+  after.addEventListener('input', soon);
+  document.querySelector('[data-swap]')!.addEventListener('click', () => {
+    [before.value, after.value] = [after.value, before.value];
+    run();
+  });
+  document.querySelector('[data-clear]')!.addEventListener('click', () => {
+    before.value = '';
+    after.value = '';
+    run();
+    before.focus();
+  });
+  // The browser may restore text typed before a reload.
+  run();
+</script>
+
+<style is:global>
+  /* Before and After as the text tools' two boxes; under them the differences, a line to a row: the line's number in
+     each version, + or − (so colour isn't the only sign), then the line, its changed words marked. */
+  .compare .field textarea { font-family: var(--font-code); font-size: var(--text-sm); }
+  .compare + .actions { margin-bottom: var(--space-6); }
+  .summary { margin: 0; color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  /* .panel.diff, stronger than lab.css's .panel, so the rows' colours run to the box's edges. */
+  .panel.diff { max-height: 32rem; overflow: auto; padding: var(--space-3) 0; font-family: var(--font-code); font-size: var(--text-sm); line-height: 1.6; }
+  .diff:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .panel.diff:empty { padding: var(--space-4) var(--space-5); }
+  .diff:empty::before { content: attr(data-hint); color: var(--muted); font-family: var(--font-sans); }
+  .diff .row { display: grid; grid-template-columns: 2.5rem 2.5rem 1.5rem minmax(0, 1fr); padding-right: var(--space-4); }
+  .diff .num { padding-right: var(--space-2); color: var(--muted); text-align: right; user-select: none; }
+  .diff .sign { color: var(--muted); text-align: center; user-select: none; }
+  .diff .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .diff .add { background: var(--diff-add); }
+  .diff .remove { background: var(--diff-remove); }
+  .diff :is(.add, .remove) .sign { color: var(--ink); font-weight: 800; }
+  .diff :is(ins, del) { border-radius: var(--radius-2xs); text-decoration: none; }
+  .diff ins { background: var(--diff-add-word); }
+  .diff del { background: var(--diff-remove-word); }
+  .diff .gap { padding: var(--space-1) var(--space-4); color: var(--muted); font-family: var(--font-sans); font-style: italic; text-align: center; }
+  @media (max-width: 719px) {
+    .diff .row { grid-template-columns: 2rem 2rem 1.25rem minmax(0, 1fr); padding-right: var(--space-2); }
+  }
+</style>

@@ -1,0 +1,78 @@
+---
+// The Effects page (the Effects tool in lab/tools.js): every effect on one stage, one at a time, with Random for
+// another (effect-queue.js picks which). /lab/effects/?e=<slug> opens that one, and the address follows each swap.
+// A small top, so the stage gets the window, then the stage on a card, then other Lab items.
+import Base from '../../layouts/Base.astro';
+import EffectStage from '../../components/EffectStage.astro';
+import Icon from '../../components/Icon.astro';
+import LabHeader from '../../components/LabHeader.astro';
+import LabMore from '../../components/LabMore.astro';
+import { toolBySlug } from '../../lib/lab/tools.js';
+
+const tool = toolBySlug('effects');
+---
+<Base title={tool.name} description={tool.description}>
+  <div class="wrap top">
+    <LabHeader compact title={tool.name} description={tool.description} />
+  </div>
+  <div class="wrap effect">
+    <EffectStage label={tool.description}>
+      <button slot="controls" type="button" class="button random" data-random aria-label="Another effect" title="Another effect"><Icon name="dice" /></button>
+    </EffectStage>
+  </div>
+  <LabMore current={tool.slug} />
+</Base>
+
+<script>
+  import { runStage } from '../../effects/stage.js';
+  import { effectQueue } from '../../lib/lab/effect-queue.js';
+  import { EFFECTS, effectUrl } from '../../lib/lab/tools.js';
+
+  type Piece = { default: Parameters<typeof runStage>[1] };
+  // One file per effect; only the ones shown are fetched.
+  const pieces = import.meta.glob<Piece>('../../effects/*.js');
+  const root = document.querySelector<HTMLElement>('[data-stage]')!;
+  const lede = document.querySelector<HTMLElement>('[data-lede]')!;
+  const random = document.querySelector<HTMLButtonElement>('[data-random]')!;
+  const asked = EFFECTS.find((e) => e.slug === new URLSearchParams(location.search).get('e'));
+  const queue = effectQueue(EFFECTS.map((e) => e.slug), asked?.slug ?? null);
+  let stop: (() => void) | null = null;
+  let turn = 0;
+
+  const show = async (slug: string) => {
+    const effect = EFFECTS.find((e) => e.slug === slug)!;
+    const mine = ++turn;
+    // Its name and what to do go in the top; the address names it too, so a reload or a shared link opens the same one.
+    const name = document.createElement('strong');
+    name.textContent = effect.name;
+    lede.replaceChildren(name, `: ${effect.description} ${effect.hint}`);
+    history.replaceState(null, '', effectUrl(slug));
+    const piece = await pieces[`../../effects/${slug}.js`]();
+    // Random pressed again while this one was on its way: only the latest starts.
+    if (mine !== turn) return;
+    stop?.();
+    // A fresh canvas, as the last effect's own listeners stay on the old one.
+    const old = root.querySelector('canvas')!;
+    const canvas = old.cloneNode() as HTMLCanvasElement;
+    canvas.setAttribute('aria-label', `${effect.name}: ${effect.description}`);
+    old.replaceWith(canvas);
+    stop = runStage(root, piece.default);
+  };
+
+  random.addEventListener('click', (e) => {
+    // After a mouse click the button lets go of the focus, so Space plays on (Key Jam's next set) instead of pressing
+    // Random again; from the keyboard (detail 0) it keeps it.
+    if (e.detail > 0) random.blur();
+    show(queue.next());
+  });
+  show(asked?.slug ?? queue.next());
+</script>
+
+<style>
+  /* Less room above than other pages: the stage below wants the height. */
+  .top { padding-top: var(--space-5); }
+  /* The effect lies on a card (EffectStage.astro), with room under it before the band. */
+  .effect { padding-bottom: var(--space-6); }
+  .random { display: inline-flex; align-items: center; justify-content: center; }
+  .random :global(.icon) { width: 1.125rem; height: 1.125rem; }
+</style>

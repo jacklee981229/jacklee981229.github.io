@@ -4,7 +4,7 @@ import type { ImageMetadata } from 'astro';
 import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
-import { EFFECTS, EXPERIMENTS, TOOLS, WORLDS, effectUrl, toolUrl, worldUrl } from './lab/tools.js';
+import { EXPERIMENTS, TOOLS, WORLDS, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
 import { lastUpdate } from './changelog-file.js';
 import { SITE } from '../site';
@@ -34,14 +34,13 @@ export const postUrl = (post: Post) => (EXPERIMENTS.includes(post.id) ? `/lab/ga
 export const tagUrl = (tag: string) => `/tags/${slugify(tag)}/`;
 export const summaryOf = (post: Post) => post.data.description ?? excerpt(post.body ?? '');
 
-/** What a Lab card shows: one of the tools, a game's post, an effect or a Little World. */
+/** What a Lab card shows: one of the tools (the Effects page among them), a game's post or a Little World. */
 export type LabItem =
-  | { tool: (typeof TOOLS)[number]; post?: never; effect?: never; world?: never }
-  | { post: Post; tool?: never; effect?: never; world?: never }
-  | { effect: (typeof EFFECTS)[number]; tool?: never; post?: never; world?: never }
-  | { world: (typeof WORLDS)[number]; tool?: never; post?: never; effect?: never };
+  | { tool: (typeof TOOLS)[number]; post?: never; world?: never }
+  | { post: Post; tool?: never; world?: never }
+  | { world: (typeof WORLDS)[number]; tool?: never; post?: never };
 
-type CountedItem = { path: string; item: LabItem; kind: 'Tool' | 'Game' | 'Effect' | 'World'; name: string };
+type CountedItem = { path: string; item: LabItem; kind: 'Tool' | 'Game' | 'World'; name: string };
 
 // Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
 let counted: Promise<{ items: CountedItem[]; visits: Map<string, number> | null }> | undefined;
@@ -52,7 +51,6 @@ function labVisits() {
     const items: CountedItem[] = [
       ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem, kind: 'Tool' as const, name: tool.name })),
       ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem, kind: 'Game' as const, name: post.data.title })),
-      ...EFFECTS.map((effect) => ({ path: effectUrl(effect.slug), item: { effect } as LabItem, kind: 'Effect' as const, name: effect.name })),
       ...WORLDS.map((world) => ({ path: worldUrl(world.slug), item: { world } as LabItem, kind: 'World' as const, name: world.name })),
     ];
     const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
@@ -61,7 +59,7 @@ function labVisits() {
   })());
 }
 
-/** The Lab's Most Popular: its four most visited ready tools, games, effects and worlds (lab/popular.js); none while there's no ranking. */
+/** The Lab's Most Popular: its four most visited ready tools (the Effects page among them), games and worlds (lab/popular.js); none while there's no ranking. */
 export async function popularLabItems(): Promise<LabItem[]> {
   const { items, visits } = await labVisits();
   return mostPopular(items, visits).map((i) => i.item);
@@ -84,11 +82,11 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/now/', lastmod: nowFile().updated },
     { path: '/changelog/', lastmod: lastUpdate() },
     { path: '/guestbook/' },
-    // The Lab: its finished tools, its games, its effects and its worlds. /random/ stays out (it's marked noindex).
+    // The Lab: its finished tools (the Effects page among them), its games and its worlds. /random/ stays out (it's
+    // marked noindex).
     { path: '/lab/' },
     ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),
     ...(await experimentPosts()).map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
-    ...EFFECTS.map((e) => ({ path: effectUrl(e.slug) })),
     ...WORLDS.map((w) => ({ path: worldUrl(w.slug) })),
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
   ];

@@ -1,37 +1,36 @@
 ---
-// One Lab item as a card: a tool, with its example as the cover; a game's post, with its own cover; an effect,
-// with a drawing of what it does; or a Little World, with a picture of it.
-import { Image } from 'astro:assets';
+// One Lab item as a card: a tool, with its example as the cover (Effects, with one effect's drawing, a different one
+// each day the site is built: the home page's toy of that day); a game's post, with its own cover; or a Little World,
+// with a drawing of it.
 import Cover from './Cover.astro';
 import EffectCover from './EffectCover.astro';
 import LabCard from './LabCard.astro';
+import WorldCover from './WorldCover.astro';
 import { postUrl, summaryOf, type LabItem } from '../lib/collections';
-import { effectUrl, toolUrl, worldUrl } from '../lib/lab/tools.js';
+import { todaysToy } from '../lib/home.js';
+import { EFFECTS, toolUrl, worldUrl } from '../lib/lab/tools.js';
 
 type Props = LabItem;
 
-const { tool, post, effect, world } = Astro.props;
-const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/assets/worlds/*.png', { eager: true });
-const picture = world && pictures[`/src/assets/worlds/${world.slug}.png`]?.default;
+const { tool, post, world } = Astro.props;
+// Key Jam is left out, as from the home page's toy, so the two show the same effect on the day of a build.
+const drawn = todaysToy(EFFECTS.filter((e) => e.slug !== 'key-jam'), new Date())?.slug ?? EFFECTS[0].slug;
+const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
 ---
 {tool ? (
-  <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={tool.group as 'text' | 'preview' | 'image' | 'misc'} />
+  tool.example ? (
+    <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} />
+  ) : (
+    <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind}>
+      <EffectCover slot="cover" slug={drawn} />
+    </LabCard>
+  )
 ) : post ? (
   <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)} kind="game">
     <Cover slot="cover" post={post} variant="mini" />
   </LabCard>
-) : effect ? (
-  <LabCard href={effectUrl(effect.slug)} icon="pointer" name={effect.name} description={effect.description} kind="effect">
-    <EffectCover slot="cover" slug={effect.slug} />
-  </LabCard>
 ) : world && (
   <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description} kind="world">
-    <span slot="cover" class="cover world" aria-hidden="true">{picture && <Image src={picture} alt="" width={480} />}</span>
+    <WorldCover slot="cover" slug={world.slug} />
   </LabCard>
 )}
-
-<style>
-  /* A world's picture, cut to the card's cover height from its middle. */
-  .world { display: block; overflow: hidden; }
-  .world :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
-</style>
