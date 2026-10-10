@@ -1,0 +1,20 @@
+/* Jack's Firefly River's lantern buttons and note dialog (notes.js), over the stage's canvas and under its buttons. */
+
+.river-lanterns { position: absolute; inset: 0; pointer-events: none; }
+/* Each button sits over its lantern, drawn on the canvas; it shows nothing of its own but a ring when focused. The
+   river is always a night scene, so the ring is white in every theme. */
+.river-lantern { position: absolute; left: var(--x); top: var(--y); width: var(--size); height: var(--size); padding: 0; border: 0; border-radius: var(--radius-pill); background: none; cursor: pointer; pointer-events: auto; translate: -50% -50%; -webkit-tap-highlight-color: transparent; }
+.river-lantern:focus-visible { outline: 2px solid var(--on-colour); outline-offset: 1px; }
+/* Where the river can't be drawn (its picture shows instead), each button is a small lantern of its own. */
+.river-lanterns.plain .river-lantern::before { content: ''; position: absolute; inset: 22% 26%; border-radius: 45%; background: var(--note); box-shadow: 0 0 1rem var(--note); }
+
+/* The note, as the wall's own paper card, over the river: the dialog itself is only a frame. */
+.river-note { position: absolute; inset: auto auto var(--space-5) 50%; z-index: 1; width: min(22rem, calc(100% - 2 * var(--space-5))); max-height: calc(100% - 2 * var(--space-5)); margin: 0; padding: var(--space-2); overflow: auto; border: 0; background: none; color: var(--note-ink); translate: -50% 0; }
+.river-note .paper { box-shadow: var(--shadow-dialog); }
+.river-note-close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-float); cursor: pointer; }
+.river-note-close:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* A short card on a phone: the note fills it, and scrolls if it's long. */
+@media (max-width: 719px) {
+  .river-note { inset: 50% auto auto 50%; translate: -50% -50%; width: calc(100% - 2 * var(--space-4)); max-height: calc(100% - 2 * var(--space-4)); }
+}

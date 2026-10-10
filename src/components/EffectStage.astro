@@ -10,11 +10,13 @@ interface Props {
   label: string;
   /** A Little World rather than an effect: its own colours, nothing to point at, and a finger scrolls the page. */
   world?: boolean;
+  /** A world that answers taps and sideways drags: a finger still scrolls the page up and down across it. */
+  pan?: boolean;
 }
 
-const { slug, label, world = false } = Astro.props;
+const { slug, label, world = false, pan = false } = Astro.props;
 ---
-<div class="stage" data-stage={slug ?? ''} data-world={world || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
+<div class="stage" data-stage={slug ?? ''} data-world={world || undefined} data-pan={pan || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
   <canvas role="img" aria-label={label}></canvas>
   <div class="controls">
     <slot name="controls" />
@@ -25,14 +27,15 @@ const { slug, label, world = false } = Astro.props;
 <script>
   import { runStage } from '../effects/stage.js';
 
+  // A piece's own module: what draws it, and its options (WebGL2, for some).
+  type Piece = { default: Parameters<typeof runStage>[1]; options?: Parameters<typeof runStage>[2] };
   // One file per effect or world; only the one this page names is fetched.
-  type Piece = { default: Parameters<typeof runStage>[1] };
   const effects = import.meta.glob<Piece>('../effects/*.js');
   const worlds = import.meta.glob<Piece>('../worlds/*.js');
   const root = document.querySelector<HTMLElement>('[data-stage]');
   // With no slug, the page itself runs the effects (the Effects page).
   const load = root?.dataset.stage && ('world' in root.dataset ? worlds[`../worlds/${root.dataset.stage}.js`] : effects[`../effects/${root.dataset.stage}.js`]);
-  if (root && load) load().then((piece) => runStage(root, piece.default));
+  if (root && load) load().then((piece) => runStage(root, piece.default, piece.options));
 </script>
 
 <style>
@@ -52,6 +55,7 @@ const { slug, label, world = false } = Astro.props;
      follows the pointer, so a finger on it scrolls the page as anywhere else. */
   .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); }
   .stage[data-world] canvas { touch-action: auto; cursor: default; }
+  .stage[data-world][data-pan] canvas { touch-action: pan-y; cursor: pointer; }
   .controls { position: absolute; top: var(--space-4); right: var(--space-4); display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
   .controls :global(.button) { padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
   .controls :global(.button:disabled) { color: var(--muted); cursor: default; }

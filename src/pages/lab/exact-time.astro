@@ -30,7 +30,7 @@ import { CITIES } from '../../lib/lab/exact-time.js';
 </ToolShell>
 
 <script>
-  import { dayWord, faceOf, offsetOf, placeOf, readTimer, verdictOf } from '../../lib/lab/exact-time.js';
+  import { checkClock, dayWord, faceOf, placeOf, verdictOf } from '../../lib/lab/exact-time.js';
   import { offsetName } from '../../lib/lab/timestamp.js';
 
   const one = (selector: string) => document.querySelector<HTMLElement>(selector)!;
@@ -81,27 +81,13 @@ import { CITIES } from '../../lib/lab/exact-time.js';
     document.addEventListener('fullscreenchange', () => { full.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
   }
 
-  // The check: a few quick asks of this page's headers, keeping the surest. GitHub Pages' CDN stamps each answer with
-  // when the ask reached it (X-Timer); a local preview doesn't, so there the device's time stays.
-  const check = async () => {
-    let best: ReturnType<typeof offsetOf> | null = null;
-    for (let i = 0; i < 4; i++) {
-      const sent = Date.now();
-      const start = performance.now();
-      const answer = await fetch(location.pathname, { method: 'HEAD', cache: 'no-store' });
-      const timer = readTimer(answer.headers.get('x-timer'));
-      if (!timer) return null;
-      const found = offsetOf({ sent, answered: sent + (performance.now() - start), ...timer });
-      if (!best || found.within < best.within) best = found;
-    }
-    return best;
-  };
   const say = (level: string, title: string, detail: string) => {
     one('[data-verdict]').dataset.level = level;
     one('[data-title]').textContent = title;
     one('[data-detail]').textContent = detail;
   };
-  check()
+  // The check against the site's server (checkClock); a local preview has nothing to check against.
+  checkClock(location.pathname)
     .then((best) => {
       if (!best) return say('unknown', "Couldn't check your clock here.", "This is your device's time.");
       offset = best.offset;

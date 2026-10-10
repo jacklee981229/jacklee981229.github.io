@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CITIES, dayWord, faceOf, gapOf, isoWeek, offsetOf, placeOf, readTimer, verdictOf } from '../src/lib/lab/exact-time.js';
+import { checkClock, CITIES, dayWord, faceOf, gapOf, isoWeek, offsetOf, placeOf, readTimer, verdictOf } from '../src/lib/lab/exact-time.js';
 
 test("the CDN's timer header reads as when the request arrived and how long it was kept, or not at all", () => {
   const t = readTimer(' S1791374542.156116,VS0,VE270 ');
@@ -66,4 +66,36 @@ test("a city's day next to yours, and the place a time zone is named after", () 
 test("time.is's six cities, each a real time zone", () => {
   assert.deepEqual(CITIES.map(([name]) => name), ['Los Angeles', 'New York', 'London', 'Paris', 'Beijing', 'Tokyo']);
   for (const [, zone] of CITIES) assert.doesNotThrow(() => faceOf(0, zone), zone);
+});
+
+test('the clock check asks four times and keeps the surest answer, the one with the shortest road', async () => {
+  // A device 1 s behind the server. Each ask takes its own time on the road; the third is the quickest (20 ms there
+  // and back, 4 ms kept), so its answer is the surest.
+  const trips = [120, 300, 28, 90];
+  let clock = 5000;
+  const asked = [];
+  const answer = (/** @type {number} */ trip) => {
+    const at = clock + 1000 + (trip - 4) / 2;
+    clock += trip;
+    return { headers: { get: (/** @type {string} */ name) => (name === 'x-timer' ? `S${Math.floor(at / 1000)}.${String(Math.round((at % 1000) * 1000)).padStart(6, '0')},VS0,VE4` : null) } };
+  };
+  const best = await checkClock('/lab/world/fireflies/', {
+    ask: async (url, init) => {
+      asked.push([url, init.method, init.cache]);
+      return answer(trips[asked.length - 1]);
+    },
+    wall: () => clock,
+    tick: () => clock,
+  });
+  assert.equal(asked.length, 4);
+  assert.deepEqual(asked[0], ['/lab/world/fireflies/', 'HEAD', 'no-store']);
+  assert.ok(best && Math.abs(best.offset - 1000) < 0.01, JSON.stringify(best));
+  assert.equal(best.within, 12);
+});
+
+test("the clock check gives up at once without the CDN's timer (a local preview), keeping the device's time", async () => {
+  let asks = 0;
+  const best = await checkClock('/', { ask: async () => { asks++; return { headers: { get: () => null } }; } });
+  assert.equal(best, null);
+  assert.equal(asks, 1);
 });

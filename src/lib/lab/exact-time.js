@@ -1,5 +1,5 @@
 // Jack's Exact Time (src/pages/lab/exact-time.astro): checking this device's clock against the site's server, and
-// what the page shows for a moment in a time zone.
+// what the page shows for a moment in a time zone. The same check sets the beat of Jack's Firefly River.
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -37,6 +37,30 @@ export function readTimer(header) {
  */
 export function offsetOf({ sent, answered, at, kept }) {
   return { offset: at + kept / 2 - (sent + answered) / 2, within: Math.max(0, answered - sent - kept) / 2 };
+}
+
+/**
+ * Checks this device's clock against the site's server: a few quick asks of a page's headers, keeping the surest.
+ * GitHub Pages' CDN stamps each answer with when the ask reached it (X-Timer); a local preview doesn't, and then the
+ * answer is null and the device's time stays. Used by Jack's Exact Time and Jack's Firefly River. `ask`, `wall` and
+ * `tick` are the browser's fetch, Date.now and performance.now, there for the tests.
+ * @param {string} url
+ * @param {{ ask?: (url: string, init: RequestInit) => Promise<{ headers: { get: (name: string) => string | null } }>, wall?: () => number, tick?: () => number }} [using]
+ * @returns {Promise<{ offset: number, within: number } | null>}
+ */
+export async function checkClock(url, { ask = fetch, wall = Date.now, tick = () => performance.now() } = {}) {
+  /** @type {{ offset: number, within: number } | null} */
+  let best = null;
+  for (let i = 0; i < 4; i++) {
+    const sent = wall();
+    const start = tick();
+    const answer = await ask(url, { method: 'HEAD', cache: 'no-store' });
+    const timer = readTimer(answer.headers.get('x-timer'));
+    if (!timer) return null;
+    const found = offsetOf({ sent, answered: sent + (tick() - start), ...timer });
+    if (!best || found.within < best.within) best = found;
+  }
+  return best;
 }
 
 /** "0.09 s", "12.3 s", "2 min 5 s", "3 h 2 min", "2 days 3 h": how long a gap is, as briefly as it reads well. @param {number} ms */

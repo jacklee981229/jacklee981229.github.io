@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EFFECTS, effectUrl, EXPERIMENTS, GROUPS, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
+import { EFFECTS, effectUrl, EXPERIMENTS, GROUPS, isListed, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
@@ -14,13 +14,13 @@ test('every tool has a unique, web-safe address and a unique name', () => {
   assert.equal(toolUrl('count-words'), '/lab/count-words/');
 });
 
-test('every tool has a known group, status, icon and a two-line example (Effects and the Build Log have drawings instead)', () => {
+test('every tool has a known group, status, icon and a two-line example (Effects, the Build Log and Writing Islands have drawings instead)', () => {
   const groups = GROUPS.map((g) => g.id);
   for (const t of TOOLS) {
     assert.ok(groups.includes(t.group), `${t.slug}: group ${t.group}`);
     assert.ok(['ready', 'soon'].includes(t.status), `${t.slug}: status ${t.status}`);
     assert.match(icons, new RegExp(`^\\s+'?${t.icon}'?: '`, 'm'), `${t.slug}: icon "${t.icon}" is missing from src/lib/icons.js`);
-    if (['effects', 'build-log'].includes(t.slug)) assert.equal(t.example, undefined, `the ${t.name} card shows a drawing`);
+    if (['effects', 'build-log', 'writing-islands'].includes(t.slug)) assert.equal(t.example, undefined, `the ${t.name} card shows a drawing`);
     else assert.equal(t.example?.length, 2, t.slug);
     assert.ok(t.description.length <= 70, `${t.slug}: keep the description to one short line`);
   }
@@ -89,6 +89,15 @@ test('every Little World has its code, its picture, its card drawing, its icon a
     assert.match(icons, new RegExp(`^\\s+${w.icon}: '`, 'm'), `${w.slug}: the "${w.icon}" icon is missing from src/lib/icons.js`);
   }
   assert.equal(worldUrl('town'), '/lab/world/town/');
+});
+
+test('a hidden tool or world keeps its page but stays off the lists', () => {
+  const hidden = [...TOOLS, ...WORLDS].filter((i) => !isListed(i));
+  assert.ok(hidden.every((i) => i.hidden === true));
+  for (const tool of TOOLS.filter((t) => !isListed(t))) {
+    assert.ok(existsSync(new URL(`src/pages/lab/${tool.slug}.astro`, ROOT)), `${tool.slug} keeps its page`);
+    assert.ok(EXPERIMENTS.every((id) => !moreLabItems(id, 99).some((i) => i.id === tool.slug)), `${tool.slug} is never suggested`);
+  }
 });
 
 test('no tool takes the address the games, the effects or the worlds live under', () => {

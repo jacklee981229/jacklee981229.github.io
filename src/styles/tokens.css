@@ -183,6 +183,52 @@
   --log-panel: var(--surface);
   --log-ground: var(--surface);
   --log-haze: var(--changelog-top-from);
+  /* Magnetic Liquid (src/effects/magnetic-liquid.js), by day: its --magnet-* colours. */
+  /* A white product shot: the card under the dish, the shadow it casts, the studio's blue-grey walls and its white
+     softboxes, a white porcelain dish, liquid with an ink undertone. The gels, the sky and the aurora only light the
+     other themes; here they stay the walls' colour. */
+  --magnet-backdrop: var(--surface);
+  --magnet-shade: var(--ink);
+  --magnet-wall: var(--paper);
+  --magnet-softbox: var(--paper-end);
+  --magnet-dish: var(--paper-end);
+  --magnet-liquid: var(--ink);
+  --magnet-gel-1: var(--paper-end);
+  --magnet-gel-2: var(--paper-end);
+  --magnet-sky-top: var(--paper);
+  --magnet-sky-low: var(--paper);
+  --magnet-aurora-1: var(--paper);
+  --magnet-aurora-2: var(--paper);
+  --magnet-aurora-3: var(--paper);
+  --magnet-aurora-4: var(--paper);
+  --magnet-glint: var(--paper-end);
+  /* Jack's Writing Islands (src/islands/), by day: its --isle-* colours. */
+  --isle-sky-top: var(--paper-end);
+  --isle-sky: var(--paper);
+  --isle-light: var(--pond-light);
+  --isle-sea: var(--travel-top-from);
+  --isle-deep: var(--travel-base);
+  --isle-shallow: var(--kind-world-from);
+  --isle-sand: var(--pond-sand);
+  --isle-forest: var(--topic-games);
+  --isle-rock: var(--muted);
+  --isle-mist: var(--paper-end);
+  --isle-foam: var(--paper-end);
+  --isle-drop: var(--paper-end);
+  --isle-star: var(--paper-end);
+  /* Jack's Firefly River (src/worlds/fireflies.js), by day: its --river-* colours. */
+  /* Always a night scene, as fireflies need the dark; by day it's the blue hour: an indigo sky down to the trees, a
+     thin orange afterglow along them, trees in the ink, water holding the dusk, a lavender mist. In every theme the
+     flash is Jack's Pond's firefly with a warm heart in Now's yellow, which also lights a tap and the torch. */
+  --river-sky-top: var(--travel-base);
+  --river-sky-low: var(--kind-text-base);
+  --river-glow: var(--collection-from);
+  --river-tree: var(--ink);
+  --river-water: var(--kind-text-base);
+  --river-mist: var(--travel-to);
+  --river-star: var(--on-colour);
+  --river-firefly: var(--pond-firefly);
+  --river-core: var(--now-first);
   /* About's cards, each in the colour of what it's about, deep enough for white text: work in LinkedIn's blue, the
      things Jack likes in the Collection's orange, his links on graphite so their own colours stand out, the month's
      changes in the Changelog's teal, the site in the Lab's green. */
@@ -327,6 +373,37 @@
   --pond-koi-gold: #CDA44C;
   --pond-koi-brown: #7E6446;
   --pond-light: #E4ECFF;
+
+  /* Magnetic Liquid in the dark: its --magnet-* colours. */
+  /* A black studio: a dark glazed dish, a dim softbox overhead, and a blue gel and an orange one from either side. */
+  --magnet-shade: var(--paper);
+  --magnet-softbox: var(--muted);
+  --magnet-dish: var(--surface);
+  --magnet-liquid: var(--rule);
+  --magnet-gel-1: var(--accent-travel);
+  --magnet-gel-2: var(--accent-collection);
+  /* Jack's Writing Islands in the dark: its --isle-* colours. */
+  --isle-sky-top: var(--pond-shade);
+  --isle-sky: var(--pond-water);
+  --isle-sea: var(--pond-water);
+  --isle-deep: var(--pond-shade);
+  --isle-shallow: var(--pond-pebble-grey);
+  --isle-sand: var(--pond-sand);
+  --isle-forest: var(--pond-moss);
+  --isle-mist: var(--muted);
+  --isle-foam: var(--muted);
+  --isle-drop: var(--muted);
+  --isle-star: var(--pond-light);
+  /* Jack's Firefly River in the dark: its --river-* colours. */
+  /* A moonless night: the sky from the page's black to the card's grey, a dim glow along the far bank, a few faint
+     stars, black trees. */
+  --river-sky-top: var(--paper);
+  --river-sky-low: var(--surface);
+  --river-glow: var(--rule);
+  --river-tree: var(--qr-ink);
+  --river-water: var(--paper);
+  --river-mist: var(--rule);
+  --river-star: var(--muted);
 }
 
 /* Starry Night (NightSky.astro): the dark theme turned into a near-black night with faint aurora curtains, and the
@@ -350,4 +427,36 @@
   --star: #F4F1FF;
   /* Jack's Build Log under the night sky: the aurora behind its clock. */
   --log-haze: var(--aurora-1);
+  /* Magnetic Liquid under the night sky: its --magnet-* colours. */
+  /* The studio open to the sky: the sky's own gradient, the aurora's four colours and the stars. */
+  --magnet-sky-top: var(--sky-top);
+  --magnet-sky-low: var(--sky-bottom);
+  --magnet-aurora-1: var(--aurora-1);
+  --magnet-aurora-2: var(--aurora-2);
+  --magnet-aurora-3: var(--aurora-3);
+  --magnet-aurora-4: var(--aurora-4);
+  --magnet-glint: var(--star);
+  /* Jack's Writing Islands under the night sky: its --isle-* colours. */
+  --isle-sky-top: var(--sky-top);
+  --isle-sky: var(--sky-bottom);
+  --isle-star: var(--star);
+  --isle-aurora-1: var(--aurora-1);
+  --isle-aurora-2: var(--aurora-2);
+  --isle-aurora-3: var(--aurora-3);
+  --isle-aurora-4: var(--aurora-4);
+  --isle-aurora-5: var(--aurora-5);
+  /* Jack's Firefly River under the night sky: its --river-* colours. */
+  /* The night sky's own colours, its stars and its aurora, all mirrored in the river, and the mist cooled towards the
+     aurora's teal. */
+  --river-sky-top: var(--sky-top);
+  --river-sky-low: var(--sky-bottom);
+  --river-glow: var(--sky-bottom);
+  --river-water: var(--paper);
+  --river-mist: var(--aurora-3);
+  --river-star: var(--star);
+  --river-aurora-1: var(--aurora-1);
+  --river-aurora-2: var(--aurora-2);
+  --river-aurora-3: var(--aurora-3);
+  --river-aurora-4: var(--aurora-4);
+  --river-aurora-5: var(--aurora-5);
 }

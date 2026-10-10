@@ -6,7 +6,7 @@ import { buildLog, readGitLog } from './build-log.js';
 import { changelogFile } from './changelog-file.js';
 import { isoDay } from './dates.js';
 import { parseCount } from './lab/popular.js';
-import { EFFECTS, EXPERIMENTS, TOOLS, WORLDS } from './lab/tools.js';
+import { EFFECTS, EXPERIMENTS, TOOLS, WORLDS, isListed } from './lab/tools.js';
 import { counterUrl } from './visits.js';
 
 /** The commits, oldest first, or none when git can't say. */
@@ -41,7 +41,7 @@ export function buildLogFile(site) {
     commits: commits(),
     changes: changelogFile(),
     // The Effects page is a tool too, but its effects are counted one by one.
-    lab: { tools: TOOLS.filter((t) => t.status === 'ready' && t.slug !== 'effects').length, games: EXPERIMENTS.length, effects: EFFECTS.length, worlds: WORLDS.length },
+    lab: { tools: TOOLS.filter((t) => t.status === 'ready' && isListed(t) && t.slug !== 'effects').length, games: EXPERIMENTS.length, effects: EFFECTS.length, worlds: WORLDS.filter(isListed).length },
     visits: await siteVisits(site.goatcounter),
     today: isoDay(new Date()),
     started: site.started,

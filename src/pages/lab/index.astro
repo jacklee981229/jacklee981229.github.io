@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import PageTop from '../../components/PageTop.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
-import { GROUPS, TOOLS, WORLDS } from '../../lib/lab/tools.js';
+import { GROUPS, TOOLS, WORLDS, isListed } from '../../lib/lab/tools.js';
 import { experimentPosts, popularLabItems } from '../../lib/collections';
 import { SITE } from '../../site';
 
@@ -36,7 +36,7 @@ const popular = await popularLabItems();
         <>
           <h3>{group.name}</h3>
           <ul class="cards">
-            {TOOLS.filter((t) => t.group === group.id).map((t) => <LabItemCard tool={t} />)}
+            {TOOLS.filter((t) => t.group === group.id && isListed(t)).map((t) => <LabItemCard tool={t} />)}
           </ul>
         </>
       ))}
@@ -53,7 +53,7 @@ const popular = await popularLabItems();
     <section id="little-worlds" aria-labelledby="little-worlds-title">
       <h2 id="little-worlds-title">Little Worlds</h2>
       <ul class="cards">
-        {WORLDS.map((world) => <LabItemCard world={world} />)}
+        {WORLDS.filter(isListed).map((world) => <LabItemCard world={world} />)}
       </ul>
       <p class="note">They run by themselves. Nothing to do but watch.</p>
     </section>

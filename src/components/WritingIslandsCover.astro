@@ -1,0 +1,46 @@
+---
+// The picture on Jack's Writing Islands' card: its islands, drawn in white on the Misc colours like the Lab's other
+// drawings (BuildLogCover.astro), so the Lab's cards read as one family: the old island at the back with a flat-topped
+// butte of code banded down its cliff and a sharp peak beside it, a terraced island and a soft one with a lake in
+// front, rain falling on them from a cloud, and the sea round them.
+// Wider than any card, as theirs are: a card shows the middle and trims the sides, so the islands keep to the middle.
+const W = 360;
+const H = 88;
+const round = (n: number) => Math.round(n * 10) / 10;
+const path = (points: number[][]) => points.map(([x, y], i) => `${i ? 'L' : 'M'}${round(x)} ${round(y)}`).join('');
+
+// The old island: low ground, the butte's cliff and flat top, a saddle, the peak, and a long shoulder down.
+const back = `${path([[112, 55], [126, 50], [138, 46], [141, 27], [166, 26], [169, 36], [178, 33], [191, 15], [203, 31], [214, 29], [228, 38], [246, 47], [262, 55]])}Z`;
+// The butte's layers, across its cliff.
+const strata = [31, 36, 41].map((y) => path([[139.6 + (y - 27) * 0.05, y], [165.6 + (y - 27) * 0.18, y]])).join('');
+// The terraced island, front left: a stepped hill.
+const terraced = `${path([[64, 70], [74, 66], [84, 66], [84, 61], [94, 61], [94, 56], [104, 56], [104, 51], [118, 51], [118, 56], [128, 56], [128, 61], [138, 61], [148, 66], [158, 70]])}Z`;
+// The soft island, front right: two rounded hills, built as curves.
+const soft = 'M206 72C214 64 222 52 236 50C246 49 250 56 258 55C266 54 270 44 282 44C294 44 302 58 314 72Z';
+// Its lake, in a hollow on the flank: cut out of the island, so it shows as water.
+const lake = { cx: 262, cy: 63, rx: 9, ry: 2.6 };
+const hole = `M${lake.cx - lake.rx} ${lake.cy}a${lake.rx} ${lake.ry} 0 1 0 ${lake.rx * 2} 0a${lake.rx} ${lake.ry} 0 1 0 ${-lake.rx * 2} 0Z`;
+// The rain, slanting from a cloud over the old island's shoulder.
+const cloud = 'M214 12C214 8 218 6 222 7C224 3 231 3 233 7C237 5 243 8 242 12Z';
+const rain = Array.from({ length: 6 }, (_, i) => path([[218 + i * 4.4, 15 + (i % 2) * 2], [215.5 + i * 4.4, 23 + (i % 2) * 2]])).join('');
+// The sea: the horizon, and swell lines that thin out towards it.
+const sea = [[0, 52, 0.28], [40, 76, 0.4], [190, 80, 0.32], [100, 84, 0.24], [262, 77, 0.3]].map(([x, y, a]) => ({ d: path([[x, y], [x + (y === 52 ? W : 64), y]]), a }));
+---
+<span class="cover" aria-hidden="true">
+  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+    {sea.map((line) => <path d={line.d} fill="none" stroke="currentColor" stroke-width="0.9" stroke-opacity={line.a} stroke-linecap="round" />)}
+    <path d={back} fill="currentColor" fill-opacity="0.42" />
+    <path d={strata} fill="none" stroke="currentColor" stroke-width="1" stroke-opacity="0.55" />
+    <path d={terraced} fill="currentColor" fill-opacity="0.78" />
+    <path d={soft + hole} fill="currentColor" fill-opacity="0.9" fill-rule="evenodd" />
+    <ellipse cx={lake.cx} cy={lake.cy} rx={lake.rx} ry={lake.ry} fill="currentColor" fill-opacity="0.35" />
+    <path d={cloud} fill="currentColor" fill-opacity="0.6" />
+    <path d={rain} fill="none" stroke="currentColor" stroke-width="1" stroke-opacity="0.55" stroke-linecap="round" />
+  </svg>
+</span>
+
+<style>
+  /* White on the card's colours, as the other Lab drawings are. */
+  .cover { display: block; color: var(--on-colour); }
+  svg { display: block; width: 100%; height: 100%; }
+</style>

@@ -1,12 +1,13 @@
 ---
 // One Lab item as a card: a tool, with its example as the cover (Effects, with one effect's drawing, a different one
-// each day the site is built: the home page's toy of that day; Jack's Build Log, with a drawing of its clock); a game's
-// post, with its own cover; or a Little World, with a drawing of it.
+// each day the site is built: the home page's toy of that day; Jack's Build Log and Jack's Writing Islands, with
+// drawings of their own); a game's post, with its own cover; or a Little World, with a drawing of it.
 import BuildLogCover from './BuildLogCover.astro';
 import Cover from './Cover.astro';
 import EffectCover from './EffectCover.astro';
 import LabCard from './LabCard.astro';
 import WorldCover from './WorldCover.astro';
+import WritingIslandsCover from './WritingIslandsCover.astro';
 import { postUrl, summaryOf, type LabItem } from '../lib/collections';
 import { todaysToy } from '../lib/home.js';
 import { EFFECTS, toolUrl, worldUrl } from '../lib/lab/tools.js';
@@ -14,8 +15,9 @@ import { EFFECTS, toolUrl, worldUrl } from '../lib/lab/tools.js';
 type Props = LabItem;
 
 const { tool, post, world } = Astro.props;
-// Key Jam is left out, as from the home page's toy, so the two show the same effect on the day of a build.
-const drawn = todaysToy(EFFECTS.filter((e) => e.slug !== 'key-jam'), new Date())?.slug ?? EFFECTS[0].slug;
+// The effects kept out of the home page's toy are kept out here too, so the two show the same effect on the day of a
+// build.
+const drawn = todaysToy(EFFECTS.filter((e) => e.daily !== false), new Date())?.slug ?? EFFECTS[0].slug;
 const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
 ---
 {tool ? (
@@ -23,7 +25,7 @@ const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
     <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} />
   ) : (
     <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind}>
-      {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
+      {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : tool.slug === 'writing-islands' ? <WritingIslandsCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
     </LabCard>
   )
 ) : post ? (

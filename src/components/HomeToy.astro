@@ -7,8 +7,9 @@
 // fills the box the page gives it; the page's [data-toy-link] (anywhere on it) gets the toy's name and address.
 import { EFFECTS, effectUrl } from '../lib/lab/tools.js';
 
-// Key Jam is left out: it plays sounds from the keyboard, which a page you've only opened shouldn't.
-const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.slug, name: e.name, href: effectUrl(e.slug), description: e.description }));
+// Some effects stay out (daily: false in lab/tools.js): Key Jam plays sounds from the keyboard, which a page you've only
+// opened shouldn't.
+const toys = EFFECTS.filter((e) => e.daily !== false).map((e) => ({ slug: e.slug, name: e.name, href: effectUrl(e.slug), description: e.description }));
 ---
 <div class="toy" data-dark data-toy>
   <canvas role="img" aria-label="Today's toy, one of the Lab's effects"></canvas>
@@ -19,7 +20,7 @@ const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.s
   import { runStage } from '../effects/stage.js';
   import { todaysToy } from '../lib/home.js';
 
-  const pieces = import.meta.glob<{ default: Parameters<typeof runStage>[1] }>('../effects/*.js');
+  const pieces = import.meta.glob<{ default: Parameters<typeof runStage>[1]; options?: Parameters<typeof runStage>[2] }>('../effects/*.js');
   const root = document.querySelector<HTMLElement>('[data-toy]');
   if (root) {
     const toys = JSON.parse(root.querySelector('[data-toys]')?.textContent ?? '[]') as { slug: string; name: string; href: string; description: string }[];
@@ -31,7 +32,7 @@ const toys = EFFECTS.filter((e) => e.slug !== 'key-jam').map((e) => ({ slug: e.s
         link.textContent = toy.name;
       }
       root.querySelector('canvas')?.setAttribute('aria-label', `${toy.name}: ${toy.description}`);
-      pieces[`../effects/${toy.slug}.js`]?.().then((piece) => runStage(root, piece.default));
+      pieces[`../effects/${toy.slug}.js`]?.().then((piece) => runStage(root, piece.default, piece.options));
     }
   }
 </script>

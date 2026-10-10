@@ -28,7 +28,8 @@ const tool = toolBySlug('effects');
   import { effectQueue } from '../../lib/lab/effect-queue.js';
   import { EFFECTS, effectUrl } from '../../lib/lab/tools.js';
 
-  type Piece = { default: Parameters<typeof runStage>[1] };
+  // A piece's own module: what draws it, and its options (WebGL2, for some).
+  type Piece = { default: Parameters<typeof runStage>[1]; options?: Parameters<typeof runStage>[2] };
   // One file per effect; only the ones shown are fetched.
   const pieces = import.meta.glob<Piece>('../../effects/*.js');
   const root = document.querySelector<HTMLElement>('[data-stage]')!;
@@ -56,7 +57,7 @@ const tool = toolBySlug('effects');
     const canvas = old.cloneNode() as HTMLCanvasElement;
     canvas.setAttribute('aria-label', `${effect.name}: ${effect.description}`);
     old.replaceWith(canvas);
-    stop = runStage(root, piece.default);
+    stop = runStage(root, piece.default, piece.options);
   };
 
   random.addEventListener('click', (e) => {

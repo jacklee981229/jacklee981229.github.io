@@ -1,6 +1,7 @@
 // What every effect shares: a canvas that fills its stage, the pointer (a mouse, a finger, or a slow drift of its
 // own while nobody moves it), the site's colours in the theme being shown, and a loop that only runs while it's
-// worth it: the stage on screen, the tab in front, and not paused.
+// worth it: the stage on screen, the tab in front, and not paused. A piece draws with the 2D canvas, or asks for
+// WebGL2 (its helpers in gl.js).
 
 /** Seconds without the pointer moving before the stage starts drifting on its own. */
 const IDLE_AFTER = 2.5;
@@ -10,27 +11,43 @@ const MAX_DENSITY = 2;
 /**
  * @typedef {[number, number, number]} Rgb
  * @typedef {{
- *   ctx: CanvasRenderingContext2D, width: number, height: number, time: number,
+ *   ctx: CanvasRenderingContext2D, gl: WebGL2RenderingContext | null, width: number, height: number, time: number,
+ *   density: number, scale: number, still: boolean,
  *   pointer: { x: number, y: number, vx: number, vy: number, down: boolean, pressed: boolean },
  *   colors: { paper: Rgb, ink: Rgb, muted: Rgb, rule: Rgb, lanes: Rgb[] },
  *   rgba: (color: Rgb, alpha?: number) => string,
  *   playing: boolean,
+ *   setScale: (scale: number) => void,
+ *   redraw: () => void,
+ *   showStill: (src: string | null, alt?: string) => void,
  * }} Stage
  * `pointer.pressed` is true for the one frame after a click or a tap. Sizes are in CSS pixels. `playing` is false
  * while the stage is paused, off screen or in a hidden tab: an effect that makes sound keeps quiet then.
- * @typedef {{ frame: (dt: number) => void, resize?: () => void, stop?: () => void }} Piece
+ * A WebGL2 piece (options.context 'webgl2') gets `gl` and no `ctx`, unless the browser has no WebGL2: then `gl` is null
+ * and `ctx` is the 2D context, for whatever the piece shows instead. Its canvas is `density` × `scale` pixels to a CSS
+ * pixel: `setScale` lowers that to draw fewer pixels on a slow device, and takes effect at once. `still` is true when
+ * less motion is asked for: a WebGL2 piece then makes its own still picture (the stage doesn't run it unseen first, as
+ * shaders take a while to be ready), and calls `redraw` to have it drawn once. `showStill` lays a picture over the
+ * canvas, or takes it away with null: for a piece that can't run here.
+ * @typedef {{ frame: (dt: number) => void, resize?: () => void, stop?: () => void, restore?: () => void }} Piece
  * `stop`, for an effect that listens beyond its canvas (Key Jam's keys), lets go of that when the stage stops.
+ * `restore`, for a WebGL2 piece, makes its GL things again after the browser gave back a context it took away.
+ * @typedef {{ context?: '2d' | 'webgl2', antialias?: boolean, depth?: boolean }} StageOptions
  */
 
 /**
  * Starts an effect on its stage. `root` holds the canvas and the Pause button; `create` builds the effect from the
  * stage and returns what draws one frame. Returns what stops it for good, so the Effects page can start another on the
  * same stage (give that one a fresh canvas: this one's own listeners stay on it).
- * @param {HTMLElement} root @param {(stage: Stage) => Piece} create @returns {() => void}
+ * @param {HTMLElement} root @param {(stage: Stage) => Piece} create @param {StageOptions} [options] @returns {() => void}
  */
-export function runStage(root, create) {
+export function runStage(root, create, options = {}) {
   const canvas = /** @type {HTMLCanvasElement} */ (root.querySelector('canvas'));
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+  // A WebGL2 piece draws on the GPU; its canvas is opaque, as the card's colour is drawn by the piece itself.
+  const gl = options.context === 'webgl2'
+    ? /** @type {WebGL2RenderingContext | null} */ (canvas.getContext('webgl2', { alpha: false, antialias: options.antialias ?? false, depth: options.depth ?? false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' }))
+    : null;
+  const ctx = /** @type {CanvasRenderingContext2D} */ (gl ? null : canvas.getContext('2d'));
   const toggle = root.querySelector('[data-stage-toggle]');
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -46,16 +63,38 @@ export function runStage(root, create) {
     return [r || 0, g || 0, b || 0];
   };
 
+  let started = false;
   /** @type {Stage} */
   const stage = {
     ctx,
+    gl,
     width: 1,
     height: 1,
     time: 0,
+    density: 1,
+    scale: 1,
+    still,
     pointer: { x: 0, y: 0, vx: 0, vy: 0, down: false, pressed: false },
     colors: { paper: [255, 255, 255], ink: [0, 0, 0], muted: [120, 120, 120], rule: [200, 200, 200], lanes: [] },
     rgba: ([r, g, b], alpha = 1) => `rgba(${r}, ${g}, ${b}, ${alpha})`,
     playing: false,
+    setScale: (scale) => {
+      stage.scale = Math.min(1, Math.max(0.25, scale));
+      size();
+    },
+    // Only once the stage is running: a piece calls it when its own work (shaders, a still) is ready.
+    redraw: () => { if (started) redraw(); },
+    showStill: (src, alt = '') => {
+      root.querySelector('[data-stage-still]')?.remove();
+      if (!src) return;
+      const picture = document.createElement('img');
+      picture.src = src;
+      picture.alt = alt;
+      picture.dataset.stageStill = '';
+      // Over the canvas, under the stage's buttons.
+      picture.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none';
+      canvas.after(picture);
+    },
   };
 
   // The colours come from the page's own tokens (the stage's --c1, --c2... are the topic colours), read again
@@ -67,14 +106,22 @@ export function runStage(root, create) {
     stage.colors = { paper: rgbOf(style.getPropertyValue('--paper')), ink: rgbOf(style.getPropertyValue('--ink')), muted: rgbOf(style.getPropertyValue('--muted')), rule: rgbOf(style.getPropertyValue('--rule')), lanes };
   };
 
+  /** Sizes the canvas's pixels to the stage: a WebGL2 piece's at its chosen scale too. Resizing clears the canvas. */
+  const size = () => {
+    const pixels = stage.density * (gl ? stage.scale : 1);
+    const width = Math.max(1, Math.round(stage.width * pixels));
+    const height = Math.max(1, Math.round(stage.height * pixels));
+    // A WebGL2 piece's picture is cleared only when its size really changes.
+    if (!gl || canvas.width !== width) canvas.width = width;
+    if (!gl || canvas.height !== height) canvas.height = height;
+    ctx?.setTransform(stage.density, 0, 0, stage.density, 0, 0);
+  };
   const measure = () => {
     const box = root.getBoundingClientRect();
-    const density = Math.min(devicePixelRatio || 1, MAX_DENSITY);
+    stage.density = Math.min(devicePixelRatio || 1, MAX_DENSITY);
     stage.width = Math.max(1, Math.round(box.width));
     stage.height = Math.max(1, Math.round(box.height));
-    canvas.width = Math.round(stage.width * density);
-    canvas.height = Math.round(stage.height * density);
-    ctx.setTransform(density, 0, 0, density, 0, 0);
+    size();
   };
 
   readColors();
@@ -110,7 +157,8 @@ export function runStage(root, create) {
     const t = stage.time;
     const wasX = p.x;
     const wasY = p.y;
-    if (t - movedAt < IDLE_AFTER) {
+    // A button or finger held still sends no moves, but it's still there: it never drifts away while held.
+    if (p.down || t - movedAt < IDLE_AFTER) {
       p.x = real.x;
       p.y = real.y;
     } else {
@@ -134,6 +182,8 @@ export function runStage(root, create) {
   let running = false;
   let last = 0;
   let handle = 0;
+  /** While the browser has taken a WebGL2 piece's context away (as iPhones do to background tabs). */
+  let lost = false;
   /** @param {number} now */
   const loop = (now) => {
     // After a hitch (or a background tab), one long step would fling everything: cap it.
@@ -143,7 +193,7 @@ export function runStage(root, create) {
     if (running) handle = requestAnimationFrame(loop);
   };
   const sync = () => {
-    const should = wanted && onScreen && !document.hidden;
+    const should = wanted && onScreen && !document.hidden && !lost;
     if (should && !running) {
       running = true;
       last = performance.now();
@@ -156,12 +206,14 @@ export function runStage(root, create) {
     if (toggle) toggle.textContent = wanted ? 'Pause' : 'Play';
   };
   // A paused stage still needs a picture after its size or colours change.
-  const redraw = () => { if (!running) step(0); };
+  const redraw = () => { if (!running && !lost) step(0); };
 
   const resized = new ResizeObserver(() => {
     measure();
     piece.resize?.();
-    redraw();
+    // Resizing cleared a WebGL2 canvas, and the next frame would come too late to hide it: draw now, running or not.
+    if (gl && !lost) step(0);
+    else redraw();
   });
   resized.observe(root);
   const seen = new IntersectionObserver(([entry]) => {
@@ -183,10 +235,31 @@ export function runStage(root, create) {
   };
   toggle?.addEventListener('click', flip);
 
+  // The browser may take a WebGL2 piece's context away; it gives it back only if asked (preventDefault). Every GL thing
+  // the piece made is gone then, so it makes them again (restore) before it draws on.
+  /** @param {Event} e */
+  const loseIt = (e) => {
+    e.preventDefault();
+    lost = true;
+    sync();
+  };
+  const restoreIt = () => {
+    lost = false;
+    piece.restore?.();
+    sync();
+    redraw();
+  };
+  if (gl) {
+    canvas.addEventListener('webglcontextlost', loseIt);
+    canvas.addEventListener('webglcontextrestored', restoreIt);
+  }
+
   // With "reduce motion" on, nothing moves until Play is pressed: two seconds of it are worked out unseen, so the
-  // still picture shows the effect mid-flow rather than an empty stage.
-  if (still) for (let i = 0; i < 120; i++) step(1 / 60);
+  // still picture shows the effect mid-flow rather than an empty stage. A WebGL2 piece makes its own still, once its
+  // shaders are ready.
+  if (still && !gl) for (let i = 0; i < 120; i++) step(1 / 60);
   sync();
+  started = true;
 
   return () => {
     wanted = false;
@@ -197,5 +270,12 @@ export function runStage(root, create) {
     document.removeEventListener('visibilitychange', sync);
     toggle?.removeEventListener('click', flip);
     piece.stop?.();
+    root.querySelector('[data-stage-still]')?.remove();
+    if (gl) {
+      // Let go of the context at once: browsers keep only a few, and the Effects page swaps effects often.
+      canvas.removeEventListener('webglcontextlost', loseIt);
+      canvas.removeEventListener('webglcontextrestored', restoreIt);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
   };
 }

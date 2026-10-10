@@ -89,6 +89,39 @@ if (slug === 'town') {
   for (const [x, y, turn] of [[104, 20, 30], [226, 16, -40], [300, 66, 70]]) {
     shapes.push({ kind: 'path', d: 'M-6 0Q0 -5 7 0Q0 5 -6 0ZM-6 0L-9 1', alpha: 0.7, fill: true, turn, at: [x, y] });
   }
+} else if (slug === 'fireflies') {
+  // Mangroves across a river at night: their crowns full of fireflies, each light a broken streak in the water, and
+  // a paper lantern hanging over the water from its bamboo pole.
+  const line = 58;
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const crowns: [number, number, number][] = [[96, 40, 34], [150, 52, 46], [210, 46, 40], [266, 50, 38]];
+  for (const [cx, w, h] of crowns) {
+    // A lumpy dome over a short trunk, drooping at its edges.
+    const top = line - 6 - h;
+    const d = `M${cx - w} ${line - 8}C${cx - w * 1.05} ${top + h * 0.5} ${cx - w * 0.6} ${top} ${cx - w * 0.15} ${top + 3}C${cx} ${top - 2} ${cx + w * 0.3} ${top + 1} ${cx + w * 0.5} ${top + h * 0.25}C${cx + w} ${top + h * 0.3} ${cx + w * 1.05} ${top + h * 0.7} ${cx + w} ${line - 8}C${cx + w * 0.5} ${line - 13} ${cx - w * 0.5} ${line - 13} ${cx - w} ${line - 8}Z`;
+    shapes.push({ kind: 'path', d, alpha: 0.22, fill: true });
+    rect(cx - 1.8, line - 12, 3.6, 12, 0.32, 1);
+  }
+  rect(0, line, W, 0.8, 0.3, 0);
+  // The fireflies: many in the crowns, each mirrored in the water as a short dash.
+  for (let i = 0; i < 64; i++) {
+    const [cx, w, h] = crowns[i % crowns.length];
+    const a = rand() * Math.PI;
+    const r = Math.sqrt(rand());
+    const x = cx + Math.cos(a) * w * 0.9 * r;
+    const y = line - 10 - Math.sin(a) * h * 0.85 * r;
+    const alpha = 0.55 + rand() * 0.45;
+    shapes.push({ kind: 'circle', x: round(x), y: round(y), r: round(0.8 + rand() * 0.9), alpha });
+    if (rand() < 0.7) rect(x - 0.7, line + 3 + (line - y) * 0.5, 1.4, 2 + rand() * 3, alpha * 0.55, 0.7);
+  }
+  // The lantern on its bamboo pole, and its glow in the water.
+  shapes.push({ kind: 'path', d: `M199 ${line}Q197 22 184 22L181 25`, alpha: 0.55, width: 1.3 });
+  shapes.push({ kind: 'path', d: 'M181 25V31', alpha: 0.7, width: 0.9 });
+  rect(173.5, 32, 15, 13, 1, 6.5);
+  rect(177.5, 30.4, 7, 2, 0.85, 0.6);
+  rect(177.5, 44.6, 7, 2, 0.85, 0.6);
+  rect(174.5, 64, 13, 11, 0.4, 6);
 }
 ---
 <span class="cover" aria-hidden="true">

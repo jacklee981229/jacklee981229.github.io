@@ -239,6 +239,32 @@ if (slug === 'dot-grid') {
     dots.push({ x: 268 + Math.cos(a) * (14 + random() * 12), y: 40 + Math.sin(a) * (14 + random() * 12), r: 2 + random() * 3, lane: i % 2 ? 3 : 0, alpha: 1 });
   }
   lines.push({ points: pts(Array.from({ length: 13 }, (_, i) => [136 + i * 13, 76 + (i % 2 ? -6 : 6)])), lane: 3, alpha: 0.95, width: 3 });
+} else if (slug === 'magnetic-liquid') {
+  // A dish seen from above at a slant, its puddle risen into a crown of spikes over the magnet: a hexagon of them
+  // round the tallest, a smaller ring outside, drawn from the back so the front ones stand in front, each lit on one
+  // side.
+  const at = { x: 180, y: 52 };
+  const lean = 0.34;
+  const ellipse = (rx: number, ry: number, from = 0, to = Math.PI * 2, dy = 0) => pts(Array.from({ length: 49 }, (_, i) => {
+    const a = from + ((to - from) * i) / 48;
+    return [at.x + rx * Math.cos(a), at.y + dy + ry * Math.sin(a)];
+  }));
+  lines.push({ points: ellipse(88, 88 * lean), lane: -1, alpha: 0.55, width: 1.6 });
+  lines.push({ points: ellipse(79, 79 * lean), lane: -1, alpha: 0.3, width: 1 });
+  lines.push({ points: ellipse(88, 88 * lean, 0, Math.PI, 6), lane: -1, alpha: 0.4, width: 1.6 });
+  fills.push({ points: ellipse(54, 54 * lean), lane: -1, alpha: 0.26 });
+  const spikes = [{ r: 0, a: 0, tall: 36 }];
+  for (let k = 0; k < 6; k++) spikes.push({ r: 18, a: (k * Math.PI) / 3 + 0.3, tall: 25 });
+  for (let k = 0; k < 12; k++) spikes.push({ r: k % 2 ? 32 : 36, a: (k * Math.PI) / 6 + 0.3, tall: k % 2 ? 12 : 15 });
+  spikes
+    .map(({ r, a, tall }) => ({ x: at.x + r * Math.cos(a), y: at.y + r * Math.sin(a) * lean, tall }))
+    .sort((p, q) => p.y - q.y)
+    .forEach(({ x, y, tall }) => {
+      const half = 1.6 + tall * 0.13;
+      // A cone whose flanks bow in towards its sharp tip: the lit half, then the shaded one.
+      fills.push({ points: pts([[x - half, y], [x - half * 0.4, y - tall * 0.45], [x, y - tall], [x, y]]), lane: 0, alpha: 1 });
+      fills.push({ points: pts([[x, y], [x, y - tall], [x + half * 0.4, y - tall * 0.45], [x + half, y]]), lane: 0, alpha: 0.6 });
+    });
 }
 ---
 <span class="cover" aria-hidden="true">

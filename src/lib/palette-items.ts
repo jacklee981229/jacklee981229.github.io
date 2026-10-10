@@ -1,7 +1,7 @@
 // What the command palette can find besides posts, and what Random can open, made while the site is built from
 // lists the site already keeps (the menu, the Lab's lists, the posts), so new things show up by themselves.
 import { NAV } from '../site';
-import { EFFECTS, TOOLS, WORLDS, effectUrl, toolUrl, worldUrl } from './lab/tools.js';
+import { EFFECTS, TOOLS, WORLDS, effectUrl, isListed, toolUrl, worldUrl } from './lab/tools.js';
 import { experimentPosts, listedPosts, postUrl, summaryOf } from './collections';
 
 export type PaletteItem = { title: string; group: 'Pages' | 'Lab'; href: string; icon: string; description?: string; words?: string[] };
@@ -24,10 +24,10 @@ export async function paletteItems(): Promise<PaletteItem[]> {
     { title: 'Now', group: 'Pages', href: '/now/', icon: 'clock', words: ['doing', 'currently', 'playing', 'building'] },
     { title: 'Changelog', group: 'Pages', href: '/changelog/', icon: 'list', words: ['changes', 'updates', 'history', 'new'] },
     { title: 'Guestbook', group: 'Pages', href: '/guestbook/', icon: 'message', words: ['notes', 'comments', 'messages', 'say hi'] },
-    ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool', ...(t.words ?? [])] })),
+    ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool', ...(t.words ?? [])] })),
     ...(await experimentPosts()).map((post) => ({ title: post.data.title, group: 'Lab' as const, href: postUrl(post), icon: 'gamepad', description: summaryOf(post), words: ['game', 'play'] })),
     ...EFFECTS.map((e) => ({ title: e.name, group: 'Lab' as const, href: effectUrl(e.slug), icon: 'pointer', description: e.description, words: ['effect'] })),
-    ...WORLDS.map((w) => ({ title: w.name, group: 'Lab' as const, href: worldUrl(w.slug), icon: w.icon, description: w.description, words: ['world', 'little world', ...w.words] })),
+    ...WORLDS.filter(isListed).map((w) => ({ title: w.name, group: 'Lab' as const, href: worldUrl(w.slug), icon: w.icon, description: w.description, words: ['world', 'little world', ...w.words] })),
   ];
 }
 
@@ -36,9 +36,9 @@ export async function openables(): Promise<Openable[]> {
   const games = await experimentPosts();
   return [
     ...(await listedPosts()).map((post) => ({ title: post.data.title, href: postUrl(post), kind: 'Post' as const, description: summaryOf(post) })),
-    ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ title: t.name, href: toolUrl(t.slug), kind: 'Tool' as const, description: t.description })),
+    ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((t) => ({ title: t.name, href: toolUrl(t.slug), kind: 'Tool' as const, description: t.description })),
     ...games.map((post) => ({ title: post.data.title, href: postUrl(post), kind: 'Game' as const, description: summaryOf(post) })),
     ...EFFECTS.map((e) => ({ title: e.name, href: effectUrl(e.slug), kind: 'Effect' as const, description: e.description })),
-    ...WORLDS.map((w) => ({ title: w.name, href: worldUrl(w.slug), kind: 'World' as const, description: w.description })),
+    ...WORLDS.filter(isListed).map((w) => ({ title: w.name, href: worldUrl(w.slug), kind: 'World' as const, description: w.description })),
   ];
 }

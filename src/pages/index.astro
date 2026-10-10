@@ -17,7 +17,7 @@ import { LINKS, SITE } from '../site';
 import { isExternal, NEW_TAB } from '../lib/links.js';
 import { listedPosts } from '../lib/collections';
 import { topicOf } from '../lib/topics.js';
-import { WORLDS, worldUrl } from '../lib/lab/tools.js';
+import { WORLDS, isListed, worldUrl } from '../lib/lab/tools.js';
 import { nowFile } from '../lib/now-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
@@ -121,7 +121,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
           <p class="label">Lab</p>
           <p class="lab-line">Games, toys and little worlds I made for fun.</p>
           <ul class="worlds">
-            {WORLDS.map((w) => <li><a class="chip" href={worldUrl(w.slug)}><Icon name={w.icon} />{w.name}</a></li>)}
+            {WORLDS.filter(isListed).map((w) => <li><a class="chip" href={worldUrl(w.slug)}><Icon name={w.icon} />{w.name}</a></li>)}
           </ul>
           <div class="lab-actions">
             <a class="explore" href="/lab/">Explore the Lab<Icon name="arrow" /></a>

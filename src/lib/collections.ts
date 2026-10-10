@@ -4,7 +4,7 @@ import type { ImageMetadata } from 'astro';
 import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
-import { EXPERIMENTS, TOOLS, WORLDS, toolUrl, worldUrl } from './lab/tools.js';
+import { EXPERIMENTS, TOOLS, WORLDS, isListed, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
 import { lastUpdate } from './changelog-file.js';
 import { SITE } from '../site';
@@ -49,9 +49,9 @@ let counted: Promise<{ items: CountedItem[]; visits: Map<string, number> | null 
 function labVisits() {
   return (counted ??= (async () => {
     const items: CountedItem[] = [
-      ...TOOLS.filter((t) => t.status === 'ready').map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem, kind: 'Tool' as const, name: tool.name })),
+      ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem, kind: 'Tool' as const, name: tool.name })),
       ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem, kind: 'Game' as const, name: post.data.title })),
-      ...WORLDS.map((world) => ({ path: worldUrl(world.slug), item: { world } as LabItem, kind: 'World' as const, name: world.name })),
+      ...WORLDS.filter(isListed).map((world) => ({ path: worldUrl(world.slug), item: { world } as LabItem, kind: 'World' as const, name: world.name })),
     ];
     const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
     if (!visits) console.warn('Most Popular: GoatCounter gave no counts, so the Lab is built without a ranking.');
@@ -85,9 +85,9 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     // The Lab: its finished tools (the Effects page among them), its games and its worlds. /random/ stays out (it's
     // marked noindex).
     { path: '/lab/' },
-    ...TOOLS.filter((t) => t.status === 'ready').map((t) => ({ path: toolUrl(t.slug) })),
+    ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((t) => ({ path: toolUrl(t.slug) })),
     ...(await experimentPosts()).map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
-    ...WORLDS.map((w) => ({ path: worldUrl(w.slug) })),
+    ...WORLDS.filter(isListed).map((w) => ({ path: worldUrl(w.slug) })),
     ...posts.map((post) => ({ path: postUrl(post), lastmod: post.data.updated ?? post.data.date })),
   ];
 }

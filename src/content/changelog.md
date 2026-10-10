@@ -89,3 +89,4 @@
 - 2026-10-10 new: Added [Jack's Build Log](/lab/build-log/): this site's history, replayed in lights
 - 2026-10-10 improved: [Jack's Build Log](/lab/build-log/) moved into the Lab, and flips over into a Ring
 - 2026-10-10 improved: The Build Log's Ring looks round now, and sends out signals
+- 2026-10-10 new: Added [Magnetic Liquid](/lab/effects/?e=magnetic-liquid): black liquid that spikes under a magnet

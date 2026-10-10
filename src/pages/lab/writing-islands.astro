@@ -1,0 +1,196 @@
+---
+// Jack's Writing Islands, in the Lab's Misc (the Writing Islands tool in lab/tools.js): Jack's posts as islands, one
+// for each topic and a ridge for each post, built from the post's parts and weathered by years of rain. A landscape card
+// as wide as the page's top (a tall one on narrower screens), grown and drawn by src/islands/ on the effects' stage, then
+// how to read it, the posts by island, and other Lab items. The land is worked out while the site is built
+// (islands-file.js), so every publish raises a new post's ridge and the daily rebuild brings its visits up to date.
+import { getImage } from 'astro:assets';
+import Base from '../../layouts/Base.astro';
+import Go from '../../components/Go.astro';
+import LabHeader from '../../components/LabHeader.astro';
+import LabMore from '../../components/LabMore.astro';
+import { formatDate } from '../../lib/dates.js';
+import { islandsFile } from '../../lib/islands-file.js';
+import { toolBySlug } from '../../lib/lab/tools.js';
+import { SITE } from '../../site';
+
+const tool = toolBySlug('writing-islands');
+const data = await islandsFile(SITE);
+// Photos of the finished islands, a wide and a tall one for each theme: shown where the islands can't be grown (no
+// WebGL2, or no float textures to grow them in), and, with less motion asked for, while they're worked out.
+const photos = import.meta.glob<{ default: ImageMetadata }>('/src/assets/writing-islands/*.jpg', { eager: true });
+const photo = async (name: string, width: number) => (await getImage({ src: photos[`/src/assets/writing-islands/${name}.jpg`].default, width, format: 'webp', quality: 80 })).src;
+const stills = Object.fromEntries(await Promise.all(['light', 'dark', 'night'].map(async (theme) => [theme, { wide: await photo(`${theme}-wide`, 1400), tall: await photo(`${theme}-tall`, 736) }])));
+const { counts } = data;
+const day = (iso: string) => formatDate(new Date(`${iso}T12:00:00+08:00`));
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+const label = `${plural(counts.posts, 'post')} as mountains on ${plural(counts.islands, 'island')}, one island for each topic, rising out of the sea from ${day(data.from)} to ${day(data.to)} and carved by rain: the posts' ${plural(counts.headings, 'heading')} are peaks, ${plural(counts.paragraphs, 'paragraph')} soft hills, ${plural(counts.items, 'list item')} terraces, ${plural(counts.codeLines, 'line')} of code hard cliffs, and ${plural(counts.pictures, 'picture')} lakes; forest grows where the posts have been read.`;
+// The posts by island, legacy topics last as on Writing, each in the order it was written.
+const byIsland = data.islands
+  .map((island, i) => ({ island, posts: data.ridges.map((ridge, index) => ({ ridge, index })).filter(({ ridge }) => ridge.island === i) }))
+  .sort((a, b) => Number(a.island.legacy) - Number(b.island.legacy));
+const sizeOf = (ridge: (typeof data.ridges)[number]) => [plural(ridge.size.words, 'word'), ridge.size.code && plural(ridge.size.code, 'line') + ' of code', ridge.size.pictures && plural(ridge.size.pictures, 'picture')].filter(Boolean).join(', ');
+const key = [
+  { shape: 'peak', name: 'Peak', what: 'a heading', count: plural(counts.headings, 'heading') },
+  { shape: 'hill', name: 'Hill', what: 'a paragraph', count: plural(counts.paragraphs, 'paragraph') },
+  { shape: 'terrace', name: 'Terrace', what: 'a list', count: plural(counts.items, 'list item') },
+  { shape: 'cliff', name: 'Cliff', what: 'code', count: plural(counts.codeLines, 'line') + ' of code' },
+  { shape: 'lake', name: 'Lake', what: 'a picture', count: plural(counts.pictures, 'picture') },
+  { shape: 'green', name: 'Green', what: 'read', count: data.visits ? `${counts.read} of ${counts.posts} posts read` : 'visits unknown' },
+];
+// The key's small drawings, in the ink's colour: a sharp peak, a round hill, steps, a flat-topped cliff, a lake in a
+// hollow, a tree.
+const shapes: Record<string, string> = {
+  peak: 'M2 20 L12 4 L22 20 Z',
+  hill: 'M1 20 C5 9 19 9 23 20 Z',
+  terrace: 'M1 20 V16 H5 V12 H9 V8 H15 V12 H19 V16 H23 V20 Z',
+  cliff: 'M1 20 H5 V7 H19 V20 H23 Z',
+  lake: 'M1 13 C6 13 6 19 12 19 C18 19 18 13 23 13 V20 H1 Z',
+  green: 'M12 3 L19 14 H14 V20 H10 V14 H5 Z',
+};
+---
+<Base title={tool.name} description={tool.description} noindex={tool.hidden}>
+  <div class="wrap page">
+    <LabHeader title={tool.name} description={tool.description} />
+    <div class="show">
+      <div class="islands" data-islands data-data={JSON.stringify(data)} data-stills={JSON.stringify(stills)} data-fullscreen="Show the islands on the whole screen">
+        <canvas role="img" aria-label={label}></canvas>
+        <p class="when" data-when aria-hidden="true">{day(data.from)}</p>
+        <ul class="names" aria-hidden="true">
+          {data.islands.map((island, i) => <li data-name={i} hidden>{island.name}</li>)}
+        </ul>
+        {data.ridges.map((ridge, i) => (
+          <div class="chip" data-chip={i} hidden>
+            <p class="chip-topic"><span class="swatch" style={`background: var(--lane-${data.islands[ridge.island].topic})`}></span>{data.islands[ridge.island].name}</p>
+            <p class="chip-title">{ridge.title}</p>
+            <p class="chip-meta">{day(ridge.date)} · {sizeOf(ridge)}</p>
+            <Go class="chip-read" href={ridge.url}>Read</Go>
+          </div>
+        ))}
+        <div class="controls">
+          <button type="button" class="button" data-restart>Restart</button>
+          <button type="button" class="button" data-stage-toggle>Pause</button>
+          <button type="button" class="button" data-full hidden>Full screen</button>
+        </div>
+      </div>
+    </div>
+    <ul class="key" aria-label="How to read the islands">
+      {key.map((k) => (
+        <li>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d={shapes[k.shape]} /></svg>
+          <span><b>{k.name}</b>: {k.what}</span>
+          <span class="count">{k.count}</span>
+        </li>
+      ))}
+    </ul>
+    <section class="posts" aria-labelledby="posts-title">
+      <h2 id="posts-title">The posts, island by island</h2>
+      <div class="groups">
+        {byIsland.map(({ island, posts }) => (
+          <div class="group">
+            <h3><span class="swatch" style={`background: var(--lane-${island.topic})`}></span>{island.name}</h3>
+            <ul>
+              {posts.map(({ ridge, index }) => (
+                <li><a href={ridge.url} data-post={index}><span class="post-title">{ridge.title}</span><span class="post-date">{day(ridge.date)}</span></a></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+  <LabMore current={tool.slug} />
+</Base>
+
+<script>
+  import { runStage } from '../../effects/stage.js';
+  import { createIslands, options } from '../../islands/islands.js';
+
+  const root = document.querySelector<HTMLElement>('[data-islands]');
+  if (root) {
+    const data = JSON.parse(root.dataset.data ?? '{}');
+    let islands: ReturnType<typeof createIslands> | undefined;
+    runStage(root, (stage) => (islands = createIslands(stage, data, root)), options as Parameters<typeof runStage>[2]);
+    // The replay plays once and stays finished; Restart plays it again, starting it if it's paused (or still, when
+    // less motion is asked for).
+    const toggle = root.querySelector<HTMLButtonElement>('[data-stage-toggle]');
+    root.querySelector('[data-restart]')?.addEventListener('click', () => {
+      islands?.restart();
+      if (toggle?.textContent === 'Play') toggle.click();
+    });
+    // Full screen, where the browser can (iPhones can't), as on Jack's Build Log.
+    const full = root.querySelector<HTMLButtonElement>('[data-full]');
+    if (full && document.fullscreenEnabled) {
+      full.hidden = false;
+      full.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen()));
+      document.addEventListener('fullscreenchange', () => { full.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
+    }
+    // A post focused in the list is shown on the islands: the camera glides over to it, and its chip opens.
+    for (const link of document.querySelectorAll<HTMLElement>('[data-post]')) {
+      link.addEventListener('focus', () => islands?.focus(Number(link.dataset.post)));
+    }
+  }
+</script>
+
+<style>
+  .show { display: grid; justify-items: center; }
+  /* The card: a landscape screen as wide as the page's top, the sky's colour until the islands are drawn on it. Taps
+     on it pick a mountain, so nothing on it is selected or opens a menu under a long press. */
+  .islands { position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--isle-sky); box-shadow: var(--shadow-card); -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  /* A finger dragged sideways turns the islands; up and down it scrolls the page. */
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: pan-y; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .when { position: absolute; top: var(--space-4); left: var(--space-5); margin: 0; color: var(--ink); font: 500 var(--text-sm) var(--font-code); letter-spacing: 0.06em; text-transform: uppercase; pointer-events: none; }
+  .controls { position: absolute; top: var(--space-3); right: var(--space-4); display: flex; gap: var(--space-2); }
+  .controls .button { padding: var(--space-1) var(--space-3); color: var(--ink); font-size: var(--text-sm); cursor: pointer; }
+  [data-full][hidden] { display: none; }
+  /* Only the photo, where the islands can't be grown here: no date running, nothing to restart or pause. */
+  .islands[data-photo] :is(.when, [data-restart], [data-stage-toggle]) { display: none; }
+  /* The topics' names over their islands, and a post's chip over its summit: placed by islands.js. */
+  .names { margin: 0; padding: 0; list-style: none; }
+  .names li { position: absolute; top: 0; left: 0; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-card); }
+  .names li[hidden], .chip[hidden] { display: none; }
+  .chip { position: absolute; top: 0; left: 0; width: max-content; max-width: min(18rem, calc(100% - var(--space-5))); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-card); -webkit-user-select: text; user-select: text; }
+  .chip p { margin: 0; }
+  .chip-topic { display: flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
+  .chip-title { margin-top: var(--space-1) !important; font-weight: 750; line-height: 1.3; }
+  .chip-meta { margin-top: var(--space-1) !important; color: var(--muted); font-size: var(--text-sm); }
+  .chip :global(.chip-read) { margin-top: var(--space-2); font-weight: 700; font-size: var(--text-sm); }
+  .swatch { flex: none; display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: var(--radius-2xs); }
+  /* Full screen: the islands as big as the screen allows. */
+  .islands:fullscreen { border-radius: 0; box-shadow: none; }
+
+  /* How to read it: one card, each kind of part and what it became, with how many there are. */
+  .key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4) var(--space-5); margin: var(--space-5) 0 0; padding: var(--space-5) var(--space-6); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); list-style: none; }
+  .key li { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0 var(--space-3); }
+  .key svg { grid-row: span 2; width: 1.75rem; height: 1.75rem; fill: currentColor; color: var(--muted); }
+  .key b { font-weight: 750; }
+  .key .count { color: var(--muted); font-size: var(--text-sm); }
+
+  /* The posts, under their islands. */
+  .posts { margin-top: var(--space-7); }
+  .posts h2 { margin: 0 0 var(--space-4); font-size: var(--text-lg); }
+  /* The islands' cards flow down columns, so the long list of the old island doesn't leave holes beside it. */
+  .groups { columns: 3 18rem; column-gap: var(--space-4); }
+  .group { break-inside: avoid; margin-bottom: var(--space-4); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .group h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-2); font-size: var(--text-ui); }
+  .group ul { margin: 0; padding: 0; list-style: none; }
+  .group a { display: flex; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--rule); text-decoration: none; }
+  .group li:first-child a { border-top: 0; }
+  .group a:hover .post-title { text-decoration: underline; }
+  .post-title { font-weight: 600; }
+  .post-date { flex: none; color: var(--muted); font-size: var(--text-sm); }
+
+  /* Narrower screens: a tall card, as big as the window's height allows; the islands are framed for it. */
+  @media (max-width: 999px) {
+    .islands { width: min(100%, max(20rem, calc((100svh - var(--space-7)) * 0.8))); aspect-ratio: 4 / 5; }
+  }
+  @media (max-width: 719px) {
+    .key { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: var(--space-4) var(--space-5); }
+  }
+  /* Narrow phones: the card is the screen's width already. */
+  @media (max-width: 479px) {
+    [data-full] { display: none; }
+    .when { left: var(--space-4); }
+  }
+</style>
