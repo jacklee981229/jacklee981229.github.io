@@ -11,8 +11,9 @@ export const GROUPS = [
 /**
  * Each tool: its address (/lab/<slug>/), name, one-line description, group and icon; `ready` once its page is built,
  * `soon` until then; and the example its card shows (what goes in, what comes out). Effects has none: its card shows
- * one effect's drawing, a different one each day.
- * @type {{ slug: string, name: string, description: string, group: string, icon: string, status: 'ready' | 'soon', example?: readonly string[] }[]}
+ * one effect's drawing, a different one each day; nor has Jack's Build Log, whose card shows a drawing of its clock
+ * (src/components/BuildLogCover.astro). `words` are more words the palette finds it by.
+ * @type {{ slug: string, name: string, description: string, group: string, icon: string, status: 'ready' | 'soon', example?: readonly string[], words?: readonly string[] }[]}
  */
 export const TOOLS = [
   { slug: 'count-words', name: 'Count Words', description: 'Words, characters, lines and reading time, as you type.', group: 'text', icon: 'hash', status: 'ready', example: ['Paste any text', '248 words, 1,402 characters'] },
@@ -26,6 +27,7 @@ export const TOOLS = [
   { slug: 'qr-code', name: 'QR Code Generator', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'ready', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
   { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
   { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },
+  { slug: 'build-log', name: "Jack's Build Log", description: "This site's history, replayed on a clock or a ring.", group: 'misc', icon: 'branch', status: 'ready', words: ['build log', 'commits', 'git', 'history', 'numbers', 'stats'] },
 ];
 
 /**

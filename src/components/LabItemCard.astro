@@ -1,7 +1,8 @@
 ---
 // One Lab item as a card: a tool, with its example as the cover (Effects, with one effect's drawing, a different one
-// each day the site is built: the home page's toy of that day); a game's post, with its own cover; or a Little World,
-// with a drawing of it.
+// each day the site is built: the home page's toy of that day; Jack's Build Log, with a drawing of its clock); a game's
+// post, with its own cover; or a Little World, with a drawing of it.
+import BuildLogCover from './BuildLogCover.astro';
 import Cover from './Cover.astro';
 import EffectCover from './EffectCover.astro';
 import LabCard from './LabCard.astro';
@@ -22,7 +23,7 @@ const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
     <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} />
   ) : (
     <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind}>
-      <EffectCover slot="cover" slug={drawn} />
+      {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
     </LabCard>
   )
 ) : post ? (

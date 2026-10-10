@@ -1,0 +1,61 @@
+---
+// The picture on Jack's Build Log's card: its clock, drawn in white on the Misc colours like the effects' and the
+// worlds' pictures (EffectCover.astro, WorldCover.astro), so the Lab's cards read as one family: the face leaning back,
+// files standing up off it in bunches as a commit's do, and the coil wound round its rim.
+// Wider than any card, as theirs are: a card shows the middle and trims the sides, so the clock keeps to the middle.
+const W = 360;
+const H = 88;
+const TAU = Math.PI * 2;
+const round = (n: number) => Math.round(n * 10) / 10;
+// The same "random" numbers on every build, so the picture doesn't change from one publish to the next.
+let seed = 11;
+const random = () => {
+  seed = (seed * 16807) % 2147483647;
+  return seed / 2147483647;
+};
+
+// The face, leaning back: a point at a distance from the middle, at an angle, and a height off the face.
+const lean = (72 * Math.PI) / 180;
+const at = (rho: number, a: number, z = 0) => [180 + rho * Math.cos(a), 52 - rho * Math.sin(a) * Math.cos(lean) - z * Math.sin(lean)];
+const path = (points: number[][]) => points.map(([x, y], i) => `${i ? 'L' : 'M'}${round(x)} ${round(y)}`).join('');
+const circle = (rho: number) => `${path(Array.from({ length: 73 }, (_, i) => at(rho, (i / 72) * TAU)))}Z`;
+
+// The day rings and the hours' ticks.
+const rings = [36, 58, 78].map(circle).join('');
+const ticks = Array.from({ length: 24 }, (_, h) => path([at(80, (h / 24) * TAU), at(h % 6 ? 84 : 87, (h / 24) * TAU)])).join('');
+// The coil round the rim: a turn of wire every so far.
+const coil = Array.from({ length: 48 }, (_, i) => path(Array.from({ length: 9 }, (_, j) => at(94 + 5 * Math.cos((j / 8) * TAU), (i / 48) * TAU, 5 * Math.sin((j / 8) * TAU))))).join('');
+// The files: bunches of spikes, each bunch a commit's, the tallest with a light at its tip.
+let spikes = '';
+const tips: number[][] = [];
+for (let b = 0; b < 9; b++) {
+  const a0 = random() * TAU;
+  const rho0 = 30 + random() * 46;
+  const count = 3 + Math.floor(random() * 5);
+  for (let s = 0; s < count; s++) {
+    const a = a0 + (random() - 0.5) * 0.22;
+    const rho = rho0 + (random() - 0.5) * 6;
+    const height = 6 + random() ** 1.5 * 30;
+    const top = at(rho * 1.03, a, height);
+    spikes += path([at(rho, a), top]);
+    if (height > 24) tips.push(top);
+  }
+}
+---
+<span class="cover" aria-hidden="true">
+  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+    <path d={circle(14)} fill="currentColor" fill-opacity="0.22" />
+    <path d={rings} fill="none" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.24" />
+    <path d={circle(92)} fill="none" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.5" />
+    <path d={ticks} fill="none" stroke="currentColor" stroke-width="1" stroke-opacity="0.4" stroke-linecap="round" />
+    <path d={coil} fill="none" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.62" />
+    <path d={spikes} fill="none" stroke="currentColor" stroke-width="1.1" stroke-opacity="0.85" stroke-linecap="round" />
+    {tips.map(([x, y]) => <circle cx={round(x)} cy={round(y)} r="1.6" fill="currentColor" />)}
+  </svg>
+</span>
+
+<style>
+  /* White on the card's colours, as the other Lab drawings are. */
+  .cover { display: block; color: var(--on-colour); }
+  svg { display: block; width: 100%; height: 100%; }
+</style>

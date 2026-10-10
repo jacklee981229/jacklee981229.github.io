@@ -1,5 +1,6 @@
-// Jack's Build Log (/build-log/): the site's own history in numbers, for its page to draw. Worked out while the site is
-// built, from what build-log-file.js reads: the commits (git), the Changelog, the Lab's lists and the visit counter.
+// Jack's Build Log (/lab/build-log/): the site's own history in numbers, for its page to draw. Worked out while the
+// site is built, from what build-log-file.js reads: the commits (git), the Changelog, the Lab's lists and the visit
+// counter.
 import { EXPERIMENTS } from './lab/tools.js';
 
 /** The parts a change can belong to, the menu's (NAV in site.ts): Home is the home page and the frame every page shares. */

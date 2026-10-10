@@ -14,13 +14,13 @@ test('every tool has a unique, web-safe address and a unique name', () => {
   assert.equal(toolUrl('count-words'), '/lab/count-words/');
 });
 
-test('every tool has a known group, status, icon and a two-line example (Effects has a drawing instead)', () => {
+test('every tool has a known group, status, icon and a two-line example (Effects and the Build Log have drawings instead)', () => {
   const groups = GROUPS.map((g) => g.id);
   for (const t of TOOLS) {
     assert.ok(groups.includes(t.group), `${t.slug}: group ${t.group}`);
     assert.ok(['ready', 'soon'].includes(t.status), `${t.slug}: status ${t.status}`);
     assert.match(icons, new RegExp(`^\\s+'?${t.icon}'?: '`, 'm'), `${t.slug}: icon "${t.icon}" is missing from src/lib/icons.js`);
-    if (t.slug === 'effects') assert.equal(t.example, undefined, 'the Effects card shows a drawing');
+    if (['effects', 'build-log'].includes(t.slug)) assert.equal(t.example, undefined, `the ${t.name} card shows a drawing`);
     else assert.equal(t.example?.length, 2, t.slug);
     assert.ok(t.description.length <= 70, `${t.slug}: keep the description to one short line`);
   }

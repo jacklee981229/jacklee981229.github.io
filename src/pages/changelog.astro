@@ -16,7 +16,7 @@ const { open, folded } = fold(byYear(changelogFile()), SHOWN);
 <Base title="Changelog" description="What changed on Jack's Space, newest first.">
   <div class="wrap page">
     <PageTop tone="changelog" icon="list" title="Changelog" lead="What changed on this site, newest first.">
-      <a class="replay" href="/build-log/"><Icon name="branch" />Replay it: Jack's Build Log</a>
+      <a class="replay" href="/lab/build-log/"><Icon name="branch" />Replay it: Jack's Build Log</a>
     </PageTop>
     {open.length === 0 && <p class="empty">No changes listed yet.</p>}
     {open.map(({ year, cards }) => (

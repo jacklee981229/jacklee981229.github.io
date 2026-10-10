@@ -1,28 +1,37 @@
 ---
-// Jack's Build Log: the site's own history replayed on a clock, a landscape card as wide as the page's top (a tall one
-// on narrower screens), drawn by src/build-log/poster.js on the effects' stage. Everything on it is counted while the
-// site is built (build-log-file.js), so every publish and the daily rebuild bring it up to date. Linked from the
-// Changelog.
-import Base from '../layouts/Base.astro';
-import PageTop from '../components/PageTop.astro';
-import { buildLogFile } from '../lib/build-log-file.js';
-import { PARTS } from '../lib/build-log.js';
-import { formatDate } from '../lib/dates.js';
-import { COUNTING_SINCE } from '../lib/visits.js';
-import { NAV, SITE } from '../site';
+// Jack's Build Log, in the Lab's Misc (the Build Log tool in lab/tools.js): the site's own history replayed on a clock,
+// or on a ring (the switch in the top card), a landscape card as wide as the page's top (a tall one on narrower
+// screens), drawn by src/build-log/poster.js on the effects' stage, then other Lab items. Everything on it is counted
+// while the site is built (build-log-file.js), so every publish and the daily rebuild bring it up to date. Linked from
+// the Changelog too.
+import Base from '../../layouts/Base.astro';
+import LabHeader from '../../components/LabHeader.astro';
+import LabMore from '../../components/LabMore.astro';
+import Switch from '../../components/Switch.astro';
+import { buildLogFile } from '../../lib/build-log-file.js';
+import { PARTS } from '../../lib/build-log.js';
+import { formatDate } from '../../lib/dates.js';
+import { toolBySlug } from '../../lib/lab/tools.js';
+import { COUNTING_SINCE } from '../../lib/visits.js';
+import { NAV, SITE } from '../../site';
 
+const tool = toolBySlug('build-log');
 const log = await buildLogFile(SITE);
 // Each part's name from the menu; Home is the one without a colour of its own there.
 const parts = PARTS.map((id) => ({ name: NAV.find((n) => ('accent' in n ? n.accent : 'home') === id)?.label ?? id }));
 const data = { ...log, parts, visitsSince: COUNTING_SINCE };
 const { totals } = log;
 const label = `A clock tilted back like a dial, midnight at the top, the ${totals.days} days since ${formatDate(new Date(`${log.rebuilt}T12:00:00+08:00`))} as rings going outwards. Each of the ${totals.changes.toLocaleString('en-US')} files changed in this site's ${totals.commits} commits stands up off the face at the hour and on the day its commit was made, as tall as its lines, and is wound round the ring at the rim like a coil's wire. ${totals.afterMidnight} of the commits came between midnight and 4 am.`;
+const newest = log.commits[log.commits.length - 1];
+const ringLabel = `A ring tilted back like the clock and wound like a coil. Each of the ${totals.changes.toLocaleString('en-US')} files changed in this site's ${totals.commits} commits is one turn of its wire, in the order they were changed, from the top round clockwise, so the busiest days take the most of it; the files with the most lines bristle outwards. The days' dates are round it, and the ${totals.afterMidnight} commits made between midnight and 4 am are red spots on it.${newest ? ` In the middle, the newest commit: ${newest.subject}, on ${formatDate(new Date(`${newest.day}T12:00:00+08:00`))} at ${newest.time}.` : ''}`;
 ---
-<Base title="Jack's Build Log" description="This site's history, replayed on a clock: every file a commit changed stands up at the hour it was made, with the numbers around it.">
+<Base title={tool.name} description={tool.description}>
   <div class="wrap page">
-    <PageTop tone="changelog" icon="branch" title="Jack's Build Log" lead="This site's history on a clock: every file a commit changed, at the hour and on the day it was made." />
+    <LabHeader title={tool.name} description={tool.description}>
+      <Switch name="mode" label="How the build log is shown" choices={[{ value: 'clock', label: 'Clock' }, { value: 'ring', label: 'Ring' }]} />
+    </LabHeader>
     <div class="show">
-      <div class="poster" data-build-log data-log={JSON.stringify(data)} data-fullscreen="Show the build log on the whole screen">
+      <div class="poster" data-build-log data-log={JSON.stringify(data)} data-ring-label={ringLabel} data-fullscreen="Show the build log on the whole screen">
         <canvas role="img" aria-label={label}></canvas>
         <div class="controls">
           <button type="button" class="button" data-restart>Restart</button>
@@ -32,17 +41,32 @@ const label = `A clock tilted back like a dial, midnight at the top, the ${total
       </div>
     </div>
   </div>
+  <LabMore current={tool.slug} />
 </Base>
 
 <script>
-  import { runStage } from '../effects/stage.js';
-  import { createPoster } from '../build-log/poster.js';
+  import { runStage } from '../../effects/stage.js';
+  import { createPoster } from '../../build-log/poster.js';
 
   const root = document.querySelector<HTMLElement>('[data-build-log]');
   if (root) {
     const data = JSON.parse(root.dataset.log ?? '{}');
+    const choices = [...document.querySelectorAll<HTMLInputElement>('input[name="mode"]')];
+    const chosen = () => (choices.some((choice) => choice.checked && choice.value === 'ring') ? 'ring' : 'clock');
+    // The canvas says what it shows, the clock or the ring.
+    const canvas = root.querySelector('canvas')!;
+    const clockLabel = canvas.getAttribute('aria-label') ?? '';
+    const describe = () => canvas.setAttribute('aria-label', chosen() === 'ring' ? (root.dataset.ringLabel ?? '') : clockLabel);
+    // It opens on the clock, unless the browser brings back the ring from before a reload.
     let poster: ReturnType<typeof createPoster> | undefined;
-    runStage(root, (stage) => (poster = createPoster(stage, data, root)));
+    runStage(root, (stage) => (poster = createPoster(stage, data, root, chosen())));
+    describe();
+    for (const choice of choices) {
+      choice.addEventListener('change', () => {
+        poster?.show(chosen());
+        describe();
+      });
+    }
     // The replay plays once and stays finished; Restart plays it again, starting it if it's paused (or still, when
     // less motion is asked for).
     const toggle = root.querySelector<HTMLButtonElement>('[data-stage-toggle]');

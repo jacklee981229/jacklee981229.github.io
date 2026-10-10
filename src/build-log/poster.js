@@ -3,6 +3,10 @@
 // top), the days since the rebuild go outwards; each file a commit changed stands up off the face at the commit's hour
 // and day, as tall as its lines, and is wound once round the ring at the rim, like the wire of a coil. The commits play
 // back in order; then the finished clock stays, a pulse running round its coil, until Restart plays it again.
+// Its other mode, the Ring, keys the same files on the build itself: a fat coil leaning further back, each file one turn
+// of its wire and a fibre along it, in the order the files changed (so the busy days take more of it), bristling out
+// where it changed many lines, the commit being played in its middle. The ring is on the clock's back, like the other side of a card:
+// switching turns it over.
 // Around it, the numbers, worked out while the site is built (src/lib/build-log.js). In the site's colours, following
 // its theme (its page's --c1 onward, build-log.astro, read by the stage): glowing in the dark, drawn plainly by day.
 import { MONTHS } from '../lib/dates.js';
@@ -18,15 +22,23 @@ const PLAY = 22;
 const LAP = 4.7;
 /** How long a spike takes to rise, and a file's wire to wind once round the coil. */
 const GROW = 0.7;
-/** How far the face leans back (degrees), its top left away from us. */
+/** How far the clock's face leans back (degrees), its top left away from us, and the ring, further. The ring is on the
+ * face's other side, like the back of a card: switching, the face turns over, on past edge-on, until the ring's side
+ * leans back at its own angle (and over again on the way back). */
 const TILT = -30;
+const RING_TILT = -45;
 /** Points along a spike, and along one turn of a wire. */
 const SPIKE_POINTS = 9;
 const WIRE_POINTS = 15;
+/** Seconds the face takes to turn over between the clock and the ring. */
+const MORPH = 1.5;
+/** Points along a file's fibre round the ring. */
+const FIBRE_POINTS = 21;
 
 const TAU = Math.PI * 2;
 const clamp = (x, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
 const easeOut = (x) => 1 - (1 - x) ** 3;
+const smooth = (x) => x * x * (3 - 2 * x);
 const fmt = (n) => Math.round(n).toLocaleString('en-US');
 const kfmt = (n) => (n >= 10000 ? `${(n / 1000).toFixed(1)}k` : fmt(n));
 const dayLabel = (day) => `${day.slice(8)} ${MONTHS[Number(day.slice(5, 7)) - 1].toUpperCase()}`;
@@ -68,18 +80,19 @@ function tilted(cx, cy, degrees, eye) {
   };
 }
 
-/** Where the clock sits in each poster, and how big its parts are, in the poster's units. */
+/** Where the clock sits in each poster, and how big its parts and the ring's are, in the poster's units. */
 const CLOCKS = {
-  wide: { cx: 700, cy: 366, r0: 62, r1: 206, coil: 236, tube: 12, labels: 276, plate: 258, eye: 1500, spike: 96, foot: 6, lift: 54, text: 10 },
-  tall: { cx: 220, cy: 236, r0: 28, r1: 98, coil: 116, tube: 7, labels: 140, plate: 126, eye: 760, spike: 46, foot: 3, lift: 24, text: 8.5 },
+  wide: { cx: 700, cy: 366, r0: 62, r1: 206, coil: 236, tube: 12, labels: 276, plate: 258, eye: 1500, spike: 96, foot: 6, lift: 54, text: 10, ring: 196, ringTube: 28, bristle: 50, dates: 290 },
+  tall: { cx: 220, cy: 236, r0: 28, r1: 98, coil: 116, tube: 7, labels: 140, plate: 126, eye: 760, spike: 46, foot: 3, lift: 24, text: 8.5, ring: 102, ringTube: 12, bristle: 24, dates: 150 },
 };
 
 /**
  * @param {import('../effects/stage.js').Stage} stage
  * @param {any} data what build-log-file.js worked out, with `parts` ({ name } for each of PARTS)
  * @param {HTMLElement} root
+ * @param {'clock' | 'ring'} [mode] the one it opens on
  */
-export function createPoster(stage, data, root) {
+export function createPoster(stage, data, root, mode = 'clock') {
   const { ctx } = stage;
   const mono = getComputedStyle(root).getPropertyValue('--font-code').trim() || 'monospace';
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -104,9 +117,12 @@ export function createPoster(stage, data, root) {
   }
   const commitOf = new Int32Array(N);
   const launch = new Float32Array(N);
+  /** Each commit's first file, in the order the files changed. */
+  const firstFile = new Int32Array(commits.length);
   {
     let k = 0;
     commits.forEach((commit, i) => {
+      firstFile[i] = k;
       const span = ((usable * weights[i]) / weightSum) * 0.85;
       for (let m = 0; m < commit.cells; m++, k++) {
         commitOf[k] = i;
@@ -133,6 +149,19 @@ export function createPoster(stage, data, root) {
   });
   // Where each file's wire sits round the coil, for the pulse that runs round it.
   const wireAngle = Float32Array.from({ length: N }, (_, k) => hourAngle(commits[commitOf[k]]) + traits[k].wireTurn);
+  // On the ring, each file's place is its turn in the build, from the top round clockwise, and each commit's the middle
+  // of its files. The ring's own random numbers, so the clock's stay as they were.
+  const ringAngle = Float32Array.from({ length: N }, (_, k) => Math.PI / 2 - ((k + 0.5) / N) * TAU);
+  const middleFile = (i) => Math.min(N - 1, firstFile[i] + (commits[i].cells >> 1));
+  const ringRandom = seeded(N * 104729 + commits.length);
+  const ringTraits = Array.from({ length: N }, () => ({
+    bristleV: 0.3 + (ringRandom() - 0.5) * 1.6,
+    bristleLean: (ringRandom() - 0.5) * 0.08,
+    fibreV: ringRandom() * TAU,
+    fibreTwist: (ringRandom() - 0.5) * 5.2,
+    fibreOut: 0.6 + ringRandom() * 0.5,
+    fibreLength: 0.2 + ringRandom() * 0.25,
+  }));
   const ringOf = (commit) => (Math.floor((commit.at - spanFrom) / 86400) + 0.5) / days;
   const perDay = Array.from({ length: days }, () => ({ commits: 0, lines: 0 }));
   for (const c of commits) {
@@ -165,16 +194,22 @@ export function createPoster(stage, data, root) {
   const rgba = (rgb, a = 1) => `rgba(${rgb[0] | 0}, ${rgb[1] | 0}, ${rgb[2] | 0}, ${a})`;
   const WHITE = [255, 255, 255];
 
-  // ---- Canvases: the still parts drawn once (the ground, the panels, the clock's face and its coil); the spikes and
-  // wires drawn once each as they land, onto canvases of their own; and each frame, those and whatever is moving onto
-  // the bright canvas, which is shrunk to a half, a quarter and an eighth of its size and laid back over itself,
-  // blurred by the stretching, for the glow (canvas filters aren't in every browser).
+  // ---- Canvases: the still parts drawn once (the ground and the panels; the clock's face and coil, and on the other
+  // side, the ring's tube and dates); the spikes and wires drawn once each as they land, onto canvases of their own
+  // (while the face turns over, each frame instead); and each frame, those and whatever is moving onto the bright canvas, which is
+  // shrunk to a half, a quarter and an eighth of its size and laid back over itself, blurred by the stretching, for the
+  // glow (canvas filters aren't in every browser).
   const layer = () => document.createElement('canvas');
   const still2d = layer();
+  const clockFace = layer();
+  const ringFace = layer();
   const glow = layer();
   const blurs = [layer(), layer(), layer()];
   const landedWires = layer();
   const landedSpikes = layer();
+  const movingFiles = layer();
+  const movingFaces = layer();
+  let movingDensity = 1;
   /** Which files' spike and wire are already on those canvases, and whether they must all be drawn again. */
   const drawn = new Uint8Array(N);
   let stale = true;
@@ -186,12 +221,20 @@ export function createPoster(stage, data, root) {
   let scale = 1;
   let offX = 0;
   let offY = 0;
-  // Each file's spike and wire on the poster, worked out again when the poster's size changes.
-  let spikes = new Float32Array(0);
-  let wires = new Float32Array(0);
-  let nodes = new Float32Array(0);
+  // Each file's spike and wire (on the ring, its fibre too), and each commit's spot, on the poster: on the clock, on the
+  // ring, and as the face turns over; and the same as distance from the middle, angle and height off the face, to see
+  // them as it turns. Worked out again when the poster's size changes.
+  const shapesOf = (per, ring = false) => ({ spikes: new Float32Array(N * SPIKE_POINTS * per), wires: new Float32Array(N * WIRE_POINTS * per), fibres: new Float32Array(ring ? N * FIBRE_POINTS * per : 0), nodes: new Float32Array(commits.length * per) });
+  const clockShapes = shapesOf(2);
+  const ringShapes = shapesOf(2, true);
+  const turningShapes = shapesOf(2, true);
+  const clockPlaces = shapesOf(3);
+  const ringPlaces = shapesOf(3, true);
+  /** The middle of the face, the same at any tilt. */
   let hub = [0, 0];
-  let hubTop = [0, 0];
+  /** How far it is from the clock (0) to the ring (1), and where it's going. */
+  let m = mode === 'ring' ? 1 : 0;
+  let goal = m;
 
   const fit = () => {
     density = ctx.canvas.width / Math.max(1, stage.width);
@@ -201,9 +244,17 @@ export function createPoster(stage, data, root) {
     scale = Math.min(stage.width / size.w, stage.height / size.h);
     offX = (stage.width - size.w * scale) / 2;
     offY = (stage.height - size.h * scale) / 2;
-    for (const [canvas, by] of [[still2d, 1], [glow, 1], [landedWires, 1], [landedSpikes, 1], [blurs[0], 2], [blurs[1], 4], [blurs[2], 8]]) {
+    for (const [canvas, by] of [[still2d, 1], [clockFace, 1], [ringFace, 1], [glow, 1], [landedWires, 1], [landedSpikes, 1], [blurs[0], 2], [blurs[1], 4], [blurs[2], 8]]) {
       canvas.width = Math.max(1, Math.round(ctx.canvas.width / by));
       canvas.height = Math.max(1, Math.round(ctx.canvas.height / by));
+    }
+    // On the way between the clock and the ring, the files and the faces are drawn on canvases only as sharp as keeps
+    // their lines a pixel wide or less: wider ones take many times longer to draw, and it's all moving too fast for it
+    // to show.
+    movingDensity = Math.min(density, 1 / (0.9 * (clock.r1 / 206) * scale));
+    for (const canvas of [movingFiles, movingFaces]) {
+      canvas.width = Math.max(1, Math.round(stage.width * movingDensity));
+      canvas.height = Math.max(1, Math.round(stage.height * movingDensity));
     }
     shape();
     dirty = true;
@@ -212,50 +263,110 @@ export function createPoster(stage, data, root) {
   /** Draw in the poster's units. @param {CanvasRenderingContext2D} g */
   const posterSpace = (g) => g.setTransform(density * scale, 0, 0, density * scale, density * offX, density * offY);
 
-  /** The clock's face, as a function of (distance from the middle, angle, height off the face): set by shape(). @type {(rho: number, a: number, z?: number, out?: number[]) => number[]} */
-  let onFace;
-  /** Works out where every spike, wire and commit sits on the poster. */
+  /**
+   * The face leaning back `degrees`, as a function of (distance from the middle, angle, height off the face).
+   * @typedef {(rho: number, a: number, z?: number, out?: number[]) => number[]} View
+   * @returns {View}
+   */
+  const view = (degrees) => {
+    const project = tilted(clock.cx, clock.cy, degrees, clock.eye);
+    return (rho, a, z = 0, out = [0, 0, 0, 0]) => project(rho * Math.cos(a), rho * Math.sin(a), z, out);
+  };
+  /**
+   * The face's other side, seen as `on`: a point given as it reads once the face is turned over (the top still at the
+   * top, going round clockwise) is mirrored across the diagonal the face turns about, and out of the back.
+   * @param {View} on @returns {View}
+   */
+  const backOf = (on) => (rho, a, z = 0, out = [0, 0, 0, 0]) => on(rho, Math.PI / 2 - a, -z, out);
+  /** The clock's side of the face and the ring's, each at rest: set by shape(). @type {View} */
+  let clockView;
+  /** @type {View} */
+  let ringView;
+  /** Works out where every spike, wire and commit sits on the poster, on the clock and on the ring. */
   const shape = () => {
-    const project = tilted(clock.cx, clock.cy, TILT, clock.eye);
-    onFace = (rho, a, z = 0, out = [0, 0, 0, 0]) => project(rho * Math.cos(a), rho * Math.sin(a), z, out);
-    spikes = new Float32Array(N * SPIKE_POINTS * 2);
-    wires = new Float32Array(N * WIRE_POINTS * 2);
-    nodes = new Float32Array(commits.length * 2);
+    clockView = view(TILT);
+    // Turned over past edge-on to where its other side leans back RING_TILT.
+    const turned = view(RING_TILT - 180);
+    ringView = backOf(turned);
     const p = [0, 0, 0, 0];
+    /** Puts point i of a set at (rho, a, z) on the face: its place, and where that is on the poster seen as `on`. */
+    const put = (on, places, shapes, i, rho, a, z) => {
+      places[i * 3] = rho;
+      places[i * 3 + 1] = a;
+      places[i * 3 + 2] = z;
+      on(rho, a, z, p);
+      shapes[i * 2] = p[0];
+      shapes[i * 2 + 1] = p[1];
+    };
+    /** The same for a point on the ring, given as it reads on the face's other side. */
+    const putBack = (places, shapes, i, rho, a, z) => put(turned, places, shapes, i, rho, Math.PI / 2 - a, -z);
     const ring = (commit) => clock.r0 + ringOf(commit) * (clock.r1 - clock.r0);
-    for (let k = 0; k < N; k++) {
-      const commit = commits[commitOf[k]];
-      const t = traits[k];
+    const k = clock.r1 / 206;
+    for (let c = 0; c < N; c++) {
+      const commit = commits[commitOf[c]];
+      const t = traits[c];
+      // On the clock: the spike at its commit's hour and day, and its turn of wire round the coil at the rim.
       const a = hourAngle(commit) + t.turn;
-      const rho = ring(commit) + t.out * (clock.r1 / 206);
+      const rho = ring(commit) + t.out * k;
       const height = clock.foot + clock.spike * t.reach;
       for (let j = 0; j < SPIKE_POINTS; j++) {
         const s = j / (SPIKE_POINTS - 1);
-        onFace(rho + height * 0.16 * s * s, a + t.lean * 0.2 * s * s, height * s, p);
-        spikes[(k * SPIKE_POINTS + j) * 2] = p[0];
-        spikes[(k * SPIKE_POINTS + j) * 2 + 1] = p[1];
+        put(clockView, clockPlaces.spikes, clockShapes.spikes, c * SPIKE_POINTS + j, rho + height * 0.16 * s * s, a + t.lean * 0.2 * s * s, height * s);
       }
       const u0 = hourAngle(commit) + t.wireTurn;
       const tube = clock.tube * t.wireLift;
       for (let j = 0; j < WIRE_POINTS; j++) {
         const s = j / (WIRE_POINTS - 1);
         const v = t.wireFrom + s * TAU;
-        const u = u0 + s * t.wireStep;
-        const r = clock.coil + tube * Math.cos(v);
-        project(r * Math.cos(u), r * Math.sin(u), tube * Math.sin(v), p);
-        wires[(k * WIRE_POINTS + j) * 2] = p[0];
-        wires[(k * WIRE_POINTS + j) * 2 + 1] = p[1];
+        put(clockView, clockPlaces.wires, clockShapes.wires, c * WIRE_POINTS + j, clock.coil + tube * Math.cos(v), u0 + s * t.wireStep, tube * Math.sin(v));
+      }
+      // On the ring: a bristle out from the tube, as long as its lines (a stub for a small change), and its turn of
+      // wire round the tube, each file's next to the one before it.
+      const r = ringTraits[c];
+      const u = ringAngle[c];
+      const length = 2 * k + clock.bristle * clamp((t.reach - 0.35) / 0.65);
+      for (let j = 0; j < SPIKE_POINTS; j++) {
+        const s = j / (SPIKE_POINTS - 1);
+        const d = clock.ringTube + length * s;
+        putBack(ringPlaces.spikes, ringShapes.spikes, c * SPIKE_POINTS + j, clock.ring + d * Math.cos(r.bristleV), u + r.bristleLean * s * s, d * Math.sin(r.bristleV));
+      }
+      const thick = clock.ringTube * (1 + (t.wireLift - 1) * 0.3);
+      for (let j = 0; j < WIRE_POINTS; j++) {
+        const s = j / (WIRE_POINTS - 1);
+        const v = t.wireFrom + s * TAU;
+        putBack(ringPlaces.wires, ringShapes.wires, c * WIRE_POINTS + j, clock.ring + thick * Math.cos(v), u + (0.5 - s) * (TAU / N), thick * Math.sin(v));
+      }
+      // And a fibre along the ring back from the file's place, twisting round the tube, longer for more lines: back, so
+      // that while the ring is being wound none reaches into the part still to come.
+      const span = Math.min(r.fibreLength + 0.9 * t.reach, ((c + 0.5) / N) * TAU);
+      const out = clock.ringTube * r.fibreOut;
+      for (let j = 0; j < FIBRE_POINTS; j++) {
+        const s = j / (FIBRE_POINTS - 1);
+        const v = r.fibreV + s * r.fibreTwist;
+        putBack(ringPlaces.fibres, ringShapes.fibres, c * FIBRE_POINTS + j, clock.ring + out * Math.cos(v), u + s * span, out * Math.sin(v));
       }
     }
     commits.forEach((commit, i) => {
-      onFace(ring(commit), hourAngle(commit), 0, p);
-      nodes[i * 2] = p[0];
-      nodes[i * 2 + 1] = p[1];
+      put(clockView, clockPlaces.nodes, clockShapes.nodes, i, ring(commit), hourAngle(commit), 0);
+      putBack(ringPlaces.nodes, ringShapes.nodes, i, clock.ring + clock.ringTube * Math.cos(1.1), ringAngle[middleFile(i)], clock.ringTube * Math.sin(1.1));
     });
-    const base = onFace(0, 0, 0);
+    const base = clockView(0, 0, 0);
     hub = [base[0], base[1]];
-    const top = onFace(0, 0, clock.lift);
-    hubTop = [top[0], top[1]];
+  };
+
+  /** Where one side's files and commits are on the poster with the face turned as `on`. @param {View} on */
+  const turnedTo = (places, on) => {
+    const p = [0, 0, 0, 0];
+    for (const key of /** @type {const} */ (['spikes', 'wires', 'fibres', 'nodes'])) {
+      const from = places[key];
+      const out = turningShapes[key];
+      for (let i = 0; i < from.length / 3; i++) {
+        on(from[i * 3], from[i * 3 + 1], from[i * 3 + 2], p);
+        out[i * 2] = p[0];
+        out[i * 2 + 1] = p[1];
+      }
+    }
+    return turningShapes;
   };
 
   // ---- Words and small pieces.
@@ -288,6 +399,24 @@ export function createPoster(stage, data, root) {
     }
     return cuts.get(key);
   };
+  const wraps = new Map();
+  /** Words in up to `most` lines `width` wide, the last cut short if they still don't fit. @param {CanvasRenderingContext2D} g @returns {string[]} */
+  const wrap = (g, words, width, sizePx, most) => {
+    const key = `${width}|${sizePx}|${most}|${words}`;
+    if (!wraps.has(key)) {
+      const lines = [];
+      let rest = words.split(' ');
+      while (rest.length && lines.length < most - 1) {
+        let n = rest.length;
+        while (n > 1 && widthOf(g, rest.slice(0, n).join(' '), sizePx) > width) n--;
+        lines.push(cut(g, rest.slice(0, n).join(' '), width, sizePx));
+        rest = rest.slice(n);
+      }
+      if (rest.length) lines.push(cut(g, rest.join(' '), width, sizePx));
+      wraps.set(key, lines);
+    }
+    return wraps.get(key);
+  };
   /** A panel: a dark box in a hairline frame, its title top left and a note top right. @param {CanvasRenderingContext2D} g */
   const panel = (g, x, y, w, h, title, note = '', noteColour = palette.late) => {
     g.fillStyle = rgba(palette.panel, 0.82);
@@ -314,9 +443,10 @@ export function createPoster(stage, data, root) {
     g.fill();
   };
 
-  // ---- The still layer.
+  // ---- The still layers.
   const paintStill = () => {
     cuts.clear();
+    wraps.clear();
     const g = /** @type {CanvasRenderingContext2D} */ (still2d.getContext('2d'));
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, still2d.width, still2d.height);
@@ -331,14 +461,24 @@ export function createPoster(stage, data, root) {
     g.fillRect(-size.w, -size.h, size.w * 3, size.h * 3);
     if (wide) paintWide(g);
     else paintTall(g);
-    paintFace(g);
+    paintFaces(clockView, ringView);
+  };
+  /** The clock's face and the ring's parts, each onto its own canvas, seen as `clockOn` and `ringOn`. @param {View} clockOn @param {View} ringOn */
+  const paintFaces = (clockOn, ringOn) => {
+    for (const [canvas, paint, on] of /** @type {const} */ ([[clockFace, paintFace, clockOn], [ringFace, paintRing, ringOn]])) {
+      const f = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+      f.setTransform(1, 0, 0, 1, 0, 0);
+      f.clearRect(0, 0, canvas.width, canvas.height);
+      posterSpace(f);
+      paint(f, on);
+    }
   };
 
-  /** The tilted face: a plate with an edge, the small hours' wedge, day rings, hour spokes, labels, the coil's tube. */
-  const paintFace = (g) => {
+  /** The tilted face: a plate with an edge, the small hours' wedge, day rings, hour spokes, labels, the coil's tube. @param {View} on */
+  const paintFace = (g, on) => {
     const { r0, r1, plate } = clock;
     const p = [0, 0, 0, 0];
-    const circle = (rho, z = 0, n = 96) => Array.from({ length: n + 1 }, (_, i) => { onFace(rho, (i / n) * TAU, z, p); return [p[0], p[1]]; });
+    const circle = (rho, z = 0, n = 96) => Array.from({ length: n + 1 }, (_, i) => { on(rho, (i / n) * TAU, z, p); return [p[0], p[1]]; });
     const k = r1 / 206;
     polyline(g, circle(plate, -10 * k), rgba(palette.frame, 0.9), 1.2);
     const rim = circle(plate);
@@ -355,15 +495,15 @@ export function createPoster(stage, data, root) {
     g.stroke();
     // The small hours, from midnight to four: a wedge, and an arc outside the coil with its share.
     const wedge = [];
-    for (let i = 0; i <= 24; i++) { onFace(r1 + 6 * k, Math.PI / 2 - (i / 24) * (TAU / 6), 0, p); wedge.push([p[0], p[1]]); }
-    for (let i = 24; i >= 0; i--) { onFace(r0 - 6 * k, Math.PI / 2 - (i / 24) * (TAU / 6), 0, p); wedge.push([p[0], p[1]]); }
+    for (let i = 0; i <= 24; i++) { on(r1 + 6 * k, Math.PI / 2 - (i / 24) * (TAU / 6), 0, p); wedge.push([p[0], p[1]]); }
+    for (let i = 24; i >= 0; i--) { on(r0 - 6 * k, Math.PI / 2 - (i / 24) * (TAU / 6), 0, p); wedge.push([p[0], p[1]]); }
     g.beginPath();
     wedge.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
     g.closePath();
     g.fillStyle = rgba(palette.late, 0.08);
     g.fill();
     const arc = [];
-    for (let i = 0; i <= 32; i++) { onFace(clock.coil + 32 * k, Math.PI / 2 - 0.01 - (i / 32) * (TAU / 6 - 0.02), 0, p); arc.push([p[0], p[1]]); }
+    for (let i = 0; i <= 32; i++) { on(clock.coil + 32 * k, Math.PI / 2 - 0.01 - (i / 32) * (TAU / 6 - 0.02), 0, p); arc.push([p[0], p[1]]); }
     g.save();
     if (!light) {
       g.shadowColor = rgba(palette.late, 0.9);
@@ -372,24 +512,24 @@ export function createPoster(stage, data, root) {
     polyline(g, arc, rgba(palette.late, 0.95), 2 * Math.max(0.7, k));
     g.restore();
     if (wide) {
-      onFace(clock.coil + 54, Math.PI / 2 - TAU / 12, 0, p);
+      on(clock.coil + 54, Math.PI / 2 - TAU / 12, 0, p);
       write(g, `AFTER MIDNIGHT  ${Math.round(lateShare * 100)}%`, p[0] + 6, p[1], 10, { colour: palette.late });
     }
     // Day rings, hour spokes and their labels.
     for (let i = 0; i <= days; i++) polyline(g, circle(r0 + (i / days) * (r1 - r0)), rgba(palette.line, i % 7 === 0 ? 0.9 : 0.45), 1);
     for (let h = 0; h < 24; h++) {
       const a = Math.PI / 2 - (h / 24) * TAU;
-      const from = onFace(r0 - 8 * k, a, 0, [0, 0, 0, 0]);
-      const to = onFace(r1 + (h % 3 === 0 ? 14 : 8) * k, a, 0, [0, 0, 0, 0]);
+      const from = on(r0 - 8 * k, a, 0, [0, 0, 0, 0]);
+      const to = on(r1 + (h % 3 === 0 ? 14 : 8) * k, a, 0, [0, 0, 0, 0]);
       polyline(g, [[from[0], from[1]], [to[0], to[1]]], rgba(palette.line, h % 3 === 0 ? 0.9 : 0.45), 1);
       if (h % 3 === 0) {
-        onFace(clock.labels, a, 0, p);
+        on(clock.labels, a, 0, p);
         write(g, String(h).padStart(2, '0'), p[0], p[1] + 3.5, clock.text * p[3], { colour: h < 4 ? palette.late : palette.soft, align: 'center' });
       }
     }
     if (wide) {
       [0, 7, 14].filter((i) => i < days).forEach((i) => {
-        onFace(r0 + ((i + 0.5) / days) * (r1 - r0), -Math.PI / 2, 0, p);
+        on(r0 + ((i + 0.5) / days) * (r1 - r0), -Math.PI / 2, 0, p);
         const day = new Date((spanFrom + i * 86400 + 8 * 3600) * 1000).toISOString().slice(0, 10);
         write(g, dayLabel(day), p[0] + 6, p[1] + 3, 8.5, { colour: palette.faint });
       });
@@ -401,14 +541,14 @@ export function createPoster(stage, data, root) {
       const section = Array.from({ length: 17 }, (_, j) => {
         const v = (j / 16) * TAU;
         const r = clock.coil + tube * Math.cos(v);
-        onFace(r, u, tube * Math.sin(v), p);
+        on(r, u, tube * Math.sin(v), p);
         return [p[0], p[1]];
       });
       polyline(g, section, rgba(palette.line, 0.55), 0.7);
     }
     for (let j = 0; j < 8; j++) {
       const v = (j / 8) * TAU;
-      polyline(g, Array.from({ length: 145 }, (_, i) => { onFace(clock.coil + tube * Math.cos(v), (i / 144) * TAU, tube * Math.sin(v), p); return [p[0], p[1]]; }), rgba(palette.line, 0.4), 0.7);
+      polyline(g, Array.from({ length: 145 }, (_, i) => { on(clock.coil + tube * Math.cos(v), (i / 144) * TAU, tube * Math.sin(v), p); return [p[0], p[1]]; }), rgba(palette.line, 0.4), 0.7);
     }
     // The hub, and the thread up to the commits counted above it.
     const disc = circle(r0 - 12 * k, 0, 48);
@@ -419,7 +559,40 @@ export function createPoster(stage, data, root) {
     g.fill();
     g.strokeStyle = rgba(palette.line);
     g.stroke();
-    polyline(g, [hub, hubTop], rgba(palette.text, 0.35), 1);
+    const top = on(0, 0, clock.lift);
+    polyline(g, [hub, [top[0], top[1]]], rgba(palette.text, 0.35), 1);
+  };
+
+  /** The ring's own parts: its tube, faint, for the files' turns to wind round, and round it the days' ticks and dates. @param {View} on */
+  const paintRing = (g, on) => {
+    const { ring: R, ringTube: tube, dates } = clock;
+    const k = clock.r1 / 206;
+    const p = [0, 0, 0, 0];
+    const at = (rho, a, z = 0) => { on(rho, a, z, p); return [p[0], p[1]]; };
+    for (let i = 0; i < 96; i++) {
+      const u = (i / 96) * TAU;
+      polyline(g, Array.from({ length: 21 }, (_, j) => at(R + tube * Math.cos((j / 20) * TAU), u, tube * Math.sin((j / 20) * TAU))), rgba(palette.line, 0.5), 0.7);
+    }
+    for (let j = 0; j < 12; j++) {
+      const v = (j / 12) * TAU;
+      polyline(g, Array.from({ length: 193 }, (_, i) => at(R + tube * Math.cos(v), (i / 192) * TAU, tube * Math.sin(v))), rgba(palette.line, 0.35), 0.7);
+    }
+    // A thin circle round it, a tick on it where each day starts, and the day's date where there's room: not too near
+    // the last one, nor the first one round the top.
+    const edge = dates - 18 * k;
+    polyline(g, Array.from({ length: 193 }, (_, i) => at(edge, (i / 192) * TAU)), rgba(palette.line, 0.6), 1);
+    const room = wide ? 0.3 : 0.5;
+    let last = -Infinity;
+    commits.forEach((commit, i) => {
+      if (i > 0 && commits[i - 1].day === commit.day) return;
+      const gone = (firstFile[i] / N) * TAU;
+      const a = Math.PI / 2 - gone;
+      polyline(g, [at(edge - 5 * k, a), at(edge + 5 * k, a)], rgba(palette.line), 1);
+      if (gone - last < room || TAU - gone < room) return;
+      last = gone;
+      const [x, y] = at(dates, a);
+      write(g, dayLabel(commit.day), x, y + 3, wide ? 9 : 7.5, { colour: palette.faint, align: 'center' });
+    });
   };
 
   /** The repo's folders as a flame: each row a level deeper, each box as wide as its file changes. */
@@ -615,14 +788,122 @@ export function createPoster(stage, data, root) {
     }
   };
 
-  const frame = (dt) => {
+  /**
+   * Draws file c's wire onto `wg` and its spike onto `sg` (on the ring, its fibre with the wire), `amount` of the way
+   * along them, in the ring's look or the clock's, as strongly as its side of the face shows (`side`); brighter while
+   * it's still rising (`up`). On the ring its turn of wire is fainter, as thousands of them wind round the one tube.
+   */
+  const drawFile = (wg, sg, shapes, c, amount, ring, up, side = 1) => {
+    const part = cellParts[c];
+    const home = part === 0;
+    const colour = palette.parts[part];
+    const k = clock.r1 / 206;
+    const strength = light ? 1.45 : 1;
+    const wire = ring ? (up ? 0.5 : home ? 0.07 : 0.14) : up ? 0.7 : home ? 0.24 : 0.48;
+    wg.beginPath();
+    trace(wg, shapes.wires, WIRE_POINTS, c, amount);
+    wg.strokeStyle = rgba(colour, Math.min(1, wire * strength) * side);
+    wg.lineWidth = (up ? 0.8 : 0.75) * k;
+    wg.stroke();
+    if (ring) {
+      wg.beginPath();
+      trace(wg, shapes.fibres, FIBRE_POINTS, c, amount);
+      wg.strokeStyle = rgba(colour, (home ? 0.12 : 0.26) * strength * side);
+      wg.lineWidth = 0.7 * k;
+      wg.stroke();
+    }
+    sg.beginPath();
+    trace(sg, shapes.spikes, SPIKE_POINTS, c, amount);
+    sg.strokeStyle = rgba(colour, Math.min(1, (up ? (home ? 0.36 : 0.7) : home ? 0.3 : 0.62) * strength) * side);
+    sg.lineWidth = 0.9 * k;
+    sg.stroke();
+    if (!up && traits[c].reach >= 0.6) {
+      const o = (c * SPIKE_POINTS + SPIKE_POINTS - 1) * 2;
+      dot(sg, shapes.spikes[o], shapes.spikes[o + 1], 1.4 * k, rgba(colour, 0.95 * side));
+    }
+  };
+
+  /**
+   * Once it's finished, a pulse runs round the coil, lighting the wire it passes, as strongly as its side of the face
+   * shows (`side`). The ring's turns lie so close together that it lights only a few of them there, and those more
+   * faintly.
+   */
+  const pulse = (g, wires, ring, holdT, side = 1) => {
+    const at = Math.PI / 2 - (holdT / LAP) * TAU;
+    const angles = ring ? ringAngle : wireAngle;
+    const reach = ring ? 0.02 : 0.12;
+    g.strokeStyle = light ? rgba(palette.text, (ring ? 0.3 : 0.6) * side) : rgba(WHITE, (ring ? 0.25 : 0.55) * side);
+    g.lineWidth = clock.r1 / 206;
+    g.beginPath();
+    for (let c = 0; c < N; c++) {
+      const off = Math.abs((((angles[c] - at) % TAU) + TAU + Math.PI) % TAU - Math.PI);
+      if (off < reach) trace(g, wires, WIRE_POINTS, c, 1);
+    }
+    g.stroke();
+  };
+
+  /**
+   * The commits' spots so far, the small hours' in red, and with `from`, the hand from there to the one being played;
+   * as strongly as their side of the face shows (`side`).
+   */
+  const spots = (g, nodes, playing, from, side = 1) => {
+    const k = Math.max(0.7, clock.r1 / 206);
+    for (let i = 0; i <= playing; i++) dot(g, nodes[i * 2], nodes[i * 2 + 1], 2.4 * k, rgba(commits[i].hour < 4 ? palette.lateDot : palette.parts[commits[i].main], 0.95 * side));
+    if (!from) return;
+    const x = nodes[playing * 2];
+    const y = nodes[playing * 2 + 1];
+    polyline(g, [from, [x, y]], rgba(palette.text, 0.75 * side), 1.2 * k);
+    g.strokeStyle = rgba(palette.text, 0.9 * side);
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.arc(x, y, 6 * k, 0, TAU);
+    g.stroke();
+  };
+
+  /** Draws a frame, `dt` seconds on; with `replay` false only the switch between the clock and the ring moves on. */
+  const frame = (dt, replay = true) => {
     readPalette();
-    time += dt;
+    if (replay) time += dt;
     if (dt > 0) fps += (1 / dt - fps) * 0.05;
+    // While the face turns over between the clock and the ring, each side is drawn each frame as far as it has turned;
+    // once there, the faces and the landed files go back onto their canvases.
+    if (m !== goal) {
+      m = goal > m ? Math.min(goal, m + dt / MORPH) : Math.max(goal, m - dt / MORPH);
+      if (m === goal) {
+        dirty = true;
+        stale = true;
+      }
+    }
     if (dirty) {
       paintStill();
       dirty = false;
     }
+    const moving = m !== goal;
+    /** How far the face has turned from the clock's side to the ring's, and how far that is when it's edge-on. */
+    const turned = smooth(m);
+    const edge = (TILT + 90) / (TILT - RING_TILT + 180);
+    const on = moving ? view(TILT + (RING_TILT - 180 - TILT) * turned) : m ? ringView : clockView;
+    const onBack = moving ? backOf(on) : ringView;
+    // Each side, with everything on it and its words in the middle, fades the whole way between resting and edge-on:
+    // out as it turns away, in as it comes round. A little either side of edge-on both show, so it never goes dark.
+    const front = 1 - smooth(clamp(turned / (edge + 0.05)));
+    const back = smooth(clamp((turned - edge + 0.05) / (1 - edge + 0.05)));
+    if (moving) {
+      const faces = /** @type {CanvasRenderingContext2D} */ (movingFaces.getContext('2d'));
+      faces.setTransform(1, 0, 0, 1, 0, 0);
+      faces.clearRect(0, 0, movingFaces.width, movingFaces.height);
+      faces.setTransform(movingDensity * scale, 0, 0, movingDensity * scale, movingDensity * offX, movingDensity * offY);
+      if (front > 0) {
+        faces.globalAlpha = front;
+        paintFace(faces, on);
+      }
+      if (back > 0) {
+        faces.globalAlpha = back;
+        paintRing(faces, onBack);
+      }
+      faces.globalAlpha = 1;
+    }
+    const shapes = m ? ringShapes : clockShapes;
     const playT = Math.max(0, time - INTRO);
     const holdT = time - (INTRO + PLAY);
     const phase = time < INTRO ? 'intro' : holdT < 0 ? 'play' : 'hold';
@@ -633,7 +914,7 @@ export function createPoster(stage, data, root) {
     // ---- The bright layer: wires on the coil, spikes on the face, the commits' spots, the hand.
     const k = clock.r1 / 206;
     if (stale || playT < lastPlay || phase === 'intro') {
-      // A new round (or a new size or colours): the landed spikes and wires go, to be drawn again as they land.
+      // A new round (or a new size, colours or mode): the landed spikes and wires go, to be drawn again as they land.
       stale = false;
       drawn.fill(0);
       for (const canvas of [landedWires, landedSpikes]) {
@@ -643,99 +924,78 @@ export function createPoster(stage, data, root) {
       }
     }
     lastPlay = playT;
-    const wireLayer = /** @type {CanvasRenderingContext2D} */ (landedWires.getContext('2d'));
-    const spikeLayer = /** @type {CanvasRenderingContext2D} */ (landedSpikes.getContext('2d'));
-    posterSpace(wireLayer);
-    posterSpace(spikeLayer);
     // In the dark, overlapping strokes add up to light; by day they're laid over one another, stronger to show.
     const blend = light ? 'source-over' : 'lighter';
-    const strength = light ? 1.45 : 1;
-    wireLayer.globalCompositeOperation = blend;
-    spikeLayer.globalCompositeOperation = blend;
     const landed = new Int32Array(partCount);
-    const growing = [];
-    for (let c = 0; c < N; c++) {
-      const age = phase === 'intro' ? -1 : playT - launch[c];
-      if (age < 0) continue;
-      if (age < GROW) {
-        growing.push(c);
-        continue;
-      }
-      const part = cellParts[c];
-      landed[part]++;
-      if (drawn[c]) continue;
-      // Landed since the last frame: onto the landed canvases, once.
-      drawn[c] = 1;
-      wireLayer.beginPath();
-      trace(wireLayer, wires, WIRE_POINTS, c, 1);
-      wireLayer.strokeStyle = rgba(palette.parts[part], (part === 0 ? 0.24 : 0.48) * strength);
-      wireLayer.lineWidth = 0.75 * k;
-      wireLayer.stroke();
-      spikeLayer.beginPath();
-      trace(spikeLayer, spikes, SPIKE_POINTS, c, 1);
-      spikeLayer.strokeStyle = rgba(palette.parts[part], (part === 0 ? 0.3 : 0.62) * strength);
-      spikeLayer.lineWidth = 0.9 * k;
-      spikeLayer.stroke();
-      if (traits[c].reach >= 0.6) {
-        const o = (c * SPIKE_POINTS + SPIKE_POINTS - 1) * 2;
-        dot(spikeLayer, spikes[o], spikes[o + 1], 1.4 * k, rgba(palette.parts[part], 0.95));
-      }
-    }
     const g = /** @type {CanvasRenderingContext2D} */ (glow.getContext('2d'));
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, glow.width, glow.height);
     g.globalCompositeOperation = blend;
-    g.drawImage(landedWires, 0, 0);
-    g.drawImage(landedSpikes, 0, 0);
-    posterSpace(g);
-    // Spikes still rising, and their wires still winding on.
-    for (const c of growing) {
-      const part = cellParts[c];
-      const amount = easeOut((playT - launch[c]) / GROW);
-      g.beginPath();
-      trace(g, spikes, SPIKE_POINTS, c, amount);
-      g.strokeStyle = rgba(palette.parts[part], Math.min(1, (part === 0 ? 0.36 : 0.7) * strength));
-      g.lineWidth = 0.9 * k;
-      g.stroke();
-      g.beginPath();
-      trace(g, wires, WIRE_POINTS, c, amount);
-      g.strokeStyle = rgba(palette.parts[part], Math.min(1, 0.7 * strength));
-      g.lineWidth = 0.8 * k;
-      g.stroke();
-    }
-    // Once it's finished, a pulse runs round the coil, lighting the wire it passes.
-    if (phase === 'hold') {
-      const pulse = Math.PI / 2 - (holdT / LAP) * TAU;
-      g.strokeStyle = light ? rgba(palette.text, 0.6) : rgba(WHITE, 0.55);
-      g.lineWidth = 1 * k;
-      g.beginPath();
-      for (let c = 0; c < N; c++) {
-        const off = Math.abs((((wireAngle[c] - pulse) % TAU) + TAU + Math.PI) % TAU - Math.PI);
-        if (off < 0.12) trace(g, wires, WIRE_POINTS, c, 1);
+    // Where the hand starts: the clock's hub, or just inside the ring, on the side of the face it's on.
+    const hand = phase === 'play' && playing >= 0;
+    const inside = (/** @type {View} */ side) => side(clock.ring - clock.ringTube - 16 * k, ringAngle[middleFile(Math.max(0, playing))], 0);
+    if (moving) {
+      const low = /** @type {CanvasRenderingContext2D} */ (movingFiles.getContext('2d'));
+      low.setTransform(1, 0, 0, 1, 0, 0);
+      low.clearRect(0, 0, movingFiles.width, movingFiles.height);
+      low.setTransform(movingDensity * scale, 0, 0, movingDensity * scale, movingDensity * offX, movingDensity * offY);
+      for (let c = 0; c < N; c++) if (phase !== 'intro' && playT - launch[c] >= GROW) landed[cellParts[c]]++;
+      for (const [places, ring, side] of /** @type {const} */ ([[clockPlaces, false, front], [ringPlaces, true, back]])) {
+        if (side <= 0) continue;
+        const seen = turnedTo(places, on);
+        low.globalCompositeOperation = blend;
+        for (let c = 0; c < N; c++) {
+          const age = phase === 'intro' ? -1 : playT - launch[c];
+          if (age < 0) continue;
+          const up = age < GROW;
+          drawFile(low, low, seen, c, up ? easeOut(age / GROW) : 1, ring, up, side);
+        }
+        if (phase === 'hold') pulse(low, seen.wires, ring, holdT, side);
+        low.globalCompositeOperation = 'source-over';
+        spots(low, seen.nodes, playing, hand ? (ring ? inside(onBack) : hub) : null, side);
       }
-      g.stroke();
+      g.drawImage(movingFiles, 0, 0, glow.width, glow.height);
+      posterSpace(g);
+    } else {
+      const wireLayer = /** @type {CanvasRenderingContext2D} */ (landedWires.getContext('2d'));
+      const spikeLayer = /** @type {CanvasRenderingContext2D} */ (landedSpikes.getContext('2d'));
+      posterSpace(wireLayer);
+      posterSpace(spikeLayer);
+      wireLayer.globalCompositeOperation = blend;
+      spikeLayer.globalCompositeOperation = blend;
+      const growing = [];
+      for (let c = 0; c < N; c++) {
+        const age = phase === 'intro' ? -1 : playT - launch[c];
+        if (age < 0) continue;
+        if (age < GROW) {
+          growing.push(c);
+          continue;
+        }
+        landed[cellParts[c]]++;
+        if (drawn[c]) continue;
+        // Landed since the last frame: onto the landed canvases, once.
+        drawn[c] = 1;
+        drawFile(wireLayer, spikeLayer, shapes, c, 1, m === 1, false);
+      }
+      g.drawImage(landedWires, 0, 0);
+      g.drawImage(landedSpikes, 0, 0);
+      posterSpace(g);
+      // Spikes still rising, and their wires still winding on.
+      for (const c of growing) drawFile(g, g, shapes, c, easeOut((playT - launch[c]) / GROW), m === 1, true);
+      if (phase === 'hold') pulse(g, shapes.wires, m === 1, holdT);
+      g.globalCompositeOperation = 'source-over';
+      spots(g, shapes.nodes, playing, hand ? (m ? inside(ringView) : hub) : null);
     }
     g.globalCompositeOperation = 'source-over';
-    // The commits' spots, the small hours' in red.
-    for (let i = 0; i <= playing; i++) dot(g, nodes[i * 2], nodes[i * 2 + 1], 2.4 * Math.max(0.7, k), rgba(commits[i].hour < 4 ? palette.lateDot : palette.parts[commits[i].main], 0.95));
-    // The hand, pointing at the commit being played.
-    if (phase === 'play' && playing >= 0) {
-      const x = nodes[playing * 2];
-      const y = nodes[playing * 2 + 1];
-      polyline(g, [hub, [x, y]], rgba(palette.text, 0.75), 1.2 * Math.max(0.7, k));
-      g.strokeStyle = rgba(palette.text, 0.9);
-      g.lineWidth = 1.2;
-      g.beginPath();
-      g.arc(x, y, 6 * Math.max(0.7, k), 0, TAU);
-      g.stroke();
-    }
 
-    // ---- Onto the stage: the still layer, the bright one, its glow, then the words that change.
+    // ---- Onto the stage: the still layers, the bright one, its glow, then the words that change.
     const main = ctx;
     main.setTransform(1, 0, 0, 1, 0, 0);
     main.globalCompositeOperation = 'source-over';
     main.globalAlpha = 1;
     main.drawImage(still2d, 0, 0);
+    if (moving) main.drawImage(movingFaces, 0, 0, glow.width, glow.height);
+    else main.drawImage(m ? ringFace : clockFace, 0, 0);
     main.drawImage(glow, 0, 0);
     // The glow, only in the dark.
     if (!light) {
@@ -762,11 +1022,36 @@ export function createPoster(stage, data, root) {
     const late = commits.slice(0, shown).filter((c) => c.hour < 4).length;
     if (wide) wideWords(main, { shown, files, late, landed, playing, phase, done });
     else tallWords(main, { shown, files, late, landed, done });
-    // The commits counted, above the hub.
-    write(main, fmt(shown), hubTop[0], hubTop[1] + (wide ? 6 : 4), wide ? 34 : 18, { align: 'center', spacing: 0 });
-    write(main, 'COMMITS', hubTop[0], hubTop[1] + (wide ? 24 : 14), wide ? 9 : 7, { colour: palette.soft, align: 'center' });
+    // In the clock, the commits counted, above the hub; in the ring, the commit being played, in its middle: each with
+    // its side of the face, so one has gone before the other comes.
+    if (front > 0) {
+      const [x, y] = on(0, 0, clock.lift);
+      write(main, fmt(shown), x, y + (wide ? 6 : 4), wide ? 34 : 18, { alpha: front, align: 'center', spacing: 0 });
+      write(main, 'COMMITS', x, y + (wide ? 24 : 14), wide ? 9 : 7, { colour: palette.soft, alpha: front, align: 'center' });
+    }
+    if (back > 0 && playing >= 0) callout(main, commits[playing], done, back);
     // The stage drew in CSS pixels before handing over: leave it that way.
     main.setTransform(density, 0, 0, density, 0, 0);
+  };
+
+  /** The ring's middle: the commit being played (once it's done, the newest), its day and time, subject and lines. */
+  const callout = (g, commit, done, alpha) => {
+    const [x, y] = hub;
+    const tag = wide ? 10 : 7;
+    const big = wide ? 26 : 14;
+    const small = wide ? 11 : 7.5;
+    const step = wide ? 15 : 10;
+    write(g, `${done ? 'NEWEST' : 'COMMIT'}  ${commit.hash}`, x, y - (wide ? 42 : 24), tag, { colour: palette.soft, alpha, align: 'center' });
+    write(g, `${dayLabel(commit.day)}  ${commit.time}`, x, y - (wide ? 12 : 7), big, { colour: commit.hour < 4 ? palette.late : palette.text, alpha, align: 'center', spacing: 0 });
+    const lines = wrap(g, commit.subject.toLowerCase(), wide ? 250 : 112, small, wide ? 2 : 1);
+    lines.forEach((line, i) => write(g, line, x, y + (wide ? 12 : 7) + i * step, small, { alpha, align: 'center' }));
+    const plus = `+${fmt(commit.added)}`;
+    const minus = `−${fmt(commit.removed)}`;
+    const gap = wide ? 14 : 8;
+    const left = x - (widthOf(g, plus, tag) + gap + widthOf(g, minus, tag)) / 2;
+    const below = y + (wide ? 12 : 7) + lines.length * step + (wide ? 8 : 5);
+    write(g, plus, left, below, tag, { colour: palette.added, alpha });
+    write(g, minus, left + widthOf(g, plus, tag) + gap, below, tag, { colour: palette.soft, alpha });
   };
 
   /** The landscape poster's numbers that grow as the commits play, the newest commits, and where the replay is. */
@@ -859,7 +1144,35 @@ export function createPoster(stage, data, root) {
     if (!stage.playing) frame(0);
   };
 
+  let ownFrame = 0;
+  /**
+   * Switches to the clock or the ring (the page's switch). With less motion asked for it's there at once; while the
+   * stage is paused the switch still plays, on frames of its own, the replay staying where it is.
+   */
+  const show = (/** @type {'clock' | 'ring'} */ name) => {
+    goal = name === 'ring' ? 1 : 0;
+    if (still && m !== goal) {
+      m = goal;
+      stale = true;
+    }
+    if (stage.playing || ownFrame) return;
+    if (m === goal) {
+      stale = true;
+      frame(0, false);
+      return;
+    }
+    let last = performance.now();
+    const tick = (/** @type {number} */ now) => {
+      ownFrame = 0;
+      if (stage.playing) return;
+      frame(Math.min(0.05, Math.max(0, (now - last) / 1000)), false);
+      last = now;
+      if (m !== goal) ownFrame = requestAnimationFrame(tick);
+    };
+    ownFrame = requestAnimationFrame(tick);
+  };
+
   readPalette();
   fit();
-  return { frame, resize: fit, restart };
+  return { frame, resize: fit, restart, show };
 }
