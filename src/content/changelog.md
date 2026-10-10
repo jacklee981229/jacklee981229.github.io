@@ -88,3 +88,4 @@
 - 2026-10-09 new: Added [Image Editor](/lab/image-editor/): crop, resize, flip and compress, with Undo
 - 2026-10-10 new: Added [Jack's Build Log](/lab/build-log/): this site's history, replayed in lights
 - 2026-10-10 improved: [Jack's Build Log](/lab/build-log/) moved into the Lab, and flips over into a Ring
+- 2026-10-10 improved: The Build Log's Ring looks round now, and sends out signals
