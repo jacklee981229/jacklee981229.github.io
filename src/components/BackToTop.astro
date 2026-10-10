@@ -1,14 +1,26 @@
 ---
 import Icon from './Icon.astro';
+
+interface Props {
+  /** A ring round the button fills as the page is read (on posts). */
+  progress?: boolean;
+}
+
+const { progress = false } = Astro.props;
 ---
 <button type="button" class="to-top" data-back-to-top aria-label="Back to top">
+  {progress && <svg class="ring" viewBox="0 0 44 44" aria-hidden="true" data-ring><circle class="track" cx="22" cy="22" r="20.5" /><circle class="read" cx="22" cy="22" r="20.5" pathLength="1" /></svg>}
   <Icon name="up" />
 </button>
 
 <script>
   const button = document.querySelector<HTMLButtonElement>('[data-back-to-top]');
   if (button) {
-    const toggle = () => button.classList.toggle('is-visible', scrollY > innerHeight * 0.8);
+    const ring = button.querySelector<SVGElement>('[data-ring]');
+    const toggle = () => {
+      button.classList.toggle('is-visible', scrollY > innerHeight * 0.8);
+      if (ring) ring.style.setProperty('--read', String(Math.min(1, scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight))));
+    };
     addEventListener('scroll', toggle, { passive: true });
     toggle();
     button.addEventListener('click', () => {
@@ -24,4 +36,9 @@ import Icon from './Icon.astro';
   /* Hidden with visibility (not just opacity) so it can't be tabbed to until it shows. */
   .to-top { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--rule); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s; }
   .to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
+  /* How far down the post the reader is, drawn round the button's edge from the top, clockwise. */
+  .ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); rotate: -90deg; pointer-events: none; }
+  .ring circle { fill: none; stroke-width: 2.5; }
+  .track { stroke: transparent; }
+  .read { stroke: var(--ink); stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--read, 0)); }
 </style>

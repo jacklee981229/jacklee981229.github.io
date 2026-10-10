@@ -9,7 +9,7 @@ const thisYear = new Date().getFullYear();
 <footer class="site-footer">
   <div class="wrap row">
     <p>© {firstYear}–{thisYear} {SITE.author}. Posts are licensed <a href={SITE.license.url} {...NEW_TAB}>{SITE.license.name}</a>.</p>
-    <p class="made"><Go href="/guestbook/">Guestbook</Go><Go href="/changelog/">Changelog</Go><span>Built with Astro and love.</span></p>
+    <p class="made"><Go href="/guestbook/">Guestbook</Go><Go href="/changelog/">Changelog</Go><span>Built with Astro and <span class="love">love</span>.</span></p>
   </div>
 </footer>
 
@@ -20,4 +20,10 @@ const thisYear = new Date().getFullYear();
   p { margin: 0; }
   /* Wider than the other gaps: the Changelog link's arrow slides out into it. */
   .made { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+  /* A heart pops out of "love" under the mouse. */
+  .love { position: relative; display: inline-block; }
+  .love::after { content: '\2764\FE0E'; position: absolute; left: 50%; bottom: 1.05em; color: var(--accent-writing); font-size: 0.9em; translate: -50% 0.4em; scale: 0.2; opacity: 0; pointer-events: none; transition: scale var(--motion-soft) var(--ease-spring), translate var(--motion-soft) var(--ease-spring), opacity var(--motion-quick) ease; }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .love:hover::after { scale: 1; translate: -50% 0; opacity: 1; }
+  }
 </style>

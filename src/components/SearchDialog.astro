@@ -103,6 +103,34 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   let posts: Option[] = [];
   let active = 0;
 
+  // One highlight slides from result to result as the keys or the mouse move; a list drawn afresh puts it in place.
+  const highlight = document.createElement('div');
+  highlight.className = 'highlight';
+  highlight.setAttribute('aria-hidden', 'true');
+  function place(slide: boolean) {
+    const option = list?.querySelector<HTMLElement>(`#po-${active}`);
+    if (!option) return;
+    if (!slide) highlight.style.transition = 'none';
+    highlight.style.height = `${option.offsetHeight}px`;
+    highlight.style.transform = `translateY(${option.offsetTop}px)`;
+    if (!slide) {
+      void highlight.offsetHeight;
+      highlight.style.transition = '';
+    }
+  }
+  /** Marks a result as the one Enter would run, without drawing the list again. @param index its place in the list */
+  function select(index: number) {
+    if (!list) return;
+    active = index;
+    list.querySelectorAll('[aria-selected="true"]').forEach((o) => o.setAttribute('aria-selected', 'false'));
+    const option = list.querySelector<HTMLElement>(`#po-${active}`);
+    if (!option) return;
+    option.setAttribute('aria-selected', 'true');
+    input?.setAttribute('aria-activedescendant', option.id);
+    option.scrollIntoView({ block: 'nearest' });
+    place(true);
+  }
+
   /** The short list for an empty box. */
   function suggestions(): Option[] {
     const [theme, ...rest] = actions();
@@ -118,6 +146,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     const groups = new Map<string, number[]>();
     all.forEach((o, i) => groups.set(o.group, [...(groups.get(o.group) ?? []), i]));
     list.replaceChildren(
+      ...(all.length ? [highlight] : []),
       ...[...groups].map(([group, indexes], g) => {
         const box = document.createElement('div');
         box.setAttribute('role', 'group');
@@ -138,6 +167,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     if (current) {
       input.setAttribute('aria-activedescendant', current.id);
       current.scrollIntoView({ block: 'nearest' });
+      place(false);
     } else input.removeAttribute('aria-activedescendant');
   }
 
@@ -243,8 +273,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (!count) return;
-      active = e.key === 'ArrowDown' ? (active + 1) % count : (active - 1 + count) % count;
-      draw();
+      select(e.key === 'ArrowDown' ? (active + 1) % count : (active - 1 + count) % count);
     } else if (e.key === 'Escape') {
       // A search box's own Esc only empties it; here it closes the palette in one press.
       e.preventDefault();
@@ -268,12 +297,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   });
   list?.addEventListener('pointermove', (e) => {
     const option = e.target instanceof Element ? e.target.closest<HTMLElement>('[role="option"]') : null;
-    if (option && Number(option.dataset.index) !== active) {
-      active = Number(option.dataset.index);
-      list.querySelectorAll('[aria-selected="true"]').forEach((o) => o.setAttribute('aria-selected', 'false'));
-      option.setAttribute('aria-selected', 'true');
-      input?.setAttribute('aria-activedescendant', option.id);
-    }
+    if (option && Number(option.dataset.index) !== active) select(Number(option.dataset.index));
   });
   dialog?.addEventListener('close', () => {
     if (opener?.isConnected) opener.focus();
@@ -300,16 +324,25 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
 <style>
   .search { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80dvh); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); }
   .search::backdrop { background: var(--backdrop); }
+  /* It drops in, over a shade that fades up. */
+  .search[open] { animation: palette-in var(--motion-soft) var(--ease-spring); }
+  .search[open]::backdrop { animation: palette-shade var(--motion-quick) ease; }
+  @keyframes palette-in {
+    from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  }
+  @keyframes palette-shade {
+    from { opacity: 0; }
+  }
   .box { display: flex; align-items: center; gap: var(--space-3); padding: 0.625rem var(--space-4); border-bottom: 1px solid var(--rule); }
   .box:focus-within { box-shadow: inset 0 -2px var(--focus); }
   input { flex: 1; min-width: 0; padding: var(--space-2) 0; border: 0; background: transparent; color: inherit; font-size: var(--text-md); font-weight: 500; }
   input:focus { outline: none; }
   .esc { padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
-  .results { max-height: calc(min(34rem, 80dvh) - 4rem); padding: var(--space-2); overflow-y: auto; }
+  .results { position: relative; max-height: calc(min(34rem, 80dvh) - 4rem); padding: var(--space-2); overflow-y: auto; }
+  .results :global(.highlight) { position: absolute; top: 0; left: var(--space-2); right: var(--space-2); border-radius: var(--radius-image); background: var(--wash); box-shadow: inset 2px 0 var(--focus); pointer-events: none; transition: transform var(--motion-quick) var(--ease-out), height var(--motion-quick) var(--ease-out); }
   .results:empty { display: none; }
   .results :global(.group-title) { padding: var(--space-2) var(--space-3) var(--space-1); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
-  .results :global(.option) { display: flex; align-items: flex-start; gap: var(--space-3); padding: 0.625rem var(--space-3); border-radius: var(--radius-image); cursor: pointer; }
-  .results :global(.option[aria-selected='true']) { background: var(--wash); box-shadow: inset 2px 0 var(--focus); }
+  .results :global(.option) { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: var(--space-3); padding: 0.625rem var(--space-3); border-radius: var(--radius-image); cursor: pointer; }
   .results :global(.option .icon) { margin-top: 0.1rem; color: var(--muted); }
   .results :global(.option[aria-selected='true'] .icon) { color: var(--ink); }
   .results :global(.text) { display: grid; gap: var(--space-1); min-width: 0; }

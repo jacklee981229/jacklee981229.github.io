@@ -3,6 +3,7 @@
 // top, with the way back, the name, a one-line description and an optional slot at its foot for the page's own
 // controls (a game's colours switch), drawn in white to sit on the colour like the main pages' (PageTop.astro).
 import Icon from './Icon.astro';
+import { flowStyle } from '../lib/flow.js';
 
 interface Props {
   title: string;
@@ -15,8 +16,9 @@ interface Props {
 }
 
 const { title, description, back = '/lab/', compact = false } = Astro.props;
+// The card that led here grows into this top (flow.js).
 ---
-<div class:list={['lab-header', { compact }]}>
+<div class:list={['lab-header', { compact }]} style={flowStyle(Astro.url.pathname)}>
   <a class="back" href={back}><Icon name="back" />Lab</a>
   <h1 class="page-title">{title}</h1>
   {description && <p class="lede" data-lede>{description}</p>}

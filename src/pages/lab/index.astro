@@ -25,7 +25,7 @@ const popular = await popularLabItems();
       <section id="popular" aria-labelledby="popular-title">
         <h2 id="popular-title">Most Popular</h2>
         <ul class="cards">
-          {popular.map((item) => <LabItemCard {...item} />)}
+          {popular.map((item) => <LabItemCard {...item} flow={false} />)}
         </ul>
       </section>
     )}

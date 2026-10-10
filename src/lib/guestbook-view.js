@@ -45,6 +45,7 @@ function reply(note, face) {
 export function paperNote(note, face, now = new Date()) {
   const { colour, tilt } = lookOf(note.id);
   const card = make('article', 'note paper');
+  card.dataset.id = String(note.id);
   card.style.setProperty('--note', `var(--note-${colour})`);
   card.style.setProperty('--tilt', `${tilt}deg`);
   card.append(make('p', 'note-text', note.message), byline(note, now));

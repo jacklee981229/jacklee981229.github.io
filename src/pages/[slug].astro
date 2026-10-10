@@ -18,6 +18,7 @@ import { checkThese, lastUpdated, neighbours, RESERVED_SLUGS, tagCounts, topicCo
 import { TOPICS, topicOf } from '../lib/topics.js';
 import { coverOf, listedPosts, pagePosts, postUrl, summaryOf, tagUrl, type Post } from '../lib/collections';
 import { EXPERIMENTS } from '../lib/lab/tools.js';
+import { flowStyle } from '../lib/flow.js';
 
 export async function getStaticPaths() {
   const posts = await pagePosts();
@@ -47,7 +48,7 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
     <header class="post-top">
       <Icon name={topic.icon} class="mark" />
       <p class="topic" data-pagefind-ignore><Go href={`/writing/#${data.topic}`}>{topic.name}</Go></p>
-      <h1 class="title">{data.title}</h1>
+      <h1 class="title" style={flowStyle(Astro.url.pathname)}>{data.title}</h1>
       <div class="meta" data-pagefind-ignore>
         <span>Published <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time></span>
         {showUpdated && data.updated && <span>Updated <time datetime={data.updated.toISOString()}>{formatDate(data.updated)}</time></span>}
@@ -118,7 +119,6 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .meta, .actions { max-width: calc(100% - 9rem); }
   .post-top :global(.mark) { position: absolute; top: 50%; right: var(--space-7); width: 8.5rem; height: 8.5rem; translate: 0 -50%; rotate: -10deg; opacity: 0.22; stroke-width: 1.5; }
   .topic { margin: 0 0 var(--space-3); font-size: var(--text-ui); font-weight: 800; }
-  .topic :global(.go:hover), .topic :global(.go:focus-visible) { background: var(--on-colour-chip); }
   .title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: 900; line-height: 1.04; letter-spacing: -0.04em; text-wrap: balance; }
   .meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin-top: 1.25rem; color: var(--on-colour-soft); font-size: var(--text-ui); }
   .meta time, .views span { color: var(--on-colour); font-weight: 800; }
@@ -140,7 +140,6 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .foot { max-width: 40rem; margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--rule); }
   .license { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-sm); }
   .older-newer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-  /* Room at the sides for a link's arrow (.go in global.css) to slide out inside the box. */
   .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
   .older-newer > div:last-child { align-items: flex-end; text-align: right; }
   .label { color: var(--muted); font-size: 0.8125rem; }

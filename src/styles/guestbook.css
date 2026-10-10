@@ -10,7 +10,17 @@
 .note-reply svg { flex: none; width: 22px; height: 22px; }
 .note-reply p { margin: 0; overflow-wrap: anywhere; }
 
-.paper { --tilt: 0deg; margin: 0; padding: var(--space-5); border-radius: var(--radius-md); background: var(--note); color: var(--note-ink); box-shadow: var(--shadow-note); rotate: var(--tilt); }
+.paper { --tilt: 0deg; position: relative; margin: 0; padding: var(--space-5); border-radius: var(--radius-md); background: var(--note); color: var(--note-ink); box-shadow: var(--shadow-note); rotate: var(--tilt); }
+/* Pointed at, a note on the guestbook's wall lifts off it and straightens, its shadow growing. */
+.wall .paper { transition: rotate var(--motion-soft) var(--ease-spring), translate var(--motion-soft) var(--ease-spring), box-shadow var(--motion-soft) ease; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .wall .paper:hover { rotate: 0deg; translate: 0 -6px; box-shadow: var(--shadow-note-lifted); }
+}
+/* A note held for a look, on its writer's wall alone (guestbook.astro): stamped as it lands, under its byline. */
+.paper .stamp { display: block; width: fit-content; margin: var(--space-3) 0 0 auto; padding: 0.125rem var(--space-2); border: 2px solid var(--note-stamp); border-radius: var(--radius-xs); color: var(--note-stamp); font-size: var(--text-xs); font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; rotate: -8deg; animation: note-stamp var(--motion-soft) 520ms var(--ease-spring) both; }
+@keyframes note-stamp {
+  from { transform: scale(2.4); opacity: 0; }
+}
 .paper .note-text { font-size: var(--text-md); }
 
 .card-note { margin: 0; padding: var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }

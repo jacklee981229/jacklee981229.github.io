@@ -1,11 +1,10 @@
 ---
-// A link that stands on its own, drawn as `.go` in global.css (no underline, a pill and an arrow under the mouse).
+// A link that stands on its own, drawn as `.go` in global.css: no underline, and a press that gives a little.
 import type { HTMLAttributes } from 'astro/types';
-import Icon from './Icon.astro';
 
 type Props = HTMLAttributes<'a'>;
 
 // `rest` carries the parent's style-scope attribute, so the page placing it can still style it.
 const { class: className, ...rest } = Astro.props;
 ---
-<a class:list={['go', className]} {...rest}><slot /><Icon name="arrow" /></a>
+<a class:list={['go', className]} {...rest}><slot /></a>

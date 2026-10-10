@@ -98,8 +98,9 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 
   /** How long half a turn of the table takes, in milliseconds. */
   const TURN_MS = 950;
-  /** How long the gallery takes to open out of an item's card, in milliseconds. */
+  /** How long the gallery takes to open out of an item's card, and to close back into it, in milliseconds. */
   const OPEN_MS = 420;
+  const CLOSE_MS = 340;
   /** How far each card stands from the table's middle: this share of the table's width, up to so many pixels. */
   const RADIUS_SHARE = 0.3;
   const MOST_RADIUS = 340;
@@ -266,7 +267,61 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     for (const el of rest) el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: OPEN_MS * 0.7, delay: OPEN_MS * 0.4, easing: 'ease', fill: 'backwards' });
   }
 
+  /** The gallery closes back into the item's card, the way it came: the middle picture shrinks into the card's cover
+      as the rest and the dark fade. Less motion: it just closes. */
+  let closing = false;
+  async function closeIn() {
+    if (closing || !gallery.open) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !opener || !slides.length) return gallery.close();
+    closing = true;
+    const middle = slides[current];
+    const to = (opener.querySelector('.cover') ?? opener).getBoundingClientRect();
+    const from = middle.getBoundingClientRect();
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    const placed = middle.style.transform;
+    gallery.classList.add('closing');
+    const shrink = middle.animate([{ transform: `translate(0px, 0px) ${placed} scale(1)` }, { transform: `translate(${dx}px, ${dy}px) ${placed} scale(${to.width / from.width})` }], { duration: CLOSE_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' });
+    const rest = [...slides.filter((slide) => slide !== middle), ...gallery.querySelectorAll<HTMLElement>('.gallery-head, .step, .gallery-count, .close')];
+    for (const el of rest) el.animate([{ opacity: getComputedStyle(el).opacity }, { opacity: 0 }], { duration: CLOSE_MS * 0.6, easing: 'ease', fill: 'forwards' });
+    await shrink.finished.catch(() => {});
+    gallery.close();
+    gallery.classList.remove('closing');
+    for (const el of gallery.querySelectorAll<HTMLElement>('.gallery-head, .step, .gallery-count, .close')) el.getAnimations().forEach((a) => a.cancel());
+    closing = false;
+  }
+  // Every way out closes it back into its card: the Close button, Esc, and a tap on the dark around the pictures.
+  gallery.querySelector('form[method="dialog"]')!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    closeIn();
+  });
+  gallery.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeIn();
+  });
+
   for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) item.addEventListener('click', () => openGallery(item));
+
+  // A card tilts toward the mouse, at most 9 degrees, with the shine across its cover following it. Mouse only, and not
+  // for less motion.
+  const tilting = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
+  for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) {
+    item.addEventListener('pointermove', (e) => {
+      if (!tilting.matches) return;
+      const box = item.getBoundingClientRect();
+      const x = (e.clientX - box.left) / box.width;
+      const y = (e.clientY - box.top) / box.height;
+      item.classList.add('is-tilting');
+      item.style.setProperty('--ry', `${(x - 0.5) * 18}deg`);
+      item.style.setProperty('--rx', `${(0.5 - y) * 14}deg`);
+      item.style.setProperty('--shine', `${100 - x * 100}%`);
+    });
+    item.addEventListener('pointerleave', () => {
+      item.classList.remove('is-tilting');
+      item.style.removeProperty('--rx');
+      item.style.removeProperty('--ry');
+    });
+  }
   for (const button of gallery.querySelectorAll<HTMLElement>('[data-gallery-step]')) button.addEventListener('click', () => go(Number(button.dataset.galleryStep)));
   gallery.addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -289,7 +344,7 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     downAt = null;
   });
   stage.addEventListener('click', (e) => {
-    if (e.target === stage && !swiped) gallery.close();
+    if (e.target === stage && !swiped) closeIn();
   });
   addEventListener('resize', () => {
     if (gallery.open) lay();
@@ -310,7 +365,8 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   if (linkedItem) {
     history.replaceState(null, '', `#${tabPart}`);
     const later = () => {
-      linkedItem.scrollIntoView({ block: 'nearest' });
+      // At once, not gliding (global.css), so the gallery grows out of the card where it has come to rest.
+      linkedItem.scrollIntoView({ block: 'nearest', behavior: 'instant' });
       setTimeout(() => openGallery(linkedItem), 500);
     };
     if (document.readyState === 'complete') later();
@@ -340,7 +396,13 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   .items li { display: flex; flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.01px); min-width: 0; }
   /* An item's card: its cover across the top, its name and stars in white under it, on its cover's own colour
      (cardColours in shelves.js; the Collection's orange for an item without a cover). */
-  .item { display: grid; align-content: start; justify-items: center; width: 100%; overflow: hidden; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-card); color: var(--on-colour); font: inherit; text-align: center; cursor: pointer; transition: transform 0.2s ease; -webkit-tap-highlight-color: transparent; }
+  .item { display: grid; align-content: start; justify-items: center; width: 100%; overflow: hidden; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-card); color: var(--on-colour); font: inherit; text-align: center; cursor: pointer; transform: perspective(800px) translateY(var(--lift, 0px)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.4s var(--ease-out); -webkit-tap-highlight-color: transparent; }
+  /* Under the mouse a card tilts toward it, like a game case in the hand, and a shine runs over its cover (the script
+     sets --rx, --ry and --shine). It follows the mouse closely, and settles back slowly when the mouse leaves. */
+  .item.is-tilting { transition: transform 80ms linear; }
+  .cover { position: relative; }
+  .cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.32) 48%, transparent 62%) var(--shine, 100%) 0 / 250% 100% no-repeat; opacity: 0; pointer-events: none; transition: opacity var(--motion-soft) ease; }
+  .item.is-tilting .cover::after { opacity: 1; }
   /* Every cover is a poster's shape, whatever the picture's own: a wider picture loses its sides. */
   .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; background: var(--wash); }
   .picture { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -352,9 +414,9 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   .item :global(.stars) { --star-shadow: var(--on-colour-faint); margin-top: var(--space-1); }
   .item :global(.stars .full) { fill: var(--on-colour); }
   /* Like the Lab's cards: the one pointed at, or reached with the keyboard, rises. */
-  .item:focus-visible { transform: translateY(-4px); }
+  .item:focus-visible { --lift: -4px; }
   @media (hover: hover) {
-    .item:hover { transform: translateY(-4px); }
+    .item:hover { --lift: -4px; }
   }
 
   @media (max-width: 999px) {
@@ -376,7 +438,8 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   /* The Close button's form takes no row of its own: the button sits fixed at the top right. */
   .gallery form { display: contents; }
   /* The page behind is blurred too, so its covers don't compete with the gallery's dimmed side pictures. */
-  .gallery::backdrop { background: var(--backdrop-dark); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: gallery-dim 0.3s ease; }
+  .gallery::backdrop { background: var(--backdrop-dark); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: gallery-dim 0.3s ease; transition: opacity 0.34s ease; }
+  .gallery.closing::backdrop { opacity: 0; }
   @keyframes gallery-dim { from { opacity: 0; } }
   .gallery-head { display: grid; justify-items: center; gap: var(--space-1); padding: var(--space-5) 8.5rem var(--space-3); text-align: center; }
   .gallery-head h2 { margin: 0; font-size: var(--text-lg); line-height: 1.25; }

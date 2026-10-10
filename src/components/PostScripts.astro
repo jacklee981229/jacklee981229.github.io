@@ -27,6 +27,7 @@ import Icon from './Icon.astro';
     try {
       await navigator.clipboard.writeText(text);
       label.textContent = done;
+      button.dataset.copied = '';
     } catch {
       if (fallback) {
         getSelection()?.selectAllChildren(fallback);
@@ -36,7 +37,10 @@ import Icon from './Icon.astro';
       }
     }
     announce(label.textContent ?? '');
-    setTimeout(() => { label.textContent = label.dataset.original ?? ''; }, 2000);
+    setTimeout(() => {
+      label.textContent = label.dataset.original ?? '';
+      delete button.dataset.copied;
+    }, 2000);
   }
 
   for (const frame of document.querySelectorAll<HTMLElement>('.prose figure.code')) {

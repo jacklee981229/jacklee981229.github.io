@@ -5,6 +5,7 @@
 // The sizes and the spacing live here and in global.css's .page-title and .lede, so pages can't drift apart. The
 // home page, posts and the Lab's own pages (LabHeader) have tops of their own.
 import Icon, { type IconName } from './Icon.astro';
+import { flowStyle } from '../lib/flow.js';
 
 interface Props {
   title: string;
@@ -16,8 +17,9 @@ interface Props {
 }
 
 const { title, lead, tone, icon } = Astro.props;
+// The home page's card or door that led here grows into this top (flow.js).
 ---
-<header class:list={['page-top', tone]}>
+<header class:list={['page-top', tone]} style={flowStyle(Astro.url.pathname)}>
   <Icon name={icon} class="mark" />
   <h1 class="page-title">{title}</h1>
   {lead && <p class="lede">{lead}</p>}

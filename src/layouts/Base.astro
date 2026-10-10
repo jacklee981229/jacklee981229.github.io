@@ -47,6 +47,13 @@ const structured = Astro.url.pathname === '/' && {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Pages flow into each other in browsers that can (global.css styles it). The opt-in is here, first thing, not in
+         the stylesheet: a page shown before its stylesheet is read would otherwise refuse the flow, and in tests most
+         pages with pictures did. -->
+    <style is:inline>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
+    <!-- And the page waits to show until its main part is read, so the top a card grows into is there to grow into:
+         without this, pages with pictures showed before their top and only faded in. -->
+    <link rel="expect" href="#main" blocking="render" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="author" content={SITE.author} />
@@ -122,7 +129,7 @@ const structured = Astro.url.pathname === '/' && {
     </main>
     <NightSky />
     <Footer />
-    <BackToTop />
+    <BackToTop progress={Boolean(article)} />
     <SearchDialog />
     <p class="visually-hidden" aria-live="polite" data-announcer></p>
     <!-- Screen readers read this out for links to other sites, which open in a new tab (src/lib/links.js). -->

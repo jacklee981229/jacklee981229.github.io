@@ -10,6 +10,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   <div class="wrap row">
     <a class="brand" href="/"><Fragment set:html={logoSvg('menu', 'width="28" height="28" aria-hidden="true"')} />{SITE.title}</a>
     <nav class="nav" aria-label="Main">
+      <span class="nav-pill" aria-hidden="true"></span>
       {NAV.map((item) => (
         <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined} style={'accent' in item ? `--accent: var(--accent-${item.accent})` : undefined}>
           <Icon name={item.icon} /><span>{item.label}</span>
@@ -40,26 +41,79 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   // The switching itself is shared with the command palette (src/lib/theme.ts), so the two always agree.
   document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]').forEach((b) => b.addEventListener('click', switchTheme));
   labelThemeButtons();
+
+  // A soft pill follows the mouse (or the keyboard's focus) along the menu, sliding from word to word, and fades when
+  // it leaves. It appears where it's first wanted rather than sliding in from where it last was.
+  const menu = document.querySelector<HTMLElement>('.nav');
+  const pill = menu?.querySelector<HTMLElement>('.nav-pill');
+  if (menu && pill) {
+    const reach = 12;
+    const to = (a: HTMLElement) => {
+      const fresh = !pill.classList.contains('is-on');
+      if (fresh) pill.style.transition = 'none';
+      pill.style.width = `${a.offsetWidth + reach * 2}px`;
+      pill.style.transform = `translateX(${a.offsetLeft - reach}px)`;
+      if (fresh) {
+        void pill.offsetWidth;
+        pill.style.transition = '';
+      }
+      pill.classList.add('is-on');
+    };
+    menu.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
+      if (matchMedia('(hover: hover)').matches) a.addEventListener('pointerenter', () => to(a));
+      a.addEventListener('focus', () => {
+        if (a.matches(':focus-visible')) to(a);
+      });
+    });
+    menu.addEventListener('pointerleave', () => {
+      if (!menu.contains(document.activeElement)) pill.classList.remove('is-on');
+    });
+    menu.addEventListener('focusout', (e) => {
+      if (!menu.contains(e.relatedTarget as Node | null)) pill.classList.remove('is-on');
+    });
+  }
 </script>
 
 <style>
-  .site-header { border-bottom: 1px solid var(--rule); }
+  /* It holds still while the page under it changes (global.css). */
+  .site-header { border-bottom: 1px solid var(--rule); view-transition-name: site-header; }
   .row { display: flex; align-items: center; gap: var(--space-6); min-height: 4rem; }
   .brand { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: var(--display-weight); letter-spacing: -0.015em; text-decoration: none; white-space: nowrap; }
-  .nav { display: flex; gap: var(--space-5); }
-  .nav a { display: inline-flex; align-items: center; gap: 0.375rem; padding-block: 1.25rem; color: var(--muted); font-size: var(--text-ui); font-weight: 500; text-decoration: none; }
+  /* Pointed at, the face tilts its head and the light runs across its glasses (the logo's .glint pixels). */
+  .brand :global(svg) { transition: transform var(--motion-soft) var(--ease-spring); }
+  .brand :global(.glint) { transform-box: fill-box; }
+  @media (prefers-reduced-motion: no-preference) {
+    .brand:focus-visible :global(svg) { transform: rotate(-8deg); }
+    .brand:focus-visible :global(.glint) { animation: logo-glint 700ms steps(4, end); }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .brand:hover :global(svg) { transform: rotate(-8deg); }
+    .brand:hover :global(.glint) { animation: logo-glint 700ms steps(4, end); }
+  }
+  @keyframes logo-glint {
+    45% { transform: translateX(300%); opacity: 1; }
+    46% { transform: translateX(300%); opacity: 0; }
+    55% { transform: none; opacity: 0; }
+  }
+  .nav { position: relative; display: flex; gap: var(--space-5); }
+  .nav a { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 0.375rem; padding-block: 1.25rem; color: var(--muted); font-size: var(--text-ui); font-weight: 500; text-decoration: none; }
+  .nav-pill { position: absolute; top: 50%; left: 0; height: 2.25rem; margin-top: -1.125rem; border-radius: var(--radius-pill); background: var(--wash); opacity: 0; pointer-events: none; transition: transform var(--motion-soft) var(--ease-out), width var(--motion-soft) var(--ease-out), opacity var(--motion-quick) ease; }
+  .nav-pill.is-on { opacity: 1; }
   /* Each part's icon in its own colour (--accent, from the menu in site.ts); Home's follows the words. */
   .nav a :global(.icon) { flex: none; width: 18px; height: 18px; color: var(--accent, currentColor); stroke-width: 2.2; }
   .nav a:hover { color: var(--ink); }
   /* The line under the current page is a background: drawn as an inset shadow, it left a faint line down the
      link's right edge on 150% screens. */
   .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--ink), var(--ink)) bottom / 100% 2px no-repeat; }
-  /* The word grows rather than the link, so the line under the current page stays put. */
-  .nav span { display: inline-block; transition: transform 0.15s ease; }
-  .nav a:focus-visible span { transform: scale(1.08); }
-  /* Mouse only: on a touch screen, a tapped word would stay enlarged. */
-  @media (hover: hover) {
-    .nav a:hover span { transform: scale(1.08); }
+  /* The icon of the word pointed at gives a hop. Mouse only: a touch screen would leave it mid-hop. */
+  @media (prefers-reduced-motion: no-preference) {
+    .nav a:focus-visible :global(.icon) { animation: nav-hop 420ms var(--ease-spring); }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .nav a:hover :global(.icon) { animation: nav-hop 420ms var(--ease-spring); }
+  }
+  @keyframes nav-hop {
+    40% { transform: translateY(-3px) scale(1.12); }
   }
   .tools { display: flex; gap: var(--space-1); margin-left: auto; }
   .theme-btn .sun, .theme-btn .star { display: none; }

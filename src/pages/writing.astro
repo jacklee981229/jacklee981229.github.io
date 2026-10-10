@@ -19,7 +19,7 @@ const start = featured(posts);
       {start.length > 0 && (
         <section class="topic start" aria-labelledby="start-here">
           <h2 id="start-here"><Icon name="star" />Start here</h2>
-          <PostList posts={start} />
+          <PostList posts={start} flow={false} />
         </section>
       )}
       {topics.map((t) => (

@@ -110,6 +110,11 @@
   --note-ink: #2A2116;
   --note-reply: rgb(255 255 255 / 0.55);
   --shadow-note: 0 10px 24px -12px rgb(0 0 0 / 0.35);
+  --shadow-note-lifted: 0 22px 36px -14px rgb(0 0 0 / 0.45);
+  /* The soft light that follows the mouse over Jack's card on the home page: About's purple, faint. */
+  --card-light: rgb(191 90 242 / 0.12);
+  /* The red stamp on a note waiting for a look: 4.6:1 or more on every note colour (measured). */
+  --note-stamp: #B91C1C;
   /* The month's changes on About (ChangelogMonth.astro), on the Changelog's colours in both themes: a day's square
      whiter the more changes it had, and the outline of a day still to come. */
   --changelog-step-0: rgb(255 255 255 / 0.14);
@@ -312,6 +317,13 @@
   /* The big cards: the home page's, and every page's top. */
   --radius-2xl: 28px;
   --radius-pill: 999px;
+
+  /* How things answer the visitor (a hover, a press, a page flowing into the next): quick for small answers, soft for
+     things settling, and a spring for a little hop past the mark. */
+  --motion-quick: 160ms;
+  --motion-soft: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* The dark theme; and, in either theme, a piece marked data-dark (the home page's toy, a dark screen). */
@@ -328,6 +340,7 @@
   --focus: #7DB0FF;
   --wash: rgb(255 255 255 / 0.07);
   --band: rgb(255 255 255 / 0.03);
+  --card-light: rgb(255 255 255 / 0.07);
   /* No fade in the dark: the page is one colour. */
   --paper-end: var(--paper);
   --visited-near: #E31A1C;

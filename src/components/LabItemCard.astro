@@ -12,9 +12,9 @@ import { postUrl, summaryOf, type LabItem } from '../lib/collections';
 import { todaysToy } from '../lib/home.js';
 import { EFFECTS, toolUrl, worldUrl } from '../lib/lab/tools.js';
 
-type Props = LabItem;
+type Props = LabItem & { flow?: boolean };
 
-const { tool, post, world } = Astro.props;
+const { tool, post, world, flow } = Astro.props;
 // The effects kept out of the home page's toy are kept out here too, so the two show the same effect on the day of a
 // build.
 const drawn = todaysToy(EFFECTS.filter((e) => e.daily !== false), new Date())?.slug ?? EFFECTS[0].slug;
@@ -22,18 +22,18 @@ const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
 ---
 {tool ? (
   tool.example ? (
-    <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} />
+    <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} flow={flow} />
   ) : (
-    <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind}>
+    <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind} flow={flow}>
       {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : tool.slug === 'writing-islands' ? <WritingIslandsCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
     </LabCard>
   )
 ) : post ? (
-  <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)} kind="game">
+  <LabCard href={postUrl(post)} icon="gamepad" name={post.data.title} description={summaryOf(post)} kind="game" flow={flow}>
     <Cover slot="cover" post={post} variant="mini" />
   </LabCard>
 ) : world && (
-  <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description} kind="world">
+  <LabCard href={worldUrl(world.slug)} icon={world.icon} name={world.name} description={world.description} kind="world" flow={flow}>
     <WorldCover slot="cover" slug={world.slug} />
   </LabCard>
 )}

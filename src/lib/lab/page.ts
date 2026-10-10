@@ -27,6 +27,7 @@ export function wireCopyButtons() {
         try {
           await navigator.clipboard.writeText(text);
           label.textContent = 'Copied';
+          button.dataset.copied = '';
         } catch {
           // The clipboard can be blocked; with the text selected, Ctrl+C still works.
           if (source instanceof HTMLTextAreaElement || source instanceof HTMLInputElement) source.select();
@@ -36,7 +37,10 @@ export function wireCopyButtons() {
       }
       announce(label.textContent ?? '');
       clearTimeout(timer);
-      timer = window.setTimeout(() => { label.textContent = original; }, 2000);
+      timer = window.setTimeout(() => {
+        label.textContent = original;
+        delete button.dataset.copied;
+      }, 2000);
     });
   }
 }

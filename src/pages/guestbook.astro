@@ -67,6 +67,16 @@ import '../styles/guestbook.css';
     .catch(() => { one('[data-count]').textContent = "Couldn't load the notes. Please try again later."; });
 
   const left = () => { one('[data-left]').textContent = `${message.maxLength - [...message.value].length} left`; };
+
+  // A posted note flies from the message box onto the wall; with less motion asked for, it's simply there.
+  const land = (note: HTMLElement, from: DOMRect) => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const to = note.getBoundingClientRect();
+    note.animate([
+      { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(0.85) rotate(-8deg)`, opacity: 0.4 },
+      { transform: 'none', opacity: 1 },
+    ], { duration: 650, easing: 'cubic-bezier(0.3, 1.25, 0.4, 1)' });
+  };
   message.addEventListener('input', left);
 
   // The browser checks the required fields first; the Worker checks everything again and says what's wrong.
@@ -81,11 +91,27 @@ import '../styles/guestbook.css';
         said.textContent = data.error ?? "Couldn't post your note. Please try again.";
         return;
       }
-      if (data.held) said.textContent = "Thanks! Your note will show once I've had a look.";
-      else {
+      const from = message.getBoundingClientRect();
+      if (data.held) {
+        said.textContent = "Thanks! Your note will show once I've had a look.";
+        // It lands on the wall stamped, for its writer alone and until the page is left: everyone else sees it once
+        // Jack has had a look.
+        const fields = Object.fromEntries(new FormData(form)) as Record<string, string>;
+        const mine = paperNote({ id: Date.now(), name: fields.name, website: fields.website || null, message: fields.message, created_at: new Date().toISOString() } as Note, face);
+        const stamp = document.createElement('span');
+        stamp.className = 'stamp';
+        stamp.textContent = 'Waiting for a look';
+        mine.append(stamp);
+        const wall = one('[data-wall]');
+        wall.querySelectorAll('.paper:not([data-id])').forEach((empty) => empty.remove());
+        wall.prepend(mine);
+        land(mine, from);
+      } else {
         notes = [data.note, ...notes];
         show();
         said.textContent = 'Thanks! Your note is up.';
+        const landed = one('[data-wall]').querySelector<HTMLElement>(`[data-id="${data.note.id}"]`);
+        if (landed) land(landed, from);
       }
       form.reset();
       left();

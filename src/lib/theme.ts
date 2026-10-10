@@ -42,11 +42,23 @@ export const labelThemeButtons = () => {
   });
 };
 
-/** Runs a change with the page's cross-fade (its length is in global.css); at once for less motion or older browsers. */
-const fade = (change: () => void) => {
-  const smooth = 'startViewTransition' in document && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (smooth) document.startViewTransition(change);
-  else change();
+/**
+ * Runs a change in a circle at `from` (the button pressed; the header's theme button when the palette asked): toward
+ * light, the new theme spreads out of the button over the page; toward dark (`inward`), the light page is drawn back
+ * into it. At once for less motion or older browsers.
+ */
+const spread = (change: () => void, inward: boolean, from?: Element | null) => {
+  if (!('startViewTransition' in document) || matchMedia('(prefers-reduced-motion: reduce)').matches) return change();
+  const box = (from ?? document.querySelector('[data-theme-toggle]'))?.getBoundingClientRect();
+  const x = box?.width ? box.left + box.width / 2 : innerWidth / 2;
+  const y = box?.height ? box.top + box.height / 2 : innerHeight / 2;
+  const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  root.classList.add('spreading');
+  root.classList.toggle('inward', inward);
+  const circle = [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`];
+  const turn = document.startViewTransition(change);
+  turn.ready.then(() => root.animate({ clipPath: inward ? circle.reverse() : circle }, { duration: 500, easing: inward ? 'cubic-bezier(0.6, 0, 0.8, 0.2)' : 'cubic-bezier(0.2, 0.8, 0.2, 1)', pseudoElement: inward ? '::view-transition-old(root)' : '::view-transition-new(root)' }));
+  turn.finished.finally(() => root.classList.remove('spreading', 'inward'));
 };
 
 /** The theme back to what the visitor chose before the night, or the system's when they never chose. */
@@ -57,7 +69,7 @@ const daylight = () => {
 
 /** Night on or off. Night is the dark theme with a sky of its own (data-sky="night"). */
 export function setNight(on: boolean) {
-  fade(() => {
+  spread(() => {
     if (on) {
       root.dataset.sky = 'night';
       root.dataset.theme = 'dark';
@@ -69,15 +81,15 @@ export function setNight(on: boolean) {
       write(NIGHT_KEY, null);
     }
     labelThemeButtons();
-  });
+  }, on);
 }
 
 /** The theme button: light to dark and back, or out of the night sky when it's on. */
-export function switchTheme() {
+export function switchTheme(event?: Event) {
   if (isNight()) return setNight(false);
-  fade(() => {
+  spread(() => {
     root.dataset.theme = isDark() ? 'light' : 'dark';
     write(THEME_KEY, root.dataset.theme);
     labelThemeButtons();
-  });
+  }, !isDark(), event?.currentTarget as Element | null);
 }
