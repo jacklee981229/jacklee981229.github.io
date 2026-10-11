@@ -6,7 +6,8 @@
 //   so it clears even if the script below never runs.
 // - The loading screen, on any other page that takes more than 0.4 s to load, so a quick or saved page never shows
 //   it: the logo fades to half and back once a second until the page has loaded (the pictures on screen, fonts and
-//   scripts; pictures further down load as they're scrolled to, so they don't count), at 6 s at the latest.
+//   scripts; pictures further down load as they're scrolled to, so they don't count), at 6 s at the latest. Once it
+//   shows, it stays a second at least: a page that finished just after 0.4 s made it flash in and out like a blink.
 //   ?loading in the address makes a page pretend to take 3 s.
 // A click, a key or a scroll ends either at once. With less motion the logo stays still and nothing fades.
 import { SITE } from '../site';
@@ -55,15 +56,22 @@ const words = SITE.title.split(' ');
     }
 
     var pretend = new URLSearchParams(location.search).has('loading');
+    var shownAt = null;
+    var stay;
     var done = function () {
       clearTimeout(show);
       clearTimeout(latest);
+      clearTimeout(stay);
       removeEventListener('load', loaded);
       listen('removeEventListener', done);
       root.classList.remove('loading');
     };
-    var loaded = function () { if (!pretend) done(); };
-    var show = setTimeout(function () { root.classList.add('loading'); }, 400);
+    var loaded = function () {
+      if (pretend) return;
+      if (shownAt === null) return done();
+      stay = setTimeout(done, shownAt + 1000 - performance.now());
+    };
+    var show = setTimeout(function () { root.classList.add('loading'); shownAt = performance.now(); }, 400);
     var latest = setTimeout(done, pretend ? 3000 : 6000);
     addEventListener('load', loaded);
     listen('addEventListener', done);
@@ -72,9 +80,10 @@ const words = SITE.title.split(' ');
 
 <style>
   /* Hidden unless a mood is on. The welcome shows from the page's first paint; the loading screen fades in quickly
-     once the page turns out slow, and out a little slower. */
-  .splash { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(var(--paper), var(--paper-end)) var(--paper-end); opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0s 0.3s; }
-  :global(html.welcome) .splash, :global(html.loading) .splash { opacity: 1; visibility: visible; transition: opacity 0.2s ease; }
+     once the page turns out slow, and out slowly, starting gently, so it reads as a fade and not a cut. Clicks go
+     through it to the page while it fades out. */
+  .splash { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(var(--paper), var(--paper-end)) var(--paper-end); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.5s ease-in-out, visibility 0s 0.5s; }
+  :global(html.welcome) .splash, :global(html.loading) .splash { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.2s ease; }
   :global([data-sky='night']) .splash { background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
   .mark { position: relative; }
   .mark :global(svg) { display: block; }

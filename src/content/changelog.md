@@ -102,3 +102,4 @@
 - 2026-10-12 fix: Fixed two broken links in old posts
 - 2026-10-12 design: Gave the [Build Log](/lab/build-log/) the site's own cards
 - 2026-10-12 improved: Livened up the [Build Log](/lab/build-log/) with flares and a slow wave of light
+- 2026-10-12 improved: Made the loading screen stay a second and fade out instead of blinking
