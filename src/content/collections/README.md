@@ -19,7 +19,8 @@ Each folder here is one collection on the [Collections page](https://jacklee9812
 
 The rules:
 
-- **Order:** items show in the order they're listed. Move the lines to move an item.
+- **Order:** most stars first; items with the same stars show in the order they're listed, so move the lines to move
+  one among its equals. The first 5 show at once, and the rest wait in a pile that deals out 5 more at a press.
 - **Stars:** from 1 to 5, halves allowed: `4` or `4.5`.
 - **Picture:** a `.jpg`, `.jpeg`, `.png` or `.webp` file, named exactly as the file is, capital letters included. Leave the `image:` line out and the item gets a plain cover with its name.
 - **Picture shape:** on the board every cover is shown as a poster, 2 wide by 3 tall, so a wider picture loses its sides there. Any size works: the site makes its own smaller copies.

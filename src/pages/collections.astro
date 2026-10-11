@@ -5,7 +5,7 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Stars from '../components/Stars.astro';
 import Icon from '../components/Icon.astro';
-import { galleryOf, itemKey, pictureOf } from '../lib/shelves.js';
+import { PILE_STEP, galleryOf, itemKey, moreAfter, pictureOf, pileWords, shineOf } from '../lib/shelves.js';
 import { cardColoursOf, pictures } from '../lib/shelf-pictures';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
@@ -38,22 +38,26 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 
       <div class="stage">
         <div class="table" data-table>
-          {shelves.map((shelf, i) => (
+          {shelves.map((shelf, i) => {
+            const total = shelf.data.items.length;
+            const first = moreAfter(0, total);
+            const words = pileWords(first, total);
+            return (
             <section class="card" id={`shelf-${shelf.id}`} role="tabpanel" aria-labelledby={`tab-${shelf.id}`} hidden={i !== 0}>
               <div class="board">
-                <ul class="items">
+                <ul class="items" id={`items-${shelf.id}`}>
                   {shelf.data.items.map((item, index) => {
                     const picture = pictureOf(pictures, shelf.id, item)?.default;
                     const shown = galleryOf(pictures, shelf.id, item).map((p) => p.default);
                     const colour = colours.get(`${shelf.id}/${item.name}`);
                     return (
-                      <li style={colour && `--card: ${colour.top}; --card-deep: ${colour.bottom}`} data-key={itemKey(item, index)}>
+                      <li style={colour && `--card: ${colour.top}; --card-deep: ${colour.bottom}`} data-key={itemKey(item, index)} data-shine={shineOf(item.stars)} hidden={index >= first}>
                         <button type="button" class="item" aria-haspopup="dialog" data-item>
                           {/* The name is right under the cover, so the picture needs no words of its own. */}
                           {picture ? (
-                            <span class="cover"><Image class="picture" src={picture} alt="" width={Math.min(picture.width, COVER_WIDTH)} /></span>
+                            <span class="cover"><Image class="picture" src={picture} alt="" width={Math.min(picture.width, COVER_WIDTH)} /><span class="film"></span><span class="glints"></span></span>
                           ) : (
-                            <span class="cover plain" aria-hidden="true"><b>{item.name}</b></span>
+                            <span class="cover plain" aria-hidden="true"><b>{item.name}</b><span class="film"></span><span class="glints"></span></span>
                           )}
                           <strong class="name"><span>{item.name}</span></strong>
                           <Stars stars={item.stars} />
@@ -67,10 +71,23 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
                       </li>
                     );
                   })}
+                  {/* The cards still to come wait in a pile after the ones out; a press deals out the next few. The
+                      script lays the next covers on it. */}
+                  {first < total && (
+                    <li data-pile>
+                      <button type="button" class="pile" aria-controls={`items-${shelf.id}`} aria-label={words.label} data-pile-button>
+                        <span class="stack" aria-hidden="true" data-stack></span>
+                        <strong class="name"><span data-pile-more>{words.more}</span></strong>
+                        <span class="pile-count" data-pile-count>{words.count}</span>
+                      </button>
+                    </li>
+                  )}
                 </ul>
+                {first < total && <p class="gather" hidden data-gather-row><button type="button" class="button" data-gather>Back to the top {PILE_STEP}</button></p>}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -94,7 +111,7 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 </Base>
 
 <script>
-  import { stepsFrom, turnFrames } from '../lib/shelves.js';
+  import { moreAfter, pileWords, stepsFrom, turnFrames } from '../lib/shelves.js';
   import { slidePills } from '../lib/switch-pill';
 
   slidePills();
@@ -117,6 +134,16 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   const FAR = { scale: 0.55, filter: 'brightness(0.3) blur(3px)' };
   /** How far a finger has to travel across the gallery to count as a swipe, in pixels; less is a tap. */
   const SWIPE = 40;
+  /** The pile deals each card out in a little arc, one after another (milliseconds for each, and between them), and
+      gathers them back quicker. A card on the pile is this share of a card on the board, the arc this high in pixels. */
+  const DEAL_MS = 600;
+  const DEAL_GAP = 80;
+  const GATHER_MS = 300;
+  const GATHER_GAP = 30;
+  const PILE_CARD = 0.74;
+  const ARC = 34;
+  /** How each of the top three cards on the pile lies, from the top one down, in degrees. */
+  const PILE_TURNS = [0, 6, -7];
 
   const table = document.querySelector<HTMLElement>('[data-table]')!;
   const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
@@ -157,6 +184,7 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     }
     from.hidden = true;
     front = index;
+    glint();
     if (chosen() !== front) show(chosen());
   }
 
@@ -305,26 +333,153 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 
   for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) item.addEventListener('click', () => openGallery(item));
 
-  // A card tilts toward the mouse, at most 9 degrees, with the shine across its cover following it. Mouse only, and not
-  // for less motion.
+  /** Lights a card's shine: where the light falls on it (0 to 1 across and down) and how bright, from 0 to 1. */
+  function light(item: HTMLElement, x: number, y: number, lit: number) {
+    const s = item.style;
+    s.setProperty('--mx', `${(x * 100).toFixed(1)}%`);
+    s.setProperty('--my', `${(y * 100).toFixed(1)}%`);
+    s.setProperty('--px', x.toFixed(3));
+    s.setProperty('--py', y.toFixed(3));
+    s.setProperty('--shine-x', `${(100 - x * 100).toFixed(1)}%`);
+    s.setProperty('--angle', `${((Math.atan2(y - 0.5, x - 0.5) * 180) / Math.PI + 90).toFixed(1)}deg`);
+    s.setProperty('--lit', lit.toFixed(3));
+  }
+
+  // A card tilts toward the mouse, at most 9 degrees, its shine lit where the mouse is. Mouse only, and not for less
+  // motion.
   const tilting = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
   for (const item of document.querySelectorAll<HTMLElement>('[data-item]')) {
     item.addEventListener('pointermove', (e) => {
       if (!tilting.matches) return;
       const box = item.getBoundingClientRect();
-      const x = (e.clientX - box.left) / box.width;
-      const y = (e.clientY - box.top) / box.height;
+      const x = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
+      const y = Math.min(1, Math.max(0, (e.clientY - box.top) / box.height));
       item.classList.add('is-tilting');
       item.style.setProperty('--ry', `${(x - 0.5) * 18}deg`);
       item.style.setProperty('--rx', `${(0.5 - y) * 14}deg`);
-      item.style.setProperty('--shine', `${100 - x * 100}%`);
+      light(item, x, y, 1);
     });
     item.addEventListener('pointerleave', () => {
       item.classList.remove('is-tilting');
-      item.style.removeProperty('--rx');
-      item.style.removeProperty('--ry');
+      for (const name of ['--rx', '--ry', '--lit']) item.style.removeProperty(name);
     });
   }
+
+  // A phone has no mouse to follow: each card catches the light as it scrolls past the middle of the screen, the
+  // light running across it as it rises. Not for less motion.
+  const glinting = matchMedia('(hover: none) and (prefers-reduced-motion: no-preference)');
+  let glintFrame = 0;
+  function glint() {
+    glintFrame = 0;
+    if (!glinting.matches) return;
+    for (const item of cards[front].querySelectorAll<HTMLElement>('[data-item]')) {
+      const box = item.getBoundingClientRect();
+      if (!box.height || box.bottom < 0 || box.top > innerHeight) continue;
+      const along = (box.top + box.height / 2) / innerHeight;
+      const t = Math.min(1, Math.max(0, 1.25 - along * 1.5));
+      light(item, t, t, Math.max(0, 1 - Math.abs(along - 0.5) * 2.2));
+    }
+  }
+  const glintSoon = () => (glintFrame ||= requestAnimationFrame(glint));
+  addEventListener('scroll', glintSoon, { passive: true });
+  addEventListener('resize', glintSoon);
+
+  // The pile: each collection shows its best few, and the rest wait in a pile in the next place on the board. A press
+  // deals out the next few, the pile moving on after them, until all are out; then a button under the board gathers
+  // them back into the pile.
+  /** A list's cards, without its pile. */
+  const cardsIn = (list: HTMLElement) => [...list.querySelectorAll<HTMLElement>(':scope > li:not([data-pile])')];
+
+  /** Shows a list's first `count` cards and hides the rest. The pile holds the rest, with the next covers on it, or
+      gives way to the button that gathers them back once all are out. */
+  function setShown(list: HTMLElement, count: number) {
+    const all = cardsIn(list);
+    all.forEach((li, i) => (li.hidden = i >= count));
+    const pile = list.querySelector<HTMLElement>('[data-pile]');
+    if (!pile) return;
+    const shown = Math.min(count, all.length);
+    pile.hidden = shown === all.length;
+    list.parentElement!.querySelector<HTMLElement>('[data-gather-row]')!.hidden = !pile.hidden;
+    if (pile.hidden) return;
+    const words = pileWords(shown, all.length);
+    pile.querySelector('[data-pile-more]')!.textContent = words.more;
+    pile.querySelector('[data-pile-count]')!.textContent = words.count;
+    pile.querySelector('[data-pile-button]')!.setAttribute('aria-label', words.label);
+    // The next three covers, the next one on top, each lying as PILE_TURNS says (--side tells pointing which way to
+    // fan it out).
+    pile.querySelector('[data-stack]')!.replaceChildren(...all.slice(shown, shown + PILE_TURNS.length).map((li, depth) => {
+      const card = document.createElement('span');
+      card.className = 'pile-card';
+      card.style.cssText = li.getAttribute('style') ?? '';
+      card.style.setProperty('--turn', `${PILE_TURNS[depth]}deg`);
+      card.style.setProperty('--side', String(Math.sign(PILE_TURNS[depth])));
+      card.style.zIndex = String(PILE_TURNS.length - depth);
+      const picture = li.querySelector('.picture');
+      if (picture) card.append(picture.cloneNode());
+      else card.append(Object.assign(document.createElement('b'), { textContent: li.querySelector('.name')!.textContent }));
+      return card;
+    }));
+  }
+
+  /** Deals the next few cards out of a pile: each flies from the pile to its place in a little arc, and the pile
+      moves on after them. Less motion: they're just there. */
+  function deal(pile: HTMLElement) {
+    const list = pile.parentElement!;
+    const all = cardsIn(list);
+    const shown = all.filter((li) => !li.hidden).length;
+    const dealt = all.slice(shown, shown + moreAfter(shown, all.length));
+    const from = pile.querySelector('[data-stack]')!.getBoundingClientRect();
+    const pileFrom = pile.getBoundingClientRect();
+    setShown(list, shown + dealt.length);
+    // The keyboard carries on from the first card dealt, where the pile was.
+    dealt[0]?.querySelector<HTMLElement>('[data-item]')!.focus({ preventScroll: true });
+    if (still.matches) return glint();
+    dealt.forEach((li, k) => {
+      const to = li.getBoundingClientRect();
+      const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+      const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+      const scale = (from.width * PILE_CARD) / to.width;
+      const turn = PILE_TURNS[k % PILE_TURNS.length];
+      li.animate([
+        { transform: `translate(${dx}px, ${dy}px) rotate(${turn}deg) scale(${scale})` },
+        { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - ARC}px) rotate(${turn / 2}deg) scale(${(scale + 1) / 2})`, offset: 0.55 },
+        { transform: 'none' },
+      ], { duration: DEAL_MS, delay: k * DEAL_GAP, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'backwards' });
+    });
+    if (!pile.hidden) {
+      const pileTo = pile.getBoundingClientRect();
+      pile.animate([{ transform: `translate(${pileFrom.left - pileTo.left}px, ${pileFrom.top - pileTo.top}px)` }, { transform: 'none' }], { duration: DEAL_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    }
+    glint();
+  }
+
+  /** Gathers every card past the first few back into the pile, the last first, quicker than they came out. */
+  async function gather(list: HTMLElement) {
+    const all = cardsIn(list);
+    const first = moreAfter(0, all.length);
+    const extra = all.slice(first);
+    if (!still.matches) {
+      const to = extra[0].getBoundingClientRect();
+      await Promise.all(extra.map((li, k) => {
+        const box = li.getBoundingClientRect();
+        const turn = PILE_TURNS[k % PILE_TURNS.length];
+        return li.animate([{ transform: 'none' }, { transform: `translate(${to.left - box.left}px, ${to.top - box.top}px) rotate(${turn}deg) scale(${PILE_CARD})`, opacity: 0 }], { duration: GATHER_MS, delay: (extra.length - 1 - k) * GATHER_GAP, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.catch(() => {});
+      }));
+    }
+    setShown(list, first);
+    for (const li of extra) li.getAnimations().forEach((a) => a.cancel());
+    const pile = list.querySelector<HTMLElement>('[data-pile]')!;
+    if (!still.matches) pile.animate([{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'none' }], { duration: GATHER_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    pile.querySelector<HTMLElement>('[data-pile-button]')!.focus();
+    glint();
+  }
+
+  for (const pile of document.querySelectorAll<HTMLElement>('[data-pile]')) {
+    setShown(pile.parentElement!, moreAfter(0, cardsIn(pile.parentElement!).length));
+    pile.querySelector('[data-pile-button]')!.addEventListener('click', () => deal(pile));
+  }
+  for (const button of document.querySelectorAll<HTMLElement>('[data-gather]')) button.addEventListener('click', () => gather(button.closest('.board')!.querySelector<HTMLElement>('.items')!));
+  glint();
   for (const button of gallery.querySelectorAll<HTMLElement>('[data-gallery-step]')) button.addEventListener('click', () => go(Number(button.dataset.galleryStep)));
   gallery.addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -366,6 +521,9 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   if (linked > 0) show(linked, false);
   const linkedItem = itemPart ? cards[linked]?.querySelector<HTMLElement>(`[data-key="${CSS.escape(decodeURIComponent(itemPart))}"] [data-item]`) : null;
   if (linkedItem) {
+    // A card still in the pile comes out first, with all the rest.
+    const linkedLi = linkedItem.closest('li')!;
+    if (linkedLi.hidden) setShown(linkedLi.parentElement!, Infinity);
     history.replaceState(null, '', `#${tabPart}`);
     const later = () => {
       // At once, not gliding (global.css), so the gallery grows out of the card where it has come to rest.
@@ -399,13 +557,48 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   .items li { display: flex; flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols) - 0.01px); min-width: 0; }
   /* An item's card: its cover across the top, its name and stars in white under it, on its cover's own colour
      (cardColours in shelves.js; the Collection's orange for an item without a cover). */
-  .item { display: grid; align-content: start; justify-items: center; width: 100%; overflow: hidden; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-card); color: var(--on-colour); font: inherit; text-align: center; cursor: pointer; transform: perspective(800px) translateY(var(--lift, 0px)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform var(--motion-settle) var(--ease-out); -webkit-tap-highlight-color: transparent; }
-  /* Under the mouse a card tilts toward it, like a game case in the hand, and a shine runs over its cover (the script
-     sets --rx, --ry and --shine). It follows the mouse closely, and settles back slowly when the mouse leaves. */
+  .item { position: relative; display: grid; align-content: start; justify-items: center; width: 100%; overflow: hidden; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-card); color: var(--on-colour); font: inherit; text-align: center; cursor: pointer; transform: perspective(800px) translateY(var(--lift, 0px)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform var(--motion-settle) var(--ease-out); -webkit-tap-highlight-color: transparent; }
+  /* Under the mouse a card tilts toward it, like a game case in the hand (the script sets --rx and --ry). It follows
+     the mouse closely, and settles back slowly when the mouse leaves. */
   .item.is-tilting { transition: transform 80ms linear; }
   .cover { position: relative; }
-  .cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.32) 48%, transparent 62%) var(--shine, 100%) 0 / 250% 100% no-repeat; opacity: 0; pointer-events: none; transition: opacity var(--motion-soft) ease; }
-  .item.is-tilting .cover::after { opacity: 1; }
+
+  /* The shine, by the card's stars (data-shine, from shineOf in shelves.js): holo for 5, gold foil for 4 and 4.5, a
+     gloss for fewer. Each has one main light, a band across the cover that runs with the mouse (::before), then the
+     holo's rainbow film (.film), glints or brushed lines (.glints), the glare where the light falls (::after) and a rim
+     round the card (.item::before), all lit by --lit: 0 at rest, 1 under the mouse or a
+     keyboard's focus, and on a phone as the card scrolls past the middle of the screen. The script puts the light
+     where the mouse is (light()); a keyboard's focus lights it from the top left. The masks only need something
+     solid, so they use the text's colour. */
+  .item { --lit: 0; --mx: 30%; --my: 22%; --px: 0.3; --py: 0.22; --shine-x: 70%; --angle: 0deg; }
+  .item:focus-visible { --lit: 1; }
+  .cover::before, .cover::after, .film, .glints { content: ''; position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity var(--motion-soft) ease; }
+  .item::before { content: ''; position: absolute; inset: 0; z-index: 1; padding: 1.5px; border-radius: inherit; background: var(--rim, none); opacity: 0; pointer-events: none; transition: opacity var(--motion-soft) ease; -webkit-mask: linear-gradient(currentColor 0 0) content-box, linear-gradient(currentColor 0 0); -webkit-mask-composite: xor; mask: linear-gradient(currentColor 0 0) content-box, linear-gradient(currentColor 0 0); mask-composite: exclude; }
+  /* A clear plastic sleeve: two streaks, one thin and bright and one broad and faint, and a soft light spot. */
+  [data-shine='gloss'] .cover::before { background: linear-gradient(115deg, transparent 47.5%, color-mix(in srgb, var(--shine) 45%, transparent) 49.3% 50%, transparent 52%) var(--shine-x) 0 / 250% 100% no-repeat, linear-gradient(115deg, transparent 35%, color-mix(in srgb, var(--shine) 14%, transparent) 42% 45%, transparent 48%) var(--shine-x) 0 / 250% 100% no-repeat; opacity: var(--lit); }
+  [data-shine='gloss'] .cover::after { background: radial-gradient(farthest-corner circle at var(--mx) var(--my), color-mix(in srgb, var(--shine) 45%, transparent), color-mix(in srgb, var(--shine) 10%, transparent) 24%, transparent 52%); mix-blend-mode: overlay; opacity: var(--lit); }
+  /* Gold leaf: a narrow band of rippled gold that runs with the light, fine brushed lines where it falls, a warm glare
+     and a gold rim. */
+  [data-shine='foil'] .cover::before { background: linear-gradient(115deg, transparent 41%, var(--shine-gold-deep) 44%, var(--shine-gold-light) 46.5%, var(--shine-gold) 48.5%, var(--shine-gold-deep) 50.5%, var(--shine-gold-light) 53%, var(--shine-gold) 55.5%, transparent 59%) var(--shine-x) 0 / 300% 100% no-repeat; mix-blend-mode: color-dodge; filter: brightness(0.85) contrast(1.25); opacity: calc(var(--lit) * 0.45); }
+  [data-shine='foil'] .glints { background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--shine) 10%, transparent) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; opacity: calc(var(--lit) * 0.6); -webkit-mask: radial-gradient(farthest-side circle at var(--mx) var(--my), currentColor, transparent 70%); mask: radial-gradient(farthest-side circle at var(--mx) var(--my), currentColor, transparent 70%); }
+  [data-shine='foil'] .cover::after { background: radial-gradient(farthest-corner circle at var(--mx) var(--my), color-mix(in srgb, var(--shine-warm) 60%, transparent), color-mix(in srgb, var(--shine-gold-light) 16%, transparent) 26%, transparent 56%); mix-blend-mode: overlay; opacity: var(--lit); }
+  [data-shine='foil'] .item { --rim: conic-gradient(from var(--angle), var(--shine-gold-light), var(--shine-gold-deep), var(--shine-gold), var(--shine-gold-light), var(--shine-gold-deep), var(--shine-gold), var(--shine-gold-light)); }
+  [data-shine='foil'] .item::before { opacity: calc(var(--lit) * 0.8); }
+  /* Holo: the foil's band in the rainbow's colours round a white middle, a soft rainbow film in bands that slide as
+     the card turns, with fine lines through it, glints near the light, a glare with the far side a touch darker, a
+     rainbow rim and glowing stars. The film is darkened and pushed apart (brightness, contrast) so it tints the cover
+     in bands instead of washing it out, and kept near the light. */
+  [data-shine='holo'] .cover::before { background: linear-gradient(115deg, transparent 41%, var(--shine-holo-1) 44%, var(--shine-holo-2) 46.5%, var(--shine) 49%, var(--shine-holo-3) 51.5%, var(--shine-holo-4) 54%, var(--shine-holo-5) 56.5%, transparent 59%) var(--shine-x) 0 / 300% 100% no-repeat; mix-blend-mode: color-dodge; filter: brightness(0.85) contrast(1.25); opacity: calc(var(--lit) * 0.45); }
+  [data-shine='holo'] .film { background: repeating-linear-gradient(115deg, transparent 0 5px, color-mix(in srgb, var(--shine) 35%, transparent) 6px, transparent 7px 11px) calc(var(--px) * 44px) 0, repeating-linear-gradient(115deg, var(--shine-holo-1) 0%, var(--shine-holo-2) 4%, var(--shine-holo-3) 8%, var(--shine-holo-4) 12%, var(--shine-holo-5) 16%, var(--shine-holo-1) 20%) var(--mx) var(--my) / 260% 260%; background-blend-mode: overlay; mix-blend-mode: color-dodge; filter: brightness(0.6) contrast(1.6); opacity: calc(var(--lit) * 0.6); -webkit-mask: radial-gradient(farthest-corner circle at var(--mx) var(--my), currentColor, color-mix(in srgb, currentColor 50%, transparent) 30%, transparent 72%); mask: radial-gradient(farthest-corner circle at var(--mx) var(--my), currentColor, color-mix(in srgb, currentColor 50%, transparent) 30%, transparent 72%); }
+  [data-shine='holo'] .glints { background: var(--shine-glints-a) calc(var(--px) * -30px) calc(var(--py) * -30px) / 90px 90px, var(--shine-glints-b) calc(var(--px) * 26px) calc(var(--py) * 26px) / 140px 140px; mix-blend-mode: screen; opacity: calc(var(--lit) * 0.85); -webkit-mask: radial-gradient(circle at var(--mx) var(--my), currentColor, color-mix(in srgb, currentColor 50%, transparent) 22%, transparent 50%); mask: radial-gradient(circle at var(--mx) var(--my), currentColor, color-mix(in srgb, currentColor 50%, transparent) 22%, transparent 50%); }
+  [data-shine='holo'] .cover::after { background: radial-gradient(farthest-corner circle at var(--mx) var(--my), color-mix(in srgb, var(--shine) 60%, transparent), color-mix(in srgb, var(--shine) 16%, transparent) 22%, color-mix(in srgb, var(--shine-shade) 20%, transparent) 95%); mix-blend-mode: overlay; opacity: var(--lit); }
+  [data-shine='holo'] .item { --rim: conic-gradient(from var(--angle), var(--shine-holo-1), var(--shine-holo-2), var(--shine-holo-3), var(--shine-holo-4), var(--shine-holo-5), var(--shine-holo-1)); }
+  [data-shine='holo'] .item::before { opacity: calc(var(--lit) * 0.8); }
+  [data-shine='holo'] .item :global(.stars) { filter: drop-shadow(0 0 calc(var(--lit) * 4px) color-mix(in srgb, var(--shine-warm) 70%, transparent)); transition: filter var(--motion-soft) ease; }
+  /* On a phone the light moves with every frame of a scroll, so it mustn't lag behind. */
+  @media (hover: none) and (prefers-reduced-motion: no-preference) {
+    .cover::before, .cover::after, .film, .glints, .item::before, [data-shine='holo'] .item :global(.stars) { transition: none; }
+  }
   /* Every cover is a poster's shape, whatever the picture's own: a wider picture loses its sides. */
   .cover { display: block; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; background: var(--wash); }
   .picture { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -421,6 +614,26 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   @media (hover: hover) {
     .item:hover { --lift: -4px; }
   }
+
+  /* The pile: the next covers lying on each other in the next place on the board (the script lays them, --turn and
+     --side for each), how many it deals out next, and how many are out. Pointing at it, or reaching it with the
+     keyboard, fans them out. */
+  .pile { display: grid; align-content: start; justify-items: center; width: 100%; padding: 0 0 var(--space-4); border: 0; border-radius: var(--radius-xl); background: none; color: var(--ink); font: inherit; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .stack { position: relative; display: block; width: 100%; aspect-ratio: 2 / 3; }
+  .stack :global(.pile-card) { position: absolute; inset: 9% 13%; overflow: hidden; border-radius: var(--radius-lg); background: linear-gradient(180deg, var(--card, var(--collection-top-from)), var(--card-deep, var(--collection-top-to))); box-shadow: var(--shadow-cover); transform: translate(calc(var(--side, 0) * var(--spread, 6px)), var(--rise, 0%)) rotate(calc(var(--turn, 0deg) * var(--fan, 1))); transition: transform var(--motion-soft) var(--ease-out); }
+  .stack :global(.pile-card img) { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .stack :global(.pile-card b) { position: absolute; inset: auto 0 0; padding: var(--space-2); color: var(--on-colour); font-size: var(--text-sm); font-weight: var(--display-weight); line-height: 1.1; text-align: left; overflow-wrap: anywhere; }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .pile:hover .stack :global(.pile-card) { --spread: 22%; --fan: 2.1; --rise: -4%; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pile:focus-visible .stack :global(.pile-card) { --spread: 22%; --fan: 2.1; --rise: -4%; }
+  }
+  .pile-count { color: var(--muted); font-size: var(--text-sm); font-weight: 650; font-variant-numeric: tabular-nums; }
+  /* Once all are out, the button that gathers them back into the pile. */
+  .gather { display: flex; justify-content: center; margin: var(--space-6) 0 0; }
+  /* The cards in the pile, the pile once it's empty, and the button until then: their display above would show them. */
+  .items > li[hidden], .gather[hidden] { display: none; }
 
   @media (max-width: 999px) {
     .items { --cols: 4; }

@@ -19,6 +19,35 @@ export const starFills = (stars) => Array.from({ length: MOST_STARS }, (_, i) =>
 export const starsLabel = (stars) => `${stars} out of ${MOST_STARS} stars`;
 
 /**
+ * A collection's items in the order they show: most stars first, equal stars in the order they're listed (the sort
+ * keeps ties in place).
+ * @template {{ stars: number }} T @param {T[]} items @returns {T[]}
+ */
+export const byStars = (items) => [...items].sort((a, b) => b.stars - a.stars);
+
+/** How many cards a collection shows at first, and how many more each press on its pile deals out. */
+export const PILE_STEP = 5;
+
+/**
+ * How many more cards the pile deals out with `shown` of a collection's `total` out: up to PILE_STEP, none once all
+ * are out. With none out yet, it's how many show at first.
+ * @param {number} shown @param {number} total
+ */
+export const moreAfter = (shown, total) => Math.max(0, Math.min(PILE_STEP, total - shown));
+
+/**
+ * The pile's words with `shown` of `total` out: what it says on it, and its name for someone who can't see it.
+ * @param {number} shown @param {number} total
+ */
+export function pileWords(shown, total) {
+  const more = moreAfter(shown, total);
+  return { more: `${more} more`, count: `${shown} of ${total}`, label: `Show ${more} more, ${shown} of ${total} shown` };
+}
+
+/** The shine on an item's card, by its stars: holo for 5, gold foil for 4 and 4.5, a gloss for fewer. @param {number} stars */
+export const shineOf = (stars) => (stars >= 5 ? 'holo' : stars >= 4 ? 'foil' : 'gloss');
+
+/**
  * The picture called `file` in a collection's folder, out of the pictures found in the collections' folders
  * (`pictures`: each one under its path from the project's top, such as /src/content/collections/movies/poster.jpg);
  * a plain message naming the item when it isn't there.

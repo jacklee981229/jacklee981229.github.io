@@ -95,3 +95,6 @@
 - 2026-10-11 design: Made switches slide, search fade away, and hovers ease in
 - 2026-10-11 fix: Fixed a white blink going dark, and the town freezing meanwhile
 - 2026-10-12 design: Made selected text, scrollbars and the Copied tick match the site
+- 2026-10-12 new: Added six more games to my [Collection](/collections/)
+- 2026-10-12 improved: Showed my top 5 in each [Collection](/collections/) tab, the rest in a pile
+- 2026-10-12 design: Gave each Collection card a shine by its stars

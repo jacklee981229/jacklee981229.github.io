@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { MOST_STARS, PICTURE_TYPES, cardColours, galleryOf, itemKey, pictureOf, starFills, starsLabel, stepsFrom, turnFrames, validStars, whiteContrast } from '../src/lib/shelves.js';
+import { MOST_STARS, PICTURE_TYPES, PILE_STEP, byStars, cardColours, galleryOf, itemKey, moreAfter, pictureOf, pileWords, shineOf, starFills, starsLabel, stepsFrom, turnFrames, validStars, whiteContrast } from '../src/lib/shelves.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 test("an item's name in links is its cover's file name, else its place in the list", () => {
@@ -26,6 +26,32 @@ test('each star is full, half or empty', () => {
 test('the stars are said in words', () => {
   assert.equal(starsLabel(4.5), '4.5 out of 5 stars');
   assert.equal(starsLabel(3), '3 out of 5 stars');
+});
+
+test('a collection shows most stars first, equal stars in the order they are listed', () => {
+  const listed = [{ name: 'a', stars: 4 }, { name: 'b', stars: 5 }, { name: 'c', stars: 3.5 }, { name: 'd', stars: 5 }, { name: 'e', stars: 4.5 }, { name: 'f', stars: 4 }, { name: 'g', stars: 5 }];
+  assert.deepEqual(byStars(listed).map((item) => item.name), ['b', 'd', 'g', 'e', 'a', 'f', 'c']);
+  // The list itself is left as it was.
+  assert.deepEqual(listed.map((item) => item.name), ['a', 'b', 'c', 'd', 'e', 'f', 'g']);
+  assert.deepEqual(byStars([]), []);
+});
+
+test('the pile deals out 5 at a time, and none once all are out', () => {
+  assert.equal(PILE_STEP, 5);
+  // 13 games: 5 at first, then 5 more, then the last 3.
+  assert.deepEqual([moreAfter(0, 13), moreAfter(5, 13), moreAfter(10, 13), moreAfter(13, 13)], [5, 5, 3, 0]);
+  // 8 shows: 5, then 3. A short collection shows all at once and needs no pile.
+  assert.deepEqual([moreAfter(0, 8), moreAfter(5, 8), moreAfter(8, 8)], [5, 3, 0]);
+  assert.deepEqual([moreAfter(0, 4), moreAfter(4, 4), moreAfter(0, 0)], [4, 0, 0]);
+});
+
+test("the pile says what it deals next and how many are out, and says it whole for someone who can't see it", () => {
+  assert.deepEqual(pileWords(5, 13), { more: '5 more', count: '5 of 13', label: 'Show 5 more, 5 of 13 shown' });
+  assert.deepEqual(pileWords(10, 13), { more: '3 more', count: '10 of 13', label: 'Show 3 more, 10 of 13 shown' });
+});
+
+test('a card shines by its stars: holo for 5, foil for 4 and 4.5, gloss for fewer', () => {
+  assert.deepEqual([5, 4.5, 4, 3.5, 3, 1].map(shineOf), ['holo', 'foil', 'foil', 'gloss', 'gloss', 'gloss']);
 });
 
 test("an item's picture is the file it names in its own collection's folder", () => {

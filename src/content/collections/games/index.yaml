@@ -32,3 +32,27 @@ items:
     stars: 5
     image: v-rising.jpg
     gallery: [v-rising-2.jpg, v-rising-3.jpg, v-rising-4.jpg, v-rising-5.jpg]
+  - name: Dota 2
+    stars: 3.5
+    image: dota-2.jpg
+    gallery: [dota-2-2.jpg, dota-2-3.jpg, dota-2-4.jpg, dota-2-5.jpg]
+  - name: Cult of the Lamb
+    stars: 4.5
+    image: cult-of-the-lamb.jpg
+    gallery: [cult-of-the-lamb-2.jpg, cult-of-the-lamb-3.jpg, cult-of-the-lamb-4.jpg, cult-of-the-lamb-5.jpg]
+  - name: "Clair Obscur: Expedition 33"
+    stars: 5
+    image: clair-obscur-expedition-33.jpg
+    gallery: [clair-obscur-expedition-33-2.jpg, clair-obscur-expedition-33-3.jpg, clair-obscur-expedition-33-4.jpg, clair-obscur-expedition-33-5.jpg]
+  - name: Doloc Town
+    stars: 5
+    image: doloc-town.jpg
+    gallery: [doloc-town-2.jpg, doloc-town-3.jpg, doloc-town-4.jpg, doloc-town-5.jpg]
+  - name: Stardew Valley
+    stars: 5
+    image: stardew-valley.jpg
+    gallery: [stardew-valley-2.jpg, stardew-valley-3.jpg, stardew-valley-4.jpg, stardew-valley-5.jpg]
+  - name: Sultan's Game
+    stars: 4.5
+    image: sultans-game.jpg
+    gallery: [sultans-game-2.jpg, sultans-game-3.jpg, sultans-game-4.jpg, sultans-game-5.jpg]

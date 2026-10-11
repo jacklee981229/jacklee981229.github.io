@@ -1,6 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
-import { validStars } from './lib/shelves.js';
+import { byStars, validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
 
 // One folder per post: src/content/posts/<address>/index.md, with its images beside it.
@@ -60,7 +60,7 @@ const shelves = defineCollection({
     name: z.string().min(1),
     // Collections show lowest number first; ones without a number come after, by name.
     order: z.number().optional(),
-    // Shown in the order they're listed.
+    // Shown most stars first, equal stars in the order they're listed (byStars).
     items: z.array(
       z
         .object({
@@ -74,7 +74,7 @@ const shelves = defineCollection({
         .superRefine((item, ctx) => {
           if (!validStars(item.stars)) ctx.addIssue({ code: 'custom', path: ['stars'], message: `"${item.name}" has ${item.stars} stars. Stars go from 1 to 5, in halves: 4 or 4.5, not 4.2.` });
         }),
-    ),
+    ).transform(byStars),
   }),
 });
 
