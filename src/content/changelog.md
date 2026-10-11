@@ -98,3 +98,4 @@
 - 2026-10-12 new: Added six more games to my [Collection](/collections/)
 - 2026-10-12 improved: Showed my top 5 in each [Collection](/collections/) tab, the rest in a pile
 - 2026-10-12 design: Gave each Collection card a shine by its stars
+- 2026-10-12 fix: Fixed two broken links in old posts

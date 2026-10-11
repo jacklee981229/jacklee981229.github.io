@@ -41,7 +41,7 @@ description: "This is to change Hexo default link point to a custom page, instea
       order_by: -date
     ```
     - This will create the **blog page** inside a `blog` directory, from `path: 'blog'`.
-    - Now if you want to access your **blog page**, just visit "__your_website_url/blog/__". For example, my website is "__https://jacklee981229.github.io/__", the url to my **blog page** will be "__https://jacklee981229.github.io/blog/__".
+    - Now if you want to access your **blog page**, just visit "__your_website_url/blog/__". For example, my website is "__`https://jacklee981229.github.io/`__", the url to my **blog page** will be "__`https://jacklee981229.github.io/blog/`__".
   - After first step, you will get error when trying to accessing your website's main url, as the `index.html` is not auto-generated anymore. Therefore you will need to create a `index.md` file under `source` folder manually.  
 2. Create your own default page.
 

@@ -16,7 +16,7 @@ There are a lots of tutorial that ask you to add files into your `themes\layout\
 
 ## Steps
 1. prepare a `javascript` script that will add effect when mouse clicking. In this tutorial I will use a `heart.js` file.
-    1. [heart.js](2023/03/03/heart-js/)
+    1. [heart.js](/3/)
 2. Store your `heart.js` file somewhere under `source` directory.
     1. in this case we will create a `javascript` folder under `source` and put the `heart.js` inside.
     2. full path will be `/javascript/heart.js`.
