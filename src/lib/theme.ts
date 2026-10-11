@@ -53,12 +53,19 @@ const spread = (change: () => void, inward: boolean, from?: Element | null) => {
   const x = box?.width ? box.left + box.width / 2 : innerWidth / 2;
   const y = box?.height ? box.top + box.height / 2 : innerHeight / 2;
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  // The window's scrollbar isn't in the circle's picture: it keeps the theme being left until the circle is done.
+  root.style.setProperty('--scheme-before', getComputedStyle(root).colorScheme);
   root.classList.add('spreading');
   root.classList.toggle('inward', inward);
   const circle = [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`];
   const turn = document.startViewTransition(change);
-  turn.ready.then(() => root.animate({ clipPath: inward ? circle.reverse() : circle }, { duration: 500, easing: inward ? 'cubic-bezier(0.6, 0, 0.8, 0.2)' : 'cubic-bezier(0.2, 0.8, 0.2, 1)', pseudoElement: inward ? '::view-transition-old(root)' : '::view-transition-new(root)' }));
-  turn.finished.finally(() => root.classList.remove('spreading', 'inward'));
+  // Held at its end (fill) until the transition is over: else, for the frame between the two, the light page drawn into
+  // the button shows whole again, a blink of white.
+  turn.ready.then(() => root.animate({ clipPath: inward ? circle.reverse() : circle }, { duration: 500, easing: inward ? 'cubic-bezier(0.6, 0, 0.8, 0.2)' : 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards', pseudoElement: inward ? '::view-transition-old(root)' : '::view-transition-new(root)' }));
+  turn.finished.finally(() => {
+    root.classList.remove('spreading', 'inward');
+    root.style.removeProperty('--scheme-before');
+  });
 };
 
 /** The theme back to what the visitor chose before the night, or the system's when they never chose. */

@@ -32,7 +32,7 @@ const MAX_DENSITY = 2;
  * @typedef {{ frame: (dt: number) => void, resize?: () => void, stop?: () => void, restore?: () => void }} Piece
  * `stop`, for an effect that listens beyond its canvas (Key Jam's keys), lets go of that when the stage stops.
  * `restore`, for a WebGL2 piece, makes its GL things again after the browser gave back a context it took away.
- * @typedef {{ context?: '2d' | 'webgl2', antialias?: boolean, depth?: boolean }} StageOptions
+ * @typedef {{ context?: '2d' | 'webgl2', antialias?: boolean, depth?: boolean, fades?: boolean }} StageOptions
  */
 
 /**
@@ -43,6 +43,9 @@ const MAX_DENSITY = 2;
  */
 export function runStage(root, create, options = {}) {
   const canvas = /** @type {HTMLCanvasElement} */ (root.querySelector('canvas'));
+  // A piece that fades to a new theme by itself (Jack's Town, Jack's Pond) stays live while the theme's circle crosses
+  // the page, instead of standing still under a picture of it (global.css, html.spreading).
+  root.toggleAttribute('data-fades', !!options.fades);
   // A WebGL2 piece draws on the GPU; its canvas is opaque, as the card's colour is drawn by the piece itself.
   const gl = options.context === 'webgl2'
     ? /** @type {WebGL2RenderingContext | null} */ (canvas.getContext('webgl2', { alpha: false, antialias: options.antialias ?? false, depth: options.depth ?? false, stencil: false, premultipliedAlpha: false, powerPreference: 'high-performance' }))

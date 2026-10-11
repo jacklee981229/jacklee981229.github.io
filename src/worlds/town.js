@@ -39,6 +39,8 @@ const EVERY = 180, WARM = 30;
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 /** Seconds the town takes to fade from day to night or back. */
 const FADE = 2;
+/** It fades by itself, so it stays live while the theme's circle crosses the page (stage.js). */
+export const options = { fades: true };
 /** The pop of something new: up past its size, back under, and settling, in 0.8 s. */
 const POP = [[0, 0], [0.16, 1.34], [0.32, 0.86], [0.48, 1.08], [0.64, 0.97], [0.8, 1]];
 /** A thought cloud's puffs round its middle (x, y and radius, as parts of its width): a ring of them and one in the

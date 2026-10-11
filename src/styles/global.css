@@ -95,8 +95,19 @@ main:focus { outline: none; }
 html.spreading::view-transition-old(root),
 html.spreading::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html.spreading * { view-transition-name: none !important; }
+/* The window's scrollbar takes <html>'s colour scheme and isn't in the circle's picture, so <html> keeps the theme being
+   left (theme.ts) while the page, from <body> down, takes the new one. */
+html.spreading { color-scheme: var(--scheme-before) !important; }
+html.spreading body { color-scheme: light; }
+html.spreading[data-theme='dark'] body { color-scheme: dark; }
 /* Toward dark the old, light page is drawn into the button, so it lies on top. */
 html.spreading.inward::view-transition-old(root) { z-index: 1; }
+/* A stage whose piece fades to the new colours by itself (data-fades, from stage.js: Jack's Town, Jack's Pond) stays
+   live through the circle, over it: under a picture of the page the town would stand frozen until the circle passed. */
+html.spreading [data-stage][data-fades] { view-transition-name: live-stage !important; }
+html.spreading::view-transition-group(live-stage),
+html.spreading::view-transition-new(live-stage) { animation: none; }
+html.spreading::view-transition-old(live-stage) { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }

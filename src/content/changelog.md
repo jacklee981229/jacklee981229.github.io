@@ -93,3 +93,4 @@
 - 2026-10-11 design: Made pages flow into each other, and things answer your mouse
 - 2026-10-11 new: Rebuilt [Jack's Town](/lab/world/town/): a new town every day that grows and changes
 - 2026-10-11 design: Made switches slide, search fade away, and hovers ease in
+- 2026-10-11 fix: Fixed a white blink going dark, and the town freezing meanwhile

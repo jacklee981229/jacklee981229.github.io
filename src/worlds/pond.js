@@ -24,6 +24,8 @@ const FLY_GLOW = [[0, 0], [0.35, 1], [0.55, 0.9], [0.8, 0], [1, 0]];
 const FLY_PATH = [[0, 0, 0], [0.55, 14, -10], [0.8, 22, -4], [1, 0, 0]];
 /** Seconds the pond takes to fade from day to night or back. */
 const FADE = 2;
+/** It fades by itself, so it stays live while the theme's circle crosses the page (stage.js). */
+export const options = { fades: true };
 /** How far the ripples and the moon's glints reach past the stage's edges, so their drift never shows an edge (pixels
  *  at the mockup's size). */
 const PAD = 80;
