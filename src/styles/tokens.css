@@ -355,10 +355,13 @@
   --radius-2xl: 28px;
   --radius-pill: 999px;
 
-  /* How things answer the visitor (a hover, a press, a page flowing into the next): quick for small answers, soft for
-     things settling, and a spring for a little hop past the mark. */
+  /* How things answer the visitor (a hover, a press, a page flowing into the next): press for a button giving under a
+     finger, quick for small answers, soft for things settling, settle for something big coming back to rest, and a
+     spring for a little hop past the mark. Surfaces close quicker than they open. */
+  --motion-press: 90ms;
   --motion-quick: 160ms;
   --motion-soft: 320ms;
+  --motion-settle: 400ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }

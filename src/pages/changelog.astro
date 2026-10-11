@@ -47,11 +47,23 @@ const { open, folded } = fold(byYear(changelogFile()), SHOWN);
     older.open = true;
     target.scrollIntoView();
   }
+
+  // Expand and Collapse glide; a browser opening the fold itself (a link to a day, find in page) shows it at once,
+  // so the page still lands on what was asked for.
+  const fold = document.querySelector<HTMLDetailsElement>('.older');
+  let settled: ReturnType<typeof setTimeout> | undefined;
+  fold?.querySelector('summary')?.addEventListener('click', () => {
+    fold.classList.add('glide');
+    clearTimeout(settled);
+    // The browser tells no one when the fold has finished growing, so it gets the growth's own time.
+    const growth = parseFloat(getComputedStyle(fold).getPropertyValue('--motion-soft')) || 0;
+    settled = setTimeout(() => fold.classList.remove('glide'), growth + 100);
+  });
 </script>
 
 <style>
   /* The way to the Build Log, a chip on the Changelog's card like the Lab's section links. */
-  .replay { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.25rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font-size: var(--text-sm); font-weight: 800; text-decoration: none; }
+  .replay { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.25rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font-size: var(--text-sm); font-weight: 800; text-decoration: none; transition: background-color var(--motion-quick) ease; }
   .replay:hover { background: var(--on-colour-chip-hover); }
   .replay :global(.icon) { width: 1rem; height: 1rem; stroke-width: 2.2; }
   .year + .year { margin-top: var(--space-6); }
@@ -63,10 +75,15 @@ const { open, folded } = fold(byYear(changelogFile()), SHOWN);
   .older > summary::before, .older > summary::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
   .older > summary:focus-visible { outline: none; }
   /* The middle like the site's buttons (.button in global.css). */
-  .fold { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 800; }
+  .fold { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 800; transition: border-color var(--motion-quick) ease; }
   .older > summary:focus-visible .fold { outline: 2px solid var(--focus); outline-offset: 3px; }
   .older > summary:hover .fold { border-color: var(--ink); }
-  .fold :global(.icon) { width: 1rem; height: 1rem; stroke-width: 2.2; transition: rotate 0.2s ease; }
+  .fold :global(.icon) { width: 1rem; height: 1rem; stroke-width: 2.2; transition: rotate var(--motion-soft) var(--ease-out); }
   .older[open] .fold :global(.icon) { rotate: 180deg; }
+  /* The older months grow open and fold shut in browsers that can (Chrome, Edge); elsewhere they show at once. */
+  .older { interpolate-size: allow-keywords; }
+  .older::details-content { block-size: 0; overflow: clip; }
+  .older[open]::details-content { block-size: auto; }
+  .older.glide::details-content { transition: block-size var(--motion-soft) var(--ease-out), content-visibility var(--motion-soft) allow-discrete; }
   .older[open] .closed, .older:not([open]) .opened { display: none; }
 </style>

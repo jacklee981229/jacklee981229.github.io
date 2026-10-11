@@ -15,3 +15,9 @@ const { name, label, choices } = Astro.props;
 <div class="switch" role="radiogroup" aria-label={label}>
   {choices.map((choice, i) => <label><input class="visually-hidden" type="radio" name={name} value={choice.value} checked={i === 0} />{choice.label}</label>)}
 </div>
+
+<script>
+  import { slidePills } from '../lib/switch-pill';
+
+  slidePills();
+</script>

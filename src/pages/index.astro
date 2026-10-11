@@ -245,7 +245,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .who strong { color: var(--ink); font-weight: 800; }
   .likes { letter-spacing: 2px; }
   .tiles { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: auto; padding: var(--space-4) var(--space-6) var(--space-5); border-top: 1px solid var(--rule); }
-  .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); text-decoration: none; transition: transform 0.15s ease; }
+  .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); text-decoration: none; transition: transform var(--motion-quick) ease; }
   .tile :global(.icon) { width: 23px; height: 23px; }
   .tile.github { display: inline-flex; align-items: center; gap: var(--space-2); width: auto; padding: 0 var(--space-4); font-size: var(--text-sm); font-weight: 800; }
   .tile.github :global(.icon) { width: 20px; height: 20px; }
@@ -312,14 +312,14 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   /* Every button the same height, their edges lined up: the worlds two equal ones (one above the other where the card
      is narrow), then a wide Explore the Lab with a round dice beside it. */
   .worlds { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-2); margin-top: var(--space-4); }
-  .chip { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-ui); font-weight: 800; text-decoration: none; white-space: nowrap; cursor: pointer; }
+  .chip { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-ui); font-weight: 800; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background-color var(--motion-quick) ease; }
   .worlds .chip { width: 100%; }
   .chip :global(.icon) { width: 16px; height: 16px; }
   .chip:hover { background: var(--on-colour-chip-hover); }
   .lab-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
   .explore { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-size: var(--text-ui); font-weight: 900; text-decoration: none; }
   /* A press gives a little, like the site's buttons (global.css). */
-  .explore { transition: transform 90ms ease; }
+  .explore { transition: transform var(--motion-press) ease; }
   .explore:active { transform: scale(0.96); }
   .surprise { width: 2.75rem; padding: 0; }
   .surprise :global(.icon) { width: 20px; height: 20px; }
@@ -328,7 +328,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
 
   /* The three cards around the site: a bright picture on top, the words on the card's deeper colour. */
   .doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
-  .door { display: flex; flex-direction: column; height: 100%; border-radius: var(--radius-2xl); overflow: hidden; background: var(--base); color: var(--on-colour); text-decoration: none; transition: transform 0.2s ease; }
+  .door { display: flex; flex-direction: column; height: 100%; border-radius: var(--radius-2xl); overflow: hidden; background: var(--base); color: var(--on-colour); text-decoration: none; transition: transform var(--motion-quick) ease; }
   .door:hover, .door:focus-visible { transform: translateY(-4px); }
   .collection { --from: var(--collection-from); --to: var(--collection-to); --base: var(--collection-base); }
   .travel { --from: var(--travel-from); --to: var(--travel-to); --base: var(--travel-base); }

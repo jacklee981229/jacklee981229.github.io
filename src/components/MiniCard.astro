@@ -19,7 +19,7 @@ const { post } = Astro.props;
 </li>
 
 <style>
-  .mini { position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); transition: transform 0.2s ease; }
+  .mini { position: relative; overflow: hidden; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); transition: transform var(--motion-quick) ease; }
   /* Like the home page's cards: the one pointed at rises. */
   .mini:has(.title:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; transform: translateY(-4px); }
   /* Mouse only: on a touch screen, a tapped card would stay raised. */

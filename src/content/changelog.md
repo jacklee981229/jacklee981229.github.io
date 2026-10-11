@@ -92,3 +92,4 @@
 - 2026-10-10 new: Added [Magnetic Liquid](/lab/effects/?e=magnetic-liquid): black liquid that spikes under a magnet
 - 2026-10-11 design: Made pages flow into each other, and things answer your mouse
 - 2026-10-11 new: Rebuilt [Jack's Town](/lab/world/town/): a new town every day that grows and changes
+- 2026-10-11 design: Made switches slide, search fade away, and hovers ease in

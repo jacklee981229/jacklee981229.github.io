@@ -28,7 +28,7 @@ main:focus { outline: none; }
 
 /* A link that stands on its own ("See all", a tile's title, Newer post), drawn by Go.astro: no underline, and a press
    that gives a little, like the site's buttons. Links inside sentences keep their underline. */
-.go { display: inline-block; width: fit-content; text-decoration: none; transition: transform 90ms ease; }
+.go { display: inline-block; width: fit-content; text-decoration: none; transition: transform var(--motion-press) ease; }
 .go:active { transform: scale(0.96); }
 
 /* Simple pages: a top card (PageTop.astro) at the same height as the home page's first cards, then the content. */
@@ -41,11 +41,23 @@ main:focus { outline: none; }
 .empty { margin: 0; color: var(--muted); }
 
 /* A choice between a few things, drawn as one pill with the chosen one filled in: a pair of radio buttons
-   (Switch.astro: Tidy or Compact, Globe or Flat) or tabs (the collections). */
-.switch { display: inline-flex; padding: 2px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); }
-.switch label, .switch button { position: relative; padding: 0.125rem var(--space-3); border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: var(--text-sm); font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+   (Switch.astro: Tidy or Compact, Globe or Flat) or tabs (the collections). A coloured top changes the fill through
+   --switch-fill, so the sliding pill below takes it too. */
+.switch { --switch-fill: var(--ink); position: relative; display: inline-flex; padding: 2px; border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); }
+.switch label, .switch button { position: relative; padding: 0.125rem var(--space-3); border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: var(--text-sm); font-weight: 650; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--motion-quick) ease, background-color var(--motion-quick) ease; }
 .switch label:hover, .switch button:hover { color: var(--ink); }
-.switch label:has(:checked), .switch button[aria-selected='true'] { background: var(--ink); color: var(--paper); }
+.switch label:has(:checked), .switch button[aria-selected='true'] { background: var(--switch-fill); color: var(--paper); }
+/* With its script (src/lib/switch-pill.ts) the fill is one pill that glides to the chosen side, like the menu bar's.
+   The script only measures each side into --pill-x-N and --pill-w-N; which side is chosen is read here, so a choice
+   made by a page's own script (a look kept in this browser) moves it too. Up to four sides. */
+.switch-pill { position: absolute; top: 2px; bottom: 2px; left: 0; border-radius: var(--radius-pill); background: var(--switch-fill); pointer-events: none; transition: translate var(--motion-soft) var(--ease-out), width var(--motion-soft) var(--ease-out); }
+.switch-pill.still { transition: none; }
+.switch:has(> .switch-pill) :is(label, button) { z-index: 1; }
+.switch:has(> .switch-pill) :is(label:has(:checked), button[aria-selected='true']) { background: none; }
+.switch:has(> :nth-child(1) :checked, > :nth-child(1)[aria-selected='true']) > .switch-pill { translate: var(--pill-x-1) 0; width: var(--pill-w-1); }
+.switch:has(> :nth-child(2) :checked, > :nth-child(2)[aria-selected='true']) > .switch-pill { translate: var(--pill-x-2) 0; width: var(--pill-w-2); }
+.switch:has(> :nth-child(3) :checked, > :nth-child(3)[aria-selected='true']) > .switch-pill { translate: var(--pill-x-3) 0; width: var(--pill-w-3); }
+.switch:has(> :nth-child(4) :checked, > :nth-child(4)[aria-selected='true']) > .switch-pill { translate: var(--pill-x-4) 0; width: var(--pill-w-4); }
 .switch label:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Phones: taller, for a finger. */
 @media (max-width: 719px) {
@@ -53,14 +65,15 @@ main:focus { outline: none; }
 }
 .button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; text-decoration: none; }
 .button:hover { border-color: var(--ink); }
-/* "Copied" (PostScripts.astro, lab/page.ts): a tick pops up in place of the button's icon. */
+/* "Copied" (PostScripts.astro, lab/page.ts): a tick pops up in place of the button's icon, coming into focus as it
+   lands so the swap reads as one motion. */
 [data-copied] > .icon { display: none; }
 [data-copied]::before { content: "\2713"; display: inline-block; font-weight: 900; animation: copied-tick var(--motion-soft) var(--ease-spring); }
 @keyframes copied-tick {
-  from { transform: scale(0.2); opacity: 0; }
+  from { transform: scale(0.2); opacity: 0; filter: blur(2px); }
 }
-/* A press gives a little, like a real button. */
-.button, .icon-btn { transition: transform 90ms ease; }
+/* A press gives a little, like a real button; a hover's colours ease in rather than snap. */
+.button, .icon-btn { transition: transform var(--motion-press) ease, background-color var(--motion-quick) ease, border-color var(--motion-quick) ease, color var(--motion-quick) ease; }
 .button:active:not(:disabled), .icon-btn:active { transform: scale(0.96); }
 
 /* Jack's links (LINKS in src/site.ts) as coloured tiles, by their icon: on the home page and in ProfileLinks.astro.
@@ -76,7 +89,7 @@ main:focus { outline: none; }
    Base.astro's head. */
 ::view-transition-old(root),
 ::view-transition-new(root) { animation-duration: 0.25s; }
-::view-transition-group(*) { animation-duration: 0.4s; animation-timing-function: var(--ease-out); }
+::view-transition-group(*) { animation-duration: var(--motion-settle); animation-timing-function: var(--ease-out); }
 /* The theme spreads out in a circle from its button (theme.ts): the page's own cross-fade waits, and nothing is
    carried over on its own, so the circle sweeps over everything. */
 html.spreading::view-transition-old(root),

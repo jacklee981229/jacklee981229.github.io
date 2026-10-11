@@ -27,7 +27,7 @@ const { labels = false } = Astro.props;
   .links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
   .links li { margin: 0; }
   /* Icons only: the link is the tile. */
-  .links a { display: flex; align-items: center; justify-content: center; gap: var(--space-3); min-height: 2.75rem; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); font-size: var(--text-ui); font-weight: 800; text-decoration: none; transition: transform 0.15s ease; }
+  .links a { display: flex; align-items: center; justify-content: center; gap: var(--space-3); min-height: 2.75rem; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); font-size: var(--text-ui); font-weight: 800; text-decoration: none; transition: transform var(--motion-quick) ease; }
   .links .tile { display: contents; }
   .links :global(.icon) { width: 20px; height: 20px; }
   /* With names: two by two, each name beside its tile. */

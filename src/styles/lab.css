@@ -12,7 +12,7 @@
 .choices { min-width: 0; margin: 0; padding: 0; border: 0; }
 .choices legend { margin-bottom: var(--space-2); padding: 0; font-weight: 650; }
 .pills { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.pill { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; cursor: pointer; }
+.pill { position: relative; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; cursor: pointer; transition: border-color var(--motion-quick) ease, background-color var(--motion-quick) ease, color var(--motion-quick) ease; }
 .pill:hover { border-color: var(--ink); }
 .pill:has(input[type='radio']:checked) { border-color: var(--ink); background: var(--ink); color: var(--paper); }
 .pill:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -41,7 +41,7 @@
 .pane-view:empty::before { content: attr(data-hint); color: var(--muted); }
 
 /* The picture tools' box to drop pictures on, or press to choose them: dashed, as a place to put something. */
-.drop { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-7) var(--space-5); border: 2px dashed var(--rule); border-radius: var(--radius-xl); background: var(--surface); text-align: center; cursor: pointer; transition: border-color 0.15s ease, background 0.15s ease; }
+.drop { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-7) var(--space-5); border: 2px dashed var(--rule); border-radius: var(--radius-xl); background: var(--surface); text-align: center; cursor: pointer; transition: border-color var(--motion-quick) ease, background var(--motion-quick) ease; }
 .drop:hover, .drop.is-over { border-color: var(--ink); }
 .drop.is-over { background: var(--wash); }
 .drop:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }

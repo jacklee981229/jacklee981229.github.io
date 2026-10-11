@@ -247,7 +247,34 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   /** Whatever opened the palette gets the focus back when it closes. */
   let opener: HTMLElement | null = null;
 
+  /** Bumped by every close and every open, so a close that was cut short by an open never finishes. */
+  let closing = 0;
+
+  /** Esc, the Esc button and a click outside: it fades out first. A result closes it at once (runOption), since the
+   *  page flow or the theme circle takes over and would catch it half faded. */
+  function shut() {
+    if (!dialog?.open || dialog.classList.contains('closing')) return;
+    const box = dialog;
+    const ticket = ++closing;
+    box.classList.add('closing');
+    const done = () => {
+      if (ticket !== closing) return;
+      box.classList.remove('closing');
+      box.close();
+    };
+    // With less motion asked for there is no animation to wait for, and it closes at once. An open cuts the fade
+    // short, which rejects; that close is simply dropped.
+    Promise.all(box.getAnimations().map((a) => a.finished)).then(done, done);
+  }
+
   function open() {
+    // Asked for again while fading out: it comes straight back.
+    if (dialog?.classList.contains('closing')) {
+      closing++;
+      dialog.classList.remove('closing');
+      input?.focus();
+      return;
+    }
     if (!dialog || !input || dialog.open) return;
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     input.value = '';
@@ -277,7 +304,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     } else if (e.key === 'Escape') {
       // A search box's own Esc only empties it; here it closes the palette in one press.
       e.preventDefault();
-      dialog?.close();
+      shut();
     } else if (e.key === 'Enter') {
       // A Chinese or Japanese word still being put together: Enter is choosing it, not running anything.
       if (e.isComposing || e.keyCode === 229) return;
@@ -317,16 +344,36 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     }
   });
   dialog?.addEventListener('click', (e) => {
-    if (e.target === dialog) dialog.close();
+    if (e.target === dialog) shut();
+  });
+  dialog?.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    shut();
+  });
+  dialog?.querySelector('form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    shut();
   });
 </script>
 
 <style>
   .search { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80dvh); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); }
   .search::backdrop { background: var(--backdrop); }
-  /* It drops in, over a shade that fades up. */
-  .search[open] { animation: palette-in var(--motion-soft) var(--ease-spring); }
+  /* It drops in, over a shade that fades up, and lifts away quicker than it came. */
+  .search[open] { animation: palette-in var(--motion-soft) var(--ease-out); }
   .search[open]::backdrop { animation: palette-shade var(--motion-quick) ease; }
+  .search.closing { animation: palette-out var(--motion-quick) var(--ease-out) forwards; }
+  .search.closing::backdrop { animation: palette-unshade var(--motion-quick) ease forwards; }
+  @keyframes palette-out {
+    to { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  }
+  @keyframes palette-unshade {
+    to { opacity: 0; }
+  }
+  /* global.css stills every element's animations, but not the shade's. */
+  @media (prefers-reduced-motion: reduce) {
+    .search::backdrop { animation: none !important; }
+  }
   @keyframes palette-in {
     from { opacity: 0; transform: translateY(-12px) scale(0.98); }
   }

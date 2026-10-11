@@ -152,7 +152,7 @@ const changes = changelogFile();
   .chips li { padding: 0.25rem 0.75rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 700; }
   .covers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
   .covers a { display: block; border-radius: var(--radius-art); }
-  .covers :global(img) { display: block; width: 100%; height: auto; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform 0.2s ease; }
+  .covers :global(img) { display: block; width: 100%; height: auto; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform var(--motion-quick) ease; }
   .covers a:hover :global(img), .covers a:focus-visible :global(img) { transform: translateY(-3px); }
   .more { margin: 0; line-height: 1.6; }
   .more + .more { margin-top: var(--space-2); }
