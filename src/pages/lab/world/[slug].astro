@@ -3,6 +3,7 @@
 // window, then the world on the effects' stage, then other Lab items. Its picture is its link preview.
 import Base from '../../../layouts/Base.astro';
 import EffectStage from '../../../components/EffectStage.astro';
+import WorldPanel from '../../../components/WorldPanel.astro';
 import LabHeader from '../../../components/LabHeader.astro';
 import LabMore from '../../../components/LabMore.astro';
 import { WORLDS } from '../../../lib/lab/tools.js';
@@ -20,7 +21,7 @@ const pictures = import.meta.glob<{ default: ImageMetadata }>('/src/assets/world
 const picture = pictures[`/src/assets/worlds/${world.slug}.png`]?.default;
 // What the moving picture shows, for someone who can't see it.
 const LABELS: Record<string, string> = {
-  town: 'A small town seen from above: roads with traffic lights, coloured houses and shops, and cars driving between them, backing out of drives, parking, and coming and going along the roads out of town.',
+  town: 'A small town beside a river, seen from above: houses and buildings in bold colours, roads with roundabouts, bridges and a flyover, and cars driving between them, pulling out of drives, parking, and coming and going along the roads out of town. Now and then a building goes up or comes down.',
   trains: 'A train network seen from above: a double-track main line round the edge, with branches to stations and a depot, and trains carrying coloured cargo between the stations.',
   pond: 'A clear pond seen from above: koi swimming over sand and gravel, mossy boulders along one bank, and maple leaves floating on the water in the sun.',
   fireflies: 'A mangrove river at night, seen from a boat: trees full of fireflies that blink at random, then fall into step and flash together, every flash mirrored in the water, with a paper lantern on the bank for each note in the guestbook.',
@@ -31,8 +32,9 @@ const LABELS: Record<string, string> = {
     <LabHeader compact title={world.name} description={`${world.description} ${world.hint}`} back="/lab/#little-worlds" />
   </div>
   <div class="wrap world">
-    <EffectStage slug={world.slug} world pan={'pan' in world && world.pan} label={LABELS[world.slug] ?? world.description}>
-      {'controls' in world && world.controls?.map((c) => <button slot="controls" type="button" class="button" data-control={c.id}>{c.label}</button>)}
+    <EffectStage slug={world.slug} world pan={'pan' in world && world.pan} pause={!('panel' in world && world.panel)} label={LABELS[world.slug] ?? world.description}>
+      <Fragment slot="overlay">{'chip' in world && world.chip && <p class="chip" data-chip><span class="time" data-chip-time></span><span class="count" data-chip-count></span></p>}</Fragment>
+      <Fragment slot="controls">{'panel' in world && world.panel && <WorldPanel />}{'controls' in world && world.controls?.map((c) => <button type="button" class="button" data-control={c.id}>{c.label}</button>)}</Fragment>
     </EffectStage>
   </div>
   <LabMore current={world.slug} />
@@ -43,4 +45,14 @@ const LABELS: Record<string, string> = {
   .top { padding-top: var(--space-5); }
   /* The world lies on a card (EffectStage.astro), with room under it before the band. */
   .world { padding-bottom: var(--space-6); }
+  /* A world's chip, bottom left on its picture (Jack's Town's: its day and time, and what's in it), in the stage's
+     buttons' colours; empty until the world fills it, and taps go through it to the world. */
+  .chip { position: absolute; left: var(--space-4); bottom: var(--space-4); display: grid; gap: 1px; margin: 0; padding: var(--space-2) var(--space-3); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); pointer-events: none; }
+  .chip:has(.time:empty) { display: none; }
+  .time { font-family: var(--font-code); font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.04em; }
+  .count { color: var(--muted); font-size: var(--text-xs); font-weight: 600; }
+  /* A phone's card: the chip keeps to the time, so the world stays in sight. */
+  @media (max-width: 479px) {
+    .count { display: none; }
+  }
 </style>

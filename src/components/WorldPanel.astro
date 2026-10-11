@@ -1,0 +1,55 @@
+---
+// A Little World's own controls, tucked behind one button in the stage's corner, in place of Pause (Jack's Town's):
+// its speed, shown as one, two or three arrows, as games do; full screen; and a new world. This opens and closes the panel; the world's code
+// (src/worlds/<slug>.js) finds the buttons in its stage and runs them. Full screen stays hidden where the browser
+// can't do it (iPhones), and the world shows it where it can.
+import Icon from './Icon.astro';
+---
+<div class="world-panel" data-world-panel>
+  <button type="button" class="button toggle" aria-expanded="false" aria-controls="world-panel" aria-label="Speed and more" title="Speed and more" data-panel-toggle><Icon name="sliders" /></button>
+  <div class="panel" id="world-panel" hidden>
+    <div class="group" role="group" aria-label="Speed">
+      <button type="button" data-speed="1" aria-pressed="true" aria-label="Normal speed" title="Normal speed"><Icon name="speed-1" /></button>
+      <button type="button" data-speed="5" aria-pressed="false" aria-label="Five times as fast" title="Five times as fast"><Icon name="speed-2" /></button>
+      <button type="button" data-speed="10" aria-pressed="false" aria-label="Ten times as fast" title="Ten times as fast"><Icon name="speed-3" /></button>
+    </div>
+    <span class="rule" aria-hidden="true"></span>
+    <button type="button" data-control="full" aria-pressed="false" aria-label="Full screen" title="Full screen" hidden><Icon name="expand" class="enter" /><Icon name="shrink" class="leave" /></button>
+    <button type="button" data-control="new-town" aria-label="New town" title="New town"><Icon name="restart" /></button>
+  </div>
+</div>
+
+<script>
+  // Opens and closes the panel: its button, a click anywhere else, the focus moving on past it, or Escape (which hands
+  // the focus back to its button).
+  for (const root of document.querySelectorAll<HTMLElement>('[data-world-panel]')) {
+    const toggle = root.querySelector<HTMLButtonElement>('[data-panel-toggle]');
+    const panel = root.querySelector<HTMLElement>('.panel');
+    if (!toggle || !panel) continue;
+    const show = (open: boolean) => { panel.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); };
+    toggle.addEventListener('click', () => show(panel.hidden));
+    document.addEventListener('pointerdown', (e) => { if (!panel.hidden && !root.contains(e.target as Node)) show(false); });
+    root.addEventListener('focusout', (e) => { if (!panel.hidden && e.relatedTarget && !root.contains(e.relatedTarget as Node)) show(false); });
+    root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { show(false); toggle.focus(); } });
+  }
+</script>
+
+<style>
+  .world-panel { position: relative; }
+  /* The button: as tall as the stage's other buttons, square round its icon. Stronger than the stage's own rule for
+     its buttons. */
+  .world-panel .toggle { display: grid; place-items: center; padding: var(--space-1) var(--space-2); }
+  .world-panel .toggle[aria-expanded='true'] { border-color: var(--ink); }
+  /* The panel: a strip of round buttons opening to the button's left, level with it, on the stage's buttons' colours. */
+  .panel { position: absolute; top: 50%; right: calc(100% + var(--space-2)); transform: translateY(-50%); display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-float); }
+  .panel[hidden] { display: none; }
+  .group { display: flex; gap: var(--space-1); }
+  .panel button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .panel button:hover { background: var(--wash); }
+  .panel button[hidden] { display: none; }
+  /* The speed chosen, filled in like a chosen option elsewhere in the Lab. */
+  .group button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .rule { width: 1px; height: 1.5rem; margin-inline: var(--space-1); background: var(--rule); }
+  [data-control='full'] .leave, [data-control='full'][aria-pressed='true'] .enter { display: none; }
+  [data-control='full'][aria-pressed='true'] .leave { display: block; }
+</style>

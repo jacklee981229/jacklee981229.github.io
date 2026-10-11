@@ -10,7 +10,7 @@
 // for each seed; a phone-sized window gets fewer stations. The network is laid out lying down (wider than tall) and
 // turned to stand up in a tall window. sim.js runs the trains on it; src/worlds/trains.js draws it. Tested by
 // tests/trains.test.js.
-import { seeded } from '../town/layout.js';
+import { seeded } from '../town/map.js';
 
 /** Sizes at scale 1, in pixels; a network scales them all by its `k` to fit its window. */
 const SIZE = {

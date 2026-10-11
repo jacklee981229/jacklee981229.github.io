@@ -13,7 +13,7 @@
 // one, picked at random, out along it and off the railway. Trains pick up speed and slow down where you can see it, run fastest along the main
 // line, and slow down well before a red. It runs in fixed steps from a seed, so the same seed always plays out the
 // same. Tested by tests/trains.test.js.
-import { seeded } from '../town/layout.js';
+import { seeded } from '../town/map.js';
 import { pointAt, TRAIN } from './layout.js';
 
 /** Seconds of time a step moves on. */

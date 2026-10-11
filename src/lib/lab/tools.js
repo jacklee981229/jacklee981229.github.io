@@ -73,12 +73,14 @@ export const EFFECTS = [
  * effects' stage, at /lab/world/<slug>/; its card shows a drawing of it (src/components/WorldCover.astro), and its
  * photo, src/assets/worlds/<slug>.png, is its link previews' picture. `hint` says what there is to see or do, `icon`
  * is its card's and the palette's icon, `words` are more words the palette finds it by, `controls` are buttons of
- * its own beside Pause (its code finds each by its id), and `pan` lets it take taps and sideways drags while a finger
- * still scrolls the page up and down. `hidden`, as for a tool, keeps it off every list but its own address.
- * @type {{ slug: string, name: string, description: string, hint: string, icon: string, words: string[], controls?: { id: string, label: string }[], pan?: boolean, hidden?: boolean }[]}
+ * its own beside Pause (its code finds each by its id), `panel` a button beside Pause opening its speed, full screen
+ * and a new world (WorldPanel.astro), `chip` a chip in the corner for its code to fill, and `pan` lets it take taps
+ * and sideways drags while a finger still scrolls the page up and down. `hidden`, as for a tool, keeps it off every
+ * list but its own address.
+ * @type {{ slug: string, name: string, description: string, hint: string, icon: string, words: string[], controls?: { id: string, label: string }[], panel?: boolean, chip?: boolean, pan?: boolean, hidden?: boolean }[]}
  */
 export const WORLDS = [
-  { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: "Click a car to see where it's going, or add and remove cars.", icon: 'car', words: ['traffic', 'cars'], controls: [{ id: 'add-car', label: 'Add car' }, { id: 'remove-car', label: 'Remove car' }] },
+  { slug: 'town', name: "Jack's Town", description: 'A little town whose cars drive, park and come and go by themselves.', hint: "Click a car to see where it's going.", icon: 'car', words: ['traffic', 'cars'], chip: true, panel: true },
   { slug: 'trains', name: "Jack's Train World", description: 'A little railway whose trains fetch and deliver cargo by themselves.', hint: 'Click a train to follow it, or add and remove trains.', icon: 'train', words: ['railway', 'trains', 'cargo'], controls: [{ id: 'add-train', label: 'Add train' }, { id: 'remove-train', label: 'Remove train' }] },
   { slug: 'pond', name: "Jack's Pond", description: 'A clear spring pond whose koi swim by themselves.', hint: 'Just watch. Switch the site to dark for night.', icon: 'fish', words: ['koi', 'fish', 'pond', 'water'] },
   { slug: 'fireflies', name: "Jack's Firefly River", description: 'A mangrove river whose fireflies fall into step by themselves.', hint: 'Tap a steady beat and they learn it. Each lantern is a note.', icon: 'firefly', words: ['fireflies', 'river', 'mangrove', 'night', 'lanterns'], pan: true, hidden: true },

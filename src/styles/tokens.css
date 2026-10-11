@@ -44,6 +44,43 @@
   --pond-koi-brown: #9A774F;
   --pond-light: #FFFADB;
   --pond-firefly: #D8FF6E;
+  /* Jack's Town (src/worlds/town.js), by day: the yellow ground and the homes' lawns, the parks, the river (its sand
+     banks, wet edge, water, deep middle and the light on its waves), the roads (tarmac, kerbs and middle lines, the
+     drives and car parks too; concrete for bridges and the flyover, with its rails and pillars), trees and palms, the dust where
+     something comes down, the five colours of homes, buildings and cars, lit windows (only by night), the flash of
+     something new, shadows, car glass and brake lights, and the cars' thought bubbles (the cloud and its outline). The
+     town mixes them lighter and darker for everything else. */
+  --town-ground: #FFD15A;
+  --town-lawn: #FFE08C;
+  --town-park: #9FD27A;
+  --town-bank: #F4D79A;
+  --town-wet: #E2BF7A;
+  --town-water: #2AA5B3;
+  --town-water-deep: #2394A3;
+  --town-wave: #D8F4F5;
+  --town-road: #363B52;
+  --town-kerb: #F7EEDA;
+  --town-concrete: #ECE6DA;
+  --town-rail: #A79F8E;
+  --town-pillar: #8E8676;
+  --town-tree: #2E9E66;
+  --town-tree-top: #4DBF82;
+  --town-palm: #2C9460;
+  --town-palm-top: #5CC387;
+  --town-trunk: #8C6B3C;
+  --town-dust: #E8D3A0;
+  --town-red: #FF3D63;
+  --town-blue: #2F86FF;
+  --town-purple: #A65BF2;
+  --town-white: #F7F4EE;
+  --town-orange: #FF6A3D;
+  --town-window: #FFD27A;
+  --town-flash: #FFFFFF;
+  --town-shadow: #000000;
+  --town-glass: #141828;
+  --town-brake: #FF2D2D;
+  --town-bubble: #FFFCF4;
+  --town-bubble-edge: #2B2416;
   /* In the light theme, cards get a faint ink-tinted lift to stand apart from the page. */
   --shadow-card: 0 1px 2px rgb(23 32 48 / 0.06), 0 8px 24px -8px rgb(23 32 48 / 0.2);
   --shadow-float: 0 8px 24px rgb(0 0 0 / 0.2);
@@ -386,6 +423,35 @@
   --pond-koi-gold: #CDA44C;
   --pond-koi-brown: #7E6446;
   --pond-light: #E4ECFF;
+  /* Jack's Town by night: the same town in deep blues under the evening's last light, the windows lit, the site's
+     own accents for three of the colours. */
+  --town-ground: #23264A;
+  --town-lawn: #2B2F5A;
+  --town-park: #1E3A3A;
+  --town-bank: #363A64;
+  --town-wet: #2C3058;
+  --town-water: #123049;
+  --town-water-deep: #0F283E;
+  --town-wave: #3F7290;
+  --town-road: #0F1122;
+  --town-kerb: #4A4F86;
+  --town-concrete: #5A5F8C;
+  --town-rail: #3D4170;
+  --town-pillar: #2A2D52;
+  --town-tree: #1F5E4E;
+  --town-tree-top: #2C7A64;
+  --town-palm: #1D5848;
+  --town-palm-top: #2F8068;
+  --town-trunk: #3A2F3A;
+  --town-dust: #5A5F8C;
+  --town-red: var(--accent-writing);
+  --town-blue: var(--accent-travel);
+  --town-purple: var(--accent-about);
+  --town-white: #E8E6F2;
+  --town-orange: #FF7A45;
+  --town-flash: var(--town-window);
+  --town-bubble: #E8E6F2;
+  --town-bubble-edge: #0F1122;
 
   /* Magnetic Liquid in the dark: its --magnet-* colours. */
   /* A black studio: a dark glazed dish, a dim softbox overhead, and a blue gel and an orange one from either side. */
@@ -472,4 +538,8 @@
   --river-aurora-3: var(--aurora-3);
   --river-aurora-4: var(--aurora-4);
   --river-aurora-5: var(--aurora-5);
+  /* Jack's Town under the night sky: the aurora shimmering on its river. */
+  --town-aurora-1: var(--aurora-1);
+  --town-aurora-2: var(--aurora-2);
+  --town-aurora-3: var(--aurora-3);
 }

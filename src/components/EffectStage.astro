@@ -2,7 +2,8 @@
 // The stage an effect plays on: a canvas right across the window. src/effects/stage.js runs it, with the effect's
 // own code (src/effects/<slug>.js), fetched only when it's shown. A Little World (`world`, such as
 // Jack's Town) plays on the same stage, from src/worlds/<slug>.js. A world can put buttons of its own beside Pause
-// (the `controls` slot); its code finds them in the stage.
+// (the `controls` slot) and something of its own over its picture (the `overlay` slot, such as Jack's Town's chip);
+// its code finds them in the stage.
 interface Props {
   /** The effect or world to run; left out, the page runs and swaps the effects itself (the Effects page). */
   slug?: string;
@@ -12,15 +13,18 @@ interface Props {
   world?: boolean;
   /** A world that answers taps and sideways drags: a finger still scrolls the page up and down across it. */
   pan?: boolean;
+  /** The Pause button; a world with a panel of its own (Jack's Town) goes without. */
+  pause?: boolean;
 }
 
-const { slug, label, world = false, pan = false } = Astro.props;
+const { slug, label, world = false, pan = false, pause = true } = Astro.props;
 ---
 <div class="stage" data-stage={slug ?? ''} data-world={world || undefined} data-pan={pan || undefined} data-fullscreen={world ? 'Show this world on the whole screen' : 'Show the effect on the whole screen'}>
   <canvas role="img" aria-label={label}></canvas>
+  <slot name="overlay" />
   <div class="controls">
     <slot name="controls" />
-    <button type="button" class="button" data-stage-toggle>Pause</button>
+    {pause && <button type="button" class="button" data-stage-toggle>Pause</button>}
   </div>
 </div>
 
@@ -51,8 +55,8 @@ const { slug, label, world = false, pan = false } = Astro.props;
   /* The command palette's Fullscreen: the stage alone, edge to edge. */
   .stage:fullscreen { height: 100%; border-radius: 0; box-shadow: none; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-  /* A world: the homes' four colours, the lights' go, wait and stop, and the ground (the card's colour). Nothing
-     follows the pointer, so a finger on it scrolls the page as anywhere else. */
+  /* A world (the Train World draws with these): its cargo's four colours, its lamps' go, wait and stop, and the
+     ground (the card's colour). Nothing follows the pointer, so a finger on it scrolls the page as anywhere else. */
   .stage[data-world] { --c1: var(--lane-flutter); --c2: var(--lane-hexo); --c3: var(--lane-chatgpt); --c4: var(--lane-git); --c5: var(--signal-go); --c6: var(--signal-wait); --c7: var(--signal-stop); --c8: var(--surface); }
   .stage[data-world] canvas { touch-action: auto; cursor: default; }
   .stage[data-world][data-pan] canvas { touch-action: pan-y; cursor: pointer; }

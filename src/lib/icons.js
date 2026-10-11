@@ -61,4 +61,8 @@ export const ICONS = {
   'sound-off': '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>',
   music: '<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
   'music-off': '<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/><path d="M3.5 3.5l17 17"/>',
+  sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  'speed-1': '<path d="m9 6 6 6-6 6"/>',
+  'speed-2': '<path d="m6 6 6 6-6 6M12.5 6l6 6-6 6"/>',
+  'speed-3': '<path d="m3.5 6 6 6-6 6M9 6l6 6-6 6M14.5 6l6 6-6 6"/>',
 };
