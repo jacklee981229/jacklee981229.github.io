@@ -2,13 +2,15 @@
 // paused: the site's history replayed on a clock tilted back like a dial on a desk. The day goes round (midnight at the
 // top), the days since the rebuild go outwards; each file a commit changed stands up off the face at the commit's hour
 // and day, as tall as its lines, and is wound once round the ring at the rim, like the wire of a coil. The commits play
-// back in order; then the finished clock stays, a pulse running round its coil, until Restart plays it again.
+// back in order, each flaring where it lands; then the finished clock stays, a slow wave of light drifting round its
+// coil, until Restart plays it again.
 // Its other mode, the Ring, keys the same files on the build itself: a fat coil leaning further back, each file one turn
 // of its wire and a fibre along it, in the order the files changed (so the busy days take more of it), bristling out
 // where it changed many lines, the commit being played in its middle. The ring is on the clock's back, like the other side of a card:
 // switching turns it over.
-// Around it, the numbers, worked out while the site is built (src/lib/build-log.js). In the site's colours, following
-// its theme (its page's --c1 onward, build-log.astro, read by the stage): glowing in the dark, drawn plainly by day.
+// Around it, the numbers, worked out while the site is built (src/lib/build-log.js), on the site's plain cards, which
+// keep the eye on the middle. In the site's colours, following its theme (its page's --c1 onward, build-log.astro, read
+// by the stage): glowing in the dark, drawn plainly by day.
 import { MONTHS } from '../lib/dates.js';
 
 /** The poster's own units: a landscape screen as wide as the page, or a tall one on a phone. */
@@ -18,8 +20,13 @@ const TALL = { w: 440, h: 550 };
 /** The replay, in seconds: the bare clock, then the commits played back. After that it stays finished. */
 const INTRO = 1.2;
 const PLAY = 22;
-/** Seconds for the finished clock's pulse to run once round its coil. */
-const LAP = 4.7;
+/** The finished clock's wave of light: its crests round the coil, and the seconds each takes to drift once round. A
+ * crest passes any one place every SWELL seconds; the ring's ripple and the glow's breathing keep the same time. */
+const CRESTS = 3;
+const WAVE = 24;
+const SWELL = WAVE / CRESTS;
+/** Seconds a commit's flare lasts where it lands. */
+const FLARE = 0.8;
 /** How long a spike takes to rise, and a file's wire to wind once round the coil. */
 const GROW = 0.7;
 /** How far the clock's face leans back (degrees), its top left away from us, and the ring, further. The ring is on the
@@ -95,6 +102,7 @@ const CLOCKS = {
 export function createPoster(stage, data, root, mode = 'clock') {
   const { ctx } = stage;
   const mono = getComputedStyle(root).getPropertyValue('--font-code').trim() || 'monospace';
+  const sans = getComputedStyle(root).getPropertyValue('--font-sans').trim() || 'sans-serif';
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const commits = data.commits;
   const cellParts = data.cells;
@@ -147,7 +155,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
       wireLift: 1 + random() * 0.3,
     };
   });
-  // Where each file's wire sits round the coil, for the pulse that runs round it.
+  // Where each file's wire sits round the coil, for the wave that drifts round it.
   const wireAngle = Float32Array.from({ length: N }, (_, k) => hourAngle(commits[commitOf[k]]) + traits[k].wireTurn);
   // On the ring, each file's place is its turn in the build, from the top round clockwise, and each commit's the middle
   // of its files. The ring's own random numbers, so the clock's stay as they were.
@@ -414,9 +422,9 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
 
   // ---- Words and small pieces.
-  /** Writes words in the site's monospace. @param {CanvasRenderingContext2D} g */
-  const write = (g, words, x, y, sizePx, { colour = palette.text, alpha = 1, align = 'left', spacing = 0.05, weight = 500 } = {}) => {
-    g.font = `${weight} ${sizePx}px ${mono}`;
+  /** Writes words, in the site's monospace unless told otherwise. @param {CanvasRenderingContext2D} g */
+  const write = (g, words, x, y, sizePx, { colour = palette.text, alpha = 1, align = 'left', spacing = 0.05, weight = 500, family = mono } = {}) => {
+    g.font = `${weight} ${sizePx}px ${family}`;
     if ('letterSpacing' in g) g.letterSpacing = `${spacing * sizePx}px`;
     g.textAlign = /** @type {CanvasTextAlign} */ (align);
     g.textBaseline = 'alphabetic';
@@ -424,8 +432,8 @@ export function createPoster(stage, data, root, mode = 'clock') {
     g.fillText(words, x, y);
     if ('letterSpacing' in g) g.letterSpacing = '0px';
   };
-  const widthOf = (g, words, sizePx, spacing = 0.05) => {
-    g.font = `500 ${sizePx}px ${mono}`;
+  const widthOf = (g, words, sizePx, spacing = 0.05, family = mono, weight = 500) => {
+    g.font = `${weight} ${sizePx}px ${family}`;
     if ('letterSpacing' in g) g.letterSpacing = `${spacing * sizePx}px`;
     const width = g.measureText(words).width;
     if ('letterSpacing' in g) g.letterSpacing = '0px';
@@ -433,11 +441,11 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
   const cuts = new Map();
   /** Words cut short with an ellipsis to fit `width`. @param {CanvasRenderingContext2D} g */
-  const cut = (g, words, width, sizePx) => {
-    const key = `${width}|${sizePx}|${words}`;
+  const cut = (g, words, width, sizePx, family = mono) => {
+    const key = `${width}|${sizePx}|${family}|${words}`;
     if (!cuts.has(key)) {
       let end = words.length;
-      const fits = (text) => widthOf(g, text, sizePx) <= width;
+      const fits = (text) => (family === mono ? widthOf(g, text, sizePx) : sayWidth(g, text, sizePx, 500)) <= width;
       if (!fits(words)) while (end > 1 && !fits(`${words.slice(0, end).trimEnd()}…`)) end--;
       cuts.set(key, end === words.length ? words : `${words.slice(0, end).trimEnd()}…`);
     }
@@ -461,15 +469,31 @@ export function createPoster(stage, data, root, mode = 'clock') {
     }
     return wraps.get(key);
   };
-  /** A panel: a dark box in a hairline frame, its title top left and a note top right. @param {CanvasRenderingContext2D} g */
-  const panel = (g, x, y, w, h, title, note = '', noteColour = palette.late) => {
-    g.fillStyle = rgba(palette.panel, 0.82);
-    g.fillRect(x, y, w, h);
-    g.strokeStyle = rgba(palette.frame);
-    g.lineWidth = 1;
-    g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-    if (title) write(g, title, x + 10, y + 15, 10.5, { colour: palette.soft });
-    if (note) write(g, note, x + w - 10, y + 15, 10.5, { colour: noteColour, align: 'right' });
+  /** Words in the site's own type, in plain sentences. @param {CanvasRenderingContext2D} g */
+  const say = (g, words, x, y, sizePx, options = {}) => write(g, words, x, y, sizePx, { spacing: 0, weight: 600, ...options, family: sans });
+  const sayWidth = (g, words, sizePx, weight = 600) => widthOf(g, words, sizePx, 0, sans, weight);
+  /** A card's small capitals naming it, as the site's cards have. @param {CanvasRenderingContext2D} g */
+  const label = (g, words, x, y, sizePx = 10.5) => say(g, words.toUpperCase(), x, y, sizePx, { colour: palette.soft, weight: 800, spacing: 0.08 });
+  /** A day as the site writes it: 7 Oct. */
+  const niceDay = (day) => `${Number(day.slice(8))} ${MONTHS[Number(day.slice(5, 7)) - 1]}`;
+  /**
+   * A card as the site's plain ones: rounded, no frame, in the card colour; by day with the cards' soft shadow (there
+   * is none in the dark). @param {CanvasRenderingContext2D} g
+   */
+  const card = (g, x, y, w, h, radius = 16) => {
+    g.save();
+    if (light) {
+      const t = g.getTransform();
+      const px = Math.hypot(t.a, t.b);
+      g.shadowColor = rgba(palette.text, 0.12);
+      g.shadowBlur = 18 * px;
+      g.shadowOffsetY = 6 * px;
+    }
+    g.beginPath();
+    g.roundRect(x, y, w, h, radius);
+    g.fillStyle = rgba(palette.panel);
+    g.fill();
+    g.restore();
   };
   /** @param {CanvasRenderingContext2D} g @param {number[][]} points */
   const polyline = (g, points, colour, width = 1) => {
@@ -657,16 +681,15 @@ export function createPoster(stage, data, root, mode = 'clock') {
         if (bw >= 4) {
           const y = y0 + (depth - 1) * (rowH + gap);
           const colour = palette.parts[main];
-          g.fillStyle = rgba(colour, 0.09);
-          g.fillRect(at2 + 1, y, bw - 2, rowH);
-          g.strokeStyle = rgba(colour, 0.85);
-          g.lineWidth = 1.2;
-          g.strokeRect(at2 + 1.5, y + 0.5, bw - 3, rowH - 1);
-          const label = path === '(root)' ? 'root files' : path.split('/').slice(-2).join('.');
+          g.beginPath();
+          g.roundRect(at2 + 1.5, y, Math.max(1, bw - 3), rowH, Math.min(6, bw / 3));
+          g.fillStyle = rgba(colour, light ? 0.16 : 0.26);
+          g.fill();
+          const name = path === '(root)' ? 'root files' : path.split('/').slice(-2).join('/');
           // In the dark the name is a little lighter than its box, to read on it.
           const ink = light ? colour : colour.map((v) => v + (255 - v) * 0.35);
-          if (widthOf(g, label, 9.5) + 12 < bw) write(g, label, at2 + 7, y + rowH / 2 + 3.5, 9.5, { colour: ink });
-          if (bw > widthOf(g, label, 9.5) + widthOf(g, String(n), 9) + 24) write(g, String(n), at2 + bw - 7, y + rowH / 2 + 3.5, 9, { colour: palette.faint, align: 'right' });
+          if (sayWidth(g, name, 11, 650) + 16 < bw) say(g, name, at2 + 9, y + rowH / 2 + 4, 11, { colour: ink, weight: 650 });
+          if (bw > sayWidth(g, name, 11, 650) + sayWidth(g, String(n), 10.5, 500) + 30) say(g, String(n), at2 + bw - 9, y + rowH / 2 + 4, 10.5, { colour: palette.soft, align: 'right', weight: 500 });
         }
         lay(path, depth + 1, at2);
         at2 += bw;
@@ -675,77 +698,84 @@ export function createPoster(stage, data, root, mode = 'clock') {
     lay('', 1, x0);
   };
 
-  /** The landscape poster's still parts: the title, the numbers' panels, the Changelog, the flame and the small print. */
+  /** Where the landscape poster's cards stand, and its numbers' charts in them. */
+  const LEFT = { x: 16, w: 350 };
+  const RIGHT = { x: 1034, w: 350 };
+  const CHART = { x: LEFT.x + 196, w: LEFT.w - 212 };
+  /** The landscape poster's still parts: a line saying what it is, the numbers' cards, the Changelog's, the folders'. */
   const paintWide = (g) => {
-    // The title, and what the site is.
-    g.fillStyle = rgba(palette.text);
-    g.fillRect(14, 13, 2.5, 30);
-    write(g, "JACK'S SPACE / BUILD LOG", 24, 27, 14, { spacing: 0.08 });
-    write(g, `SITE HISTORY  |  ${totals.commits} COMMITS  |  ${fmt(totals.changes)} FILE CHANGES  |  SINCE ${data.started.slice(0, 4)}, REBUILT ${dayLabel(data.rebuilt)}`, 24, 43, 10, { colour: palette.soft });
-    const visits = data.visits === null ? '' : `  |  VISITS ${fmt(data.visits)}`;
+    say(g, 'Site history', 18, 31, 16, { weight: 800 });
+    say(g, `${totals.commits} commits and ${fmt(totals.changes)} file changes since ${data.started.slice(0, 4)}, rebuilt ${niceDay(data.rebuilt)}`, 18, 49, 12, { colour: palette.soft, weight: 500 });
+    const visits = data.visits === null ? '' : `, ${fmt(data.visits)} visits`;
     // Right-aligned short of the Restart, Pause and Full screen buttons over the card's corner.
-    write(g, `GIT main  |  LINES +${fmt(totals.added)} −${fmt(totals.removed)}  |  DAYS ${totals.days}${visits}`, 990, 27, 10, { colour: palette.soft, align: 'right' });
-    write(g, `after-midnight ${(lateShare * 100).toFixed(1)} %`, 990, 43, 10.5, { colour: palette.late, align: 'right' });
+    say(g, `+${fmt(totals.added)}  −${fmt(totals.removed)} lines in ${totals.days} days${visits}`, 990, 31, 12, { colour: palette.soft, align: 'right' });
+    say(g, `${(lateShare * 100).toFixed(1)}% after midnight`, 990, 49, 12, { colour: palette.late, align: 'right', weight: 700 });
 
-    // Left: the big numbers' panels, with their charts.
-    const lx = 14;
-    const lw = 352;
-    const chart = { x: lx + 196, w: lw - 208 };
+    // Left: the big numbers' cards, with their charts (the numbers themselves grow as the commits play: wideWords).
+    const { x: lx, w: lw } = LEFT;
     const stat = (y, title, sub) => {
-      panel(g, lx, y, lw, 98, title);
-      write(g, sub, lx + 12, y + 84, 10, { colour: palette.soft });
+      card(g, lx, y, lw, 98);
+      label(g, title, lx + 16, y + 24);
+      say(g, sub, lx + 16, y + 84, 11.5, { colour: palette.soft });
     };
-    stat(60, `COMMITS  |  ${totals.days} DAYS`, `${(totals.commits / Math.max(1, totals.days)).toFixed(1)} A DAY  |  BUSIEST ${totals.busiestDay.day ? dayLabel(totals.busiestDay.day) : '-'}`);
-    stepChart(g, chart.x, 86, chart.w, 36, perDay.map((d) => d.commits), rgba(palette.late), 1.3);
-    stat(164, 'FILES CHANGED', `${partCount} PARTS  |  ${data.parts[0].name.toUpperCase()} ${share(0)}%  |  ${data.parts[2].name.toUpperCase()} ${share(2)}%`);
-    let atX = chart.x;
+    const busiest = totals.busiestDay.day ? niceDay(totals.busiestDay.day) : '-';
+    stat(60, 'Commits', `${(totals.commits / Math.max(1, totals.days)).toFixed(1)} a day for ${totals.days} days, most on ${busiest}`);
+    stepChart(g, CHART.x, 80, CHART.w, 38, perDay.map((d) => d.commits), rgba(palette.late), 1.8);
+    stat(166, 'Files changed', `${data.parts[0].name} ${share(0)}%, ${data.parts[2].name} ${share(2)}%, in ${partCount} parts`);
+    let atX = CHART.x;
     data.files.forEach((n, i) => {
-      const bw = (n / Math.max(1, totals.changes)) * chart.w;
+      const bw = (n / Math.max(1, totals.changes)) * CHART.w;
+      g.beginPath();
+      g.roundRect(atX, 200, Math.max(0, bw - 2), 12, 4);
       g.fillStyle = rgba(palette.parts[i]);
-      g.fillRect(atX, 203, Math.max(0, bw - 1), 10);
+      g.fill();
       atX += bw;
     });
-    stat(268, 'LINES ADDED / REMOVED', `−${fmt(totals.removed)} REMOVED  |  ${fmt((totals.added + totals.removed) / Math.max(1, totals.days))} A DAY`);
-    smoothChart(g, chart.x, 294, chart.w, 36, perDay.map((d) => d.lines), rgba(palette.parts[2]), 1.2);
-    stat(372, 'AFTER MIDNIGHT', `OF ${totals.commits} COMMITS  |  00:00 TO 04:00`);
-    panel(g, lx, 476, lw, 122, `THE LAB  |  ${labTotal} THINGS`, 'READY', palette.added);
+    stat(272, 'Lines added', `${fmt(totals.removed)} taken out, ${fmt((totals.added + totals.removed) / Math.max(1, totals.days))} changed a day`);
+    smoothChart(g, CHART.x, 292, CHART.w, 38, perDay.map((d) => d.lines), rgba(palette.parts[2]), 1.8);
+    stat(378, 'After midnight', `of ${totals.commits} commits, between midnight and 4 am`);
+    card(g, lx, 484, lw, 150);
+    label(g, 'The Lab', lx + 16, 508);
+    say(g, `${labTotal} things`, lx + lw - 16, 508, 12, { colour: palette.soft, align: 'right', weight: 700 });
     const groups = [[data.lab.tools, palette.parts[4]], [data.lab.games, palette.parts[2]], [data.lab.effects, palette.parts[1]], [data.lab.worlds, palette.parts[5]]];
     const perRow = Math.ceil(labTotal / 2);
-    const bw = (lw - 24) / Math.max(1, perRow);
+    const bw = (lw - 32) / Math.max(1, perRow);
     let n = 0;
     for (const [count, colour] of groups) {
       for (let i = 0; i < count; i++, n++) {
-        g.fillStyle = rgba(colour, 0.85);
-        g.fillRect(lx + 12 + (n % perRow) * bw + 1, 500 + Math.floor(n / perRow) * 20 + 1, bw - 3, 16);
+        g.beginPath();
+        g.roundRect(lx + 16 + (n % perRow) * bw + 1, 524 + Math.floor(n / perRow) * 22 + 1, bw - 3, 18, 4);
+        g.fillStyle = rgba(colour, 0.9);
+        g.fill();
       }
     }
-    write(g, `${data.lab.tools} TOOLS  |  ${data.lab.games} GAMES  |  ${data.lab.effects} EFFECTS  |  ${data.lab.worlds} WORLDS`, lx + 12, 562, 9.5, { colour: palette.soft });
-    if (data.visits !== null) write(g, `${fmt(data.visits)} VISITS SINCE ${dayLabel(data.visitsSince)}`, lx + 12, 584, 9.5, { colour: palette.soft });
+    say(g, `${data.lab.tools} tools, ${data.lab.games} games, ${data.lab.effects} effects, ${data.lab.worlds} little worlds`, lx + 16, 592, 11.5, { colour: palette.soft });
+    if (data.visits !== null) say(g, `${fmt(data.visits)} visits since ${niceDay(data.visitsSince)}`, lx + 16, 614, 11.5, { colour: palette.soft });
 
     // Right: the parts, the Changelog, the newest commits.
-    const rx = 1034;
-    const rw = WIDE.w - 14 - rx;
-    panel(g, rx, 60, rw, 112, 'PARTS  |  FILES CHANGED');
-    data.parts.forEach((part, i) => {
-      write(g, String(i + 1).padStart(2, '0'), rx + 12, 94 + i * 13.4, 9.5, { colour: palette.faint });
-      write(g, part.name.toUpperCase(), rx + 34, 94 + i * 13.4, 10, { colour: palette.parts[i] });
-    });
-    panel(g, rx, 180, rw, 136, 'CHANGELOG  |  PARETO', `${fmt(data.changelog.lines)} LINES`, palette.soft);
-    pareto(g, rx + 24, 208, rw - 48, 78);
-    panel(g, rx, 324, rw, 274, 'LIVE COMMITS  |  NEWEST FIRST');
+    const { x: rx, w: rw } = RIGHT;
+    card(g, rx, 60, rw, 116);
+    label(g, 'Parts', rx + 16, 84);
+    data.parts.forEach((part, i) => say(g, part.name, rx + 16, 104 + i * 12.6, 11.5, { colour: palette.parts[i], weight: 700 }));
+    card(g, rx, 184, rw, 140);
+    label(g, 'Changelog', rx + 16, 208);
+    say(g, `${fmt(data.changelog.lines)} lines`, rx + rw - 16, 208, 12, { colour: palette.soft, align: 'right', weight: 700 });
+    pareto(g, rx + 26, 214, rw - 52, 82);
+    card(g, rx, 332, rw, 302);
+    label(g, 'Newest commits', rx + 16, 356);
 
     // The foot: the repo's folders, with the key.
-    write(g, 'REPO FLAME  |  FOLDERS BY FILES CHANGED', 14, 670, 9.5, { colour: palette.soft });
-    let keyX = WIDE.w - 14 - 560;
-    const key = (label, colour) => {
-      dot(g, keyX + 3, 666.5, 3, rgba(colour));
-      write(g, label, keyX + 10, 670, 9, { colour: palette.soft });
-      keyX += widthOf(g, label, 9) + 22;
+    card(g, 16, 650, WIDE.w - 32, 122);
+    label(g, 'Folders, by files changed', 32, 674);
+    let keyX = WIDE.w - 32 - 520;
+    const key = (name, colour) => {
+      dot(g, keyX + 4, 670, 4, rgba(colour));
+      say(g, name, keyX + 13, 674, 11.5, { colour: palette.soft });
+      keyX += sayWidth(g, name, 11.5) + 26;
     };
-    data.parts.forEach((part, i) => key(part.name.toUpperCase(), palette.parts[i]));
-    key('SMALL HOURS', palette.lateDot);
-    paintFlame(g, 14, 680, WIDE.w - 28, 22, 4);
-    write(g, `SOURCE: JACK'S SPACE  |  GIT HISTORY  |  CHANGELOG  |  GOATCOUNTER  |  UPDATED ${dayLabel(data.updated)} ${data.updated.slice(0, 4)}`, 14, WIDE.h - 9, 9.5, { colour: palette.faint });
+    data.parts.forEach((part, i) => key(part.name, palette.parts[i]));
+    key('Small hours', palette.lateDot);
+    paintFlame(g, 32, 688, WIDE.w - 64, 22, 4);
   };
   const share = (part) => (totals.changes ? Math.round((100 * data.files[part]) / totals.changes) : 0);
   const stepChart = (g, x, y, w, h, values, colour, width) => {
@@ -772,8 +802,8 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
   /** The Changelog's kinds, most first, with how they add up. */
   const pareto = (g, x, y0, w, h0) => {
-    const y = y0 + 14;
-    const h = h0 - 14;
+    const y = y0 + 16;
+    const h = h0 - 16;
     const total = kinds.reduce((s, [, n]) => s + n, 0) || 1;
     const max = kinds[0]?.[1] || 1;
     const bw = w / Math.max(1, kinds.length);
@@ -781,45 +811,42 @@ export function createPoster(stage, data, root, mode = 'clock') {
     const points = [];
     kinds.forEach(([kind, n], i) => {
       const bh = (n / max) * h;
-      g.fillStyle = rgba(palette.parts[2], i === 0 ? 0.9 : 0.55);
-      g.fillRect(x + i * bw + bw * 0.18, y + h - bh, bw * 0.64, bh);
-      write(g, kind.toUpperCase(), x + i * bw + bw / 2, y + h + 12, 9, { colour: palette.soft, align: 'center' });
-      write(g, String(n), x + i * bw + bw / 2, y + h - bh - 5, 10, { align: 'center' });
+      g.beginPath();
+      g.roundRect(x + i * bw + bw * 0.2, y + h - bh, bw * 0.6, bh, [5, 5, 0, 0]);
+      g.fillStyle = rgba(palette.parts[2], i === 0 ? 0.9 : 0.5);
+      g.fill();
+      say(g, kind[0].toUpperCase() + kind.slice(1), x + i * bw + bw / 2, y + h + 15, 11, { colour: palette.soft, align: 'center' });
+      say(g, String(n), x + i * bw + bw / 2, y + h - bh - 6, 12, { align: 'center', weight: 800 });
       sum += n;
       points.push([x + i * bw + bw / 2, y + h - (sum / total) * h]);
     });
-    polyline(g, points, rgba(palette.text, 0.85), 1.2);
-    points.forEach(([px, py], i) => dot(g, px, py, i === points.length - 1 ? 3.5 : 2.4, rgba(i === 0 ? palette.late : palette.text)));
-    const last = points[points.length - 1];
-    if (last) write(g, '100%', last[0] - 8, last[1] - 6, 9, { colour: palette.soft, align: 'right' });
+    polyline(g, points, rgba(palette.text, 0.7), 1.4);
+    points.forEach(([px, py], i) => dot(g, px, py, i === points.length - 1 ? 3.6 : 2.6, rgba(i === 0 ? palette.late : palette.text)));
   };
 
-  /** The tall poster's still parts: the title, and the frames for three numbers and the six parts. */
+  /** The tall poster's still parts: a line saying what it is, and the cards for three numbers and the six parts. */
   const paintTall = (g) => {
-    g.fillStyle = rgba(palette.text);
-    g.fillRect(14, 16, 2, 30);
-    // Just the log's name: Restart and Pause take the rest of the top, and the page's menu already says Jack's Space.
-    write(g, 'BUILD LOG', 22, 30, 13, { spacing: 0.06 });
-    write(g, `SINCE ${data.started.slice(0, 4)}  |  REBUILT ${dayLabel(data.rebuilt)}`, 22, 45, 9, { colour: palette.soft });
-    ['COMMITS', 'AFTER MIDNIGHT', 'FILES CHANGED'].forEach((name, i) => {
+    // Restart and Pause take the rest of the top, and the page's menu already says Jack's Space.
+    say(g, 'Site history', 16, 29, 13, { weight: 800 });
+    say(g, `Since ${data.started.slice(0, 4)}, rebuilt ${niceDay(data.rebuilt)}`, 16, 44, 9.5, { colour: palette.soft, weight: 500 });
+    ['Commits', 'After midnight', 'Files changed'].forEach((name, i) => {
       const x = 14 + i * 140;
-      panel(g, x, 404, 132, 50, '');
-      write(g, name, x + 8, 418, 8.5, { colour: i === 1 ? palette.late : palette.soft });
+      card(g, x, 402, 132, 52, 12);
+      label(g, name, x + 10, 418, 8);
     });
     data.parts.forEach((part, i) => {
       const x = 14 + (i % 3) * 140;
       const y = 462 + Math.floor(i / 3) * 30;
-      panel(g, x, y, 132, 24, '');
-      dot(g, x + 10, y + 12, 3, rgba(palette.parts[i]));
-      write(g, part.name.toUpperCase(), x + 18, y + 15.5, 8.5, { colour: palette.parts[i] });
+      card(g, x, y, 132, 24, 9);
+      dot(g, x + 11, y + 12, 3, rgba(palette.parts[i]));
+      say(g, part.name, x + 19, y + 15.5, 9.5, { colour: palette.parts[i], weight: 700 });
     });
-    write(g, `UPDATED ${dayLabel(data.updated)} ${data.updated.slice(0, 4)}`, TALL.w / 2, TALL.h - 8, 8.5, { colour: palette.faint, align: 'center' });
+    say(g, `Updated ${niceDay(data.updated)} ${data.updated.slice(0, 4)}`, TALL.w / 2, TALL.h - 8, 9, { colour: palette.faint, align: 'center', weight: 500 });
   };
 
   // ---- What's playing.
   let time = still ? INTRO + PLAY + 0.5 : 0;
   let lastPlay = 0;
-  let fps = 60;
 
   /** Draws spike or wire `k` from its points, up to `upTo` of the way. */
   const trace = (g, points, count, k, upTo) => {
@@ -916,18 +943,25 @@ export function createPoster(stage, data, root, mode = 'clock') {
     return [points[o] + (points[o + 2] - points[o]) * f, points[o + 1] + (points[o + 3] - points[o + 1]) * f];
   };
 
+  /** Seconds since the nearest crest of the finished poster's wave passed a place round the coil, at `angle`. */
+  const sinceCrest = (angle, holdT) => {
+    const at = Math.PI / 2 - (holdT / WAVE) * TAU;
+    const gap = TAU / CRESTS;
+    return (((((angle - at) % gap) + gap) % gap) / gap) * SWELL;
+  };
+
   /**
-   * The finished ring's signals: as the pulse runs round the coil, each long bristle it passes fires a spark out along
-   * it, which flares at the tip; as bright as its side of the face shows and as near as it is.
+   * The finished poster's sparks: as a crest of the wave passes a tall spike (on the ring, a long bristle), a spark runs
+   * up it and flares at the tip, so the light follows the wave; as bright as its side of the face shows and as near as
+   * it is (`angles`, where each file sits round the coil).
    */
-  const sparks = (g, spikes, holdT, near, side = 1) => {
+  const sparks = (g, spikes, holdT, near, angles, side = 1) => {
     const k = clock.r1 / 206;
-    const out = 0.8;
-    const flare = 0.5;
+    const out = 1.2;
+    const flare = 0.8;
     for (let c = 0; c < N; c++) {
       if (traits[c].reach < 0.55) continue;
-      // Seconds since the pulse passed this file's place.
-      const since = ((((holdT / LAP - (c + 0.5) / N) % 1) + 1) % 1) * LAP;
+      const since = sinceCrest(angles[c], holdT);
       if (since > out + flare) continue;
       const bright = side * (0.35 + 0.65 * near[c]);
       const colour = light ? palette.parts[cellParts[c]] : WHITE;
@@ -945,12 +979,12 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
 
   /**
-   * And a ripple, once a lap, spreading from the middle out across the ring's plane, through the coil and on past it,
-   * fading, like a ring on water: it shows the plane the ring lies in, how it leans, and the words in the middle above
-   * it. `on` is the ring's side.
+   * And a ripple, as often as a crest passes, spreading from the middle out across the ring's plane, through the coil
+   * and on past it, fading, like a ring on water: it shows the plane the ring lies in, how it leans, and the words in
+   * the middle above it. `on` is the ring's side.
    */
   const ripple = (g, on, holdT, side = 1) => {
-    const t = (holdT % LAP) / 3.4;
+    const t = (holdT % SWELL) / 3.4;
     if (t >= 1) return;
     const k = clock.r1 / 206;
     const rho = 12 * k + easeOut(t) * (clock.dates + 24 * k);
@@ -960,23 +994,63 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
 
   /**
-   * Once it's finished, a pulse runs round the coil, lighting the wire it passes, as strongly as its side of the face
-   * shows (`side`). The ring's turns lie so close together that it lights only a few of them there, and those more
-   * faintly.
+   * Once it's finished, a slow wave of light drifts round the coil: CRESTS soft crests, each lighting the wire it lies
+   * on (on the ring, the files' fibres too) and fading either side, so the light swells and ebbs along the coil instead
+   * of racing round; as strongly as its side of the face shows (`side`). Thousands of strokes add up where the files
+   * crowd, so each is faint, and the ring's, lying closest, the faintest.
    */
-  const pulse = (g, wires, ring, holdT, side = 1) => {
-    const at = Math.PI / 2 - (holdT / LAP) * TAU;
+  const wave = (g, shapes, ring, holdT, side = 1) => {
+    const at = Math.PI / 2 - (holdT / WAVE) * TAU;
     const angles = ring ? ringAngle : wireAngle;
-    const reach = ring ? 0.02 : 0.12;
-    g.strokeStyle = light ? rgba(palette.text, (ring ? 0.3 : 0.6) * side) : rgba(WHITE, (ring ? 0.25 : 0.55) * side);
-    g.lineWidth = clock.r1 / 206;
-    g.beginPath();
+    const BANDS = 5;
+    const paths = Array.from({ length: BANDS }, () => new Path2D());
     for (let c = 0; c < N; c++) {
-      const off = Math.abs((((angles[c] - at) % TAU) + TAU + Math.PI) % TAU - Math.PI);
-      if (off < reach) trace(g, wires, WIRE_POINTS, c, 1);
+      const crest = (0.5 + 0.5 * Math.cos(CRESTS * (angles[c] - at))) ** 6;
+      if (crest < 0.12) continue;
+      const band = Math.min(BANDS - 1, Math.floor(((crest - 0.12) / 0.88) * BANDS));
+      trace(paths[band], shapes.wires, WIRE_POINTS, c, 1);
+      if (ring) trace(paths[band], shapes.fibres, FIBRE_POINTS, c, 1);
     }
-    g.stroke();
+    g.lineWidth = (ring ? 0.9 : 1.1) * (clock.r1 / 206);
+    paths.forEach((path, band) => {
+      const strength = ((band + 1) / BANDS) * side;
+      g.strokeStyle = light ? rgba(palette.text, (ring ? 0.1 : 0.2) * strength) : rgba(WHITE, (ring ? 0.09 : 0.26) * strength);
+      g.stroke(path);
+    });
   };
+
+  /**
+   * While it plays, each commit flares where it lands: a flash, and a ring spreading from it across the face's plane
+   * (squashed as the face leans), bigger for bigger commits; as strongly as its side of the face shows.
+   */
+  const flares = (g, nodes, playT, ring, side = 1) => {
+    const k = clock.r1 / 206;
+    const squash = Math.cos(((ring ? RING_TILT : TILT) * Math.PI) / 180);
+    for (let i = 0; i < commits.length && commitStart[i] <= playT; i++) {
+      const t = (playT - commitStart[i]) / FLARE;
+      if (t >= 1) continue;
+      const x = nodes[i * 2];
+      const y = nodes[i * 2 + 1];
+      const size = (7 + 9 * Math.min(1, Math.sqrt(commits[i].cells) / 6)) * k;
+      const colour = light ? palette.parts[commits[i].main] : WHITE;
+      const r = size * (0.7 + 0.9 * easeOut(t));
+      const flash = g.createRadialGradient(x, y, 0, x, y, r);
+      flash.addColorStop(0, rgba(colour, 0.9 * (1 - t) * side));
+      flash.addColorStop(1, rgba(colour, 0));
+      g.fillStyle = flash;
+      g.beginPath();
+      g.arc(x, y, r, 0, TAU);
+      g.fill();
+      const spread = size * 3 * easeOut(t);
+      g.strokeStyle = rgba(colour, 0.65 * (1 - t) ** 1.5 * side);
+      g.lineWidth = 1.3 * k;
+      g.beginPath();
+      g.ellipse(x, y, spread, spread * squash, -Math.PI / 4, 0, TAU);
+      g.stroke();
+    }
+  };
+  /** On the clock every file is as near as any other, for its sparks. */
+  const allNear = new Float32Array(N).fill(1);
 
   /**
    * The clock's spots for the commits so far, the small hours' in red (the ring has none: `ring`), and with `from`, the
@@ -1000,7 +1074,6 @@ export function createPoster(stage, data, root, mode = 'clock') {
   const frame = (dt, replay = true) => {
     readPalette();
     if (replay) time += dt;
-    if (dt > 0) fps += (1 / dt - fps) * 0.05;
     // While the face turns over between the clock and the ring, each side is drawn each frame as far as it has turned;
     // once there, the faces and the landed files go back onto their canvases, the last frame of the turn fading into
     // them (they're sharper, and the ring's tube shaded front and back).
@@ -1094,12 +1167,11 @@ export function createPoster(stage, data, root, mode = 'clock') {
           const up = age < GROW;
           drawFile(low, low, seen, c, up ? easeOut(age / GROW) : 1, ring, up, side, near[c], null);
         }
+        if (phase === 'play') flares(low, seen.nodes, playT, ring, side);
         if (phase === 'hold') {
-          pulse(low, seen.wires, ring, holdT, side);
-          if (ring) {
-            sparks(low, seen.spikes, holdT, near, side);
-            ripple(low, onBack, holdT, side);
-          }
+          wave(low, seen, ring, holdT, side);
+          sparks(low, seen.spikes, holdT, ring ? near : allNear, ring ? ringAngle : wireAngle, side);
+          if (ring) ripple(low, onBack, holdT, side);
         }
         low.globalCompositeOperation = 'source-over';
         spots(low, seen.nodes, playing, hand ? (ring ? inside(onBack) : hub) : null, ring, side);
@@ -1139,12 +1211,11 @@ export function createPoster(stage, data, root, mode = 'clock') {
       posterSpace(g);
       // Spikes still rising, and their wires still winding on.
       for (const c of growing) drawFile(g, g, shapes, c, easeOut((playT - launch[c]) / GROW), m === 1, true, 1, ringNear[c]);
+      if (phase === 'play') flares(g, shapes.nodes, playT, m === 1);
       if (phase === 'hold') {
-        pulse(g, shapes.wires, m === 1, holdT);
-        if (m === 1) {
-          sparks(g, shapes.spikes, holdT, ringNear);
-          ripple(g, ringView, holdT);
-        }
+        wave(g, shapes, m === 1, holdT);
+        sparks(g, shapes.spikes, holdT, m ? ringNear : allNear, m ? ringAngle : wireAngle);
+        if (m === 1) ripple(g, ringView, holdT);
       }
       g.globalCompositeOperation = 'source-over';
       spots(g, shapes.nodes, playing, hand ? (m ? inside(ringView) : hub) : null, m === 1);
@@ -1178,8 +1249,10 @@ export function createPoster(stage, data, root, mode = 'clock') {
         source = blur;
       }
       main.globalCompositeOperation = 'lighter';
+      // Once it's finished, the glow breathes a little, in time with the wave's crests.
+      const breath = phase === 'hold' ? 1 + 0.12 * Math.sin((holdT / SWELL) * TAU) : 1;
       [0.3, 0.45, 0.55].forEach((alpha, i) => {
-        main.globalAlpha = alpha;
+        main.globalAlpha = Math.min(1, alpha * breath);
         main.drawImage(blurs[i], 0, 0, glow.width, glow.height);
       });
       main.globalCompositeOperation = 'source-over';
@@ -1252,76 +1325,83 @@ export function createPoster(stage, data, root, mode = 'clock') {
 
   /** The landscape poster's numbers that grow as the commits play, the newest commits, and where the replay is. */
   const wideWords = (g, { shown, files, late, landed, playing, phase, done }) => {
-    const lx = 14;
+    const { x: lx } = LEFT;
     const added = commits.slice(0, shown).reduce((s, c) => s + c.added, 0);
-    write(g, fmt(shown), lx + 12, 118, 40, { spacing: 0 });
-    write(g, fmt(files), lx + 12, 222, 40, { spacing: 0 });
-    write(g, `+${kfmt(added)}`, lx + 12, 326, 40, { colour: palette.added, spacing: 0 });
-    write(g, fmt(late), lx + 12, 430, 40, { colour: palette.late, spacing: 0 });
+    const big = (words, y, colour) => say(g, words, lx + 16, y, 40, { colour, weight: 800 });
+    big(fmt(shown), 122, palette.text);
+    big(fmt(files), 228, palette.text);
+    big(`+${kfmt(added)}`, 334, palette.added);
+    big(fmt(late), 440, palette.late);
     // Where the replay is on the commits' and lines' charts.
     if (phase === 'play' && playing >= 0) {
       const day = clamp(Math.floor((commits[playing].at - spanFrom) / 86400), 0, days - 1);
-      const x = lx + 196 + ((day + 0.5) / days) * (352 - 208);
-      for (const y of [86, 294]) {
+      const x = CHART.x + ((day + 0.5) / days) * CHART.w;
+      for (const y of [78, 290]) {
         g.fillStyle = rgba(palette.text, 0.7);
-        g.fillRect(x - 0.5, y - 2, 1, 40);
+        g.fillRect(x - 0.75, y, 1.5, 42);
       }
     }
-    // The hours of the commits so far, the small hours in orange.
+    // The hours of the commits so far, the small hours in the late colour.
     const hours = new Array(24).fill(0);
     for (const c of commits.slice(0, shown)) hours[c.hour]++;
     const most = Math.max(1, ...allHours);
-    const hx = lx + 196;
-    const hw = (352 - 208) / 24;
+    const hw = CHART.w / 24;
     hours.forEach((n, h) => {
-      const bh = Math.max(1, (n / most) * 24);
+      const bh = Math.max(1.5, (n / most) * 30);
+      g.beginPath();
+      g.roundRect(CHART.x + h * hw + 1, 426 - bh, hw - 2, bh, 1.5);
       g.fillStyle = rgba(h < 4 ? palette.late : palette.soft, h < 4 ? 1 : 0.6);
-      g.fillRect(hx + h * hw + 1, 398 + 24 - bh, hw - 2, bh);
+      g.fill();
     });
-    [0, 6, 12, 18].forEach((h) => write(g, String(h).padStart(2, '0'), hx + h * hw, 433, 9, { colour: palette.faint }));
+    [0, 6, 12, 18].forEach((h) => say(g, String(h).padStart(2, '0'), CHART.x + h * hw, 440, 9.5, { colour: palette.soft }));
     // The parts, filling as their files land.
-    const rx = 1034;
-    const rw = WIDE.w - 14 - rx;
+    const { x: rx, w: rw } = RIGHT;
     const most2 = Math.max(1, ...data.files);
     data.parts.forEach((_, i) => {
-      const y = 94 + i * 13.4;
+      const y = 104 + i * 12.6;
       const n = done ? data.files[i] : Math.round(landed[i] * data.per);
-      const bx = rx + 12 + 118;
-      const bw = rw - 24 - 118 - 92;
-      g.fillStyle = rgba(palette.text, 0.07);
-      g.fillRect(bx, y - 6, bw, 6);
-      g.fillStyle = rgba(palette.parts[i]);
-      g.fillRect(bx, y - 6, bw * (n / most2), 6);
-      write(g, fmt(n), rx + rw - 52, y, 10, { align: 'right' });
-      write(g, `${share(i)}%`, rx + rw - 12, y, 9.5, { colour: palette.soft, align: 'right' });
-    });
-    // The newest commits so far, the one playing first.
-    commits.slice(0, shown).slice(-12).reverse().forEach((c, i) => {
-      const y = 352 + i * 20;
-      if (i === 0 && phase === 'play') {
-        g.fillStyle = rgba(palette.text, 0.07);
-        g.fillRect(rx + 6, y - 13, rw - 12, 18);
+      const bx = rx + 16 + 92;
+      const bw = rw - 32 - 92 - 84;
+      g.beginPath();
+      g.roundRect(bx, y - 7, bw, 6, 3);
+      g.fillStyle = rgba(palette.text, 0.08);
+      g.fill();
+      if (n > 0) {
+        g.beginPath();
+        g.roundRect(bx, y - 7, Math.max(3, bw * (n / most2)), 6, 3);
+        g.fillStyle = rgba(palette.parts[i]);
+        g.fill();
       }
-      dot(g, rx + 15, y - 3.5, 2.6, rgba(c.hour < 4 ? palette.lateDot : palette.parts[c.main]));
-      write(g, cut(g, c.subject.toLowerCase(), rw - 24 - 16 - 44, 9.5), rx + 26, y, 9.5, { colour: palette.text });
-      write(g, c.time, rx + rw - 12, y, 9, { colour: c.hour < 4 ? palette.late : palette.faint, align: 'right' });
+      say(g, fmt(n), rx + rw - 54, y, 11.5, { align: 'right', weight: 700 });
+      say(g, `${share(i)}%`, rx + rw - 16, y, 11, { colour: palette.soft, align: 'right', weight: 500 });
     });
-    // Where the replay is, and how fast it's drawn.
-    const current = commits[Math.max(0, done ? commits.length - 1 : playing)];
-    const where = !current ? 'READY' : done ? `UP TO DATE  |  ${dayLabel(current.day)} ${current.time}` : phase === 'intro' ? 'READY' : `REPLAY ${shown} / ${totals.commits}  |  ${dayLabel(current.day)} ${current.time}`;
-    const rate = stage.playing ? `  |  FRAME ${Math.round(fps)} FPS` : '';
-    write(g, `${where}${rate}  |  REAL TELEMETRY`, WIDE.w - 14, WIDE.h - 9, 9.5, { colour: palette.faint, align: 'right' });
+    // Where the replay is, by the newest commits' name; then the newest commits so far, the one playing first.
+    const where = phase === 'intro' || playing < 0 ? 'Ready' : done ? 'Up to date' : `Playing ${shown} of ${totals.commits}`;
+    say(g, where, rx + rw - 16, 356, 12, { colour: palette.soft, align: 'right', weight: 700 });
+    commits.slice(0, shown).slice(-12).reverse().forEach((c, i) => {
+      const y = 382 + i * 20.5;
+      if (i === 0 && phase === 'play') {
+        g.beginPath();
+        g.roundRect(rx + 8, y - 14, rw - 16, 20, 8);
+        g.fillStyle = rgba(palette.text, 0.07);
+        g.fill();
+      }
+      dot(g, rx + 20, y - 4, 3, rgba(c.hour < 4 ? palette.lateDot : palette.parts[c.main]));
+      const subject = c.subject.charAt(0).toUpperCase() + c.subject.slice(1);
+      say(g, cut(g, subject, rw - 32 - 18 - 46, 11.5, sans), rx + 31, y, 11.5, { weight: 500 });
+      say(g, c.time, rx + rw - 16, y, 11, { colour: c.hour < 4 ? palette.late : palette.soft, align: 'right' });
+    });
   };
 
   /** The tall poster's three numbers and the parts' counts. */
   const tallWords = (g, { shown, files, late, landed, done }) => {
     [[shown, palette.text], [late, palette.late], [files, palette.text]].forEach(([n, colour], i) => {
-      write(g, fmt(/** @type {number} */ (n)), 14 + i * 140 + 8, 446, 20, { colour: /** @type {number[]} */ (colour), spacing: 0 });
+      say(g, fmt(/** @type {number} */ (n)), 14 + i * 140 + 10, 446, 20, { colour: /** @type {number[]} */ (colour), weight: 800 });
     });
     data.parts.forEach((_, i) => {
       const x = 14 + (i % 3) * 140;
       const y = 462 + Math.floor(i / 3) * 30;
-      write(g, fmt(done ? data.files[i] : Math.round(landed[i] * data.per)), x + 124, y + 15.5, 9, { align: 'right', spacing: 0 });
+      say(g, fmt(done ? data.files[i] : Math.round(landed[i] * data.per)), x + 122, y + 15.5, 9.5, { align: 'right', weight: 700 });
     });
   };
 
@@ -1332,6 +1412,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
     if (!stage.playing) frame(0);
   };
   document.fonts?.load(`500 16px ${mono}`).then(arrived).catch(() => {});
+  document.fonts?.load(`800 16px ${sans}`).then(arrived).catch(() => {});
 
   /** Plays the replay again from the bare clock (the page's Restart button). */
   const restart = () => {

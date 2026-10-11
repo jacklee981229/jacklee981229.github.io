@@ -100,3 +100,5 @@
 - 2026-10-12 design: Gave each Collection card a shine by its stars
 - 2026-10-12 new: Added [Jack's Site Check](/lab/site-check/): a spider that checks every link here
 - 2026-10-12 fix: Fixed two broken links in old posts
+- 2026-10-12 design: Gave the [Build Log](/lab/build-log/) the site's own cards
+- 2026-10-12 improved: Livened up the [Build Log](/lab/build-log/) with flares and a slow wave of light

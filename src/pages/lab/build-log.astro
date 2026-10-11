@@ -86,15 +86,14 @@ const ringLabel = `A ring tilted back like the clock and wound like a coil. Each
 
 <style>
   .show { display: grid; justify-items: center; }
-  /* The card: a landscape screen as wide as the page's top. --c1 onward are the colours it draws with (poster.js): the
-     six parts in the menu's order, then its own. */
-  .poster { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--log-late); --c8: var(--log-late-dot); --c9: var(--log-added); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-frame); --c15: var(--log-panel); --c16: var(--log-ground); --c17: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-ground); box-shadow: var(--shadow-card); }
+  /* The poster: as wide as the page's top, its cards drawn on the page's own colour round the clock or the ring.
+     --c1 onward are the colours it draws with (poster.js): the six parts in the menu's order, then its own. */
+  .poster { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--log-late); --c8: var(--log-late-dot); --c9: var(--log-added); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-frame); --c15: var(--log-card); --c16: var(--log-page); --c17: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-page); }
   /* Nothing follows the pointer: a finger on it scrolls the page. */
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: auto; }
-  /* Its buttons in its own look: square-edged, in the monospace, on its dark ground. */
+  /* Its buttons are the site's own, a little smaller to sit in its corner. */
   .controls { position: absolute; top: var(--space-3); right: var(--space-4); display: flex; gap: var(--space-2); }
-  .controls .button { padding: var(--space-1) var(--space-3); border-color: var(--log-frame); border-radius: var(--radius-xs); background: var(--log-panel); color: var(--log-text); font: 500 var(--text-xs) var(--font-code); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
-  .controls .button:hover { border-color: var(--log-soft); }
+  .controls .button { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); cursor: pointer; }
   [data-full][hidden] { display: none; }
   /* Full screen: the poster as big as the screen allows, on its own ground. */
   .poster:fullscreen { border-radius: 0; box-shadow: none; }

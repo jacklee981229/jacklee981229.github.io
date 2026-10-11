@@ -246,6 +246,9 @@
   --log-panel: var(--surface);
   --log-ground: var(--surface);
   --log-haze: var(--changelog-top-from);
+  /* Its cards and the ground they stand on: the site's own plain card on the page's colour, in every theme. */
+  --log-card: var(--surface);
+  --log-page: var(--paper);
   /* Jack's Site Check (src/site-check/web.js): the three routes a link takes, the web's silk, the light on the wall
      behind it and the shadow it throws there, and the spider's shell and its shine. Its parts and panels are the
      Build Log's (--log-*). */
