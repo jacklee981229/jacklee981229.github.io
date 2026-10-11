@@ -13,6 +13,10 @@
   --paper-end: #FFFFFF;
   --focus: #1B5FD1;
   --wash: rgb(23 32 48 / 0.06);
+  /* Behind selected text, and a scrollbar's thumb (global.css): the ink mixed into the page, so every theme gets its
+     own. The dark block mixes them again for a data-dark piece inside the light theme. */
+  --selection: color-mix(in srgb, var(--ink) 20%, var(--paper));
+  --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   /* The band that closes a page (MoreBand.astro), a shade apart from the page and from the cards in it. */
   --band: rgb(23 32 48 / 0.06);
   /* The Travel Map's visited places: home in the first colour, the farthest place in the second, the rest in
@@ -134,8 +138,9 @@
   --about-top-to: #6B21A8;
   --changelog-top-from: #0E7490;
   --changelog-top-to: #155E75;
-  /* The guestbook's amber: its page's top and the home page's Guestbook card. */
-  --guestbook-top-from: #B45309;
+  /* The guestbook's amber: its page's top and the home page's Guestbook card. The light end is a touch darker than
+     #B45309, where the soft white on it fell just under 4.5:1. */
+  --guestbook-top-from: #AF500A;
   --guestbook-top-to: #92400E;
   /* The guestbook's notes, on paper in six colours whatever the theme, with dark ink. */
   --note-1: #FDE68A;
@@ -379,6 +384,8 @@
   --rule: #303030;
   --focus: #7DB0FF;
   --wash: rgb(255 255 255 / 0.07);
+  --selection: color-mix(in srgb, var(--ink) 20%, var(--paper));
+  --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   --band: rgb(255 255 255 / 0.03);
   --card-light: rgb(255 255 255 / 0.07);
   /* No fade in the dark: the page is one colour. */

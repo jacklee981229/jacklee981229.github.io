@@ -1,6 +1,7 @@
 // Browser code the Lab's tool pages share: copy buttons, and wiring the text tools' frame (TextConverter.astro) and
 // the Preview tools' frame (PreviewTool.astro).
 import { bringIntoView } from '../../games/controls.js';
+import { ICONS } from '../icons.js';
 
 /** Says `text` to screen readers, through the page's hidden announcer. */
 export function announce(text: string) {
@@ -11,6 +12,8 @@ export function announce(text: string) {
 }
 
 const valueOf = (el: HTMLElement | null) => (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement ? el.value : el?.textContent ?? '');
+// Shown on a copy button once its text is copied (global.css pops it in).
+const TICK = `<svg class="icon copied-tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS.check}</svg>`;
 
 /** Every `[data-copy]` button copies the value or text of the element whose id it names. */
 export function wireCopyButtons() {
@@ -28,6 +31,7 @@ export function wireCopyButtons() {
           await navigator.clipboard.writeText(text);
           label.textContent = 'Copied';
           button.dataset.copied = '';
+          if (!button.querySelector(':scope > .copied-tick')) button.insertAdjacentHTML('afterbegin', TICK);
         } catch {
           // The clipboard can be blocked; with the text selected, Ctrl+C still works.
           if (source instanceof HTMLTextAreaElement || source instanceof HTMLInputElement) source.select();
@@ -40,6 +44,7 @@ export function wireCopyButtons() {
       timer = window.setTimeout(() => {
         label.textContent = original;
         delete button.dataset.copied;
+        button.querySelector(':scope > .copied-tick')?.remove();
       }, 2000);
     });
   }

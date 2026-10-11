@@ -15,6 +15,12 @@ img { max-width: 100%; height: auto; }
 a { color: inherit; }
 button, input { font: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-2xs); }
+/* The browser's own parts in the site's colours. Selected text turns ink on a solid tint, so it stays readable on a
+   coloured card too; a [data-dark] piece in the light theme gets dark scrollbars of its own. Firefox fades
+   placeholders by itself, and the muted colour already reads as a hint. */
+::selection { background: var(--selection); color: var(--ink); }
+html, [data-dark] { scrollbar-color: var(--scrollbar) transparent; }
+::placeholder { color: var(--muted); opacity: 1; }
 main:focus { outline: none; }
 
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -65,10 +71,10 @@ main:focus { outline: none; }
 }
 .button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-weight: 650; text-decoration: none; }
 .button:hover { border-color: var(--ink); }
-/* "Copied" (PostScripts.astro, lab/page.ts): a tick pops up in place of the button's icon, coming into focus as it
-   lands so the swap reads as one motion. */
-[data-copied] > .icon { display: none; }
-[data-copied]::before { content: "\2713"; display: inline-block; font-weight: 900; animation: copied-tick var(--motion-soft) var(--ease-spring); }
+/* "Copied" (PostScripts.astro, lab/page.ts): the icon set's tick pops up in place of the button's icon (or before
+   its word), coming into focus as it lands so the swap reads as one motion. */
+[data-copied] > .icon:not(.copied-tick) { display: none; }
+.copied-tick { animation: copied-tick var(--motion-soft) var(--ease-spring); }
 @keyframes copied-tick {
   from { transform: scale(0.2); opacity: 0; filter: blur(2px); }
 }

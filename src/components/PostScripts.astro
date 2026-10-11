@@ -11,7 +11,11 @@ import Icon from './Icon.astro';
 </dialog>
 
 <script>
+  import { ICONS } from '../lib/icons.js';
+
   const FOLD_AFTER_LINES = 24;
+  // Shown on a copy button once its text is copied (global.css pops it in).
+  const TICK = `<svg class="icon copied-tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS.check}</svg>`;
 
   function announce(text: string) {
     const box = document.querySelector<HTMLElement>('[data-announcer]');
@@ -28,6 +32,7 @@ import Icon from './Icon.astro';
       await navigator.clipboard.writeText(text);
       label.textContent = done;
       button.dataset.copied = '';
+      if (!button.querySelector(':scope > .copied-tick')) button.insertAdjacentHTML('afterbegin', TICK);
     } catch {
       if (fallback) {
         getSelection()?.selectAllChildren(fallback);
@@ -40,6 +45,7 @@ import Icon from './Icon.astro';
     setTimeout(() => {
       label.textContent = label.dataset.original ?? '';
       delete button.dataset.copied;
+      button.querySelector(':scope > .copied-tick')?.remove();
     }, 2000);
   }
 
