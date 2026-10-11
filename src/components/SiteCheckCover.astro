@@ -1,0 +1,59 @@
+---
+// The picture on Jack's Site Check's card: its web, drawn in white on the Misc colours like the Build Log's clock
+// (BuildLogCover.astro), so the Lab's cards read as one family: an orb web leaning back, a few pages wound into it as
+// knots, and the spider on it. Wider than any card, as theirs are: a card shows the middle and trims the sides.
+const W = 360;
+const H = 88;
+const TAU = Math.PI * 2;
+const round = (n: number) => Math.round(n * 10) / 10;
+// The same "random" numbers on every build, so the picture doesn't change from one publish to the next.
+let seed = 7;
+const random = () => {
+  seed = (seed * 16807) % 2147483647;
+  return seed / 2147483647;
+};
+
+// The web leaning back: a point in its own plane, squashed and drawn smaller towards the top as it goes away.
+const at = (x: number, y: number) => {
+  const f = 1 / (1 - y * 0.0025);
+  return [180 + x * f, 50 + y * 0.55 * f];
+};
+const path = (points: number[][]) => points.map(([x, y], i) => `${i ? 'L' : 'M'}${round(x)} ${round(y)}`).join('');
+const SPOKES = 13;
+const angles = Array.from({ length: SPOKES }, (_, s) => ((s + (random() - 0.5) * 0.6) / SPOKES) * TAU).sort((a, b) => a - b);
+const lengths = angles.map(() => 0.8 + random() * 0.2);
+const point = (s: number, r: number) => {
+  const a = angles[s % SPOKES];
+  const l = lengths[s % SPOKES] * r;
+  return [Math.cos(a) * 96 * l, Math.sin(a) * 64 * l];
+};
+const spokes = angles.map((_, s) => path([at(0, 0), at(...(point(s, 1.18) as [number, number]))])).join('');
+// The capture threads sag towards the hub between the spokes.
+const rings = [0.18, 0.3, 0.42, 0.54, 0.66, 0.78, 0.9, 1].map((r) => path(Array.from({ length: SPOKES }, (_, s) => {
+  const [x1, y1] = point(s, r);
+  const [x2, y2] = point(s + 1, r);
+  return [[x1, y1], [((x1 + x2) / 2) * 0.93, ((y1 + y2) / 2) * 0.93]];
+}).flat().concat([point(0, r)]).map(([x, y]) => at(x, y)))).join('');
+// A few pages, as knots on its crossings.
+const knots = [[2, 0.42], [5, 0.66], [8, 0.3], [10, 0.78], [12, 0.54]].map(([s, r]) => at(...(point(s, r) as [number, number])));
+const spider = at(...(point(4, 0.54) as [number, number]));
+const legs = Array.from({ length: 8 }, (_, i) => {
+  const a = (i < 4 ? Math.PI : 0) + (i % 4 - 1.5) * 0.45 * (i < 4 ? -1 : 1);
+  return path([[spider[0], spider[1]], [spider[0] + Math.cos(a) * 5, spider[1] + Math.sin(a) * 3 - 2], [spider[0] + Math.cos(a) * 8.5, spider[1] + Math.sin(a) * 4.5 + 1]]);
+}).join('');
+---
+<span class="cover" aria-hidden="true">
+  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice">
+    <path d={spokes} fill="none" stroke="currentColor" stroke-width="0.9" stroke-opacity="0.5" />
+    <path d={rings} fill="none" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.38" />
+    {knots.map(([x, y]) => <path d={`M${round(x + 1.6)} ${round(y)}a1.6 1.1 0 1 0 -3.2 0a1.6 1.1 0 1 0 3.2 0M${round(x + 3)} ${round(y + 0.4)}a3 2 0 1 0 -6 -0.6a3 2 0 1 0 6 0.6`} fill="none" stroke="currentColor" stroke-width="0.9" />)}
+    <path d={legs} fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+    <ellipse cx={round(spider[0])} cy={round(spider[1])} rx="3.2" ry="2.4" fill="currentColor" />
+  </svg>
+</span>
+
+<style>
+  /* White on the card's colours, as the other Lab drawings are. */
+  .cover { display: block; color: var(--on-colour); }
+  svg { display: block; width: 100%; height: 100%; }
+</style>

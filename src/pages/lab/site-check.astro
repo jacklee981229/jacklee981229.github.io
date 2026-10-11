@@ -1,0 +1,81 @@
+---
+// Jack's Site Check, in the Lab's Misc (the Site Check tool in lab/tools.js): this site crawled live in the visitor's
+// browser (src/lib/site-check.js), every page read and every link on it checked, drawn as a spider on a web by
+// src/site-check/web.js on the effects' stage, in a card the Build Log's size (build-log.astro), then other Lab items.
+import Base from '../../layouts/Base.astro';
+import LabHeader from '../../components/LabHeader.astro';
+import LabMore from '../../components/LabMore.astro';
+import { toolBySlug } from '../../lib/lab/tools.js';
+
+const tool = toolBySlug('site-check');
+const label = 'A spider web leaning back, with a spider walking it. The spider reads every page of this site in turn, from the home page; each page is a knot of silk on the web, and each link on a page runs along the threads as light: green when the page it leads to answers, red when it is broken, and yellow when it leads to another site, which only you can check.';
+---
+<Base title={tool.name} description={tool.description}>
+  <div class="wrap page">
+    <LabHeader title={tool.name} description={tool.description} />
+    <div class="show">
+      <div class="card" data-site-check data-fullscreen="Show the site check on the whole screen">
+        <canvas role="img" aria-label={label}></canvas>
+        <div class="controls">
+          <button type="button" class="button" data-restart>Restart</button>
+          <button type="button" class="button" data-stage-toggle>Pause</button>
+          <button type="button" class="button" data-full hidden>Full screen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <LabMore current={tool.slug} />
+</Base>
+
+<script>
+  import { runStage } from '../../effects/stage.js';
+  import { createWeb } from '../../site-check/web.js';
+
+  const root = document.querySelector<HTMLElement>('[data-site-check]');
+  if (root) {
+    const canvas = root.querySelector('canvas')!;
+    // Once the check is done, the picture's words say what it found.
+    const done = ({ pages, links, broken, outside }: { pages: number, links: number, broken: string[], outside: number }) => {
+      const found = broken.length ? `${broken.length} broken: ${broken.join(', ')}` : 'none broken';
+      canvas.setAttribute('aria-label', `The spider web after the check: ${pages} pages read and ${links.toLocaleString('en-US')} links checked, ${found}, and ${outside} links to other sites for you to check by hand.`);
+    };
+    let web: ReturnType<typeof createWeb> | undefined;
+    runStage(root, (stage) => (web = createWeb(stage, root, done)));
+    // Restart checks the site again from the home page, starting it if it's paused (or still, when less motion is
+    // asked for).
+    const toggle = root.querySelector<HTMLButtonElement>('[data-stage-toggle]');
+    root.querySelector('[data-restart]')?.addEventListener('click', () => {
+      web?.restart();
+      if (toggle?.textContent === 'Play') toggle.click();
+    });
+    // Full screen, where the browser can (iPhones can't), as on the Build Log.
+    const full = root.querySelector<HTMLButtonElement>('[data-full]');
+    if (full && document.fullscreenEnabled) {
+      full.hidden = false;
+      full.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen()));
+      document.addEventListener('fullscreenchange', () => { full.textContent = document.fullscreenElement ? 'Leave full screen' : 'Full screen'; });
+    }
+  }
+</script>
+
+<style>
+  .show { display: grid; justify-items: center; }
+  /* The card, the Build Log's size. --c1 onward are the colours it draws with (web.js): the six parts in the menu's
+     order (the Build Log's), the three routes, the panels' (the Build Log's too), then the web's and the spider's own. */
+  .card { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--check-fine); --c8: var(--check-broken); --c9: var(--check-you); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-panel); --c15: var(--log-ground); --c16: var(--check-silk); --c17: var(--check-wall); --c18: var(--check-shadow); --c19: var(--check-shell); --c20: var(--check-shine); --c21: var(--check-glow); --c22: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-ground); box-shadow: var(--shadow-card); }
+  /* Only a mouse turns the web; a finger on it scrolls the page. */
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: auto; }
+  /* Its buttons in its own look, as the Build Log's: square-edged, in the monospace, on its ground. */
+  .controls { position: absolute; top: var(--space-3); right: var(--space-4); display: flex; gap: var(--space-2); }
+  .controls .button { padding: var(--space-1) var(--space-3); border-color: var(--log-frame); border-radius: var(--radius-xs); background: var(--log-panel); color: var(--log-text); font: 500 var(--text-xs) var(--font-code); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .controls .button:hover { border-color: var(--log-soft); }
+  [data-full][hidden] { display: none; }
+  .card:fullscreen { border-radius: 0; box-shadow: none; }
+  /* Narrower screens: a tall card, as big as the window's height allows; web.js draws its tall version in it. */
+  @media (max-width: 999px) {
+    .card { width: min(100%, max(20rem, calc((100svh - var(--space-7)) * 0.8))); aspect-ratio: 4 / 5; }
+  }
+  @media (max-width: 479px) {
+    [data-full] { display: none; }
+  }
+</style>

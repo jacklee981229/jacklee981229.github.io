@@ -38,6 +38,7 @@ export const ICONS = {
   markdown: '<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M6 15V9l2.5 3L11 9v6M16 9v6m-2.2-2.2L16 15l2.2-2.2"/>',
   braces: '<path d="M9 4c-2 0-3 1-3 3v2.2c0 1.5-.6 2.4-2 2.8 1.4.4 2 1.3 2 2.8V17c0 2 1 3 3 3M15 4c2 0 3 1 3 3v2.2c0 1.5.6 2.4 2 2.8-1.4.4-2 1.3-2 2.8V17c0 2-1 3-3 3"/>',
   branch: '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 0 1-6 6H8"/>',
+  bug: '<ellipse cx="12" cy="14" rx="4.5" ry="5.5"/><circle cx="12" cy="6.5" r="2.5"/><path d="M7.5 11 3 8.5M7.5 14H3M7.5 17 3 19.5M16.5 11l4.5-2.5M16.5 14H21M16.5 17l4.5 2.5M10.5 4.5 9 2.5M13.5 4.5l1.5-2"/>',
   sparkles: '<path d="M11 3.5 12.9 8l4.6 1.9-4.6 1.9L11 16.4l-1.9-4.6-4.6-1.9L9.1 8z"/><path d="m18.5 14 .9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/>',
   gamepad: '<rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7.5 10v4M5.5 12h4"/><circle cx="15.5" cy="11" r=".6"/><circle cx="17.5" cy="13" r=".6"/>',
   phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',

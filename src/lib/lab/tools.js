@@ -11,8 +11,8 @@ export const GROUPS = [
 /**
  * Each tool: its address (/lab/<slug>/), name, one-line description, group and icon; `ready` once its page is built,
  * `soon` until then; and the example its card shows (what goes in, what comes out). Effects has none: its card shows
- * one effect's drawing, a different one each day; nor has Jack's Build Log, whose card shows a drawing of its clock
- * (src/components/BuildLogCover.astro). `words` are more words the palette finds it by. `hidden` keeps a finished one
+ * one effect's drawing, a different one each day; nor have Jack's Build Log and Jack's Site Check, whose cards show
+ * drawings of their own (src/components/BuildLogCover.astro, SiteCheckCover.astro). `words` are more words the palette finds it by. `hidden` keeps a finished one
  * off every list (the Lab, the palette, Random, the sitemap): only its address reaches it, marked noindex.
  * @type {{ slug: string, name: string, description: string, group: string, icon: string, status: 'ready' | 'soon', example?: readonly string[], words?: readonly string[], hidden?: boolean }[]}
  */
@@ -29,6 +29,7 @@ export const TOOLS = [
   { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
   { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },
   { slug: 'build-log', name: "Jack's Build Log", description: "This site's history, replayed on a clock or a ring.", group: 'misc', icon: 'branch', status: 'ready', words: ['build log', 'commits', 'git', 'history', 'numbers', 'stats'] },
+  { slug: 'site-check', name: "Jack's Site Check", description: 'Every page of this site, checked link by link.', group: 'misc', icon: 'bug', status: 'ready', words: ['site check', 'crawler', 'spider', 'web', 'broken links', 'links', '404'] },
   { slug: 'writing-islands', name: "Jack's Writing Islands", description: "This site's posts as islands, carved by years of rain.", group: 'misc', icon: 'mountain', status: 'ready', words: ['islands', 'posts', 'erosion', 'landscape', 'rain'], hidden: true },
 ];
 

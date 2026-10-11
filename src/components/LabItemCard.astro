@@ -6,6 +6,7 @@ import BuildLogCover from './BuildLogCover.astro';
 import Cover from './Cover.astro';
 import EffectCover from './EffectCover.astro';
 import LabCard from './LabCard.astro';
+import SiteCheckCover from './SiteCheckCover.astro';
 import WorldCover from './WorldCover.astro';
 import WritingIslandsCover from './WritingIslandsCover.astro';
 import { postUrl, summaryOf, type LabItem } from '../lib/collections';
@@ -25,7 +26,7 @@ const kind = tool?.group as 'text' | 'preview' | 'image' | 'misc';
     <LabCard href={tool.status === 'ready' ? toolUrl(tool.slug) : undefined} icon={tool.icon} name={tool.name} description={tool.description} example={tool.example} kind={kind} flow={flow} />
   ) : (
     <LabCard href={toolUrl(tool.slug)} icon={tool.icon} name={tool.name} description={tool.description} kind={kind} flow={flow}>
-      {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : tool.slug === 'writing-islands' ? <WritingIslandsCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
+      {tool.slug === 'build-log' ? <BuildLogCover slot="cover" /> : tool.slug === 'site-check' ? <SiteCheckCover slot="cover" /> : tool.slug === 'writing-islands' ? <WritingIslandsCover slot="cover" /> : <EffectCover slot="cover" slug={drawn} />}
     </LabCard>
   )
 ) : post ? (
