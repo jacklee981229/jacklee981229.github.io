@@ -1,17 +1,29 @@
 // QR Code Generator: a link or message turned into a QR code's squares (by uqr), and the squares drawn as an SVG file and
-// as the pixels of a PNG, both inside the white border scanners count on; kept apart from the page so the tests can read
-// every drawn code back.
+// as the pixels of a PNG: an orange card, a white panel inside it with the border scanners count on, and the site's logo
+// in the middle; kept apart from the page so the tests can read every drawn code back.
 import { encode } from 'uqr';
+import { logoSvg } from '../logo.js';
 
 /** The white border around a code, in squares: the standard's minimum. */
 export const BORDER = 4;
-/** How much of a code can be smudged or covered and still read: M, about 15%. */
-const LEVEL = 'M';
+/** The card's orange frame around the white border, in squares. */
+export const FRAME = 3;
+/** How much of a code can be smudged or covered and still read: H, about 30%, so the logo in the middle can cover
+    some squares. */
+const LEVEL = 'H';
+/** How far across the code (its border aside) the logo's tile reaches: the share of squares it covers stays far under
+    what H can lose, at every size. */
+const LOGO = 0.26;
+/** The card's corners and the white panel's, in squares. */
+const CARD_ROUND = 4;
+const PANEL_ROUND = 2.5;
 
 /**
- * @typedef {{ size: number, dark: boolean[][] }} Squares
- * A code's squares, its border included: `dark[y][x]` is true for a dark one.
- * @typedef {{ ink: string, paper: string }} Colours  the dark squares' and the background's, as #RRGGBB
+ * @typedef {{ size: number, dark: boolean[][], logo: { at: number, tile: number } }} Squares
+ * A code's squares, its border included: `dark[y][x]` is true for a dark one. `logo` is the square tile in the middle
+ * kept clear for the logo: its first row and column, and how many squares across.
+ * @typedef {{ ink: string, paper: string, frame: string }} Colours  the dark squares', the panel's and the card's, as
+ * #RRGGBB
  */
 
 /** Whether a text fits one code. @param {string} text */
@@ -46,15 +58,32 @@ export function qrSquares(text) {
     return { over: chars.length - lo };
   }
   const { size, data } = encode(text, { ecc: LEVEL, border: BORDER });
-  return { size, dark: data };
+  // Whole squares, centred: every code is an odd number of squares across, so the tile is the odd number nearest its
+  // share, sitting on the middle square with none half covered.
+  const inner = size - 2 * BORDER;
+  const tile = 2 * Math.round((inner * LOGO - 1) / 2) + 1;
+  const at = (size - tile) / 2;
+  const dark = data.map((row, y) => row.map((on, x) => on && !(x >= at && x < at + tile && y >= at && y < at + tile)));
+  return { size, dark, logo: { at, tile } };
 }
 
 /**
- * A code as an SVG file: the background, then one path of dark squares, with crisp edges at any size. It says it's
- * 1024 pixels square, so apps that place it at its own size don't make it tiny; the page sizes it to fit.
+ * The logo's place inside its tile, in squares from the code's corner: a margin of white all round.
+ * @param {Squares} squares @returns {{ x: number, y: number, width: number }}
+ */
+export function qrLogoBox({ logo: { at, tile } }) {
+  const pad = tile * 0.12;
+  return { x: at + pad, y: at + pad, width: tile - 2 * pad };
+}
+
+/**
+ * A code as an SVG file: the card, the panel, one path of dark squares with crisp edges at any size, and the logo. It
+ * says it's 1024 pixels square, so apps that place it at its own size don't make it tiny; the page sizes it to fit.
+ * The code's own corner is at 0 0, the card reaching FRAME squares past it.
  * @param {Squares} squares @param {Colours} colours @returns {string}
  */
-export function qrSvg({ size, dark }, { ink, paper }) {
+export function qrSvg(squares, { ink, paper, frame }) {
+  const { size, dark } = squares;
   let path = '';
   dark.forEach((row, y) => {
     // A run of dark squares in a row is one rectangle: a far shorter file than a square apiece.
@@ -66,28 +95,52 @@ export function qrSvg({ size, dark }, { ink, paper }) {
       x = end;
     }
   });
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="${paper}"/><path d="${path}" fill="${ink}"/></svg>`;
+  const card = size + 2 * FRAME;
+  const box = qrLogoBox(squares);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="${-FRAME} ${-FRAME} ${card} ${card}">`
+    + `<rect x="${-FRAME}" y="${-FRAME}" width="${card}" height="${card}" rx="${CARD_ROUND}" fill="${frame}"/>`
+    + `<rect width="${size}" height="${size}" rx="${PANEL_ROUND}" fill="${paper}"/>`
+    + `<path d="${path}" fill="${ink}" shape-rendering="crispEdges"/>`
+    + logoSvg('qr-logo', `x="${box.x}" y="${box.y}" width="${box.width}" height="${box.width}"`)
+    + '</svg>';
 }
 
 /** @param {string} hex #RRGGBB */
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
+/** Whether a point lies inside a square of side `side` with round corners of `round`. */
+const inRounded = (x, y, side, round) => {
+  const cx = Math.min(Math.max(x, round), side - round);
+  const cy = Math.min(Math.max(y, round), side - round);
+  return (x - cx) ** 2 + (y - cy) ** 2 <= round ** 2;
+};
+
 /**
- * A code's pixels for a PNG, as ImageData takes them (red, green, blue, alpha): every square the same whole number of
- * pixels, so its edges stay sharp, and the picture at least `least` pixels across.
+ * A code's pixels for a PNG, as ImageData takes them (red, green, blue, alpha): the card and panel as qrSvg draws them,
+ * clear outside the card's corners, every square the same whole number of pixels so its edges stay sharp, and the
+ * picture at least `least` pixels across. The logo isn't drawn here: the page lays it over the clear tile, at
+ * `scale`, the pixels per square.
  * @param {Squares} squares @param {Colours} colours @param {number} [least]
- * @returns {{ width: number, height: number, data: Uint8ClampedArray<ArrayBuffer> }}
+ * @returns {{ width: number, height: number, scale: number, data: Uint8ClampedArray<ArrayBuffer> }}
  */
-export function qrPixels({ size, dark }, { ink, paper }, least = 1024) {
-  const scale = Math.ceil(least / size);
-  const width = size * scale;
+export function qrPixels({ size, dark }, { ink, paper, frame }, least = 1024) {
+  const card = size + 2 * FRAME;
+  const scale = Math.ceil(least / card);
+  const width = card * scale;
   const data = new Uint8ClampedArray(width * width * 4);
   const on = rgb(ink);
   const off = rgb(paper);
+  const edge = rgb(frame);
   for (let y = 0; y < width; y++) {
-    const row = dark[Math.floor(y / scale)];
     for (let x = 0; x < width; x++) {
-      const [r, g, b] = row[Math.floor(x / scale)] ? on : off;
+      // The pixel's middle, in squares from the card's corner.
+      const sx = (x + 0.5) / scale;
+      const sy = (y + 0.5) / scale;
+      if (!inRounded(sx, sy, card, CARD_ROUND)) continue;
+      const cx = Math.floor(sx) - FRAME;
+      const cy = Math.floor(sy) - FRAME;
+      const panel = inRounded(sx - FRAME, sy - FRAME, size, PANEL_ROUND);
+      const [r, g, b] = !panel ? edge : dark[cy][cx] ? on : off;
       const i = (y * width + x) * 4;
       data[i] = r;
       data[i + 1] = g;
@@ -95,7 +148,7 @@ export function qrPixels({ size, dark }, { ink, paper }, least = 1024) {
       data[i + 3] = 255;
     }
   }
-  return { width, height: width, data };
+  return { width, height: width, scale, data };
 }
 
 /**

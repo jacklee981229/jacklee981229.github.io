@@ -216,9 +216,11 @@
   --game-sky: #BDE3FF;
   --game-peach: #FFC98B;
   --game-cat: #172030;
-  /* The QR Code Generator's codes, black on white in both themes, as scanners need dark squares on light. */
-  --qr-ink: #000000;
+  /* The QR Code Generator's codes, the same in both themes: deep orange squares on a white panel (4.3:1, as scanners
+     need dark squares on light; white squares on orange failed), in a bright orange card. */
+  --qr-ink: #D9480F;
   --qr-paper: #FFFFFF;
+  --qr-frame: #F26B1D;
   /* Compare Text: lines added (green) and removed (red), and in them the changed words, deeper; each line also has
      its + or −, so colour isn't the only sign. The text on them keeps at least 4.5:1. */
   --diff-add: #E2F5E8;
@@ -529,7 +531,7 @@
   --river-sky-top: var(--paper);
   --river-sky-low: var(--surface);
   --river-glow: var(--rule);
-  --river-tree: var(--qr-ink);
+  --river-tree: #000000;
   --river-water: var(--paper);
   --river-mist: var(--rule);
   --river-star: var(--muted);

@@ -13,14 +13,17 @@ const SAMPLE = new URL(Astro.site!).origin;
 </ToolShell>
 
 <script>
-  import { qrFileName, qrPixels, qrSquares, qrSvg } from '../../lib/lab/qr.js';
+  import { FRAME, qrFileName, qrLogoBox, qrPixels, qrSquares, qrSvg } from '../../lib/lab/qr.js';
+  import { logoSvg } from '../../lib/logo.js';
   import { setupPreview } from '../../lib/lab/page.ts';
 
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-download]')];
   const tokens = getComputedStyle(document.documentElement);
-  const colours = { ink: tokens.getPropertyValue('--qr-ink').trim(), paper: tokens.getPropertyValue('--qr-paper').trim() };
+  const colour = (name: string) => tokens.getPropertyValue(name).trim();
+  const colours = { ink: colour('--qr-ink'), paper: colour('--qr-paper'), frame: colour('--qr-frame') };
+  type Squares = Extract<NonNullable<ReturnType<typeof qrSquares>>, { dark: boolean[][] }>;
   /** The code on show, for the downloads; none while the box is empty or too long. */
-  let shown: { text: string; squares: { size: number; dark: boolean[][] } } | null = null;
+  let shown: { text: string; squares: Squares } | null = null;
 
   setupPreview((text, view) => {
     const squares = qrSquares(text);
@@ -51,12 +54,21 @@ const SAMPLE = new URL(Astro.site!).origin;
       if (!shown) return;
       const { text, squares } = shown;
       if (button.dataset.download === 'svg') return save(new Blob([qrSvg(squares, colours)], { type: 'image/svg+xml' }), qrFileName(text, 'svg'));
-      const { width, height, data } = qrPixels(squares, colours);
+      const { width, height, scale, data } = qrPixels(squares, colours);
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
-      canvas.getContext('2d')!.putImageData(new ImageData(data, width, height), 0, 0);
-      canvas.toBlob((blob) => blob && save(blob, qrFileName(text, 'png')), 'image/png');
+      const pen = canvas.getContext('2d')!;
+      pen.putImageData(new ImageData(data, width, height), 0, 0);
+      // The logo over its clear tile, drawn from the same SVG as the page's, at the PNG's own size.
+      const box = qrLogoBox(squares);
+      const logo = new Image();
+      logo.onload = () => {
+        pen.drawImage(logo, (box.x + FRAME) * scale, (box.y + FRAME) * scale, box.width * scale, box.width * scale);
+        URL.revokeObjectURL(logo.src);
+        canvas.toBlob((blob) => blob && save(blob, qrFileName(text, 'png')), 'image/png');
+      };
+      logo.src = URL.createObjectURL(new Blob([logoSvg('qr-png', 'width="512" height="512"')], { type: 'image/svg+xml' }));
     });
   }
 </script>
@@ -65,7 +77,7 @@ const SAMPLE = new URL(Astro.site!).origin;
   /* The code at the top of its box, as the other previews start, so it's whole on screen on arrival: as wide as the box,
      and no taller than it. The too-long line sits where the hint does. */
   .qr-view:not(:empty) { display: grid; place-items: start center; }
-  .qr-view svg { display: block; width: 100%; height: auto; max-height: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); }
+  .qr-view svg { display: block; width: 100%; height: auto; max-height: 100%; aspect-ratio: 1; }
   .qr-view p { justify-self: start; margin: 0; font-weight: 600; }
   /* With no code to save, the downloads are greyed out. */
   .actions .button:disabled { color: var(--muted); cursor: default; }
