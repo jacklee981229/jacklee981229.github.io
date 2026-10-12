@@ -103,3 +103,4 @@
 - 2026-10-12 design: Gave the [Build Log](/lab/build-log/) the site's own cards
 - 2026-10-12 improved: Livened up the [Build Log](/lab/build-log/) with flares and a slow wave of light
 - 2026-10-12 improved: Made the loading screen stay a second and fade out instead of blinking
+- 2026-10-13 improved: Each commit on the [Build Log](/lab/build-log/) now flies into its list as a light

@@ -983,11 +983,12 @@ export function createPoster(stage, data, root, mode = 'clock') {
    * and on past it, fading, like a ring on water: it shows the plane the ring lies in, how it leans, and the words in
    * the middle above it. `on` is the ring's side.
    */
+  const BEAT = 3.2;
   const ripple = (g, on, holdT, side = 1) => {
-    const t = (holdT % SWELL) / 3.4;
+    const t = (holdT % BEAT) / 2.4;
     if (t >= 1) return;
     const k = clock.r1 / 206;
-    const rho = 12 * k + easeOut(t) * (clock.dates + 24 * k);
+    const rho = 12 * k + easeOut(t) * ((m === 1 ? clock.dates : clock.plate) + 24 * k);
     const points = Array.from({ length: 97 }, (_, i) => { const q = on(rho, (i / 96) * TAU, 0); return [q[0], q[1]]; });
     const fade = Math.sin(Math.PI * Math.min(1, t * 1.6)) * (1 - t);
     polyline(g, points, light ? rgba(palette.text, 0.3 * fade * side) : rgba(WHITE, 0.4 * fade * side), 1.2 * k);
@@ -999,12 +1000,13 @@ export function createPoster(stage, data, root, mode = 'clock') {
    * of racing round; as strongly as its side of the face shows (`side`). Thousands of strokes add up where the files
    * crowd, so each is faint, and the ring's, lying closest, the faintest.
    */
-  const wave = (g, shapes, ring, holdT, side = 1) => {
+  const wave = (g, shapes, ring, holdT, side = 1, playT = Infinity) => {
     const at = Math.PI / 2 - (holdT / WAVE) * TAU;
     const angles = ring ? ringAngle : wireAngle;
     const BANDS = 5;
     const paths = Array.from({ length: BANDS }, () => new Path2D());
     for (let c = 0; c < N; c++) {
+      if (launch[c] + GROW > playT) continue;
       const crest = (0.5 + 0.5 * Math.cos(CRESTS * (angles[c] - at))) ** 6;
       if (crest < 0.12) continue;
       const band = Math.min(BANDS - 1, Math.floor(((crest - 0.12) / 0.88) * BANDS));
@@ -1014,7 +1016,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
     g.lineWidth = (ring ? 0.9 : 1.1) * (clock.r1 / 206);
     paths.forEach((path, band) => {
       const strength = ((band + 1) / BANDS) * side;
-      g.strokeStyle = light ? rgba(palette.text, (ring ? 0.1 : 0.2) * strength) : rgba(WHITE, (ring ? 0.09 : 0.26) * strength);
+      g.strokeStyle = light ? rgba(palette.text, (ring ? 0.12 : 0.3) * strength) : rgba(WHITE, (ring ? 0.1 : 0.42) * strength);
       g.stroke(path);
     });
   };
@@ -1051,22 +1053,104 @@ export function createPoster(stage, data, root, mode = 'clock') {
   };
   /** On the clock every file is as near as any other, for its sparks. */
   const allNear = new Float32Array(N).fill(1);
+  /** Once it's finished, a heartbeat every BEAT seconds: a pulse leaves the newest commit's place and runs
+      clockwise right round the coil, fading, as a ripple spreads across the face. */
+  const heartbeat = (g, shapes, ring, holdT, side = 1) => {
+    const t = (holdT % BEAT) / 2.4;
+    if (t >= 1) return;
+    const angles = ring ? ringAngle : wireAngle;
+    const last = commits.length - 1;
+    const from = ring ? ringAngle[middleFile(last)] : hourAngle(commits[last]);
+    // One way, as the replay went: clockwise from the newest commit, fading as it goes round.
+    const reach = TAU * easeOut(t);
+    const paths = [new Path2D(), new Path2D()];
+    for (let c = 0; c < N; c++) {
+      const d = (((from - angles[c]) % TAU) + TAU) % TAU;
+      if (d > reach || d < reach - 0.45) continue;
+      trace(paths[d > reach - 0.15 ? 0 : 1], shapes.wires, WIRE_POINTS, c, 1);
+    }
+    const strength = (1 - t) ** 1.4 * side;
+    g.lineWidth = (ring ? 1 : 1.3) * (clock.r1 / 206);
+    paths.forEach((path, j) => {
+      const a = (j === 0 ? 1 : 0.45) * strength;
+      g.strokeStyle = light ? rgba(palette.text, (ring ? 0.25 : 0.45) * a) : rgba(WHITE, (ring ? 0.3 : 0.7) * a);
+      g.stroke(path);
+    });
+  };
+  /** While it plays, as each commit lands, a surge of light runs both ways along the coil from its place, and fades. */
+  const surge = (g, shapes, ring, playT, side = 1) => {
+    const angles = ring ? ringAngle : wireAngle;
+    const path = [new Path2D(), new Path2D(), new Path2D()];
+    const strengths = [0, 0, 0];
+    let n = 0;
+    for (let i = commits.length - 1; i >= 0 && n < 3; i--) {
+      const t = (playT - commitStart[i]) / 1.1;
+      if (t < 0) continue;
+      if (t >= 1) break;
+      const from = ring ? ringAngle[middleFile(i)] : hourAngle(commits[i]);
+      const reach = 0.9 * easeOut(t);
+      for (let c = 0; c < N; c++) {
+        if (launch[c] + GROW > playT) continue;
+        const d = Math.abs((((angles[c] - from) % TAU) + TAU + Math.PI) % TAU - Math.PI);
+        if (d > reach || d < reach - 0.22) continue;
+        trace(path[n], shapes.wires, WIRE_POINTS, c, 1);
+      }
+      strengths[n++] = (1 - t) ** 1.5;
+    }
+    g.lineWidth = (ring ? 1 : 1.2) * (clock.r1 / 206);
+    for (let j = 0; j < n; j++) {
+      g.strokeStyle = light ? rgba(palette.text, (ring ? 0.2 : 0.4) * strengths[j] * side) : rgba(WHITE, (ring ? 0.25 : 0.6) * strengths[j] * side);
+      g.stroke(path[j]);
+    }
+  };
 
   /**
    * The clock's spots for the commits so far, the small hours' in red (the ring has none: `ring`), and with `from`, the
    * hand from there to the one being played; as strongly as their side of the face shows (`side`).
    */
-  const spots = (g, nodes, playing, from, ring, side = 1) => {
+  const spots = (g, nodes, playing, fromOf, ring, side = 1, playT = 0) => {
     const k = Math.max(0.7, clock.r1 / 206);
     if (!ring) for (let i = 0; i <= playing; i++) dot(g, nodes[i * 2], nodes[i * 2 + 1], 2.4 * k, rgba(commits[i].hour < 4 ? palette.lateDot : palette.parts[commits[i].main], 0.95 * side));
-    if (!from) return;
-    const x = nodes[playing * 2];
-    const y = nodes[playing * 2 + 1];
-    polyline(g, [from, [x, y]], rgba(palette.text, 0.75 * side), 1.2 * k);
+    if (!fromOf) return;
+    // The hand swings from the last commit to this one instead of jumping, a light runs out along it to the
+    // new spot, and the ring round the spot closes in on it as it arrives.
+    const HAND = 0.28;
+    const age = Math.max(0, playT - commitStart[playing]);
+    const s = easeOut(clamp(age / HAND));
+    const prev = Math.max(0, playing - 1);
+    const lerp = (a, b) => [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s];
+    const at = [nodes[playing * 2], nodes[playing * 2 + 1]];
+    const tip = playing > 0 ? lerp([nodes[prev * 2], nodes[prev * 2 + 1]], at) : at;
+    const base = playing > 0 ? lerp(fromOf(prev), fromOf(playing)) : fromOf(playing);
+    const line = g.createLinearGradient(base[0], base[1], tip[0], tip[1]);
+    line.addColorStop(0, rgba(palette.text, 0.15 * side));
+    line.addColorStop(1, rgba(palette.text, 0.9 * side));
+    g.strokeStyle = line;
+    g.lineWidth = 1.4 * k;
+    g.beginPath();
+    g.moveTo(base[0], base[1]);
+    g.lineTo(tip[0], tip[1]);
+    g.stroke();
+    const c = commits[playing];
+    const glowColour = glowOf(c.hour < 4 ? palette.lateDot : palette.parts[c.main]);
+    const run = clamp(age / 0.4);
+    if (run < 1) {
+      const e = easeOut(run);
+      const px2 = base[0] + (tip[0] - base[0]) * e;
+      const py2 = base[1] + (tip[1] - base[1]) * e;
+      const halo = g.createRadialGradient(px2, py2, 0, px2, py2, 8 * k);
+      halo.addColorStop(0, rgba(light ? glowColour : WHITE, 0.95 * (1 - run * 0.4) * side));
+      halo.addColorStop(0.4, rgba(glowColour, 0.5 * side));
+      halo.addColorStop(1, rgba(glowColour, 0));
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(px2, py2, 8 * k, 0, TAU);
+      g.fill();
+    }
     g.strokeStyle = rgba(palette.text, 0.9 * side);
     g.lineWidth = 1.2;
     g.beginPath();
-    g.arc(x, y, 6 * k, 0, TAU);
+    g.arc(tip[0], tip[1], (6 + 6 * (1 - s)) * k, 0, TAU);
     g.stroke();
   };
 
@@ -1149,7 +1233,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
     g.globalCompositeOperation = blend;
     // Where the hand starts: the clock's hub, or just inside the ring, on the side of the face it's on.
     const hand = phase === 'play' && playing >= 0;
-    const inside = (/** @type {View} */ side) => side(clock.ring - clock.ringTube - 16 * k, ringAngle[middleFile(Math.max(0, playing))], 0);
+    const inside = (/** @type {View} */ side, i = playing) => side(clock.ring - clock.ringTube - 16 * k, ringAngle[middleFile(Math.max(0, i))], 0);
     if (moving) {
       const low = /** @type {CanvasRenderingContext2D} */ (movingFiles.getContext('2d'));
       low.setTransform(1, 0, 0, 1, 0, 0);
@@ -1167,14 +1251,19 @@ export function createPoster(stage, data, root, mode = 'clock') {
           const up = age < GROW;
           drawFile(low, low, seen, c, up ? easeOut(age / GROW) : 1, ring, up, side, near[c], null);
         }
-        if (phase === 'play') flares(low, seen.nodes, playT, ring, side);
+        if (phase === 'play') {
+          flares(low, seen.nodes, playT, ring, side);
+          wave(low, seen, ring, time, side, playT);
+          surge(low, seen, ring, playT, side);
+        }
         if (phase === 'hold') {
-          wave(low, seen, ring, holdT, side);
+          wave(low, seen, ring, time, side);
           sparks(low, seen.spikes, holdT, ring ? near : allNear, ring ? ringAngle : wireAngle, side);
-          if (ring) ripple(low, onBack, holdT, side);
+          heartbeat(low, seen, ring, holdT, side);
+          ripple(low, ring ? onBack : on, holdT, side);
         }
         low.globalCompositeOperation = 'source-over';
-        spots(low, seen.nodes, playing, hand ? (ring ? inside(onBack) : hub) : null, ring, side);
+        spots(low, seen.nodes, playing, hand ? (i) => (ring ? inside(onBack, i) : hub) : null, ring, side, playT);
       }
       g.drawImage(movingFiles, 0, 0, glow.width, glow.height);
       posterSpace(g);
@@ -1211,14 +1300,19 @@ export function createPoster(stage, data, root, mode = 'clock') {
       posterSpace(g);
       // Spikes still rising, and their wires still winding on.
       for (const c of growing) drawFile(g, g, shapes, c, easeOut((playT - launch[c]) / GROW), m === 1, true, 1, ringNear[c]);
-      if (phase === 'play') flares(g, shapes.nodes, playT, m === 1);
+      if (phase === 'play') {
+        flares(g, shapes.nodes, playT, m === 1);
+        wave(g, shapes, m === 1, time, 1, playT);
+        surge(g, shapes, m === 1, playT);
+      }
       if (phase === 'hold') {
-        wave(g, shapes, m === 1, holdT);
+        wave(g, shapes, m === 1, time);
         sparks(g, shapes.spikes, holdT, m ? ringNear : allNear, m ? ringAngle : wireAngle);
-        if (m === 1) ripple(g, ringView, holdT);
+        heartbeat(g, shapes, m === 1, holdT);
+        ripple(g, m === 1 ? ringView : clockView, holdT);
       }
       g.globalCompositeOperation = 'source-over';
-      spots(g, shapes.nodes, playing, hand ? (m ? inside(ringView) : hub) : null, m === 1);
+      spots(g, shapes.nodes, playing, hand ? (i) => (m ? inside(ringView, i) : hub) : null, m === 1, 1, playT);
     }
     g.globalCompositeOperation = 'source-over';
 
@@ -1250,7 +1344,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
       }
       main.globalCompositeOperation = 'lighter';
       // Once it's finished, the glow breathes a little, in time with the wave's crests.
-      const breath = phase === 'hold' ? 1 + 0.12 * Math.sin((holdT / SWELL) * TAU) : 1;
+      const breath = phase === 'hold' ? 1 + 0.25 * Math.exp(-((holdT % BEAT) / 0.5)) : 1;
       [0.3, 0.45, 0.55].forEach((alpha, i) => {
         main.globalAlpha = Math.min(1, alpha * breath);
         main.drawImage(blurs[i], 0, 0, glow.width, glow.height);
@@ -1262,7 +1356,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
     const shown = done ? commits.length : playing + 1;
     const files = done ? totals.changes : Math.round(landed.reduce((a, b) => a + b, 0) * data.per);
     const late = commits.slice(0, shown).filter((c) => c.hour < 4).length;
-    if (wide) wideWords(main, { shown, files, late, landed, playing, phase, done });
+    if (wide) wideWords(main, { shown, files, late, landed, playing, phase, done, playT });
     else tallWords(main, { shown, files, late, landed, done });
     // In the clock, the commits counted, above the hub; in the ring, the commit being played, in its middle: each with
     // its side of the face, so one has gone before the other comes.
@@ -1323,8 +1417,132 @@ export function createPoster(stage, data, root, mode = 'clock') {
     g.restore();
   };
 
+  // ---- Each commit gathered into the Newest commits card: its light flies from its place to the list, the whole way
+  // every time however soon the next one comes, and lights its row.
+  /** Seconds a commit's light flies, its words take to light up along the row, its glow to fade, the rows to glide. */
+  const FLY = 0.9;
+  const SWEEP = 0.5;
+  const GLOW = 1.2;
+  const SLIDE = 0.45;
+  const ROW = 20.5;
+  const TOP = 382;
+  const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+  /** When commit i leaves the middle: as the next one comes, or as the replay ends. */
+  const leaves = (i) => (i + 1 < commits.length ? commitStart[i + 1] : PLAY - GROW - 0.4);
+  const bez = (a, c, b, t) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * c + t * t * b;
+  const glowOf = (rgb) => (light ? rgb : rgb.map((v) => v + (255 - v) * 0.5));
+
+  const gatherList = (g, playT, rx, rw) => {
+    // Flights from the Clock and the Ring at rest; while the face turns over, each row just fades in.
+    const fly = m === goal ? FLY : 0;
+    const land = (i) => leaves(i) + fly;
+    let last = -1;
+    for (let i = 0; i < commits.length && leaves(i) <= playT; i++) {
+      if (land(i) <= playT) last = i;
+      else drawLight(g, commits[i], i, (playT - leaves(i)) / FLY, rx);
+    }
+    // Each light makes room for itself: as it comes in, the rows under it glide down by one, so the top is free when
+    // it lands, however soon the next one follows. The gap opens for a light still flying too.
+    let next = last + 1;
+    while (next < commits.length && leaves(next) <= playT) next++;
+    let offset = 0;
+    for (let j = next - 1; j > last; j--) offset += inOut(clamp((playT - (land(j) - SLIDE)) / SLIDE));
+    for (let k = 0; k <= 13 && last - k >= 0; k++) {
+      if (k > 0) offset += inOut(clamp((playT - (land(last - k + 1) - SLIDE)) / SLIDE));
+      const i = last - k;
+      const y = TOP + offset * ROW;
+      const fade = clamp((TOP + 12 * ROW - y) / ROW);
+      if (fade <= 0) break;
+      drawRow(g, commits[i], y, playT - land(i), fly > 0, fade, rx, rw);
+    }
+  };
+
+  /** A row of the list; just landed, its light runs along it, lighting the words, which glow and settle. */
+  const drawRow = (g, c, y, age, lit, fade, rx, rw) => {
+    const colour = c.hour < 4 ? palette.lateDot : palette.parts[c.main];
+    const glowColour = glowOf(colour);
+    const sweep = lit ? clamp(age / SWEEP) : 1;
+    const glow = lit ? 1 - clamp(age / GLOW) : 0;
+    const alpha = fade * (lit ? 1 : clamp(age / 0.3));
+    const t0 = g.getTransform();
+    const px = Math.hypot(t0.a, t0.b);
+    // The dot, flaring as the light lands in it.
+    if (glow > 0) {
+      const halo = g.createRadialGradient(rx + 20, y - 4, 0, rx + 20, y - 4, 4 + 10 * glow);
+      halo.addColorStop(0, rgba(glowColour, 0.8 * glow));
+      halo.addColorStop(1, rgba(glowColour, 0));
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(rx + 20, y - 4, 4 + 10 * glow, 0, TAU);
+      g.fill();
+    }
+    dot(g, rx + 20, y - 4, 3, rgba(colour, alpha));
+    // The words, shown as far as the light has run, glowing in the commit's colour while it fades.
+    const subject = c.subject.charAt(0).toUpperCase() + c.subject.slice(1);
+    const from = rx + 31;
+    const to = rx + rw - 16;
+    const head = from + (to - from) * easeOut(sweep);
+    g.save();
+    g.beginPath();
+    g.rect(from - 4, y - 16, head - from + 4, 22);
+    g.clip();
+    if (glow > 0) {
+      g.shadowColor = rgba(glowColour, 0.9 * glow);
+      g.shadowBlur = 10 * glow * px;
+    }
+    say(g, cut(g, subject, rw - 32 - 18 - 46, 11.5, sans), from, y, 11.5, { weight: 500, alpha });
+    say(g, c.time, to, y, 11, { colour: c.hour < 4 ? palette.late : palette.soft, align: 'right', alpha });
+    g.restore();
+    // The light itself, running along the row until it reaches the end, then gone.
+    if (sweep < 1) {
+      const r = 9 * (1 - sweep * 0.5);
+      const spark = g.createRadialGradient(head, y - 4, 0, head, y - 4, r);
+      spark.addColorStop(0, rgba(light ? glowColour : WHITE, 0.9));
+      spark.addColorStop(0.4, rgba(glowColour, 0.5));
+      spark.addColorStop(1, rgba(glowColour, 0));
+      g.fillStyle = spark;
+      g.beginPath();
+      g.arc(head, y - 4, r, 0, TAU);
+      g.fill();
+    }
+  };
+
+  /** A commit's light, `t` of the way from its place on the ring to its dot at the top of the list, with a tail. */
+  const drawLight = (g, c, i, t, rx) => {
+    const colour = c.hour < 4 ? palette.lateDot : palette.parts[c.main];
+    const glowColour = glowOf(colour);
+    const from = m === 1 ? ringShapes : clockShapes;
+    const start = [from.nodes[i * 2], from.nodes[i * 2 + 1]];
+    const end = [rx + 20, TOP - 4];
+    const ctrl = [(start[0] + end[0]) / 2, Math.min(start[1], end[1]) - 90];
+    const at = (s) => [bez(start[0], ctrl[0], end[0], s), bez(start[1], ctrl[1], end[1], s)];
+    // A small flash where it leaves the ring.
+    if (t < 0.3) {
+      const f = t / 0.3;
+      g.strokeStyle = rgba(glowColour, 0.7 * (1 - f));
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.arc(start[0], start[1], 3 + 10 * easeOut(f), 0, TAU);
+      g.stroke();
+    }
+    const s = inOut(t);
+    const tail = Array.from({ length: 12 }, (_, j) => at(inOut(clamp(t - j * 0.018))));
+    for (let j = tail.length - 1; j > 0; j--) {
+      polyline(g, [tail[j], tail[j - 1]], rgba(glowColour, 0.55 * (1 - j / tail.length)), 2.4 * (1 - j / tail.length) + 0.4);
+    }
+    const [x, y] = at(s);
+    const halo = g.createRadialGradient(x, y, 0, x, y, 12);
+    halo.addColorStop(0, rgba(light ? glowColour : WHITE, 0.95));
+    halo.addColorStop(0.35, rgba(glowColour, 0.55));
+    halo.addColorStop(1, rgba(glowColour, 0));
+    g.fillStyle = halo;
+    g.beginPath();
+    g.arc(x, y, 12, 0, TAU);
+    g.fill();
+  };
+
   /** The landscape poster's numbers that grow as the commits play, the newest commits, and where the replay is. */
-  const wideWords = (g, { shown, files, late, landed, playing, phase, done }) => {
+  const wideWords = (g, { shown, files, late, landed, playing, phase, done, playT }) => {
     const { x: lx } = LEFT;
     const added = commits.slice(0, shown).reduce((s, c) => s + c.added, 0);
     const big = (words, y, colour) => say(g, words, lx + 16, y, 40, { colour, weight: 800 });
@@ -1375,22 +1593,10 @@ export function createPoster(stage, data, root, mode = 'clock') {
       say(g, fmt(n), rx + rw - 54, y, 11.5, { align: 'right', weight: 700 });
       say(g, `${share(i)}%`, rx + rw - 16, y, 11, { colour: palette.soft, align: 'right', weight: 500 });
     });
-    // Where the replay is, by the newest commits' name; then the newest commits so far, the one playing first.
+    // Where the replay is, by the newest commits' name; then the commits gathered so far, the newest first.
     const where = phase === 'intro' || playing < 0 ? 'Ready' : done ? 'Up to date' : `Playing ${shown} of ${totals.commits}`;
     say(g, where, rx + rw - 16, 356, 12, { colour: palette.soft, align: 'right', weight: 700 });
-    commits.slice(0, shown).slice(-12).reverse().forEach((c, i) => {
-      const y = 382 + i * 20.5;
-      if (i === 0 && phase === 'play') {
-        g.beginPath();
-        g.roundRect(rx + 8, y - 14, rw - 16, 20, 8);
-        g.fillStyle = rgba(palette.text, 0.07);
-        g.fill();
-      }
-      dot(g, rx + 20, y - 4, 3, rgba(c.hour < 4 ? palette.lateDot : palette.parts[c.main]));
-      const subject = c.subject.charAt(0).toUpperCase() + c.subject.slice(1);
-      say(g, cut(g, subject, rw - 32 - 18 - 46, 11.5, sans), rx + 31, y, 11.5, { weight: 500 });
-      say(g, c.time, rx + rw - 16, y, 11, { colour: c.hour < 4 ? palette.late : palette.soft, align: 'right' });
-    });
+    if (phase !== 'intro') gatherList(g, playT, rx, rw);
   };
 
   /** The tall poster's three numbers and the parts' counts. */
