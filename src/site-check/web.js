@@ -132,6 +132,7 @@ function makeWeb() {
 export function createWeb(stage, root, onDone) {
   const { ctx } = stage;
   const mono = getComputedStyle(root).getPropertyValue('--font-code').trim() || 'monospace';
+  const sans = getComputedStyle(root).getPropertyValue('--font-sans').trim() || 'sans-serif';
   const W = makeWeb();
   const routes = new Map();
   /** The way along the threads from one crossing to another: the shortest, never straight across. */
@@ -440,15 +441,21 @@ export function createWeb(stage, root, onDone) {
   });
 
   // ---- Drawing helpers, in the card's units. ----
-  const font = (px, w = 400) => `${w} ${px}px ${mono}`;
+  const font = (px, w = 400, family = mono) => `${w} ${px}px ${family}`;
+  /** Words in the monospace (data: links, addresses, times, counts), or in the site's own type with `sans`. */
   const txt = (s, x, y, px, col, o = {}) => {
-    ctx.font = font(px, o.w ?? 400);
+    ctx.font = font(px, o.w ?? 400, o.sans ? sans : mono);
+    ctx.letterSpacing = o.spacing ? `${o.spacing}em` : '0px';
     ctx.fillStyle = col;
     ctx.textAlign = o.align ?? 'left';
     ctx.textBaseline = o.base ?? 'alphabetic';
     ctx.fillText(s, x, y);
-    return ctx.measureText(s).width;
+    const width = ctx.measureText(s).width;
+    ctx.letterSpacing = '0px';
+    return width;
   };
+  /** Words in the site's own type, as the Build Log's cards write them. */
+  const say = (s, x, y, px, col, o = {}) => txt(s, x, y, px, col, { w: 600, ...o, sans: true });
   const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
   const short = (link) => (link.kind === 'outside' ? link.key.replace(/^https?:\/\/(www\.)?/, '') : link.key);
   const clock = (t) => {
@@ -476,21 +483,37 @@ export function createWeb(stage, root, onDone) {
     out.push(at(to * n));
     return out;
   };
-  const panel = (x, y, w, h, title, right) => {
+  /**
+   * A card as the site's plain ones (and the Build Log's): rounded, no frame, in the card colour; by day with the
+   * cards' soft shadow (there is none in the dark).
+   */
+  const card = (x, y, w, h, r = 12) => {
+    ctx.save();
+    if (light) {
+      const px = Math.hypot(ctx.getTransform().a, ctx.getTransform().b);
+      ctx.shadowColor = rgba(pal.text, 0.12);
+      ctx.shadowBlur = 15 * px;
+      ctx.shadowOffsetY = 5 * px;
+    }
+    round(x, y, w, h, r);
     ctx.fillStyle = rgba(pal.panel);
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = rgba(pal.line);
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-    if (title) txt(title.toUpperCase(), x + 8, y + 13, 8, rgba(pal.soft), { w: 500 });
-    if (right) txt(right.toUpperCase(), x + w - 8, y + 13, 8, rgba(pal.faint), { align: 'right' });
+    ctx.fill();
+    ctx.restore();
   };
+  /** A card with its name in the site's small capitals, and a note on the right. */
+  const panel = (x, y, w, h, title, right) => {
+    card(x, y, w, h);
+    if (title) say(title.toUpperCase(), x + 10, y + 16, 7.5, rgba(pal.soft), { w: 800, spacing: 0.08 });
+    if (right) say(right, x + w - 10, y + 16, 7.5, rgba(pal.faint), { align: 'right', w: 500 });
+  };
+  /** A tag on a card, in the site's own type on its route's colour. */
   const chip = (s, x, y, colour, px = 7.5) => {
-    ctx.font = font(px, 500);
-    const w = ctx.measureText(s).width + 6;
+    ctx.font = font(px, 700, sans);
+    const w = ctx.measureText(s).width + 8;
     ctx.fillStyle = rgba(colour);
-    ctx.fillRect(x, y - px + 1.5, w, px + 3);
-    txt(s, x + 3, y + 1.5, px, rgba(pal.ground), { w: 500 });
+    round(x, y - px + 1, w, px + 4, 3);
+    ctx.fill();
+    say(s, x + 4, y + 1.5, px, rgba(pal.ground), { w: 700 });
     return w;
   };
 
@@ -1151,25 +1174,51 @@ export function createWeb(stage, root, onDone) {
     return { x: q.x, y: q.y + drop, toward: P.toward, intro: now < INTRO };
   };
 
+  // ---- The cards' motion, slow and soft, as the Build Log's: rows, lines and points glide into place, bars grow,
+  // and each finished page's light flies from the web into Pages read. The numbers themselves don't move: they tick
+  // too fast for it. ----
+  /** 0 to 1 over `d` seconds from `t0`, easing out. */
+  const settle = (now, t0, d) => 1 - (1 - clamp((now - t0) / d)) ** 3;
+  /** Seconds a new row or point takes to glide into its place. */
+  const GLIDE = 0.22;
+  /** How far the newest of `list` (newest first) are still short of their places, in rows: each new one starts a row
+      short and glides in, so a list laid out on it moves smoothly however fast they come. */
+  const lag = (list, now) => {
+    let s = 0;
+    for (const e of list) {
+      if (now - e.t >= GLIDE) break;
+      s += 1 - settle(now, e.t, GLIDE);
+    }
+    return s;
+  };
+  /** Seconds a finished page's light takes to fly from its knot to its dot in Pages read. */
+  const FLY = 0.9;
+  /** The Pages read card (wide card only), and where a page's dot sits in it. */
+  const DOTS = { x: 924, y: 408, w: 198, h: 100, cols: 11 };
+  const foundPages = () => [...nodeOf.entries()].filter(([, n]) => !snapped.has(n));
+  const dotAt = (k, count) => {
+    const rows = Math.max(1, Math.ceil(count / DOTS.cols));
+    const sy = Math.min(14, (DOTS.h - 44) / Math.max(1, rows - 1));
+    return { x: DOTS.x + 12 + (k % DOTS.cols) * ((DOTS.w - 24) / (DOTS.cols - 1)), y: DOTS.y + 26 + Math.floor(k / DOTS.cols) * sy };
+  };
+  /** When a page's dot fills: as its light lands. */
+  const filledAt = (v) => v.t1 + FLY;
+
   // ---- The panels round the web. ----
   const QUESTION = { fine: 'page answers?', broken: 'page answers?', you: 'outside the site' };
   const header = (st, compact) => {
-    ctx.fillStyle = rgba(pal.text);
-    ctx.fillRect(14, 12, 2, 24);
-    let x = 22;
-    x += txt("JACK'S SPACE / SITE CHECK", x, 23, 11, rgba(pal.text), { w: 500 });
-    if (!compact) {
-      txt('  // EVERY LINK, ONE FORK', x, 23, 11, rgba(pal.parts.collection), { w: 500 });
-      txt('every link becomes one fork  |  the crawler checks the inside, you check the outside', 22, 36, 8, rgba(pal.soft));
-    }
+    // A line saying what it is, as the Build Log's; the page's menu already says Jack's Space.
+    say('Every link, one fork', 16, 26, 13, rgba(pal.text), { w: 800 });
+    if (!compact) say('The crawler checks the inside, you check the outside', 16, 40, 8.5, rgba(pal.soft), { w: 500 });
     const found = nodeOf.size - snapped.size;
     const items = [['pages', `${Math.max(0, st.cur + 1)}${crawlDone ? '' : ` / ${found}`}`, pal.text], ['links', `${st.n}`, pal.parts.collection], ['fine', `${st.counts.fine}`, pal.fine], ['broken', `${st.counts.broken}`, pal.broken], ['you', `${st.counts.you}`, pal.you]];
-    // Left of the Restart, Pause and Full screen buttons over the card's corner; on the tall card, a row of its own.
+    // Left of the Restart, Pause and Full screen buttons over the card's corner; on the tall card, a row of its own
+    // under the buttons (the site's own, taller than the card's old ones).
     items.forEach(([label, value, colour], i) => {
       const xx = compact ? 14 + i * 84 : 560 + i * 62;
-      const y = compact ? 58 : 18;
-      txt(label, xx, y, 7, rgba(pal.faint));
-      txt(value, xx, y + 17, 14, rgba(colour), { w: 500 });
+      const y = compact ? 74 : 18;
+      say(label.toUpperCase(), xx, y, 6.5, rgba(pal.faint), { w: 800, spacing: 0.08 });
+      say(value, xx, y + 17, 15, rgba(colour), { w: 800 });
     });
   };
 
@@ -1183,52 +1232,80 @@ export function createWeb(stage, root, onDone) {
       ctx.fill();
     });
     if (!v) {
-      txt('waiting for the home page…', x + 24, y + 33, 8, rgba(pal.faint));
+      say('Waiting for the home page…', x + 24, y + 33, 8.5, rgba(pal.faint), { w: 500 });
       return;
     }
-    txt(clip(`~${v.page.path}`, Math.floor((w - 90) / 5.2)), x + 42, y + 13, 8, rgba(pal.soft));
     const lh = 13.5;
     const top = y + 30;
     const rows = Math.floor((h - 36) / lh);
-    const k = st.cur < 0 ? -1 : st.n - 1 - v.e0;
-    const total = v.page.links.length + 1;
-    const curLine = k + 1;
-    const first = Math.max(0, Math.min(curLine - Math.floor(rows * 0.45), total - rows));
-    txt(`ln ${Math.max(1, curLine + 1)}`, x + w - 8, y + 13, 8, rgba(pal.faint), { align: 'right' });
     const maxCh = Math.floor((w - 40) / 5.2);
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(x, y + 20, w, h - 22);
-    ctx.clip();
-    for (let r = 0; r < rows && first + r < total; r++) {
-      const li = first + r;
-      const ly = top + r * lh;
-      txt(String(li + 1).padStart(2, ' '), x + 6, ly + 3, 7.5, rgba(pal.faint));
-      if (li === 0) {
-        txt(clip(`<title>${v.page.title}</title>`, maxCh), x + 24, ly + 3, 8, rgba(pal.soft));
-        continue;
+    const now = st.now;
+    /** A page's code with its `k`th link the one being checked: the highlight easing from line to line, and the view
+        scrolling under it. */
+    const code = (v, k, alpha, dy) => {
+      let curLine = 0;
+      for (let j = v.e0; j < v.e1 && events[j].t <= now; j++) curLine += settle(now, events[j].t, 0.18);
+      const total = v.page.links.length + 1;
+      const first = Math.max(0, Math.min(curLine - rows * 0.45, total - rows));
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      say(clip(`~${v.page.path}`, Math.floor((w - 90) / 5.2)), x + 42, y + 13.5, 8.5, rgba(pal.soft));
+      ctx.beginPath();
+      ctx.rect(x, y + 20, w, h - 22);
+      ctx.clip();
+      ctx.translate(0, dy);
+      if (k >= 0) {
+        // the band under the line being checked, in its route's colour
+        const e = events[v.e0 + k];
+        ctx.fillStyle = rgba(e.repeat ? pal.faint : routeColour(e.route), 0.12);
+        round(x + 4, top + (curLine - first) * lh - 8.5, w - 8, lh, 4);
+        ctx.fill();
       }
-      const j = li - 1;
-      const e = events[v.e0 + j];
-      const link = v.page.links[j];
-      let lx = x + 24;
-      lx += txt('<a href="', lx, ly + 3, 8, rgba(pal.faint));
-      const label = clip(short(link), Math.max(6, maxCh - 18));
-      ctx.font = font(8);
-      const cw = ctx.measureText(label).width + 6;
-      const state = j < k ? 'past' : j === k ? 'now' : 'next';
-      const col = e.repeat ? pal.faint : routeColour(e.route);
-      if (state !== 'next') {
-        ctx.fillStyle = state === 'now' ? rgba(col) : rgba(col, e.repeat ? 0.16 : 0.22);
-        ctx.fillRect(lx - 2, ly - 6, cw, 12);
-        ctx.strokeStyle = rgba(col);
-        ctx.strokeRect(lx - 1.5, ly - 5.5, cw - 1, 11);
+      for (let li = Math.max(0, Math.floor(first)); li < Math.min(total, first + rows + 1); li++) {
+        const ly = top + (li - first) * lh;
+        txt(String(li + 1).padStart(2, ' '), x + 6, ly + 3, 7.5, rgba(pal.faint));
+        if (li === 0) {
+          txt(clip(`<title>${v.page.title}</title>`, maxCh), x + 24, ly + 3, 8, rgba(pal.soft));
+          continue;
+        }
+        const j = li - 1;
+        const e = events[v.e0 + j];
+        const link = v.page.links[j];
+        let lx = x + 24;
+        lx += txt('<a href="', lx, ly + 3, 8, rgba(pal.faint));
+        const label = clip(short(link), Math.max(6, maxCh - 18));
+        ctx.font = font(8);
+        const cw = ctx.measureText(label).width + 6;
+        const state = j < k ? 'past' : j === k ? 'now' : 'next';
+        const col = e.repeat ? pal.faint : routeColour(e.route);
+        // the link being checked fills in with its colour as the highlight reaches it
+        const fill = state === 'now' ? settle(now, e.t, 0.15) : 1;
+        if (state !== 'next') {
+          ctx.fillStyle = state === 'now' ? rgba(col, 0.22 + 0.78 * fill) : rgba(col, e.repeat ? 0.16 : 0.22);
+          ctx.fillRect(lx - 2, ly - 6, cw, 12);
+          ctx.strokeStyle = rgba(col);
+          ctx.strokeRect(lx - 1.5, ly - 5.5, cw - 1, 11);
+        }
+        txt(label, lx + 1, ly + 3, 8, state === 'now' && fill > 0.5 ? rgba(pal.ground) : state === 'next' ? rgba(pal.soft) : rgba(pal.text), { w: state === 'now' ? 500 : 400 });
+        lx += cw;
+        txt(clip(`">${link.text}</a>`, Math.max(4, Math.floor((x + w - lx - 6) / 5.2))), lx, ly + 3, 8, rgba(pal.faint));
       }
-      txt(label, lx + 1, ly + 3, 8, state === 'now' ? rgba(pal.ground) : state === 'past' ? rgba(pal.text) : rgba(pal.soft), { w: state === 'now' ? 500 : 400 });
-      lx += cw;
-      txt(clip(`">${link.text}</a>`, Math.max(4, Math.floor((x + w - lx - 6) / 5.2))), lx, ly + 3, 8, rgba(pal.faint));
-    }
-    ctx.restore();
+      ctx.restore();
+      return curLine;
+    };
+    const k = st.cur < 0 ? -1 : st.n - 1 - v.e0;
+    // A new page's code takes over: the last one's rises and fades first, then the new one rises into place (both at
+    // once would muddle the two).
+    const swap = st.cur > 0 ? clamp((now - v.t0) / 0.45) : 1;
+    let line;
+    if (swap < 1) {
+      const was = visits[st.cur - 1];
+      const out = clamp(swap / 0.4);
+      const into = clamp((swap - 0.35) / 0.65);
+      if (out < 1) code(was, was.e1 - was.e0 - 1, 1 - out, -10 * ease(out));
+      line = code(v, k, into, 10 * (1 - ease(into)));
+    } else line = code(v, k, 1, 0);
+    say(`Line ${Math.max(1, Math.round(line) + 1)}`, x + w - 10, y + 13.5, 8, rgba(pal.faint), { align: 'right', w: 500 });
   };
 
   const ROUTES = [
@@ -1238,102 +1315,178 @@ export function createWeb(stage, root, onDone) {
   ];
   const routeBox = (x, y, w, h, r, st) => {
     const col = routeColour(r.key);
-    const hot = st.last && !st.last.repeat && st.last.route === r.key && st.now - st.last.t < 0.25;
-    ctx.fillStyle = rgba(pal.panel);
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = rgba(col, hot ? 1 : 0.55);
-    ctx.lineWidth = hot ? 2 : 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-    ctx.lineWidth = 1;
-    chip(r.tag, x, y + 8, col);
-    txt(`→ ${r.name}`, x + 10, y + 30, 10, rgba(pal.text));
-    txt(String(st.counts[r.key]), x + w - 10, y + h - 12, 22, rgba(col), { align: 'right', w: 500 });
-    if (h > 50) txt(r.foot, x + 10, y + h - 8, 7, rgba(pal.faint));
+    card(x, y, w, h);
+    // A soft light of its colour behind the number, rising while links take this route and fading when they stop:
+    // a flash for every link would flicker, a dozen come a second.
+    let busy = 0;
+    for (let k = st.n - 1; k >= 0 && st.now - events[k].t < 2.5; k--) {
+      const e = events[k];
+      if (!e.repeat && e.route === r.key) busy += Math.exp(-(st.now - e.t) / 0.6);
+    }
+    const a = (1 - Math.exp(-busy / 1.5)) * (light ? 0.16 : 0.22);
+    if (a > 0.003) {
+      ctx.save();
+      round(x, y, w, h, 12);
+      ctx.clip();
+      const g = ctx.createRadialGradient(x + w - 30, y + h - 20, 0, x + w - 30, y + h - 20, w * 0.75);
+      g.addColorStop(0, rgba(col, a));
+      g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+    chip(r.tag, x + 10, y + 14, col);
+    say(`→ ${r.name}`, x + 10, y + 34, 10.5, rgba(pal.text), { w: 700 });
+    say(String(st.counts[r.key]), x + w - 10, y + h - 11, 24, rgba(col), { align: 'right', w: 800 });
+    if (h > 50) say(r.foot, x + 10, y + h - 9, 7.5, rgba(pal.faint), { w: 500 });
   };
 
   const partsPanel = (x, y, w, h, st) => {
     panel(x, y, w, h, 'parts', 'pages read');
     PARTS.forEach((part, k) => {
       const all = [...partAt].filter(([n]) => !snapped.has(n)).filter(([, p]) => p === part).length;
-      const read = visits.filter((v, i) => i <= st.cur && v.part === part).length;
+      const reads = visits.filter((v, i) => i <= st.cur && v.part === part);
+      // Each page read grows the bar over 0.6 s.
+      const grown = reads.reduce((s, v) => s + settle(st.now, v.t0, 0.6), 0);
       const ly = y + 30 + k * 15;
-      txt(part.toUpperCase(), x + 8, ly + 3, 7.5, rgba(pal.parts[part]));
+      const bw = w - 140;
+      const end = all ? (Math.min(grown, all) / all) * bw : 0;
+      say(part[0].toUpperCase() + part.slice(1), x + 10, ly + 3, 8.5, rgba(pal.parts[part]), { w: 700 });
       ctx.fillStyle = rgba(pal.line);
-      ctx.fillRect(x + 90, ly - 2, w - 140, 4);
+      round(x + 90, ly - 2, bw, 4, 2);
+      ctx.fill();
       ctx.fillStyle = rgba(pal.parts[part]);
-      ctx.fillRect(x + 90, ly - 2, all ? (read / all) * (w - 140) : 0, 4);
-      txt(`${read}/${all}`, x + w - 8, ly + 3, 7.5, rgba(pal.soft), { align: 'right' });
+      round(x + 90, ly - 2, end, 4, 2);
+      ctx.fill();
+      // a soft light at the end that's growing
+      const last = reads[reads.length - 1];
+      const fresh = last ? 1 - clamp((st.now - last.t0) / 0.9) : 0;
+      if (fresh > 0 && end > 0) {
+        ctx.globalCompositeOperation = glowOp();
+        const g = ctx.createRadialGradient(x + 90 + end, ly, 0, x + 90 + end, ly, 9);
+        g.addColorStop(0, rgba(pal.parts[part], 0.6 * fresh));
+        g.addColorStop(1, rgba(pal.parts[part], 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(x + 90 + end - 9, ly - 9, 18, 18);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      say(`${reads.length}/${all}`, x + w - 10, ly + 3, 8, rgba(pal.soft), { align: 'right' });
     });
   };
 
   const stream = (x, y, w, h, st, rows) => {
     panel(x, y, w, h, 'link stream', w > 500 ? 'link  ·  check  ·  answer  ·  route' : '');
+    // newest first, one more than fits so the top one can leave smoothly
     const list = [];
-    for (let k = st.n - 1; k >= 0 && list.length < rows; k--) if (!events[k].repeat) list.push(events[k]);
-    list.reverse();
+    for (let k = st.n - 1; k >= 0 && list.length <= rows; k--) if (!events[k].repeat) list.push(events[k]);
     const lh = (h - 22) / rows;
-    list.forEach((e, r) => {
-      const ly = y + 26 + r * lh;
+    // Rows glide up as new links come in.
+    const s = lag(list, st.now);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y + 19, w, h - 21);
+    ctx.clip();
+    list.forEach((e, i) => {
+      const slot = rows - 1 - i + s;
+      if (slot < -1 || slot > rows) return;
+      const ly = y + 26 + slot * lh;
       const col = routeColour(e.route);
-      if (e === st.last) {
-        ctx.fillStyle = rgba(col, 0.08);
-        ctx.fillRect(x + 1, ly - 8, w - 2, lh);
+      // the top row fading as it leaves, and the newest glowing in its route's colour as it comes in
+      ctx.globalAlpha = clamp(slot + 0.7);
+      const glow = 0.16 * (1 - clamp((st.now - e.t) / 0.7));
+      if (glow > 0) {
+        ctx.fillStyle = rgba(col, glow);
+        round(x + 4, ly - 8, w - 8, lh, 4);
+        ctx.fill();
       }
-      txt(clock(e.t), x + 8, ly + 2, 7.5, rgba(pal.faint));
-      chip(clip(short(e.link), w > 500 ? 22 : 26), x + 62, ly + 1, col);
-      if (w > 500) txt(QUESTION[e.route], x + w * 0.46, ly + 2, 7.5, rgba(pal.text));
-      txt(e.route === 'you' ? '—' : e.route === 'broken' ? String(e.link.status || 'no answer') : `${e.ms} ms`, x + w * (w > 500 ? 0.72 : 0.68), ly + 2, 7.5, rgba(col));
-      txt(`→ ${e.route}`, x + w - 8, ly + 2, 7.5, rgba(col), { align: 'right' });
+      say(clock(e.t), x + 10, ly + 2, 7.5, rgba(pal.faint), { w: 500 });
+      chip(clip(short(e.link), w > 500 ? 26 : 30), x + 62, ly + 1, col);
+      if (w > 500) say(QUESTION[e.route], x + w * 0.46, ly + 2, 7.5, rgba(pal.text), { w: 500 });
+      say(e.route === 'you' ? '—' : e.route === 'broken' ? String(e.link.status || 'no answer') : `${e.ms} ms`, x + w * (w > 500 ? 0.72 : 0.68), ly + 2, 7.5, rgba(col));
+      say(`→ ${e.route}`, x + w - 10, ly + 2, 7.5, rgba(col), { align: 'right', w: 700 });
     });
+    ctx.restore();
   };
 
   const spark = (x, y, w, h, st) => {
     panel(x, y, w, h, 'answer time · last 40', 'ms');
-    const ms = [];
-    for (let k = st.n - 1; k >= 0 && ms.length < 40; k--) {
+    // newest first, one more than shows so the left end can slide out smoothly
+    const list = [];
+    for (let k = st.n - 1; k >= 0 && list.length < 41; k--) {
       const e = events[k];
-      if (!e.repeat && e.route !== 'you') ms.unshift(e.route === 'broken' ? 900 : e.ms);
+      if (!e.repeat && e.route !== 'you') list.push(e);
     }
+    const ms = list.slice(0, 40).map((e) => (e.route === 'broken' ? 900 : e.ms));
     const gx = x + 8;
     const gy = y + 20;
     const gw = w - 16;
     const gh = h - 40;
-    if (ms.length > 1) {
-      const px = (k) => gx + (k / 39) * gw;
-      const py = (v) => gy + gh - Math.min(1, v / 900) * gh;
+    if (list.length > 1) {
+      // The line slides left as new answers come in.
+      const s = lag(list, st.now);
+      const px = (i) => gx + gw - (i - s) * (gw / 39);
+      const py = (e) => gy + gh - Math.min(1, (e.route === 'broken' ? 900 : e.ms) / 900) * gh;
+      ctx.save();
       ctx.beginPath();
-      ms.forEach((v, k) => (k ? ctx.lineTo(px(k), py(v)) : ctx.moveTo(px(k), py(v))));
-      ctx.lineTo(px(ms.length - 1), gy + gh);
+      ctx.rect(gx, gy - 6, gw, gh + 6);
+      ctx.clip();
+      ctx.beginPath();
+      list.forEach((e, i) => (i ? ctx.lineTo(px(i), py(e)) : ctx.moveTo(px(i), py(e))));
+      ctx.lineTo(px(list.length - 1), gy + gh);
       ctx.lineTo(px(0), gy + gh);
       ctx.closePath();
       ctx.fillStyle = rgba(pal.broken, 0.14);
       ctx.fill();
       ctx.beginPath();
-      ms.forEach((v, k) => (k ? ctx.lineTo(px(k), py(v)) : ctx.moveTo(px(k), py(v))));
+      list.forEach((e, i) => (i ? ctx.lineTo(px(i), py(e)) : ctx.moveTo(px(i), py(e))));
       ctx.strokeStyle = rgba(pal.broken);
       ctx.lineWidth = 1.2;
       ctx.stroke();
       ctx.lineWidth = 1;
+      ctx.restore();
+      // the newest answer, a soft glowing point at the line's end
+      const q = { x: Math.min(px(0), gx + gw), y: py(list[0]) };
+      const fresh = 1 - clamp((st.now - list[0].t) / 1.2);
+      ctx.globalCompositeOperation = glowOp();
+      const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 8);
+      g.addColorStop(0, rgba(pal.broken, 0.25 + 0.45 * fresh));
+      g.addColorStop(1, rgba(pal.broken, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(q.x - 8, q.y - 8, 16, 16);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = rgba(pal.broken);
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, 1.8, 0, TAU);
+      ctx.fill();
     }
     const ok = ms.filter((v) => v < 900);
-    txt(`avg ${ok.length ? Math.round(ok.reduce((a, b) => a + b, 0) / ok.length) : 0} ms`, x + 8, y + h - 7, 8, rgba(pal.text));
+    say(`Average ${ok.length ? Math.round(ok.reduce((a, b) => a + b, 0) / ok.length) : 0} ms`, x + 10, y + h - 8, 8.5, rgba(pal.text));
   };
 
-  const dots = (x, y, w, h, st, cols) => {
+  const dots = (st) => {
+    const { x, y, w, h } = DOTS;
     panel(x, y, w, h, 'pages read', 'one dot = one page');
-    const found = [...nodeOf.entries()].filter(([, n]) => !snapped.has(n));
-    const sx = (w - 24) / (cols - 1);
-    const rows = Math.max(1, Math.ceil(found.length / cols));
-    const sy = Math.min(14, (h - 44) / Math.max(1, rows - 1));
+    const found = foundPages();
+    const now = st.now;
     found.forEach(([key, n], k) => {
       const vi = visits.findIndex((v) => v.node === n);
-      const read = vi >= 0 && vi <= st.cur;
-      const dx = x + 12 + (k % cols) * sx;
-      const dy = y + 26 + Math.floor(k / cols) * sy;
-      ctx.fillStyle = read ? rgba(pal.parts[partOfPage(key)]) : rgba(pal.line);
+      const at = vi >= 0 && vi <= st.cur ? filledAt(visits[vi]) : Infinity;
+      const read = at <= now;
+      const { x: dx, y: dy } = dotAt(k, found.length);
+      const colour = pal.parts[partOfPage(key)];
+      // A dot fills with a small pop and sends out one soft ripple.
+      const age = now - at;
+      const pop = read ? Math.sin(Math.PI * clamp(age / 0.35)) * 0.8 : 0;
+      ctx.fillStyle = read ? rgba(colour) : rgba(pal.line);
       ctx.beginPath();
-      ctx.arc(dx, dy, vi === st.cur ? 3.6 : 2.6, 0, TAU);
+      ctx.arc(dx, dy, (vi === st.cur ? 3.6 : 2.6) * (1 + pop), 0, TAU);
       ctx.fill();
+      if (read && age < 0.7) {
+        ctx.strokeStyle = rgba(colour, 0.55 * (1 - age / 0.7));
+        ctx.beginPath();
+        ctx.arc(dx, dy, 3 + 9 * settle(now, at, 0.7), 0, TAU);
+        ctx.stroke();
+      }
       if (vi === st.cur) {
         ctx.strokeStyle = rgba(pal.text);
         ctx.beginPath();
@@ -1341,7 +1494,52 @@ export function createWeb(stage, root, onDone) {
         ctx.stroke();
       }
     });
-    txt(`${Math.max(0, st.cur + 1)} / ${found.length}`, x + 8, y + h - 7, 8, rgba(pal.text));
+    say(`${Math.max(0, st.cur + 1)} of ${found.length}`, x + 10, y + h - 8, 8.5, rgba(pal.text));
+  };
+
+  /** Each finished page's light, flying from its knot on the web to its dot in Pages read (the wide card's only),
+      leaving a short trail. */
+  const flights = (st, t) => {
+    const now = st.now;
+    const found = foundPages();
+    ctx.globalCompositeOperation = glowOp();
+    for (const v of visits) {
+      const u = (now - v.t1) / FLY;
+      if (u <= 0 || u >= 1) continue;
+      const k = found.findIndex(([, n]) => n === v.node);
+      if (k < 0) continue;
+      const S = proj(W.nodes[v.node], t);
+      const E = dotAt(k, found.length);
+      const C = { x: (S.x + E.x) / 2 + 70, y: Math.min(S.y, E.y) - 30 };
+      const at = (p) => {
+        const a = 1 - p;
+        return { x: a * a * S.x + 2 * a * p * C.x + p * p * E.x, y: a * a * S.y + 2 * a * p * C.y + p * p * E.y };
+      };
+      const p = ease(u);
+      const col = pal.parts[v.part];
+      for (let i = 1; i <= 12; i++) {
+        const a = at(Math.max(0, p - i * 0.022));
+        const b = at(Math.max(0, p - (i - 1) * 0.022));
+        ctx.strokeStyle = rgba(col, 0.5 * (1 - i / 12));
+        ctx.lineWidth = 2.2 * (1 - i / 14);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      const q = at(p);
+      const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, 10);
+      g.addColorStop(0, rgba(col, 0.75));
+      g.addColorStop(1, rgba(col, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(q.x - 10, q.y - 10, 20, 20);
+      ctx.fillStyle = rgba(light ? col : tint(col, 0.6));
+      ctx.beginPath();
+      ctx.arc(q.x, q.y, 2.2, 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineWidth = 1;
   };
 
   const legend = (x, y, w, h, st) => {
@@ -1351,18 +1549,18 @@ export function createWeb(stage, root, onDone) {
       const ly = y + 24 + k * ((h - 38) / 3);
       ctx.fillStyle = rgba(c);
       ctx.fillRect(x + 10, ly - 4, 2, (h - 38) / 3 - 5);
-      txt(a, x + 18, ly + 3, 8, rgba(c));
-      txt(b, x + w * 0.42, ly + 3, 8, rgba(pal.soft));
+      say(a[0].toUpperCase() + a.slice(1), x + 18, ly + 3, 8.5, rgba(c), { w: 700 });
+      say(b, x + w * 0.42, ly + 3, 8.5, rgba(pal.soft), { w: 500 });
     });
-    txt('the crawler checks · you look where it can\u{2019}t', x + 10, y + h - 7, 7.5, rgba(pal.broken));
+    say('The crawler checks, you look where it can\u{2019}t', x + 10, y + h - 8, 8, rgba(pal.broken), { w: 600 });
   };
 
   let fps = 60;
   const status = (st) => {
-    const where = st.cur < 0 ? 'READY' : st.done ? `DONE  |  ${visits.length} PAGES, ${events.length.toLocaleString('en-US')} LINKS` : `CHECKING ~${visits[st.cur].page.path}`;
-    txt(clip(where, 60), 16, size.h - 10, 8, rgba(pal.faint));
-    const rate = stage.playing ? `FRAME ${Math.round(fps)} FPS  |  ` : '';
-    txt(`${rate}LIVE CRAWL`, size.w - 18, size.h - 10, 8, rgba(pal.faint), { align: 'right' });
+    const where = st.cur < 0 ? 'Ready' : st.done ? `Done: ${visits.length} pages, ${events.length.toLocaleString('en-US')} links` : `Checking ~${visits[st.cur].page.path}`;
+    say(clip(where, 70), 16, size.h - 9, 8.5, rgba(pal.faint), { w: 500 });
+    const rate = stage.playing ? `${Math.round(fps)} fps  ·  ` : '';
+    say(`${rate}Live crawl`, size.w - 18, size.h - 9, 8.5, rgba(pal.faint), { align: 'right', w: 500 });
   };
 
   const label = (Q, st) => {
@@ -1494,9 +1692,10 @@ export function createWeb(stage, root, onDone) {
       partsPanel(884, 278, 238, 122, st);
       stream(14, 408, 700, 208, st, 13);
       spark(720, 408, 198, 100, st);
-      dots(924, 408, 198, 100, st, 11);
+      dots(st);
       legend(720, 514, 402, 102, st);
       status(st);
+      flights(st, t);
     } else {
       ROUTES.forEach((r, k) => routeBox(6 + k * 144, 386, 140, 46, r, st));
       stream(6, 438, 428, 106, st, 6);
@@ -1527,8 +1726,8 @@ export function createWeb(stage, root, onDone) {
     paint(stateAt(T));
   };
 
-  // A font that comes after the first frame needs drawing in.
-  document.fonts?.load(`500 16px ${mono}`).then(() => { if (!stage.playing) redrawStill(); }).catch(() => {});
+  // Fonts that come after the first frame need drawing in.
+  Promise.all([document.fonts?.load(`500 16px ${mono}`), document.fonts?.load(`800 16px ${sans}`)]).then(() => { if (!stage.playing) redrawStill(); }).catch(() => {});
 
   readPalette();
   fit();

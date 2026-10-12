@@ -245,8 +245,6 @@
   --log-faint: var(--muted);
   --log-line: var(--rule);
   --log-frame: var(--rule);
-  --log-panel: var(--surface);
-  --log-ground: var(--surface);
   --log-haze: var(--changelog-top-from);
   /* Its cards and the ground they stand on: the site's own plain card on the page's colour, in every theme. */
   --log-card: var(--surface);
@@ -448,7 +446,6 @@
   --log-about: var(--accent-about);
   --log-late: var(--now-first);
   --log-added: var(--accent-lab);
-  --log-panel: var(--paper);
   --check-fine: var(--accent-lab);
   /* Brighter than the map's red, to read on the dark card (5.4:1 on --surface); orange-red, apart from Writing's pink. */
   --check-broken: #FF5A4E;

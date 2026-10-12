@@ -60,15 +60,15 @@ const label = 'A spider web leaning back, with a spider walking it. The spider r
 
 <style>
   .show { display: grid; justify-items: center; }
-  /* The card, the Build Log's size. --c1 onward are the colours it draws with (web.js): the six parts in the menu's
-     order (the Build Log's), the three routes, the panels' (the Build Log's too), then the web's and the spider's own. */
-  .card { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--check-fine); --c8: var(--check-broken); --c9: var(--check-you); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-panel); --c15: var(--log-ground); --c16: var(--check-silk); --c17: var(--check-wall); --c18: var(--check-shadow); --c19: var(--check-shell); --c20: var(--check-shine); --c21: var(--check-glow); --c22: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-ground); box-shadow: var(--shadow-card); }
+  /* The card, the Build Log's size, its cards drawn on the page's own colour round the web, as the Build Log's. --c1
+     onward are the colours it draws with (web.js): the six parts in the menu's order (the Build Log's), the three
+     routes, the cards' and the page's (the Build Log's too), then the web's and the spider's own. */
+  .card { --c1: var(--log-home); --c2: var(--log-writing); --c3: var(--log-lab); --c4: var(--log-collection); --c5: var(--log-travel); --c6: var(--log-about); --c7: var(--check-fine); --c8: var(--check-broken); --c9: var(--check-you); --c10: var(--log-text); --c11: var(--log-soft); --c12: var(--log-faint); --c13: var(--log-line); --c14: var(--log-card); --c15: var(--log-page); --c16: var(--check-silk); --c17: var(--check-wall); --c18: var(--check-shadow); --c19: var(--check-shell); --c20: var(--check-shine); --c21: var(--check-glow); --c22: var(--log-haze); position: relative; width: 100%; aspect-ratio: 1400 / 788; overflow: hidden; border-radius: var(--radius-2xl); background: var(--log-page); }
   /* Only a mouse turns the web; a finger on it scrolls the page. */
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: auto; }
-  /* Its buttons in its own look, as the Build Log's: square-edged, in the monospace, on its ground. */
+  /* Its buttons are the site's own, a little smaller to sit in its corner, as the Build Log's. */
   .controls { position: absolute; top: var(--space-3); right: var(--space-4); display: flex; gap: var(--space-2); }
-  .controls .button { padding: var(--space-1) var(--space-3); border-color: var(--log-frame); border-radius: var(--radius-xs); background: var(--log-panel); color: var(--log-text); font: 500 var(--text-xs) var(--font-code); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
-  .controls .button:hover { border-color: var(--log-soft); }
+  .controls .button { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); cursor: pointer; }
   [data-full][hidden] { display: none; }
   .card:fullscreen { border-radius: 0; box-shadow: none; }
   /* Narrower screens: a tall card, as big as the window's height allows; web.js draws its tall version in it. */
