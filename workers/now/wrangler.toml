@@ -1,0 +1,13 @@
+# Jack's Now editor: the Worker (index.js) and its page (page.js). README.md has the commands; the secrets are in
+# .dev.vars.example.
+name = "jacks-space-now"
+main = "index.js"
+compatibility_date = "2026-04-01"
+
+# The page takes the site's tokens.css in as text.
+rules = [{ type = "Text", globs = ["**/*.css"], fallthrough = true }]
+
+[vars]
+REPO = "jacklee981229/jacklee981229.github.io"
+BRANCH = "main"
+FILE = "src/content/now.md"

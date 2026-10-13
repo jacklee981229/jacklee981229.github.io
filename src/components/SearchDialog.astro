@@ -3,6 +3,7 @@
 // matched as you type (src/lib/palette.js), then posts from the Pagefind index that `npm run build` makes. The
 // pages and the Lab come from lists the site already keeps (src/lib/palette-items.ts), so new ones show up by
 // themselves. The list is drawn in the browser, with the site's own icons (src/lib/icons.js) as a hidden sprite.
+// Jack's /now (src/lib/now-command.js) changes Now from here, in a browser that has logged in to his Now editor.
 import Icon from './Icon.astro';
 import { ICONS } from '../lib/icons.js';
 import { openables, paletteItems } from '../lib/palette-items';
@@ -10,7 +11,7 @@ import { openables, paletteItems } from '../lib/palette-items';
 const items = await paletteItems();
 const things = (await openables()).map(({ title, href }) => ({ title, href }));
 /** Every icon the list can show: the items' own and the actions'. */
-const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file'])];
+const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock'])];
 ---
 <dialog class="search" aria-label="Search or run a command" data-search>
   <div class="box">
@@ -32,8 +33,10 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   import { isNight, nightFound, setNight, switchTheme, themeLabel } from '../lib/theme';
   import { SITE } from '../site';
   import { announce } from '../lib/lab/page';
+  import { PASS_KEY, oneLine, readNowCommand } from '../lib/now-command.js';
 
-  type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void };
+  // keep: running it leaves the palette open (the /now steps).
+  type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void; keep?: boolean };
   type Result = { url: string; meta: { title?: string }; excerpt: string };
   type Pagefind = { search: (query: string) => Promise<{ results: { data: () => Promise<Result> }[] }> };
 
@@ -97,6 +100,100 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     const note = 'You found the night sky. It stays on until you press the star at the top, or pick “Leave the night sky” here.';
     announce(note);
     document.dispatchEvent(new CustomEvent('nightnote', { detail: note }));
+  }
+
+  // /now: the login pass this browser keeps (none for visitors), whether the box is asking for the password, a
+  // request on its way, and Claude's tidied line waiting for a second Enter.
+  const pass = {
+    get: () => { try { return localStorage.getItem(PASS_KEY) ?? ''; } catch { return ''; } },
+    set: (value: string) => { try { if (value) localStorage.setItem(PASS_KEY, value); else localStorage.removeItem(PASS_KEY); } catch { /* blocked: logs in again next time */ } },
+  };
+  let asking = false;
+  let nowBusy = false;
+  let tidied: { words: string; text: string; sha: string } | null = null;
+
+  async function callNow(path: string, body?: unknown): Promise<{ status: number; data: any }> {
+    try {
+      const headers: Record<string, string> = { Authorization: `Bearer ${pass.get()}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) };
+      const answer = await fetch(`${SITE.nowEditor}${path}`, body === undefined ? { headers } : { method: 'POST', headers, body: JSON.stringify(body) });
+      return { status: answer.status, data: await answer.json().catch(() => ({ error: 'Something went wrong. Please try again.' })) };
+    } catch {
+      return { status: 0, data: { error: "Couldn't reach the Now editor. Check the connection and try again." } };
+    }
+  }
+
+  /** The /now row for what's typed: log in, tidy the words, or save Claude's line for them. */
+  function nowRows(command: { login: true } | { words: string }): Option[] {
+    if ('login' in command) return [{ title: 'Log in to change Now', group: 'Actions', icon: 'clock', description: 'Asks for the Now editor password', run: askPassword, keep: true }];
+    const { words } = command;
+    if (!words) return [];
+    if (tidied?.words === words) return [{ title: oneLine(tidied.text), group: 'Actions', icon: 'clock', description: 'Enter saves this as Now · Esc cancels', run: saveNow, keep: true }];
+    return [{ title: `Change Now to “${words}”`, group: 'Actions', icon: 'clock', description: 'Claude tidies it first, then you check it', run: () => tidyNow(words), keep: true }];
+  }
+
+  function askPassword() {
+    if (!input) return;
+    asking = true;
+    input.value = '';
+    input.type = 'password';
+    input.placeholder = 'Now password';
+    options = [];
+    draw();
+    say('Type the Now password, then press Enter.');
+  }
+
+  function stopAsking() {
+    if (!input || !asking) return;
+    asking = false;
+    input.value = '';
+    input.type = 'search';
+    input.placeholder = 'Search or run a command';
+  }
+
+  async function logIn(password: string) {
+    if (!input || !password) return;
+    nowBusy = true;
+    say('Logging in…');
+    const { data } = await callNow('/api/login', { password });
+    nowBusy = false;
+    if (data.error) return say(data.error);
+    pass.set(data.pass);
+    stopAsking();
+    input.value = '/now ';
+    update(input.value);
+    say('Logged in. Type what you’re up to after /now.');
+  }
+
+  /** Anything but a login that ran out keeps its message; that one forgets the pass. */
+  function nowFailed(status: number, error: string) {
+    if (status === 401) {
+      pass.set('');
+      say('Your Now login ran out. Type /now login to log in again.');
+    } else say(error);
+  }
+
+  async function tidyNow(words: string) {
+    if (nowBusy) return;
+    nowBusy = true;
+    say('Claude is tidying…');
+    const [made, current] = await Promise.all([callNow('/api/tidy', { text: words }), callNow('/api/now')]);
+    nowBusy = false;
+    if (made.data.error || current.data.error) return nowFailed(made.status === 401 ? 401 : current.status, made.data.error ?? current.data.error);
+    tidied = { words, text: made.data.text, sha: current.data.sha };
+    if (input && readNowCommand(input.value)) update(input.value);
+  }
+
+  async function saveNow() {
+    if (!tidied || nowBusy) return;
+    nowBusy = true;
+    say('Saving…');
+    const { status, data } = await callNow('/api/save', { text: tidied.text, sha: tidied.sha });
+    nowBusy = false;
+    if (data.error) return nowFailed(status, data.error);
+    tidied = null;
+    options = [];
+    draw();
+    say('Saved. Now on the site changes in about two minutes.');
   }
 
   let options: Option[] = [];
@@ -218,6 +315,13 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       draw();
       return;
     }
+    const command = readNowCommand(query);
+    // Visitors' /now is just a search; a browser that has logged in gets the command.
+    if (command && ('login' in command || pass.get())) {
+      options = nowRows(command);
+      draw();
+      return say(options.length ? '' : 'Type what you’re up to after /now, like “/now Playing chess”.');
+    }
     const secret = secretRow(query);
     options = secret.length ? secret : search([...actions(), ...data.items], query);
     draw();
@@ -239,6 +343,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   function runOption(index: number) {
     const option = [...options, ...posts][index];
     if (!option || !dialog) return;
+    if (option.keep) return option.run?.();
     dialog.close();
     if (option.run) option.run();
     else if (option.href) location.href = option.href;
@@ -288,6 +393,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   /** True between a keystroke and the list catching up with it. */
   let pending = false;
   input?.addEventListener('input', () => {
+    if (asking) return;
     clearTimeout(timer);
     pending = true;
     timer = setTimeout(() => {
@@ -309,6 +415,8 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       // A Chinese or Japanese word still being put together: Enter is choosing it, not running anything.
       if (e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
+      if (nowBusy) return;
+      if (asking) return void logIn(input.value);
       // The list may lag a keystroke behind; catch it up first (everything but the posts is worked out at once).
       if (pending) {
         clearTimeout(timer);
@@ -327,6 +435,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     if (option && Number(option.dataset.index) !== active) select(Number(option.dataset.index));
   });
   dialog?.addEventListener('close', () => {
+    stopAsking();
     if (opener?.isConnected) opener.focus();
     opener = null;
   });

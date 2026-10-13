@@ -5,3 +5,4 @@ dist/
 npm-debug.log*
 docs/design-ideas.md
 .wrangler/
+.dev.vars

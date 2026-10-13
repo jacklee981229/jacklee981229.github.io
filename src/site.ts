@@ -18,6 +18,8 @@ export const SITE = {
   // The guestbook's notes live in a Cloudflare Worker of Jack's (workers/guestbook): the guestbook page and the home
   // page's Guestbook card read them from here, and new notes are posted here.
   guestbook: 'https://jacks-space-guestbook.jacklee981229.workers.dev',
+  // Jack's Now editor (workers/now): the palette's /now changes Now through it.
+  nowEditor: 'https://jacks-space-now.jacklee981229.workers.dev',
 } as const;
 
 // Jack's links, shown the same way on the About page and in the home page's profile card.

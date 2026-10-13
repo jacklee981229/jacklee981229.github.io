@@ -1,0 +1,11 @@
+# The Now editor's secrets. For a local run, copy this file to .dev.vars (git ignores it) and fill it in. On
+# Cloudflare each one is set once with: npx wrangler secret put <NAME> --config workers/now/wrangler.toml
+
+# The password for the editor and the palette's /now.
+NOW_PASSWORD=
+# A long random string that signs the login passes. Changing it logs every device out.
+SESSION_SECRET=
+# A GitHub fine-grained token for jacklee981229/jacklee981229.github.io only, with Contents: Read and write.
+GITHUB_TOKEN=
+# An Anthropic API key from the Console organization that gets the Max plan's API credits.
+ANTHROPIC_API_KEY=
