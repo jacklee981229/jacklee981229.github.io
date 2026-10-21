@@ -106,3 +106,4 @@
 - 2026-10-13 improved: Each commit on the [Build Log](/lab/build-log/) now flies into its list as a light
 - 2026-10-12 improved: Gave the [QR Code Generator](/lab/qr-code/) an orange card with my logo
 - 2026-10-12 design: Gave [Jack's Site Check](/lab/site-check/) the site's own cards, as the Build Log
+- 2026-10-21 design: Turned focus rings, selections and the menu teal

@@ -11,11 +11,13 @@
   --rule: #CCD5E0;
   /* The page fades from --paper at its top to this at its foot (global.css). */
   --paper-end: #FFFFFF;
-  --focus: #1B5FD1;
+  /* The site's one accent, a teal no part owns, by night the aurora's mint: focus rings, selected text, the
+     palette's line, bar and matches, the menu's current page. Words stay in the ink. */
+  --focus: #086A72;
   --wash: rgb(23 32 48 / 0.06);
-  /* Behind selected text, and a scrollbar's thumb (global.css): the ink mixed into the page, so every theme gets its
-     own. The dark block mixes them again for a data-dark piece inside the light theme. */
-  --selection: color-mix(in srgb, var(--ink) 20%, var(--paper));
+  /* Behind selected text the accent mixed into the page, and a scrollbar's thumb the ink (global.css), so every theme
+     gets its own. The dark block mixes them again for a data-dark piece inside the light theme. */
+  --selection: color-mix(in srgb, var(--focus) 24%, var(--paper));
   --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   /* The band that closes a page (MoreBand.astro), a shade apart from the page and from the cards in it. */
   --band: rgb(23 32 48 / 0.06);
@@ -414,9 +416,9 @@
   --ink: #EDEDED;
   --muted: #A3A3A3;
   --rule: #303030;
-  --focus: #7DB0FF;
+  --focus: #62D0D8;
   --wash: rgb(255 255 255 / 0.07);
-  --selection: color-mix(in srgb, var(--ink) 20%, var(--paper));
+  --selection: color-mix(in srgb, var(--focus) 24%, var(--paper));
   --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   --band: rgb(255 255 255 / 0.03);
   --card-light: rgb(255 255 255 / 0.07);

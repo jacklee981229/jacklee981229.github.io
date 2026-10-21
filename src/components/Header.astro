@@ -104,7 +104,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   .nav a:hover { color: var(--ink); }
   /* The line under the current page is a background: drawn as an inset shadow, it left a faint line down the
      link's right edge on 150% screens. */
-  .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--ink), var(--ink)) bottom / 100% 2px no-repeat; }
+  .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--focus), var(--focus)) bottom / 100% 2px no-repeat; }
   /* The icon of the word pointed at gives a hop. Mouse only: a touch screen would leave it mid-hop. */
   @media (prefers-reduced-motion: no-preference) {
     .nav a:focus-visible :global(.icon) { animation: nav-hop 420ms var(--ease-spring); }
