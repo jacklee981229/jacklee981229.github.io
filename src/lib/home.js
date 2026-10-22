@@ -1,4 +1,4 @@
-// The home page's rules: which effect is today's toy, which covers and post its doors show, how the Now lines read
+// The home page's rules: which effect is today's (the Lab's Effects card draws it), which covers and post its doors show, how the Now lines read
 // as one sentence, and which change its "Lately" line tells of. The page itself is src/pages/index.astro.
 
 /** Whole days since 1 Jan 1970 for a date as the visitor's calendar shows it. @param {Date} date */

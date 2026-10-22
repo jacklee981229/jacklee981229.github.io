@@ -98,6 +98,52 @@ export class Meter {
 }
 
 /**
+ * One ping from the browser: a request for no bytes, timed by the browser (the answer allows it), less Cloudflare's
+ * own time.
+ * @returns {Promise<number>} ms
+ */
+export async function browserPing() {
+  const url = `${DOWN_URL}?bytes=0&r=${Math.random()}`;
+  await (await fetch(url, { cache: 'no-store' })).arrayBuffer();
+  const entry = /** @type {PerformanceResourceTiming} */ (performance.getEntriesByName(url).pop());
+  performance.clearResourceTimings();
+  return pingFromTiming(entry);
+}
+
+/**
+ * One download from the browser, its bytes counted as they arrive.
+ * @param {(n: number) => void} onBytes @param {AbortSignal} signal
+ */
+export async function browserDownload(onBytes, signal) {
+  const answer = await fetch(`${DOWN_URL}?bytes=${CHUNK}&r=${Math.random()}`, { cache: 'no-store', signal });
+  const reader = /** @type {ReadableStream<Uint8Array>} */ (answer.body).getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return;
+    onBytes(value.length);
+  }
+}
+
+/**
+ * A whole check in the browser, ping then download, telling `on` as it goes. Throws if the speed server can't be
+ * reached.
+ * @param {{ phase: (name: 'ping' | 'download') => void, ping: (ms: number) => void, speed: (mbps: number) => void }} on
+ * @returns {Promise<{ ping: number, mbps: number, bytes: number }>}
+ */
+export async function checkSpeed(on) {
+  on.phase('ping');
+  const ping = await measurePing({ ping: browserPing, onPing: on.ping });
+  on.phase('download');
+  const { mbps, bytes } = await measureDownload({
+    download: browserDownload,
+    now: () => performance.now(),
+    wait: (ms) => new Promise((done) => setTimeout(done, ms)),
+    onSpeed: on.speed,
+  });
+  return { ping, mbps, bytes };
+}
+
+/**
  * Times the pings one after another (the first, which opens the connection, left out) and hands over each as it
  * comes; returns the middle one.
  * @param {{ ping: () => Promise<number>, onPing?: (ms: number, done: number) => void, signal?: AbortSignal }} options

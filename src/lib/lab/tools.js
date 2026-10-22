@@ -44,7 +44,7 @@ export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
  * Effects: things with no use at all, to look at and play with. Most follow the mouse; Key Jam answers the keyboard,
  * with sounds. All play on one page, the Effects tool's (/lab/effects/?e=<slug> opens one), each from its code in
  * src/effects/<slug>.js, with its drawing in src/components/EffectCover.astro for the Effects card. `hint` says what to
- * do. `daily: false` keeps one out of the home page's toy of the day (and the Effects card's drawing of it): Key Jam,
+ * do. `daily: false` keeps one out of the Effects card's drawing of the day's effect: Key Jam,
  * which plays sounds from the keyboard, and Magnetic Liquid, the first on the GPU, until it's been tried on phones.
  * @type {{ slug: string, name: string, description: string, hint: string, daily?: boolean }[]}
  */

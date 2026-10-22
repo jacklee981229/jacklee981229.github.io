@@ -16,7 +16,7 @@
   --focus: #086A72;
   --wash: rgb(23 32 48 / 0.06);
   /* Behind selected text the accent mixed into the page, and a scrollbar's thumb the ink (global.css), so every theme
-     gets its own. The dark block mixes them again for a data-dark piece inside the light theme. */
+     gets its own. */
   --selection: color-mix(in srgb, var(--focus) 24%, var(--paper));
   --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   /* The band that closes a page (MoreBand.astro), a shade apart from the page and from the cards in it. */
@@ -423,9 +423,8 @@
   --ease-release: linear(0, 0.145 6.2%, 0.449 12.5%, 0.76 18.8%, 0.994 25%, 1.124 31.2%, 1.163 37.5%, 1.141 43.8%, 1.092 50%, 1.041 56.2%, 1.002 62.5%, 0.98 68.8%, 0.973 75%, 0.977 81.2%, 0.985 87.5%, 0.993 93.8%, 1);
 }
 
-/* The dark theme; and, in either theme, a piece marked data-dark (the home page's toy, a dark screen). */
-:root[data-theme="dark"],
-[data-dark] {
+/* The dark theme. */
+:root[data-theme="dark"] {
   color-scheme: dark;
 
   /* A near-black grey page with dark grey cards, every part of the site alike. */
@@ -436,8 +435,6 @@
   --rule: #303030;
   --focus: #62D0D8;
   --wash: rgb(255 255 255 / 0.07);
-  --selection: color-mix(in srgb, var(--focus) 24%, var(--paper));
-  --scrollbar: color-mix(in srgb, var(--ink) 30%, var(--paper));
   --band: rgb(255 255 255 / 0.03);
   --card-light: rgb(255 255 255 / 0.07);
   /* No fade in the dark: the page is one colour. */

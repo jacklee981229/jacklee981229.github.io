@@ -25,7 +25,7 @@ const label = 'An arc that fills with your download speed, from 0 to 1000 Mbps, 
 <script>
   import { runStage } from '../../effects/stage.js';
   import { createGauge } from '../../speed-check/gauge.js';
-  import { CHUNK, DOWN_URL, measureDownload, measurePing, pingFromTiming } from '../../lib/speed-check.js';
+  import { checkSpeed } from '../../lib/speed-check.js';
   import { sayWaiting } from '../../lib/waiting.js';
 
   const one = (selector: string) => document.querySelector<HTMLElement>(selector)!;
@@ -36,48 +36,23 @@ const label = 'An arc that fills with your download speed, from 0 to 1000 Mbps, 
   let gauge: ReturnType<typeof createGauge> | undefined;
   runStage(one('[data-dial]'), (stage) => (gauge = createGauge(stage, one('[data-mbps]'))));
 
-  // One ping: a request for no bytes, timed by the browser (the answer allows it), less Cloudflare's own time.
-  const ping = async () => {
-    const url = `${DOWN_URL}?bytes=0&r=${Math.random()}`;
-    await (await fetch(url, { cache: 'no-store' })).arrayBuffer();
-    const entry = performance.getEntriesByName(url).pop() as PerformanceResourceTiming;
-    performance.clearResourceTimings();
-    return pingFromTiming(entry);
-  };
-  // One download, its bytes counted as they arrive.
-  const download = async (onBytes: (n: number) => void, signal: AbortSignal) => {
-    const answer = await fetch(`${DOWN_URL}?bytes=${CHUNK}&r=${Math.random()}`, { cache: 'no-store', signal });
-    const reader = answer.body!.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) return;
-      onBytes(value.length);
-    }
-  };
-
   start.addEventListener('click', async () => {
     start.disabled = true;
     pingOut.textContent = '--';
     used.textContent = '';
-    gauge?.set('ping', 0);
-    sayWaiting(status, 'Checking ping');
     try {
-      const ms = await measurePing({
-        ping,
-        onPing: (middle) => {
+      const result = await checkSpeed({
+        phase: (name) => {
+          gauge?.set(name, 0);
+          sayWaiting(status, name === 'ping' ? 'Checking ping' : 'Measuring download');
+        },
+        ping: (middle) => {
           pingOut.textContent = middle.toFixed(0);
           gauge?.echo();
         },
+        speed: (mbps) => gauge?.set('download', mbps),
       });
-      pingOut.textContent = ms.toFixed(0);
-      gauge?.set('download', 0);
-      sayWaiting(status, 'Measuring download');
-      const result = await measureDownload({
-        download,
-        now: () => performance.now(),
-        wait: (wait) => new Promise((done) => setTimeout(done, wait)),
-        onSpeed: (mbps) => gauge?.set('download', mbps),
-      });
+      pingOut.textContent = result.ping.toFixed(0);
       gauge?.set('done', result.mbps);
       status.textContent = 'Your connection right now.';
       used.textContent = `This check used ${Math.round(result.bytes / 1e6)} MB of data.`;

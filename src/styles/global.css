@@ -16,10 +16,10 @@ a { color: inherit; }
 button, input { font: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: var(--radius-2xs); }
 /* The browser's own parts in the site's colours. Selected text turns ink on a solid tint, so it stays readable on a
-   coloured card too; a [data-dark] piece in the light theme gets dark scrollbars of its own. Firefox fades
+   coloured card too. Firefox fades
    placeholders by itself, and the muted colour already reads as a hint. */
 ::selection { background: var(--selection); color: var(--ink); }
-html, [data-dark] { scrollbar-color: var(--scrollbar) transparent; }
+html { scrollbar-color: var(--scrollbar) transparent; }
 ::placeholder { color: var(--muted); opacity: 1; }
 main:focus { outline: none; }
 
