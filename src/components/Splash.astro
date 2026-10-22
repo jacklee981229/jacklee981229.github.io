@@ -4,11 +4,12 @@
 //   html.welcome): a light sweeps over the logo once and "Welcome to Jack's Space" rises under it, the two centred
 //   together; at 2 s it fades and the home page's title types (--type-start, index.astro). Its timeline is all CSS,
 //   so it clears even if the script below never runs.
-// - The loading screen, on any other page that takes more than 0.4 s to load, so a quick or saved page never shows
-//   it: the logo fades to half and back once a second until the page has loaded (the pictures on screen, fonts and
-//   scripts; pictures further down load as they're scrolled to, so they don't count), at 6 s at the latest. Once it
-//   shows, it stays a second at least: a page that finished just after 0.4 s made it flash in and out like a blink.
-//   ?loading in the address makes a page pretend to take 3 s.
+// - The loading screen, from the first paint of a page opened for the first time in this tab: the logo fades to half
+//   and back once a second until the page has loaded (the pictures on screen, fonts and scripts; pictures further
+//   down load as they're scrolled to, so they don't count), at 6 s at the latest, and it stays a second at least, so
+//   a quick page doesn't blink it. A page seen before in the tab comes from the browser's saved copy, quickly, and
+//   never shows it. It used to wait 0.4 s to see whether the page was slow, but by then the page was showing, and the
+//   screen dropped over it. ?loading in the address shows it on any page, pretending the page takes 3 s.
 // A click, a key or a scroll ends either at once. With less motion the logo stays still and nothing fades.
 import { SITE } from '../site';
 import { logoSvg } from '../lib/logo.js';
@@ -24,8 +25,8 @@ const words = SITE.title.split(' ');
 </div>
 
 <script is:inline>
-  // Inline and first in the page, so the 0.4 s count starts as the page does. If it never runs, the loading screen
-  // never shows.
+  // Inline and first in the page, ahead of the first paint (Base.astro holds that back until #main is read). If it
+  // never runs, the loading screen never shows.
   (function () {
     var root = document.documentElement;
     var splash = document.querySelector('.splash');
@@ -33,6 +34,17 @@ const words = SITE.title.split(' ');
     var listen = function (method, handler) {
       ['pointerdown', 'keydown', 'wheel'].forEach(function (type) { window[method](type, handler, true); });
     };
+
+    // The pages this tab has finished loading. Without storage nothing is remembered, so nothing is covered either.
+    var seen = null;
+    try { seen = JSON.parse(sessionStorage.getItem('seen') || '[]'); } catch (e) {}
+    var path = location.pathname;
+    var first = seen !== null && seen.indexOf(path) < 0;
+    addEventListener('load', function () {
+      if (!first) return;
+      seen.push(path);
+      try { sessionStorage.setItem('seen', JSON.stringify(seen)); } catch (e) {}
+    });
 
     if (root.classList.contains('welcome')) {
       var leave = function () {
@@ -56,10 +68,11 @@ const words = SITE.title.split(' ');
     }
 
     var pretend = new URLSearchParams(location.search).has('loading');
-    var shownAt = null;
+    if (!first && !pretend) return;
+    root.classList.add('loading');
+    var shownAt = performance.now();
     var stay;
     var done = function () {
-      clearTimeout(show);
       clearTimeout(latest);
       clearTimeout(stay);
       removeEventListener('load', loaded);
@@ -68,10 +81,11 @@ const words = SITE.title.split(' ');
     };
     var loaded = function () {
       if (pretend) return;
-      if (shownAt === null) return done();
       stay = setTimeout(done, shownAt + 1000 - performance.now());
     };
-    var show = setTimeout(function () { root.classList.add('loading'); shownAt = performance.now(); }, 400);
+    // A page that flows in from the last one (Base.astro) would glide its top in over the screen and then lose it
+    // under the screen as the glide ends: it just appears instead, under the screen.
+    addEventListener('pagereveal', function (e) { if (e.viewTransition) e.viewTransition.skipTransition(); });
     var latest = setTimeout(done, pretend ? 3000 : 6000);
     addEventListener('load', loaded);
     listen('addEventListener', done);
@@ -79,9 +93,8 @@ const words = SITE.title.split(' ');
 </script>
 
 <style>
-  /* Hidden unless a mood is on. The welcome shows from the page's first paint; the loading screen fades in quickly
-     once the page turns out slow, and out slowly, starting gently, so it reads as a fade and not a cut. Clicks go
-     through it to the page while it fades out. */
+  /* Hidden unless a mood is on. Both show from the page's first paint; the loading screen fades out slowly, starting
+     gently, so it reads as a fade and not a cut. Clicks go through it to the page while it fades out. */
   .splash { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(var(--paper), var(--paper-end)) var(--paper-end); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.5s ease-in-out, visibility 0s 0.5s; }
   :global(html.welcome) .splash, :global(html.loading) .splash { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.2s ease; }
   :global([data-sky='night']) .splash { background: linear-gradient(var(--sky-top), var(--sky-bottom)); }
