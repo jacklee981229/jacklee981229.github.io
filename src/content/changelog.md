@@ -111,3 +111,4 @@
 - 2026-10-22 new: Added [Jack's Speed Check](/lab/speed-check/) to the Lab: your download speed and ping
 - 2026-10-22 design: Lined up the Lab card's world buttons one per row
 - 2026-10-22 design: Swapped the home page's toy for doors to Exact Time and Speed Check
+- 2026-10-22 new: Added a [Toolbox](/collections/#toolbox) to the Collection: the tools I use

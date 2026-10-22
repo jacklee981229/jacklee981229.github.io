@@ -44,6 +44,24 @@ items:
 
 Each collection is a tab on the page. Tabs show lowest `order` first; ones without an `order` come after, by name.
 
+## The Toolbox
+
+The Toolbox tab is one list, `toolbox.yaml` in this folder: groups of tools by what they're for, shown in the order
+they're listed. Add a tool under its group's `tools:`:
+
+```yaml
+      - name: Everything
+        where: windows
+        link: https://www.voidtools.com/
+        note: instant file search
+```
+
+- **where:** `windows`, `terminal`, `chrome` or `website`. It colours the tool's letter and puts it in the tab's
+  Where view.
+- **link:** the whole address, `https://` and all.
+- **command:** for a terminal tool only, such as `command: npx yoinks`; it's shown with a Copy button.
+- A new group is a new `- name:` with its own `tools:`.
+
 ## Remove one
 
 Delete the item's lines and its picture, or the whole folder for a collection.

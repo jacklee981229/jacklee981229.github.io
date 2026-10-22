@@ -24,6 +24,7 @@ export async function paletteItems(): Promise<PaletteItem[]> {
     { title: 'Now', group: 'Pages', href: '/now/', icon: 'clock', words: ['doing', 'currently', 'playing', 'building'] },
     { title: 'Changelog', group: 'Pages', href: '/changelog/', icon: 'list', words: ['changes', 'updates', 'history', 'new'] },
     { title: 'Guestbook', group: 'Pages', href: '/guestbook/', icon: 'message', words: ['notes', 'comments', 'messages', 'say hi'] },
+    { title: 'Toolbox', group: 'Pages', href: '/collections/#toolbox', icon: 'wrench', words: ['tools', 'apps', 'software', 'extensions', 'chrome', 'windows', 'websites', 'uses'] },
     ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((t) => ({ title: t.name, group: 'Lab' as const, href: toolUrl(t.slug), icon: t.icon, description: t.description, words: ['tool', ...(t.words ?? [])] })),
     ...(await experimentPosts()).map((post) => ({ title: post.data.title, group: 'Lab' as const, href: postUrl(post), icon: 'gamepad', description: summaryOf(post), words: ['game', 'play'] })),
     ...EFFECTS.map((e) => ({ title: e.name, group: 'Lab' as const, href: effectUrl(e.slug), icon: 'pointer', description: e.description, words: ['effect'] })),

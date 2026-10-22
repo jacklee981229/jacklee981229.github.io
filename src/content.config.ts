@@ -2,6 +2,7 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { byStars, validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
+import { PLACE_IDS } from './lib/toolbox.js';
 
 // One folder per post: src/content/posts/<address>/index.md, with its images beside it.
 // The folder name is the post's address, so src/content/posts/11/index.md is /11/.
@@ -78,6 +79,28 @@ const shelves = defineCollection({
   }),
 });
 
+// The Collection's Toolbox tab: one list, src/content/collections/toolbox.yaml (how to add a tool: the README there).
+const toolbox = defineCollection({
+  loader: glob({ pattern: 'toolbox.yaml', base: './src/content/collections' }),
+  schema: z.object({
+    groups: z.array(
+      z.object({
+        name: z.string().min(1),
+        tools: z.array(
+          z.object({
+            name: z.string().min(1),
+            where: z.enum(PLACE_IDS),
+            link: z.string().url(),
+            note: z.string().min(1),
+            // Only for a terminal tool: shown with a Copy button.
+            command: z.string().min(1).optional(),
+          }),
+        ).min(1),
+      }),
+    ).min(1),
+  }),
+});
+
 // The Travel Map's one list: src/content/travel/visited.yaml.
 const travel = defineCollection({
   loader: glob({ pattern: 'visited.yaml', base: './src/content/travel' }),
@@ -88,4 +111,4 @@ const travel = defineCollection({
   }),
 });
 
-export const collections = { posts, pages, shelves, travel };
+export const collections = { posts, pages, shelves, toolbox, travel };

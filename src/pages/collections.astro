@@ -7,6 +7,8 @@ import Stars from '../components/Stars.astro';
 import Icon from '../components/Icon.astro';
 import { PILE_STEP, galleryOf, itemKey, moreAfter, pictureOf, pileWords, shineOf } from '../lib/shelves.js';
 import { cardColoursOf, pictures } from '../lib/shelf-pictures';
+import Switch from '../components/Switch.astro';
+import { PLACES, byPlace, searchText } from '../lib/toolbox.js';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
 /** The sizes each gallery picture is made in, for the browser to choose from by the window's size and sharpness: up
@@ -20,6 +22,17 @@ const widthsFor = (picture: { width: number }) => {
 const shelves = (await getCollection('shelves')).sort((a, b) => (a.data.order ?? Infinity) - (b.data.order ?? Infinity) || a.data.name.localeCompare(b.data.name));
 /** Each item's card colours, from its cover, by "collection/name". */
 const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.items.map(async (item) => [`${shelf.id}/${item.name}`, await cardColoursOf(shelf.id, item)] as const))));
+
+/** The Toolbox, the last tab: its list grouped two ways, by what each tool is for (as listed) and by where it runs. */
+const toolGroups = (await getCollection('toolbox'))[0]?.data.groups ?? [];
+const toolCount = toolGroups.reduce((n, g) => n + g.tools.length, 0);
+const placeOf = (id: string) => PLACES.find((p) => p.id === id)!.label;
+type Tool = (typeof toolGroups)[number]['tools'][number] & { group: string };
+type ToolGroup = { name: string; place?: string; tools: Tool[] };
+const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
+  { id: 'use', groups: toolGroups.map((g) => ({ name: g.name, tools: g.tools.map((t) => ({ ...t, group: g.name })) })) },
+  { id: 'place', groups: byPlace(toolGroups) as ToolGroup[] },
+];
 ---
 <Base title="Jack's Collection" description="Things Jack likes, kept where he can look at them, each with its stars.">
   <!-- The cabinet is a turntable: each collection is a card standing on it, one facing the visitor. A tab turns the
@@ -33,6 +46,11 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
               {shelf.data.name} <span class="count">{shelf.data.items.length}<span class="visually-hidden"> items</span></span>
             </button>
           ))}
+          {toolCount > 0 && (
+            <button type="button" role="tab" id="tab-toolbox" aria-controls="shelf-toolbox" aria-selected="false" tabindex={-1} data-tab="toolbox">
+              Toolbox <span class="count">{toolCount}<span class="visually-hidden"> tools</span></span>
+            </button>
+          )}
         </div>
       </PageTop>
 
@@ -88,6 +106,57 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
             </section>
             );
           })}
+          {toolCount > 0 && (
+            <section class="card" id="shelf-toolbox" role="tabpanel" aria-labelledby="tab-toolbox" hidden data-toolbox>
+              <div class="board">
+                <div class="tools-bar">
+                  <label class="find">
+                    <Icon name="search" />
+                    <span class="visually-hidden">Find a tool</span>
+                    <input type="search" placeholder="Find a tool: try “pdf”, “截图” or “video”" autocomplete="off" spellcheck="false" data-find />
+                    <span class="found" aria-live="polite" data-found>{toolCount} tools</span>
+                  </label>
+                  <Switch name="toolbox-view" label="How the tools are grouped" choices={[{ value: 'use', label: 'What for' }, { value: 'place', label: 'Where' }]} />
+                </div>
+                {/* What the letters' colours mean; the Where view's headings say it themselves. */}
+                <p class="places" data-places>{PLACES.map((p) => <span style={`--c: var(--tool-${p.id})`}><i></i>{p.label}</span>)}</p>
+                {toolViews.map((view, v) => (
+                  <div class="view" data-view={view.id} hidden={v !== 0}>
+                    <div class="chips" role="group" aria-label="Show one group" data-edge-fade="x">
+                      <button type="button" aria-pressed="true" data-chip="all">All <span data-chip-count>{toolCount}</span></button>
+                      {view.groups.map((g, i) => <button type="button" aria-pressed="false" data-chip={i}>{g.name} <span data-chip-count>{g.tools.length}</span></button>)}
+                    </div>
+                    {view.groups.map((g, i) => (
+                      <section class="group" data-group={i}>
+                        <h2>{g.place && <i style={`--c: var(--tool-${g.place})`}></i>}{g.name} <span class="group-count" data-group-count>{g.tools.length}</span></h2>
+                        <ul class="tools">
+                          {g.tools.map((t, k) => (
+                            <li data-text={searchText(t, t.group)}>
+                              {/* Jack's ask: a tool opens in a new tab, so the Toolbox stays where it was. */}
+                              <a class="tool" href={t.link} target="_blank" rel="noopener noreferrer">
+                                <span class="letter" style={`--c: var(--tool-${t.where})`} aria-hidden="true">{t.name[0].toUpperCase()}</span>
+                                <span class="tool-name" data-mark>{t.name}</span>
+                                {/* What the view's heading doesn't say: where it runs, or what it's for. */}
+                                <span class="also">{view.id === 'use' ? placeOf(t.where) : t.group}</span>
+                                <span class="note" data-mark>{t.note}</span>
+                              </a>
+                              {t.command && (
+                                <div class="command">
+                                  <code id={`command-${view.id}-${i}-${k}`}>{t.command}</code>
+                                  <button type="button" class="button" data-copy={`command-${view.id}-${i}-${k}`}><Icon name="copy" /><span data-label>Copy</span></button>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ))}
+                    <p class="nothing" hidden data-nothing>Nothing called “<span data-nothing-word></span>” yet.</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
 
@@ -113,6 +182,8 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
 <script>
   import { moreAfter, pileWords, stepsFrom, turnFrames } from '../lib/shelves.js';
   import { slidePills } from '../lib/switch-pill';
+  import { found, marked } from '../lib/toolbox.js';
+  import { wireCopyButtons } from '../lib/lab/page';
 
   slidePills();
 
@@ -519,6 +590,11 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
   const [tabPart, itemPart] = location.hash.slice(1).split('/');
   const linked = tabs.findIndex((tab) => tab.dataset.tab === tabPart);
   if (linked > 0) show(linked, false);
+  // The palette's Toolbox opens /collections/#toolbox; on this page already, only the address's end changes.
+  addEventListener('hashchange', () => {
+    const asked = tabs.findIndex((tab) => tab.dataset.tab === location.hash.slice(1).split('/')[0]);
+    if (asked >= 0) show(asked);
+  });
   const linkedItem = itemPart ? cards[linked]?.querySelector<HTMLElement>(`[data-key="${CSS.escape(decodeURIComponent(itemPart))}"] [data-item]`) : null;
   if (linkedItem) {
     // A card still in the pile comes out first, with all the rest.
@@ -532,6 +608,74 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     };
     if (document.readyState === 'complete') later();
     else addEventListener('load', later, { once: true });
+  }
+
+  // The Toolbox: the search hides what it doesn't hold and marks what it found, in both views at once, so switching
+  // views keeps it. A chip shows one group of the view; its count follows the search, and a group the search empties
+  // can't be chosen.
+  const toolbox = document.querySelector<HTMLElement>('[data-toolbox]');
+  if (toolbox) {
+    const find = toolbox.querySelector<HTMLInputElement>('[data-find]')!;
+    const foundLine = toolbox.querySelector<HTMLElement>('[data-found]')!;
+    const views = [...toolbox.querySelectorAll<HTMLElement>('[data-view]')];
+    const total = toolbox.querySelectorAll('[data-view] li').length / views.length;
+    const plain = new Map([...toolbox.querySelectorAll<HTMLElement>('[data-mark]')].map((el) => [el, el.textContent ?? '']));
+    const picked = new Map(views.map((view) => [view, 'all']));
+
+    function update() {
+      const query = find.value;
+      let shown = 0;
+      for (const view of views) {
+        const groups = [...view.querySelectorAll<HTMLElement>('[data-group]')];
+        const chosen = picked.get(view)!;
+        let inView = 0;
+        groups.forEach((group, i) => {
+          let n = 0;
+          for (const li of group.querySelectorAll<HTMLElement>('li')) {
+            const hit = found(li.dataset.text ?? '', query);
+            li.hidden = !hit;
+            if (hit) n++;
+          }
+          inView += n;
+          group.querySelector('[data-group-count]')!.textContent = String(n);
+          group.hidden = n === 0 || (chosen !== 'all' && chosen !== String(i));
+          const chip = view.querySelector<HTMLButtonElement>(`[data-chip="${i}"]`)!;
+          chip.querySelector('[data-chip-count]')!.textContent = String(n);
+          chip.disabled = n === 0;
+        });
+        view.querySelector('[data-chip="all"] [data-chip-count]')!.textContent = String(inView);
+        view.querySelector<HTMLElement>('[data-nothing]')!.hidden = inView > 0;
+        view.querySelector('[data-nothing-word]')!.textContent = query.trim();
+        shown = inView;
+      }
+      for (const [el, text] of plain) el.innerHTML = marked(text, query);
+      foundLine.textContent = query.trim() ? `${shown} of ${total}` : `${total} tools`;
+    }
+
+    find.addEventListener('input', update);
+    for (const view of views) {
+      for (const chip of view.querySelectorAll<HTMLButtonElement>('[data-chip]')) {
+        chip.addEventListener('click', () => {
+          picked.set(view, chip.dataset.chip!);
+          for (const other of view.querySelectorAll('[data-chip]')) other.setAttribute('aria-pressed', String(other === chip));
+          update();
+        });
+      }
+    }
+    // A chip the search has just emptied goes back to All, so the view never shows nothing for a chosen group.
+    find.addEventListener('input', () => {
+      for (const view of views) {
+        const chip = view.querySelector<HTMLButtonElement>(`[data-chip="${picked.get(view)}"]`);
+        if (chip?.disabled) view.querySelector<HTMLButtonElement>('[data-chip="all"]')!.click();
+      }
+    });
+    for (const input of toolbox.querySelectorAll<HTMLInputElement>('input[name="toolbox-view"]')) {
+      input.addEventListener('change', () => {
+        for (const view of views) view.hidden = view.dataset.view !== input.value;
+        toolbox.querySelector<HTMLElement>('[data-places]')!.hidden = input.value === 'place';
+      });
+    }
+    wireCopyButtons();
   }
 </script>
 
@@ -689,4 +833,54 @@ const colours = new Map(await Promise.all(shelves.flatMap((shelf) => shelf.data.
     /* global.css stops every element's animations, but not the backdrop's. */
     .gallery::backdrop { animation: none; }
   }
+
+  /* The Toolbox: plain cards on the ground, not colour cards like the Lab's, each with a small letter square in the
+     colour of where the tool runs. The search is a field on the page, so it's a card too. */
+  .tools-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+  .find { display: flex; flex: 1 1 22rem; align-items: center; gap: var(--space-3); min-width: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); cursor: text; }
+  .find :global(.icon) { color: var(--muted); }
+  .find input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--ink); font-size: var(--text-lg); font-weight: 500; text-overflow: ellipsis; outline: none; }
+  .find:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .find input::-webkit-search-cancel-button { display: none; }
+  .found { flex: none; color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+  .places { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: var(--space-3) var(--space-1) 0; color: var(--muted); font-size: var(--text-sm); }
+  .places span, .group h2 { display: flex; align-items: center; gap: var(--space-2); }
+  .places i, .group h2 i { width: 0.625rem; height: 0.625rem; border-radius: var(--radius-2xs); background: var(--c); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-1); }
+  .chips button { flex: none; padding: var(--space-2) var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); font-size: var(--text-ui); font-weight: 700; cursor: pointer; transition: background-color var(--motion-quick) ease, color var(--motion-quick) ease, transform var(--motion-press) ease; -webkit-tap-highlight-color: transparent; }
+  .chips button span { margin-left: var(--space-1); color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; transition: color var(--motion-quick) ease; }
+  .chips button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+  .chips button[aria-pressed='true'] span { color: inherit; }
+  .chips button:disabled { opacity: 0.45; cursor: default; }
+  .chips button:active:not(:disabled) { transform: scale(0.96); }
+  /* On a phone the chips stay in one row that scrolls sideways, fading at the edge that has more. */
+  @media (max-width: 719px) {
+    .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--space-1)); padding-bottom: var(--space-3); }
+    .chips::-webkit-scrollbar { display: none; }
+  }
+  .group { margin-top: var(--space-6); }
+  .group h2 { margin: 0 0 var(--space-4); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; }
+  .group-count { color: var(--muted); font-size: var(--text-base); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  .tools li { display: flex; flex-direction: column; min-width: 0; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); transition: transform var(--motion-quick) ease; }
+  /* A card lifts under the mouse or a keyboard's focus; with less motion asked for, it stays put. */
+  @media (prefers-reduced-motion: no-preference) {
+    .tools li:focus-within { transform: translateY(-4px); }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .tools li:hover { transform: translateY(-4px); }
+  }
+  .tool { display: grid; grid-template-columns: auto 1fr; align-content: start; gap: 0 var(--space-3); padding: var(--space-4); border-radius: inherit; color: var(--ink); text-decoration: none; flex: 1; }
+  .tool:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .letter { grid-row: span 2; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: var(--radius-md); background: var(--c); color: var(--on-colour); font-weight: 900; }
+  .tool-name { align-self: end; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+  .also { align-self: start; color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
+  .note { grid-column: 1 / -1; margin-top: var(--space-3); color: var(--muted); font-size: var(--text-ui); }
+  .tool :global(mark) { border-radius: var(--radius-2xs); background: var(--found-mark); color: inherit; }
+  .command { display: flex; align-items: center; gap: var(--space-2); margin: calc(-1 * var(--space-1)) var(--space-4) var(--space-4); padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3); border-radius: var(--radius-md); background: var(--paper); }
+  .command code { flex: 1; font-family: var(--font-code); font-size: var(--text-sm); }
+  .command .button { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+  .nothing { margin: var(--space-6) var(--space-1); color: var(--muted); }
+  /* The search and the Where view hide these with the hidden attribute, which their display above would undo. */
+  .tools li[hidden], .places[hidden] { display: none; }
 </style>

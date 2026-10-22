@@ -1,0 +1,172 @@
+# The Collection's Toolbox tab: the tools Jack uses, in groups by what they're for (how to add one: README.md here).
+# Groups show in this order, and the tools in each group in the order listed.
+# where: windows, terminal, chrome or website (it sets the colour of the tool's letter).
+# command: only for a terminal tool, shown with a Copy button.
+
+groups:
+  - name: Find files
+    tools:
+      - name: Everything
+        where: windows
+        link: https://www.voidtools.com/
+        note: instant file search
+
+  - name: Clean up the PC
+    tools:
+      - name: Geek Uninstaller
+        where: windows
+        link: https://geekuninstaller.com/
+        note: remove apps and their leftovers
+      - name: Bulk Crap Uninstaller
+        where: windows
+        link: https://www.bcuninstaller.com/
+        note: 最强的卸载神器！免费开源
+      - name: SpaceSniffer
+        where: windows
+        link: https://www.uderzo.it/main_products/space_sniffer/
+        note: see what fills a disk, as a map
+      - name: TreeSize Free
+        where: windows
+        link: https://www.jam-software.com/treesize_free
+        note: 磁盘空间分析器
+      - name: Windows Memory Cleaner
+        where: windows
+        link: https://github.com/IgorMundstein/WinMemoryCleaner
+        note: free up memory
+      - name: LockHunter
+        where: windows
+        link: https://lockhunter.com/
+        note: 文件锁解锁器，删除无法被删除的文件或文件夹
+      - name: FolderMove
+        where: windows
+        link: https://foldermove.com/
+        note: Move files from Disk C to D
+
+  - name: Handy on Windows
+    tools:
+      - name: PowerToys
+        where: windows
+        link: https://learn.microsoft.com/en-us/windows/powertoys/
+        note: Check rgb color, and more
+      - name: Sandboxie Plus
+        where: windows
+        link: https://sandboxie-plus.com/
+        note: 沙盒工具
+      - name: f.lux
+        where: windows
+        link: https://justgetflux.com/
+        note: 护眼程序
+      - name: Ninite
+        where: website
+        link: https://ninite.com/
+        note: Common useful apps customized package
+      - name: scrcpy
+        where: windows
+        link: https://github.com/Genymobile/scrcpy
+        note: 安卓手机屏幕镜像
+
+  - name: Video & music
+    tools:
+      - name: yoinks
+        where: terminal
+        link: https://github.com/pablostanley/yoinks
+        note: download a video from almost any site
+        command: npx yoinks
+      - name: HandBrake
+        where: windows
+        link: https://handbrake.fr/
+        note: convert videos
+
+  - name: Pictures
+    tools:
+      - name: Background Remover
+        where: website
+        link: https://magicstudio.com/background-remover/
+        note: 图片在线去背
+      - name: GoFullPage
+        where: chrome
+        link: https://chromewebstore.google.com/detail/fdpohaocaechififmbbbbbknoalclacl
+        note: 长截图插件
+      - name: ImageAssistant
+        where: chrome
+        link: https://chromewebstore.google.com/detail/dbjbempljhcmhlfpfacalomonjpalpko
+        note: Batch image downloader (any websites)
+      - name: Umi-OCR
+        where: windows
+        link: https://github.com/hiroi-sora/Umi-OCR
+        note: 支持离线使用的OCR图片识字软件
+
+  - name: PDFs & files
+    tools:
+      - name: PDFgear
+        where: windows
+        link: https://www.pdfgear.com/
+        note: Editable PDF
+      - name: TinyWow
+        where: website
+        link: https://tinywow.com/
+        note: Files Converter
+
+  - name: In the browser
+    tools:
+      - name: Extension Manager
+        where: chrome
+        link: https://chromewebstore.google.com/detail/gjldcdngmdknpinoemndlidpcabkggco
+        note: 插件优化管理
+      - name: Toggle JavaScript
+        where: chrome
+        link: https://chromewebstore.google.com/detail/cidlcjdalomndpeagkjpnefhljffbnlo
+        note: 禁用网页JS脚本 破右键锁
+      - name: Temp Mail
+        where: website
+        link: https://temp-mail.org/
+        note: 临时邮件
+
+  - name: AI helpers
+    tools:
+      - name: JetWriter AI (was ChatGPT Writer)
+        where: chrome
+        link: https://chromewebstore.google.com/detail/pdnenlnelpdomajfejgapbdpmjkfpjkp
+        note: write and reply to emails with AI
+      - name: YouTube Summary with ChatGPT
+        where: chrome
+        link: https://chromewebstore.google.com/detail/nmmicjeknamkfloonkhhcjmomieiodli
+        note: summarise a video
+      - name: AI Prompt Genius
+        where: chrome
+        link: https://chromewebstore.google.com/detail/jjdnakkfjnnbbckhifcfchagnpofjffo
+        note: save and share prompts
+
+  - name: Learn & get things done
+    tools:
+      - name: eJOY AI Dictionary
+        where: chrome
+        link: https://chromewebstore.google.com/detail/amfojhdiedpdnlijjbhjnhokbnohfdfb
+        note: 视频多语种字幕生成插件
+      - name: roadmap.sh
+        where: website
+        link: https://roadmap.sh/roadmaps
+        note: 學習！
+      - name: Typing Speed Test
+        where: website
+        link: https://typing-speed-test.aoeu.eu/
+        note: how fast can you type
+      - name: MuscleWiki
+        where: website
+        link: https://musclewiki.com/
+        note: pick a muscle, see the exercises
+      - name: Todoist for Chrome
+        where: chrome
+        link: https://chromewebstore.google.com/detail/jldhpllghnbhlbpcmnajkpdmadaolakh
+        note: 最佳 Chrome 版任务清单
+
+  - name: Just for fun
+    tools:
+      - name: ToonMe
+        where: website
+        link: https://toonme.com/
+        note: 人脸卡通形象生成器
+      - name: Cyberthreat Real-Time Map
+        where: website
+        link: https://cybermap.kaspersky.com/
+        note: 全球网络攻击

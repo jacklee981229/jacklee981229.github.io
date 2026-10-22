@@ -134,6 +134,14 @@
   --writing-top-to: var(--writing-base);
   --collection-top-from: #C2410C;
   --collection-top-to: #9A3412;
+  /* The Toolbox's letter squares (collections.astro), by where a tool runs: colours the site already has, each deep
+     enough for a white letter. */
+  --tool-windows: var(--travel-top-from);
+  --tool-terminal: var(--about-links-from);
+  --tool-chrome: var(--lab-from);
+  --tool-website: var(--collection-top-from);
+  /* Behind the words the Toolbox's search found, in the theme's own focus colour. */
+  --found-mark: color-mix(in srgb, var(--focus) 28%, transparent);
   --travel-top-from: #2563EB;
   --travel-top-to: var(--travel-base);
   --about-top-from: #9333EA;
@@ -437,6 +445,8 @@
   --wash: rgb(255 255 255 / 0.07);
   --band: rgb(255 255 255 / 0.03);
   --card-light: rgb(255 255 255 / 0.07);
+  /* The Toolbox's terminal grey would vanish on a dark card: a lighter one, still 6:1 under its white letter. */
+  --tool-terminal: #636366;
   /* No fade in the dark: the page is one colour. */
   --paper-end: var(--paper);
   --visited-near: #E31A1C;
