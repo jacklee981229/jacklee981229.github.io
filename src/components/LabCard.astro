@@ -50,9 +50,9 @@ const Tag = href ? 'a' : 'div';
   @media (hover: hover) {
     a.lab-card:hover { transform: translateY(-4px); }
   }
-  /* As it rises, its picture slowly zooms in: a peek inside. */
+  /* As it rises, its picture zooms in: a peek inside. */
   .example, .lab-card :global(.cover) { overflow: hidden; }
-  .code, .lab-card :global(.cover > *) { transition: transform 0.7s var(--ease-out); }
+  .code, .lab-card :global(.cover > *) { transition: transform var(--motion-settle) var(--ease-out); }
   @media (prefers-reduced-motion: no-preference) {
     a.lab-card:focus-visible .code, a.lab-card:focus-visible :global(.cover > *) { transform: scale(1.08); }
   }

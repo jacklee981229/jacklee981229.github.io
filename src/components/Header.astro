@@ -9,7 +9,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
 <header class="site-header">
   <div class="wrap row">
     <a class="brand" href="/"><Fragment set:html={logoSvg('menu', 'width="28" height="28" aria-hidden="true"')} />{SITE.title}</a>
-    <nav class="nav" aria-label="Main">
+    <nav class="nav" aria-label="Main" data-edge-fade="x">
       <span class="nav-pill" aria-hidden="true"></span>
       {NAV.map((item) => (
         <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined} style={'accent' in item ? `--accent: var(--accent-${item.accent})` : undefined}>
@@ -76,7 +76,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
 
 <style>
   /* It holds still while the page under it changes (global.css). */
-  .site-header { border-bottom: 1px solid var(--rule); view-transition-name: site-header; }
+  .site-header { border-bottom: var(--hairline) solid var(--rule); view-transition-name: site-header; }
   .row { display: flex; align-items: center; gap: var(--space-6); min-height: 4rem; }
   .brand { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-md); font-weight: var(--display-weight); letter-spacing: -0.015em; text-decoration: none; white-space: nowrap; }
   /* Pointed at, the face tilts its head and the light runs across its glasses (the logo's .glint pixels). */
@@ -127,7 +127,7 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
      own row under the name. */
   @media (max-width: 929px) {
     .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
-    .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: 1px solid var(--rule); scrollbar-width: none; }
+    .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: var(--hairline) solid var(--rule); scrollbar-width: none; }
     .nav a { padding-block: 0.875rem; white-space: nowrap; }
   }
 </style>

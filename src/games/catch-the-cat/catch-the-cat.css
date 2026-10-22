@@ -23,7 +23,7 @@
 /* No tap highlight: phones would flash a blue patch over each dot tapped, and the dot turning dark already shows it. */
 .ctc svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: manipulation; outline: none; -webkit-tap-highlight-color: transparent; }
 .ctc svg:focus-visible { outline: 2px solid var(--ring); outline-offset: 8px; border-radius: var(--radius-xs); }
-.ctc .ctc-dot { fill: var(--dot); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill 150ms ease; }
+.ctc .ctc-dot { fill: var(--dot); cursor: pointer; transform-box: fill-box; transform-origin: center; transition: fill var(--motion-quick) ease; }
 .ctc .ctc-dot.is-blocked { fill: var(--blocked); cursor: default; }
 .ctc .ctc-dot.is-new { animation: ctc-pop 220ms ease-out; }
 /* Mouse only: a tapped dot on a touch screen would otherwise stay highlighted. */

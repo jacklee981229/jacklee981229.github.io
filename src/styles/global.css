@@ -34,8 +34,33 @@ main:focus { outline: none; }
 
 /* A link that stands on its own ("See all", a tile's title, Newer post), drawn by Go.astro: no underline, and a press
    that gives a little, like the site's buttons. Links inside sentences keep their underline. */
-.go { display: inline-block; width: fit-content; text-decoration: none; transition: transform var(--motion-press) ease; }
-.go:active { transform: scale(0.96); }
+.go { display: inline-block; width: fit-content; text-decoration: none; transition: transform var(--motion-soft) var(--ease-release); }
+.go:active { transform: scale(0.96); transition-duration: var(--motion-press); transition-timing-function: var(--ease-out); }
+
+/* A scrolling box fades out at an edge with more beyond it, in seven steps along an S-curve rather than a straight
+   ramp; edge-fade.js sets each end's depth (--fade-a at the start, --fade-b at the end), down to none once that end is
+   reached. The black in the mask only says how much shows; nothing is drawn in it. */
+[data-fade-axis] {
+  --fade-a: 0px;
+  --fade-b: 0px;
+  --fade-mask: linear-gradient(var(--fade-dir),
+    transparent 0, rgb(0 0 0 / 0.074) calc(var(--fade-a) / 6), rgb(0 0 0 / 0.259) calc(var(--fade-a) / 3), rgb(0 0 0 / 0.5) calc(var(--fade-a) / 2), rgb(0 0 0 / 0.741) calc(var(--fade-a) * 2 / 3), rgb(0 0 0 / 0.926) calc(var(--fade-a) * 5 / 6), #000 var(--fade-a),
+    #000 calc(100% - var(--fade-b)), rgb(0 0 0 / 0.926) calc(100% - var(--fade-b) * 5 / 6), rgb(0 0 0 / 0.741) calc(100% - var(--fade-b) * 2 / 3), rgb(0 0 0 / 0.5) calc(100% - var(--fade-b) / 2), rgb(0 0 0 / 0.259) calc(100% - var(--fade-b) / 3), rgb(0 0 0 / 0.074) calc(100% - var(--fade-b) / 6), transparent 100%);
+}
+[data-fade-axis][data-fading] { -webkit-mask-image: var(--fade-mask); mask-image: var(--fade-mask); }
+[data-fade-axis='y'] { --fade-dir: to bottom; }
+[data-fade-axis='x'] { --fade-dir: to right; }
+
+/* Words that wait for something end in three dots (waiting.js) that take turns to brighten and never move. With less
+   motion asked for they stand still, half bright, like an ellipsis. */
+.waiting-dots { display: inline-flex; gap: 0.16em; margin-left: 0.14em; }
+.waiting-dots i { width: 0.2em; height: 0.2em; border-radius: 50%; background: currentColor; opacity: 0.28; animation: waiting-dot var(--motion-wait) ease-in-out infinite; }
+.waiting-dots i:nth-child(2) { animation-delay: var(--motion-wait-step); }
+.waiting-dots i:nth-child(3) { animation-delay: calc(var(--motion-wait-step) * 2); }
+@keyframes waiting-dot { 40% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .waiting-dots i { opacity: 0.6; }
+}
 
 /* Simple pages: a top card (PageTop.astro) at the same height as the home page's first cards, then the content. */
 .page { padding-block: var(--space-6) var(--space-9); }
@@ -78,9 +103,10 @@ main:focus { outline: none; }
 @keyframes copied-tick {
   from { transform: scale(0.2); opacity: 0; filter: blur(2px); }
 }
-/* A press gives a little, like a real button; a hover's colours ease in rather than snap. */
-.button, .icon-btn { transition: transform var(--motion-press) ease, background-color var(--motion-quick) ease, border-color var(--motion-quick) ease, color var(--motion-quick) ease; }
-.button:active:not(:disabled), .icon-btn:active { transform: scale(0.96); }
+/* A press gives a little, like a real button, and springs back when let go; a hover's colours ease in rather than
+   snap. */
+.button, .icon-btn { transition: transform var(--motion-soft) var(--ease-release), background-color var(--motion-quick) ease, border-color var(--motion-quick) ease, color var(--motion-quick) ease; }
+.button:active:not(:disabled), .icon-btn:active { transform: scale(0.96); transition-duration: var(--motion-press), var(--motion-quick), var(--motion-quick), var(--motion-quick); transition-timing-function: var(--ease-out), ease, ease, ease; }
 
 /* Jack's links (LINKS in src/site.ts) as coloured tiles, by their icon: on the home page and in ProfileLinks.astro.
    GitHub's near-black tile gets an edge, to stand apart from the dark theme's page. */
@@ -94,7 +120,7 @@ main:focus { outline: none; }
    and the rest cross-fades. Elsewhere, and for less motion, pages load as they always did. The opt-in is in
    Base.astro's head. */
 ::view-transition-old(root),
-::view-transition-new(root) { animation-duration: 0.25s; }
+::view-transition-new(root) { animation-duration: var(--motion-soft); }
 ::view-transition-group(*) { animation-duration: var(--motion-settle); animation-timing-function: var(--ease-out); }
 /* The theme spreads out in a circle from its button (theme.ts): the page's own cross-fade waits, and nothing is
    carried over on its own, so the circle sweeps over everything. */

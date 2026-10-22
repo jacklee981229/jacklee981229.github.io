@@ -249,7 +249,7 @@ const globe = {
   .globe { --room: 8px; position: relative; width: min(100%, var(--map-height)); aspect-ratio: 1; border-radius: 50%; touch-action: none; -webkit-tap-highlight-color: transparent; }
   .globe:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
   /* The bare ball, there from the first moment, until the globe's code has arrived and draws its own (data-live). */
-  .globe:not([data-live])::before { content: ''; position: absolute; inset: var(--room); border: 1px solid var(--rule); border-radius: 50%; background: radial-gradient(ellipse 75% 75% at 35% 30%, var(--surface), var(--paper)); }
+  .globe:not([data-live])::before { content: ''; position: absolute; inset: var(--room); border: var(--hairline) solid var(--rule); border-radius: 50%; background: radial-gradient(ellipse 75% 75% at 35% 30%, var(--surface), var(--paper)); }
   /* The globe's code sizes and places its canvases: over the globe, and as far as the flat map it opens out into. */
   canvas { position: absolute; display: block; pointer-events: none; }
 

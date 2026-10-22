@@ -92,6 +92,12 @@ const structured = Astro.url.pathname === '/' && {
           t = 'dark';
         }
         document.documentElement.dataset.theme = t;
+        // The browser's own ground in the same theme, for the moment before the stylesheet arrives: no white flash
+        // ahead of a dark page (tokens.css takes over from it).
+        var scheme = document.createElement('meta');
+        scheme.name = 'color-scheme';
+        scheme.content = t;
+        document.head.appendChild(scheme);
       })();
     </script>
     <script is:inline>
@@ -134,5 +140,9 @@ const structured = Astro.url.pathname === '/' && {
     <p class="visually-hidden" aria-live="polite" data-announcer></p>
     <!-- Screen readers read this out for links to other sites, which open in a new tab (src/lib/links.js). -->
     <p id="new-tab" hidden>Opens in a new tab</p>
+    <script>
+      import { edgeFades } from '../lib/edge-fade.js';
+      edgeFades();
+    </script>
   </body>
 </html>

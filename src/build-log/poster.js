@@ -12,6 +12,7 @@
 // keep the eye on the middle. In the site's colours, following its theme (its page's --c1 onward, build-log.astro, read
 // by the stage): glowing in the dark, drawn plainly by day.
 import { MONTHS } from '../lib/dates.js';
+import { fillTabular } from '../lib/tabular.js';
 
 /** The poster's own units: a landscape screen as wide as the page, or a tall one on a phone. */
 const WIDE = { w: 1400, h: 788 };
@@ -423,13 +424,15 @@ export function createPoster(stage, data, root, mode = 'clock') {
 
   // ---- Words and small pieces.
   /** Writes words, in the site's monospace unless told otherwise. @param {CanvasRenderingContext2D} g */
-  const write = (g, words, x, y, sizePx, { colour = palette.text, alpha = 1, align = 'left', spacing = 0.05, weight = 500, family = mono } = {}) => {
+  const write = (g, words, x, y, sizePx, { colour = palette.text, alpha = 1, align = 'left', spacing = 0.05, weight = 500, family = mono, tabular = false } = {}) => {
     g.font = `${weight} ${sizePx}px ${family}`;
     if ('letterSpacing' in g) g.letterSpacing = `${spacing * sizePx}px`;
     g.textAlign = /** @type {CanvasTextAlign} */ (align);
     g.textBaseline = 'alphabetic';
     g.fillStyle = rgba(colour, alpha);
-    g.fillText(words, x, y);
+    // A number that grows as the replay plays keeps its digits even, so it doesn't shift as they change.
+    if (tabular) fillTabular(g, words, x, y, /** @type {CanvasTextAlign} */ (align));
+    else g.fillText(words, x, y);
     if ('letterSpacing' in g) g.letterSpacing = '0px';
   };
   const widthOf = (g, words, sizePx, spacing = 0.05, family = mono, weight = 500) => {
@@ -1545,7 +1548,7 @@ export function createPoster(stage, data, root, mode = 'clock') {
   const wideWords = (g, { shown, files, late, landed, playing, phase, done, playT }) => {
     const { x: lx } = LEFT;
     const added = commits.slice(0, shown).reduce((s, c) => s + c.added, 0);
-    const big = (words, y, colour) => say(g, words, lx + 16, y, 40, { colour, weight: 800 });
+    const big = (words, y, colour) => say(g, words, lx + 16, y, 40, { colour, weight: 800, tabular: true });
     big(fmt(shown), 122, palette.text);
     big(fmt(files), 228, palette.text);
     big(`+${kfmt(added)}`, 334, palette.added);
@@ -1590,8 +1593,8 @@ export function createPoster(stage, data, root, mode = 'clock') {
         g.fillStyle = rgba(palette.parts[i]);
         g.fill();
       }
-      say(g, fmt(n), rx + rw - 54, y, 11.5, { align: 'right', weight: 700 });
-      say(g, `${share(i)}%`, rx + rw - 16, y, 11, { colour: palette.soft, align: 'right', weight: 500 });
+      say(g, fmt(n), rx + rw - 54, y, 11.5, { align: 'right', weight: 700, tabular: true });
+      say(g, `${share(i)}%`, rx + rw - 16, y, 11, { colour: palette.soft, align: 'right', weight: 500, tabular: true });
     });
     // Where the replay is, by the newest commits' name; then the commits gathered so far, the newest first.
     const where = phase === 'intro' || playing < 0 ? 'Ready' : done ? 'Up to date' : `Playing ${shown} of ${totals.commits}`;
@@ -1602,12 +1605,12 @@ export function createPoster(stage, data, root, mode = 'clock') {
   /** The tall poster's three numbers and the parts' counts. */
   const tallWords = (g, { shown, files, late, landed, done }) => {
     [[shown, palette.text], [late, palette.late], [files, palette.text]].forEach(([n, colour], i) => {
-      say(g, fmt(/** @type {number} */ (n)), 14 + i * 140 + 10, 446, 20, { colour: /** @type {number[]} */ (colour), weight: 800 });
+      say(g, fmt(/** @type {number} */ (n)), 14 + i * 140 + 10, 446, 20, { colour: /** @type {number[]} */ (colour), weight: 800, tabular: true });
     });
     data.parts.forEach((_, i) => {
       const x = 14 + (i % 3) * 140;
       const y = 462 + Math.floor(i / 3) * 30;
-      say(g, fmt(done ? data.files[i] : Math.round(landed[i] * data.per)), x + 122, y + 15.5, 9.5, { align: 'right', weight: 700 });
+      say(g, fmt(done ? data.files[i] : Math.round(landed[i] * data.per)), x + 122, y + 15.5, 9.5, { align: 'right', weight: 700, tabular: true });
     });
   };
 

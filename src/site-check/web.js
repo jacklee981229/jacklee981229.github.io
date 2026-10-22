@@ -8,6 +8,7 @@
 // being read as source, the three routes, the parts, the link stream and the rest. In the page's colours (its --c1
 // onward, site-check.astro), glowing in the dark, drawn plainly by day.
 import { crawl, partOfPage } from '../lib/site-check.js';
+import { fillTabular } from '../lib/tabular.js';
 
 /** The card's own units: a landscape screen as wide as the page, or a tall one on a phone. */
 const WIDE = { w: 1136, h: 640 };
@@ -449,8 +450,8 @@ export function createWeb(stage, root, onDone) {
     ctx.fillStyle = col;
     ctx.textAlign = o.align ?? 'left';
     ctx.textBaseline = o.base ?? 'alphabetic';
-    ctx.fillText(s, x, y);
-    const width = ctx.measureText(s).width;
+    // A count that climbs as the crawl runs keeps its digits even, so it doesn't shift as they change.
+    const width = o.tabular ? fillTabular(ctx, s, x, y, ctx.textAlign) : (ctx.fillText(s, x, y), ctx.measureText(s).width);
     ctx.letterSpacing = '0px';
     return width;
   };
@@ -1337,7 +1338,7 @@ export function createWeb(stage, root, onDone) {
     }
     chip(r.tag, x + 10, y + 14, col);
     say(`→ ${r.name}`, x + 10, y + 34, 10.5, rgba(pal.text), { w: 700 });
-    say(String(st.counts[r.key]), x + w - 10, y + h - 11, 24, rgba(col), { align: 'right', w: 800 });
+    say(String(st.counts[r.key]), x + w - 10, y + h - 11, 24, rgba(col), { align: 'right', w: 800, tabular: true });
     if (h > 50) say(r.foot, x + 10, y + h - 9, 7.5, rgba(pal.faint), { w: 500 });
   };
 
@@ -1460,7 +1461,7 @@ export function createWeb(stage, root, onDone) {
       ctx.fill();
     }
     const ok = ms.filter((v) => v < 900);
-    say(`Average ${ok.length ? Math.round(ok.reduce((a, b) => a + b, 0) / ok.length) : 0} ms`, x + 10, y + h - 8, 8.5, rgba(pal.text));
+    say(`Average ${ok.length ? Math.round(ok.reduce((a, b) => a + b, 0) / ok.length) : 0} ms`, x + 10, y + h - 8, 8.5, rgba(pal.text), { tabular: true });
   };
 
   const dots = (st) => {
@@ -1494,7 +1495,7 @@ export function createWeb(stage, root, onDone) {
         ctx.stroke();
       }
     });
-    say(`${Math.max(0, st.cur + 1)} of ${found.length}`, x + 10, y + h - 8, 8.5, rgba(pal.text));
+    say(`${Math.max(0, st.cur + 1)} of ${found.length}`, x + 10, y + h - 8, 8.5, rgba(pal.text), { tabular: true });
   };
 
   /** Each finished page's light, flying from its knot on the web to its dot in Pages read (the wide card's only),

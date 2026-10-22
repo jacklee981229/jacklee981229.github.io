@@ -136,8 +136,8 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   .grid .prose { grid-row: 1; grid-column: 1; }
 
   /* The note on posts about something the site no longer runs on (a topic's `legacy` in src/lib/topics.js). */
-  .legacy { margin: 0 0 var(--space-5); padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--wash); color: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
-  .foot { max-width: 40rem; margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--rule); }
+  .legacy { margin: 0 0 var(--space-5); padding: var(--space-3) var(--space-4); border: var(--hairline) solid var(--rule); border-radius: var(--radius-md); background: var(--wash); color: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
+  .foot { max-width: 40rem; margin-top: var(--space-7); padding-top: var(--space-5); border-top: var(--hairline) solid var(--rule); }
   .license { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-sm); }
   .older-newer { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
   .older-newer > div { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }

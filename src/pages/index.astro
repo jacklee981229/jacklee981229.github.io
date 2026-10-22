@@ -244,7 +244,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .who { margin: var(--space-1) 0 0; color: var(--muted); font-size: var(--text-sm); }
   .who strong { color: var(--ink); font-weight: 800; }
   .likes { letter-spacing: 2px; }
-  .tiles { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: auto; padding: var(--space-4) var(--space-6) var(--space-5); border-top: 1px solid var(--rule); }
+  .tiles { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: auto; padding: var(--space-4) var(--space-6) var(--space-5); border-top: var(--hairline) solid var(--rule); }
   .tile { display: grid; place-items: center; width: 54px; height: 54px; box-sizing: border-box; border: 1px solid var(--tile-edge, transparent); border-radius: var(--radius-md); background: var(--tile); color: var(--on-colour); text-decoration: none; transition: transform var(--motion-quick) ease; }
   .tile :global(.icon) { width: 23px; height: 23px; }
   .tile.github { display: inline-flex; align-items: center; gap: var(--space-2); width: auto; padding: 0 var(--space-4); font-size: var(--text-sm); font-weight: 800; }
@@ -319,8 +319,8 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .lab-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
   .explore { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--lab-to); font-size: var(--text-ui); font-weight: 900; text-decoration: none; }
   /* A press gives a little, like the site's buttons (global.css). */
-  .explore { transition: transform var(--motion-press) ease; }
-  .explore:active { transform: scale(0.96); }
+  .explore { transition: transform var(--motion-soft) var(--ease-release); }
+  .explore:active { transform: scale(0.96); transition-duration: var(--motion-press); transition-timing-function: var(--ease-out); }
   .surprise { width: 2.75rem; padding: 0; }
   .surprise :global(.icon) { width: 20px; height: 20px; }
   .toy-note { margin: auto 0 0; padding-top: var(--space-4); font-size: var(--text-sm); font-weight: 600; color: var(--on-colour-soft); }
@@ -343,7 +343,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .covers :global(img:nth-child(2)) { margin-left: -20px; transform: translateY(-8px); }
   .covers :global(img:nth-child(3)) { margin-left: -20px; transform: rotate(9deg); }
 
-  .globe { filter: drop-shadow(var(--shadow-cover)); transition: transform 0.9s var(--ease-out); }
+  .globe { filter: drop-shadow(var(--shadow-cover)); transition: transform var(--motion-settle) var(--ease-out); }
   .sphere { fill: color-mix(in srgb, var(--surface), var(--ink) 6%); stroke: var(--rule); }
   .land { fill: color-mix(in srgb, var(--muted) 28%, transparent); }
   .place { --colour: var(--visited-near); fill: var(--colour); }

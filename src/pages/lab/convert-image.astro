@@ -28,6 +28,7 @@ import { FORMATS } from '../../lib/lab/convert-image.js';
 
 <script>
   import { FORMATS, makePdf, outputName, sizeOf, zipFiles } from '../../lib/lab/convert-image.js';
+  import { sayWaiting } from '../../lib/waiting.js';
 
   type Picture = { file: File; bitmap: ImageBitmap | null; preview: string };
   type Result = { name: string; blob: Blob; from?: Picture; pages?: number };
@@ -93,7 +94,7 @@ import { FORMATS } from '../../lib/lab/convert-image.js';
       actions.hidden = true;
       return;
     }
-    note.textContent = 'Converting…';
+    sayWaiting(note, 'Converting');
     const results: Result[] = [];
     const tooBig: string[] = [];
     if (format.id === 'pdf') {

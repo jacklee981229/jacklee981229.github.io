@@ -34,10 +34,10 @@ const { progress = false } = Astro.props;
 
 <style>
   /* Hidden with visibility (not just opacity) so it can't be tabbed to until it shows. */
-  .to-top { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--rule); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease, visibility var(--motion-quick); }
+  .to-top { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease, visibility var(--motion-quick); }
   .to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
   /* How far down the post the reader is, drawn round the button's edge from the top, clockwise. */
-  .ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); rotate: -90deg; pointer-events: none; }
+  .ring { position: absolute; inset: 0; width: 100%; height: 100%; rotate: -90deg; pointer-events: none; }
   .ring circle { fill: none; stroke-width: 2.5; }
   .track { stroke: transparent; }
   .read { stroke: var(--ink); stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--read, 0)); }

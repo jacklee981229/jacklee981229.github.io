@@ -115,7 +115,7 @@ const twinkles = Array.from({ length: 7 }, () => ({ left: (random() * 96 + 2).to
     100% { opacity: 0; transform: rotate(-24deg) translateX(-55vw); }
   }
 
-  .night-note { position: fixed; left: 50%; bottom: var(--space-5); z-index: 40; width: min(30rem, calc(100vw - 2rem)); margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-md); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); font-size: var(--text-sm); translate: -50% 0; cursor: pointer; }
+  .night-note { position: fixed; left: 50%; bottom: var(--space-5); z-index: 40; width: min(30rem, calc(100vw - 2rem)); margin: 0; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--radius-md); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); font-size: var(--text-sm); translate: -50% 0; cursor: pointer; }
 
   /* Less motion: the stars and the aurora stay still; nothing twinkles, blinks or shoots. */
   @media (prefers-reduced-motion: reduce) {

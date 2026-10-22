@@ -91,11 +91,11 @@ const NUMBERS = [['Seconds', 'seconds', 'seconds'], ['Milliseconds', 'millisecon
   .hint.is-error { color: var(--ink); font-weight: 600; }
   .choices { margin-top: var(--space-4); }
   dl { display: grid; margin: var(--space-4) 0 0; }
-  dl div { padding-block: var(--space-3); border-top: 1px solid var(--rule); }
+  dl div { padding-block: var(--space-3); border-top: var(--hairline) solid var(--rule); }
   dl div:last-child { padding-bottom: 0; }
   dt { color: var(--muted); font-size: var(--text-sm); font-weight: 600; }
   .zone { margin-left: var(--space-2); font-weight: 500; }
-  dd { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 2.25rem; margin: var(--space-1) 0 0; font-size: var(--text-md); font-weight: 650; overflow-wrap: anywhere; }
+  dd { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 2.25rem; margin: var(--space-1) 0 0; font-size: var(--text-md); font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   dd > span:empty::before { content: '–'; color: var(--muted); }
   .copy { flex: none; padding: var(--space-1) var(--space-3); font-size: var(--text-sm); cursor: pointer; color: var(--ink); }
 

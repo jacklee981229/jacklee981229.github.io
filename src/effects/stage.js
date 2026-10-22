@@ -7,6 +7,8 @@
 const IDLE_AFTER = 2.5;
 /** More pixels than this per CSS pixel costs speed without looking any sharper. */
 const MAX_DENSITY = 2;
+/** How far, in CSS pixels, a press may move and still count as a click: a hand on a trackpad shakes a little. */
+const TAP_SLOP = 4;
 
 /**
  * @typedef {[number, number, number]} Rgb
@@ -21,7 +23,7 @@ const MAX_DENSITY = 2;
  *   redraw: () => void,
  *   showStill: (src: string | null, alt?: string) => void,
  * }} Stage
- * `pointer.pressed` is true for the one frame after a click or a tap. Sizes are in CSS pixels. `playing` is false
+ * `pointer.pressed` is true for the one frame after a click or a tap (let go where it began, give or take TAP_SLOP). Sizes are in CSS pixels. `playing` is false
  * while the stage is paused, off screen or in a hidden tab: an effect that makes sound keeps quiet then.
  * A WebGL2 piece (options.context 'webgl2') gets `gl` and no `ctx`, unless the browser has no WebGL2: then `gl` is null
  * and `ctx` is the 2D context, for whatever the piece shows instead. Its canvas is `density` × `scale` pixels to a CSS
@@ -143,16 +145,28 @@ export function runStage(root, create, options = {}) {
     real = { x: e.clientX - box.left, y: e.clientY - box.top };
     movedAt = stage.time;
   };
-  canvas.addEventListener('pointermove', follow);
+  // A press is a click only if it lets go within TAP_SLOP pixels of where it began: a finger sliding to scroll the
+  // page, or a drag, plants and ripples nothing.
+  /** @type {{ x: number, y: number } | null} */
+  let tap = null;
+  canvas.addEventListener('pointermove', (e) => {
+    follow(e);
+    if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > TAP_SLOP) tap = null;
+  });
   canvas.addEventListener('pointerdown', (e) => {
     follow(e);
     // Straight to the finger: a tap far from the drifting point shouldn't have to wait for it to travel there.
     p.x = real.x;
     p.y = real.y;
     p.down = true;
-    p.pressed = true;
+    tap = { x: e.clientX, y: e.clientY };
   });
-  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) canvas.addEventListener(type, () => { p.down = false; });
+  canvas.addEventListener('pointerup', () => {
+    if (tap) p.pressed = true;
+    tap = null;
+    p.down = false;
+  });
+  for (const type of ['pointercancel', 'pointerleave']) canvas.addEventListener(type, () => { tap = null; p.down = false; });
 
   /** @param {number} dt */
   const step = (dt) => {

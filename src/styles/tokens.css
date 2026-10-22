@@ -393,6 +393,10 @@
   /* The big cards: the home page's, and every page's top. */
   --radius-2xl: 28px;
   --radius-pill: 999px;
+  /* Dividing lines and frames: one device pixel on every screen (narrowed for denser screens at the end of this
+     file). A plain 1px falls between pixels on a 150% screen and comes out one pixel thick in some places, two in
+     others. */
+  --hairline: 1px;
 
   /* How things answer the visitor (a hover, a press, a page flowing into the next): press for a button giving under a
      finger, quick for small answers, soft for things settling, settle for something big coming back to rest, and a
@@ -401,8 +405,15 @@
   --motion-quick: 160ms;
   --motion-soft: 320ms;
   --motion-settle: 400ms;
+  /* Waiting (the dots after "Posting"): each dot brightens once a beat, the next a step behind. */
+  --motion-wait: 1200ms;
+  --motion-wait-step: 150ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* A pressed button, link or tile coming back up, over --motion-soft: a spring (stiffness 900, damping 30) sampled for
+     CSS. It passes its mark by a sixth of the way it travels, so a press to 0.96 comes back to about 1.006 and
+     settles; going down stays quick, at --motion-press. */
+  --ease-release: linear(0, 0.145 6.2%, 0.449 12.5%, 0.76 18.8%, 0.994 25%, 1.124 31.2%, 1.163 37.5%, 1.141 43.8%, 1.092 50%, 1.041 56.2%, 1.002 62.5%, 0.98 68.8%, 0.973 75%, 0.977 81.2%, 0.985 87.5%, 0.993 93.8%, 1);
 }
 
 /* The dark theme; and, in either theme, a piece marked data-dark (the home page's toy, a dark screen). */
@@ -594,3 +605,9 @@
   --town-aurora-2: var(--aurora-2);
   --town-aurora-3: var(--aurora-3);
 }
+
+/* --hairline on denser screens: each width times the screen's density comes to one device pixel. */
+@media (min-resolution: 1.25dppx) { :root { --hairline: 0.8px; } }
+@media (min-resolution: 1.5dppx) { :root { --hairline: 0.67px; } }
+@media (min-resolution: 2dppx) { :root { --hairline: 0.5px; } }
+@media (min-resolution: 3dppx) { :root { --hairline: 0.34px; } }

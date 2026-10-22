@@ -28,7 +28,7 @@ const { posts, showTopic = true, flow = true } = Astro.props;
 
 <style>
   .list { display: grid; margin: 0; padding: 0; list-style: none; }
-  a { display: flex; align-items: baseline; gap: var(--space-3); margin-inline: calc(-1 * var(--space-2)); padding: 0.625rem var(--space-2); border-bottom: 1px solid var(--rule); text-decoration: none; transition: background-color var(--motion-quick) ease; }
+  a { display: flex; align-items: baseline; gap: var(--space-3); margin-inline: calc(-1 * var(--space-2)); padding: 0.625rem var(--space-2); border-bottom: var(--hairline) solid var(--rule); text-decoration: none; transition: background-color var(--motion-quick) ease; }
   .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); translate: 0 -1px; }
   .title { flex: 1; min-width: 0; font-weight: 600; }
   /* Pointed at, a marker sweeps in behind the title's words, in its topic's colour. */

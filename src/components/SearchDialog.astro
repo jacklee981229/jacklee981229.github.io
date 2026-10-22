@@ -20,7 +20,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     <input id="search-input" type="search" role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" placeholder="Search or run a command" autocomplete="off" spellcheck="false" />
     <form method="dialog"><button class="esc">Esc</button></form>
   </div>
-  <div class="results" id="palette-list" role="listbox" aria-label="Results" data-results></div>
+  <div class="results" id="palette-list" role="listbox" aria-label="Results" data-results data-edge-fade="y"></div>
   <p class="status" data-status hidden></p>
   <script is:inline type="application/json" data-palette set:html={JSON.stringify({ items, things })} />
   <svg class="sprite" aria-hidden="true" focusable="false">
@@ -34,6 +34,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   import { SITE } from '../site';
   import { announce } from '../lib/lab/page';
   import { PASS_KEY, oneLine, readNowCommand } from '../lib/now-command.js';
+  import { sayWaiting } from '../lib/waiting.js';
 
   // keep: running it leaves the palette open (the /now steps).
   type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void; keep?: boolean };
@@ -57,10 +58,12 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     return pagefind;
   };
 
-  const say = (text: string) => {
+  /** Shows `text` under the list; `waiting` ends it in the waiting dots. */
+  const say = (text: string, waiting = false) => {
     if (!status) return;
     status.hidden = !text;
-    status.textContent = text;
+    if (waiting) sayWaiting(status, text);
+    else status.textContent = text;
   };
 
   /** The thing that shows full screen on this page (the Travel Map, a game, an effect), if the browser can. */
@@ -153,7 +156,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   async function logIn(password: string) {
     if (!input || !password) return;
     nowBusy = true;
-    say('Logging in…');
+    say('Logging in', true);
     const { data } = await callNow('/api/login', { password });
     nowBusy = false;
     if (data.error) return say(data.error);
@@ -175,7 +178,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   async function tidyNow(words: string) {
     if (nowBusy) return;
     nowBusy = true;
-    say('Claude is tidying…');
+    say('Claude is tidying', true);
     const [made, current] = await Promise.all([callNow('/api/tidy', { text: words }), callNow('/api/now')]);
     nowBusy = false;
     if (made.data.error || current.data.error) return nowFailed(made.status === 401 ? 401 : current.status, made.data.error ?? current.data.error);
@@ -186,7 +189,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   async function saveNow() {
     if (!tidied || nowBusy) return;
     nowBusy = true;
-    say('Saving…');
+    say('Saving', true);
     const { status, data } = await callNow('/api/save', { text: tidied.text, sha: tidied.sha });
     nowBusy = false;
     if (data.error) return nowFailed(status, data.error);
@@ -402,6 +405,9 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     }, 100);
   });
   input?.addEventListener('keydown', (e) => {
+    // A Chinese or Japanese word still being put together: its keys belong to the input method (the arrows pick a
+    // candidate, Esc drops the word, Enter chooses it), not to the palette.
+    if (e.isComposing || e.keyCode === 229) return;
     const count = options.length + posts.length;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
@@ -412,8 +418,6 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       e.preventDefault();
       shut();
     } else if (e.key === 'Enter') {
-      // A Chinese or Japanese word still being put together: Enter is choosing it, not running anything.
-      if (e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       if (nowBusy) return;
       if (asking) return void logIn(input.value);
@@ -466,7 +470,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
 </script>
 
 <style>
-  .search { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80dvh); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); }
+  .search { width: min(40rem, calc(100vw - 2rem)); max-height: min(34rem, 80dvh); margin: 12vh auto auto; padding: 0; overflow: hidden; border: 0; border-radius: var(--radius-lg); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-dialog); }
   .search::backdrop { background: var(--backdrop); }
   /* It drops in, over a shade that fades up, and lifts away quicker than it came. */
   .search[open] { animation: palette-in var(--motion-soft) var(--ease-out); }
@@ -489,11 +493,11 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   @keyframes palette-shade {
     from { opacity: 0; }
   }
-  .box { display: flex; align-items: center; gap: var(--space-3); padding: 0.625rem var(--space-4); border-bottom: 1px solid var(--rule); }
+  .box { display: flex; align-items: center; gap: var(--space-3); padding: 0.625rem var(--space-4); border-bottom: var(--hairline) solid var(--rule); }
   .box:focus-within { box-shadow: inset 0 -2px var(--focus); }
   input { flex: 1; min-width: 0; padding: var(--space-2) 0; border: 0; background: transparent; color: inherit; font-size: var(--text-md); font-weight: 500; }
   input:focus { outline: none; }
-  .esc { padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
+  .esc { padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
   .results { position: relative; max-height: calc(min(34rem, 80dvh) - 4rem); padding: var(--space-2); overflow-y: auto; }
   .results :global(.highlight) { position: absolute; top: 0; left: var(--space-2); right: var(--space-2); border-radius: var(--radius-image); background: var(--wash); box-shadow: inset 2px 0 var(--focus); pointer-events: none; transition: transform var(--motion-quick) var(--ease-out), height var(--motion-quick) var(--ease-out); }
   .results:empty { display: none; }

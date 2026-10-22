@@ -107,3 +107,4 @@
 - 2026-10-12 improved: Gave the [QR Code Generator](/lab/qr-code/) an orange card with my logo
 - 2026-10-12 design: Gave [Jack's Site Check](/lab/site-check/) the site's own cards, as the Build Log
 - 2026-10-21 design: Turned focus rings, selections and the menu teal
+- 2026-10-22 design: Polished the small stuff: finer lines, springier buttons, softer edges

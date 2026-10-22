@@ -41,7 +41,7 @@ import Icon from './Icon.astro';
   .world-panel .toggle { display: grid; place-items: center; padding: var(--space-1) var(--space-2); }
   .world-panel .toggle[aria-expanded='true'] { border-color: var(--ink); }
   /* The panel: a strip of round buttons opening to the button's left, level with it, on the stage's buttons' colours. */
-  .panel { position: absolute; top: 50%; right: calc(100% + var(--space-2)); transform: translateY(-50%); display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-float); }
+  .panel { position: absolute; top: 50%; right: calc(100% + var(--space-2)); transform: translateY(-50%); display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-float); }
   .panel[hidden] { display: none; }
   .group { display: flex; gap: var(--space-1); }
   .panel button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--motion-quick) ease; }
@@ -49,7 +49,7 @@ import Icon from './Icon.astro';
   .panel button[hidden] { display: none; }
   /* The speed chosen, filled in like a chosen option elsewhere in the Lab. */
   .group button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
-  .rule { width: 1px; height: 1.5rem; margin-inline: var(--space-1); background: var(--rule); }
+  .rule { width: var(--hairline); height: 1.5rem; margin-inline: var(--space-1); background: var(--rule); }
   [data-control='full'] .leave, [data-control='full'][aria-pressed='true'] .enter { display: none; }
   [data-control='full'][aria-pressed='true'] .leave { display: block; }
 </style>

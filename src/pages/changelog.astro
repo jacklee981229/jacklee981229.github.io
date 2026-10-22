@@ -72,7 +72,7 @@ const { open, folded } = fold(byYear(changelogFile()), SHOWN);
   /* The fold: a line across the page with Expand in the middle; open, it says Collapse and stays above the rest. */
   .older > summary { display: flex; align-items: center; gap: var(--space-4); margin: var(--space-5) 0; list-style: none; cursor: pointer; }
   .older > summary::-webkit-details-marker { display: none; }
-  .older > summary::before, .older > summary::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+  .older > summary::before, .older > summary::after { content: ''; flex: 1; height: var(--hairline); background: var(--rule); }
   .older > summary:focus-visible { outline: none; }
   /* The middle like the site's buttons (.button in global.css). */
   .fold { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid var(--rule); border-radius: var(--radius-pill); background: var(--surface); font-size: var(--text-sm); font-weight: 800; transition: border-color var(--motion-quick) ease; }
