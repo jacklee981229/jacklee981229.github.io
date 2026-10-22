@@ -29,6 +29,7 @@ export const TOOLS = [
   { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
   { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },
   { slug: 'build-log', name: "Jack's Build Log", description: "This site's history, replayed on a clock or a ring.", group: 'misc', icon: 'branch', status: 'ready', words: ['build log', 'commits', 'git', 'history', 'numbers', 'stats'] },
+  { slug: 'speed-check', name: "Jack's Speed Check", description: 'Your download speed and ping, in a few seconds.', group: 'misc', icon: 'bolt', status: 'ready', example: ['Your connection', '527 Mbps, ping 8 ms'], words: ['speed test', 'internet speed', 'wifi', 'bandwidth', 'mbps', 'ping', 'download'] },
   { slug: 'site-check', name: "Jack's Site Check", description: 'Every page of this site, checked link by link.', group: 'misc', icon: 'bug', status: 'ready', words: ['site check', 'crawler', 'spider', 'web', 'broken links', 'links', '404'] },
   { slug: 'writing-islands', name: "Jack's Writing Islands", description: "This site's posts as islands, carved by years of rain.", group: 'misc', icon: 'mountain', status: 'ready', words: ['islands', 'posts', 'erosion', 'landscape', 'rain'], hidden: true },
 ];

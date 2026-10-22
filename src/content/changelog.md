@@ -108,3 +108,4 @@
 - 2026-10-12 design: Gave [Jack's Site Check](/lab/site-check/) the site's own cards, as the Build Log
 - 2026-10-21 design: Turned focus rings, selections and the menu teal
 - 2026-10-22 design: Polished the small stuff: finer lines, springier buttons, softer edges
+- 2026-10-22 new: Added [Jack's Speed Check](/lab/speed-check/) to the Lab: your download speed and ping

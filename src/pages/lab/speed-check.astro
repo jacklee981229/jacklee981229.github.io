@@ -1,0 +1,117 @@
+---
+// Jack's Speed Check, in the Lab's Misc: download speed and ping, measured live in the visitor's browser against
+// Cloudflare's speed servers (src/lib/speed-check.js), drawn as an arc with streaks pouring into it by
+// src/speed-check/gauge.js on the effects' stage. Ping has a card of its own; the data a check used is only a note.
+import ToolShell from '../../components/ToolShell.astro';
+
+const label = 'An arc that fills with your download speed, from 0 to 1000 Mbps, while streaks pour in from both sides.';
+---
+<ToolShell slug="speed-check">
+  <section class="panel speed" aria-label="Speed check">
+    <p class="status" data-status aria-live="polite">Press Start to check your connection.</p>
+    <div class="dial" data-dial>
+      <canvas role="img" aria-label={label}></canvas>
+      <p class="readout"><span data-mbps>0</span><small>Mbps</small></p>
+    </div>
+    <div class="ping">
+      <span>Ping</span>
+      <p><b data-ping>--</b><small>ms</small></p>
+    </div>
+    <button type="button" class="button" data-start>Start</button>
+    <p class="used" data-used></p>
+  </section>
+</ToolShell>
+
+<script>
+  import { runStage } from '../../effects/stage.js';
+  import { createGauge } from '../../speed-check/gauge.js';
+  import { CHUNK, DOWN_URL, measureDownload, measurePing, pingFromTiming } from '../../lib/speed-check.js';
+  import { sayWaiting } from '../../lib/waiting.js';
+
+  const one = (selector: string) => document.querySelector<HTMLElement>(selector)!;
+  const status = one('[data-status]');
+  const start = one('[data-start]') as HTMLButtonElement;
+  const pingOut = one('[data-ping]');
+  const used = one('[data-used]');
+  let gauge: ReturnType<typeof createGauge> | undefined;
+  runStage(one('[data-dial]'), (stage) => (gauge = createGauge(stage, one('[data-mbps]'))));
+
+  // One ping: a request for no bytes, timed by the browser (the answer allows it), less Cloudflare's own time.
+  const ping = async () => {
+    const url = `${DOWN_URL}?bytes=0&r=${Math.random()}`;
+    await (await fetch(url, { cache: 'no-store' })).arrayBuffer();
+    const entry = performance.getEntriesByName(url).pop() as PerformanceResourceTiming;
+    performance.clearResourceTimings();
+    return pingFromTiming(entry);
+  };
+  // One download, its bytes counted as they arrive.
+  const download = async (onBytes: (n: number) => void, signal: AbortSignal) => {
+    const answer = await fetch(`${DOWN_URL}?bytes=${CHUNK}&r=${Math.random()}`, { cache: 'no-store', signal });
+    const reader = answer.body!.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return;
+      onBytes(value.length);
+    }
+  };
+
+  start.addEventListener('click', async () => {
+    start.disabled = true;
+    pingOut.textContent = '--';
+    used.textContent = '';
+    gauge?.set('ping', 0);
+    sayWaiting(status, 'Checking ping');
+    try {
+      const ms = await measurePing({
+        ping,
+        onPing: (middle) => {
+          pingOut.textContent = middle.toFixed(0);
+          gauge?.echo();
+        },
+      });
+      pingOut.textContent = ms.toFixed(0);
+      gauge?.set('download', 0);
+      sayWaiting(status, 'Measuring download');
+      const result = await measureDownload({
+        download,
+        now: () => performance.now(),
+        wait: (wait) => new Promise((done) => setTimeout(done, wait)),
+        onSpeed: (mbps) => gauge?.set('download', mbps),
+      });
+      gauge?.set('done', result.mbps);
+      status.textContent = 'Your connection right now.';
+      used.textContent = `This check used ${Math.round(result.bytes / 1e6)} MB of data.`;
+      start.textContent = 'Again';
+    } catch {
+      gauge?.set('idle', 0);
+      pingOut.textContent = '--';
+      status.textContent = "Couldn't reach the speed server. Check you're online, then try again.";
+    }
+    start.disabled = false;
+  });
+</script>
+
+<style>
+  .speed { display: grid; justify-items: center; padding: var(--space-6) var(--space-6) var(--space-5); text-align: center; }
+  .status { margin: 0; color: var(--muted); font-size: var(--text-md); font-weight: 650; }
+  /* The stage's colours (gauge.js): the arc's fill and track, the light along it, the streaks, the scale. */
+  .dial { --c1: var(--speed-fill); --c2: var(--speed-track); --c3: var(--speed-light); --c4: var(--speed-streak); --c5: var(--speed-scale); position: relative; width: 100%; height: 26rem; overflow: hidden; border-radius: var(--radius-xl); }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* At the arc's middle (gauge.js puts it 60% down), figures of one width so it doesn't shift as it climbs. */
+  .readout { position: absolute; top: 60%; left: 0; right: 0; display: flex; align-items: baseline; justify-content: center; margin: 0; transform: translateY(-40%); font-size: clamp(3rem, 9vw, 7rem); font-weight: 900; line-height: 1; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; pointer-events: none; }
+  .readout small, .ping small { margin-left: 0.15em; color: var(--muted); font-size: 0.3em; font-weight: 700; letter-spacing: 0; }
+  /* Ping, the other number that matters: a card of its own, set into the panel. */
+  .ping { display: grid; justify-items: center; gap: var(--space-1); min-width: 12rem; margin-top: var(--space-2); padding: var(--space-3) var(--space-6) var(--space-4); border-radius: var(--radius-xl); background: var(--paper); }
+  .ping span { color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
+  .ping p { display: flex; align-items: baseline; margin: 0; font-size: var(--text-display); font-weight: 900; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .speed > .button { margin-top: var(--space-5); }
+  /* The data a check used: only a note, its line kept so nothing moves when it appears. */
+  .used { min-height: 1lh; margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+
+  @media (max-width: 719px) {
+    .speed { padding: var(--space-5) var(--space-4); }
+    /* The status on one line, as on wider screens. */
+    .status { font-size: var(--text-sm); }
+    .dial { height: 18rem; }
+  }
+</style>

@@ -264,6 +264,13 @@
   --check-shine: var(--muted);
   /* The light of the waves from the web's hub: at the start, at the end and the watching ones after. */
   --check-glow: var(--changelog-top-from);
+  /* Jack's Speed Check (src/speed-check/gauge.js): the arc's fill and its empty track, the light running along the
+     fill, the streaks pouring in, and the scale's numbers. */
+  --speed-fill: var(--lab-from);
+  --speed-track: var(--paper);
+  --speed-light: var(--paper-end);
+  --speed-streak: var(--lab-from);
+  --speed-scale: var(--muted);
   /* Magnetic Liquid (src/effects/magnetic-liquid.js), by day: its --magnet-* colours. */
   /* A white product shot: the card under the dish, the shadow it casts, the studio's blue-grey walls and its white
      softboxes, a white porcelain dish, liquid with an ink undertone. The gels, the sky and the aurora only light the
@@ -467,6 +474,9 @@
   --check-shadow: var(--paper);
   --check-shell: var(--paper);
   --check-glow: #4FD8E8;
+  --speed-fill: var(--accent-lab);
+  --speed-light: var(--ink);
+  --speed-streak: var(--accent-lab);
 
   /* Jack's Pond by night: the same pond under the moon, in the Moonlit Pond mockup's deep blues; the light is the moon's. */
   --pond-sand: #142336;
