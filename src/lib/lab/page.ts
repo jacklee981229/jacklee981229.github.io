@@ -15,9 +15,13 @@ const valueOf = (el: HTMLElement | null) => (el instanceof HTMLTextAreaElement |
 // Shown on a copy button once its text is copied (global.css pops it in).
 const TICK = `<svg class="icon copied-tick" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS.check}</svg>`;
 
-/** Every `[data-copy]` button copies the value or text of the element whose id it names. */
+/**
+ * Every `[data-copy]` button copies the value or text of the element whose id it names. A page that adds buttons
+ * later calls it again; buttons already wired are left as they are.
+ */
 export function wireCopyButtons() {
-  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]:not([data-copy-wired])')) {
+    button.dataset.copyWired = '';
     const label = button.querySelector<HTMLElement>('[data-label]') ?? button;
     const original = label.textContent ?? '';
     let timer = 0;

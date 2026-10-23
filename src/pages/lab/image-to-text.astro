@@ -1,0 +1,187 @@
+---
+import Icon from '../../components/Icon.astro';
+import ToolShell from '../../components/ToolShell.astro';
+---
+<ToolShell slug="image-to-text" stays="Your pictures stay in your browser.">
+  <div class="image-to-text">
+    <label class="drop" data-drop>
+      <input class="visually-hidden" type="file" accept="image/*" multiple data-files />
+      <Icon name="scan-text" />
+      <span class="drop-big">Drop pictures here, or <span class="pick">choose them</span></span>
+      <span class="drop-small">Screenshots or photos, in Chinese or English. Or paste one with Ctrl+V.</span>
+    </label>
+    <p class="note" aria-live="polite" data-note></p>
+    <ul class="reads" data-reads></ul>
+    <p class="actions" data-actions hidden>
+      <button type="button" class="button" data-copy="all-text"><Icon name="copy" /><span data-label>Copy all</span></button>
+      <button type="button" class="button" data-clear>Clear</button>
+      <textarea class="visually-hidden" id="all-text" tabindex="-1" aria-hidden="true" readonly></textarea>
+    </p>
+  </div>
+</ToolShell>
+
+<script>
+  import { ICONS } from '../../lib/icons.js';
+  import { toText } from '../../lib/lab/image-to-text.js';
+  import { announce, wireCopyButtons } from '../../lib/lab/page';
+  import { sayWaiting } from '../../lib/waiting.js';
+
+  // Reading (PaddleOCR.js, its models and engine) loads only once the first picture arrives.
+  const reader = () => import('../../lib/lab/image-to-text-reader');
+
+  const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const input = $<HTMLInputElement>('[data-files]');
+  const drop = $('[data-drop]');
+  const note = $('[data-note]');
+  const list = $('[data-reads]');
+  const actions = $('[data-actions]');
+  const all = $<HTMLTextAreaElement>('#all-text');
+
+  let made = 0;
+  /** Pictures wait their turn: the reader reads one at a time. */
+  let queue: Promise<unknown> = Promise.resolve();
+  /** Started reading at least once on this page: the first time also fetches the reader. */
+  let warmed = false;
+
+  const icon = (name: keyof typeof ICONS) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+
+  /** Each picture's card: the picture with its lines boxed, then its words to copy. */
+  function card(file: File) {
+    const id = `read-${++made}`;
+    const li = document.createElement('li');
+    li.className = 'read';
+    li.innerHTML = `<div class="pic"><canvas width="1" height="1" aria-hidden="true"></canvas></div>
+      <div class="words"><p class="head"><span class="name"></span><span class="meta" data-meta></span></p>
+      <textarea id="${id}" readonly spellcheck="false" aria-label=""></textarea>
+      <p class="copy"><button type="button" class="button" data-copy="${id}">${icon('copy')}<span data-label>Copy</span></button></p></div>`;
+    li.querySelector('.name')!.textContent = file.name || 'Pasted picture';
+    li.querySelector('textarea')!.setAttribute('aria-label', `Words in ${file.name || 'the pasted picture'}`);
+    list.append(li);
+    wireCopyButtons();
+    return li;
+  }
+
+  /** The picture drawn small, with a box round every line found. */
+  function draw(canvas: HTMLCanvasElement, bitmap: ImageBitmap, polys: [number, number][][]) {
+    const scale = Math.min(1, 640 / bitmap.width);
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = getComputedStyle(canvas).getPropertyValue('--box').trim();
+    ctx.lineWidth = 2;
+    for (const poly of polys) {
+      ctx.beginPath();
+      poly.forEach(([x, y], k) => (k ? ctx.lineTo(x * scale, y * scale) : ctx.moveTo(x * scale, y * scale)));
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+
+  function updateAll() {
+    all.value = [...list.querySelectorAll<HTMLTextAreaElement>('.read textarea')].map((t) => t.value).filter(Boolean).join('\n\n');
+    actions.hidden = !list.children.length;
+  }
+
+  async function readOne(file: File, li: HTMLElement) {
+    const meta = li.querySelector<HTMLElement>('[data-meta]')!;
+    const text = li.querySelector('textarea')!;
+    const canvas = li.querySelector('canvas')!;
+    let bitmap: ImageBitmap;
+    try {
+      bitmap = await createImageBitmap(file);
+    } catch {
+      meta.textContent = "Your browser can't open this picture.";
+      li.classList.add('failed');
+      return;
+    }
+    draw(canvas, bitmap, []);
+    sayWaiting(meta, warmed ? 'Reading' : 'Getting the reader ready (about 15 MB, the first time only)');
+    warmed = true;
+    try {
+      const t0 = performance.now();
+      const { readPicture } = await reader();
+      const items = (await readPicture(file)).filter((item) => item.text.trim());
+      draw(canvas, bitmap, items.map((item) => item.poly));
+      text.value = toText(items);
+      const seconds = ((performance.now() - t0) / 1000).toFixed(1);
+      meta.textContent = items.length ? `${items.length} ${items.length === 1 ? 'line' : 'lines'}, ${seconds} s` : 'No words found in this picture.';
+      li.classList.toggle('empty', !items.length);
+      announce(items.length ? `Read ${file.name || 'the picture'}: ${items.length} lines` : `No words found in ${file.name || 'the picture'}`);
+    } catch {
+      meta.textContent = "The reader couldn't start. Check the connection and try again.";
+      li.classList.add('failed');
+    } finally {
+      bitmap.close();
+      updateAll();
+    }
+  }
+
+  function add(files: File[]) {
+    const pictures = files.filter((f) => f.type.startsWith('image/'));
+    const others = files.filter((f) => !f.type.startsWith('image/')).map((f) => f.name);
+    note.textContent = others.length ? `${others.join(', ')} ${others.length === 1 ? "isn't a picture" : "aren't pictures"}.` : '';
+    for (const file of pictures) {
+      const li = card(file);
+      queue = queue.then(() => readOne(file, li));
+    }
+    updateAll();
+  }
+
+  input.addEventListener('change', () => {
+    if (input.files?.length) add([...input.files]);
+    input.value = '';
+  });
+  // Dragged over: the box lights up, and a drop adds the pictures instead of opening them in the tab.
+  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('is-over');
+  });
+  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]);
+  });
+  // A screenshot pasted anywhere on the page (Ctrl+V), unless someone is typing in a field.
+  document.addEventListener('paste', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, textarea:not([readonly]), [contenteditable]')) return;
+    const files = [...(e.clipboardData?.files ?? [])];
+    if (!files.length) return;
+    e.preventDefault();
+    add(files);
+  });
+  $('[data-clear]').addEventListener('click', () => {
+    list.replaceChildren();
+    note.textContent = '';
+    updateAll();
+    input.focus();
+  });
+  wireCopyButtons();
+</script>
+
+<style is:global>
+  .image-to-text { display: grid; gap: var(--space-5); }
+  .image-to-text .note { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+  .image-to-text .note:empty { display: none; }
+  /* Each picture: small, with its lines boxed, beside the words found in it. */
+  .image-to-text .reads { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+  .image-to-text .reads:empty { display: none; }
+  .image-to-text .read { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-4); padding: var(--space-4); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .image-to-text .pic { align-self: start; overflow: hidden; border-radius: var(--radius-md); background: var(--paper); }
+  .image-to-text .pic canvas { --box: var(--focus); display: block; width: 100%; height: auto; }
+  .image-to-text .words { display: grid; grid-template-rows: auto 1fr auto; gap: var(--space-2); min-width: 0; }
+  .image-to-text .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-3); margin: 0; }
+  .image-to-text .name { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+  .image-to-text .meta { color: var(--muted); font-size: var(--text-sm); }
+  .image-to-text .read textarea { width: 100%; min-height: 9rem; padding: var(--space-3); border: 0; border-radius: var(--radius-md); background: var(--paper); color: var(--ink); font: inherit; line-height: 1.6; resize: vertical; }
+  .image-to-text .read textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .image-to-text :is(.empty, .failed) textarea, .image-to-text :is(.empty, .failed) .copy { display: none; }
+  .image-to-text .copy { margin: 0; }
+  .image-to-text .button { cursor: pointer; color: var(--ink); }
+  .image-to-text .actions { margin: 0; }
+  .image-to-text .actions[hidden] { display: none; }
+  @media (max-width: 719px) {
+    .image-to-text .read { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>

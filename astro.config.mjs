@@ -45,6 +45,13 @@ export default defineConfig({
   trailingSlash: 'always',
   integrations: [siteChecks],
   build: { format: 'directory' },
+  vite: {
+    resolve: {
+      // Image to Text's reader (PaddleOCR.js) asks for ONNX Runtime's default build, which carries the graphics
+      // card's code too: twice the download. It runs on the processor only, so it gets that build instead.
+      alias: [{ find: /^onnxruntime-web$/, replacement: 'onnxruntime-web/wasm' }],
+    },
+  },
   markdown: {
     shikiConfig: {
       // These two keep code comments readable: at least 4.5:1 against the site's code background in both themes.
