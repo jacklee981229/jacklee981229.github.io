@@ -20,6 +20,8 @@ const { label, sample, hint, view } = Astro.props;
     <textarea id="pane-in" spellcheck="false" autocapitalize="off" autocomplete="off" data-in>{sample}</textarea>
     <p class="actions"><button type="button" class="button" data-clear>Clear</button></p>
   </div>
+  <!-- The line between the two sides: drag it, or Tab to it and use the arrow keys, to make one side wider. -->
+  <div class="pane-split" role="separator" aria-orientation="vertical" aria-label="Resize the two sides" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0" data-split><i></i></div>
   <div>
     <div class="pane-head">
       <p class="pane-label" id="pane-label">Preview</p>

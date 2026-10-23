@@ -34,7 +34,16 @@
 /* The Preview tools (PreviewTool.astro): what you type and what it makes, side by side and level, each scrolling on
    its own. Like the games, they are as tall as the window allows with their labels and buttons, and the page glides
    to them when you go to type. */
-.panes { --pane: clamp(16rem, calc(100svh - 9.5rem), 44rem); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.panes { --pane: clamp(16rem, calc(100svh - 9.5rem), 44rem); --split: 0.5; display: grid; grid-template-columns: calc((100% - var(--space-5)) * var(--split)) var(--space-5) minmax(0, 1fr); }
+/* The line between them sits in the gap, level with the boxes: a hairline in a wider grab area, darkening and showing
+   a grip under the pointer, on focus and while dragged. Dragging, the whole page shows the resize arrows. */
+.pane-split { position: relative; margin-top: calc(2rem + var(--space-2)); height: var(--pane); cursor: col-resize; touch-action: none; outline: none; }
+.pane-split::after { content: ''; position: absolute; inset: 0 auto 0 50%; width: var(--hairline); translate: -50% 0; background: var(--rule); transition: background-color var(--motion-quick) ease, width var(--motion-quick) ease; }
+.pane-split i { position: absolute; top: 50%; left: 50%; width: 6px; height: 2.25rem; translate: -50% -50%; border-radius: var(--radius-pill); background: var(--focus); opacity: 0; transition: opacity var(--motion-quick) ease; }
+.pane-split:is(:hover, :focus-visible, .is-dragging)::after { width: 2px; background: var(--focus); }
+.pane-split:is(:hover, :focus-visible, .is-dragging) i { opacity: 1; }
+.pane-split:focus-visible i { outline: 2px solid var(--focus); outline-offset: 3px; }
+.is-col-resizing, .is-col-resizing * { cursor: col-resize !important; user-select: none !important; }
 .panes .field textarea { height: var(--pane); min-height: 10rem; font-family: var(--font-code); font-size: var(--text-sm); }
 /* The two labels' rows are one height, whatever sits beside "Preview", so the boxes under them stay level. */
 .panes .field label, .pane-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 2rem; margin: 0 0 var(--space-2); }
@@ -58,7 +67,8 @@
 @media (max-width: 719px) {
   .convert { grid-template-columns: minmax(0, 1fr); }
   .convert .field textarea { min-height: 10rem; }
-  .panes { grid-template-columns: minmax(0, 1fr); }
+  .panes { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+  .pane-split { display: none; }
   .panes .field textarea { height: 14rem; }
   .pane-view { height: auto; min-height: 8rem; }
 }

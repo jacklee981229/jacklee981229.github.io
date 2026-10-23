@@ -2,6 +2,8 @@
 // the Preview tools' frame (PreviewTool.astro).
 import { bringIntoView } from '../../games/controls.js';
 import { ICONS } from '../icons.js';
+import { spring } from '../spring.js';
+import { clampSplit, settleSplit, splitAt, SPLIT_STEP } from '../split.js';
 
 /** Says `text` to screen readers, through the page's hidden announcer. */
 export function announce(text: string) {
@@ -89,9 +91,66 @@ export function setupPreview(show: (text: string, view: HTMLElement) => void) {
   // The tall boxes can start below the screen's edge: once you go to type, the page glides to show them whole.
   input.addEventListener('focus', () => bringIntoView(document.querySelector<HTMLElement>('label[for="pane-in"]')!, clear));
   wireCopyButtons();
+  wireSplit();
   // The browser may restore text typed before a reload.
   run();
   return { input, view, run };
+}
+
+/**
+ * The line between the Preview tools' two sides (PreviewTool.astro): held by the pointer however fast it moves,
+ * settling on the middle when let go near it, back to the middle on a double-click; the arrow keys move it too.
+ */
+function wireSplit() {
+  const line = document.querySelector<HTMLElement>('[data-split]');
+  const panes = line?.closest<HTMLElement>('.panes');
+  if (!line || !panes) return;
+  let share = 0.5;
+  let stopGlide = () => {};
+  const set = (p: number) => {
+    share = clampSplit(p);
+    panes.style.setProperty('--split', String(share));
+    line.setAttribute('aria-valuenow', String(Math.round(share * 100)));
+  };
+  const glideTo = (p: number) => {
+    stopGlide();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return set(p);
+    const from = share;
+    stopGlide = spring(0, 1, (k) => set(from + (p - from) * k));
+  };
+  const measure = () => {
+    const box = panes.getBoundingClientRect();
+    const gap = line.getBoundingClientRect().width;
+    return { left: box.left, room: box.width - gap, gap };
+  };
+  line.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    stopGlide();
+    line.setPointerCapture(e.pointerId);
+    line.classList.add('is-dragging');
+    document.documentElement.classList.add('is-col-resizing');
+    const { left, room, gap } = measure();
+    const move = (ev: PointerEvent) => set(splitAt(ev.clientX, left, room, gap));
+    const up = () => {
+      line.removeEventListener('pointermove', move);
+      line.classList.remove('is-dragging');
+      document.documentElement.classList.remove('is-col-resizing');
+      const rest = settleSplit(share, room);
+      if (rest !== share) glideTo(rest);
+    };
+    line.addEventListener('pointermove', move);
+    line.addEventListener('pointerup', up, { once: true });
+    line.addEventListener('pointercancel', up, { once: true });
+  });
+  line.addEventListener('dblclick', () => glideTo(0.5));
+  line.addEventListener('keydown', (e) => {
+    const to = { ArrowLeft: share - SPLIT_STEP, ArrowRight: share + SPLIT_STEP, Home: 0, End: 1 }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    stopGlide();
+    set(to);
+  });
 }
 
 export type Converted = { text: string; note?: string };

@@ -115,3 +115,4 @@
 - 2026-10-22 fix: Made the loading screen come before the page, not drop over it
 - 2026-10-23 new: Added [PDF Pages](/lab/pdf-pages/) to the Lab: merge, split and turn PDF pages
 - 2026-10-23 new: Added [Image to Text](/lab/image-to-text/) to the Lab: copy the words out of a picture
+- 2026-10-23 improved: Let you zoom post pictures and drag the line between Preview sides

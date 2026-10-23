@@ -4,14 +4,19 @@ import Icon from './Icon.astro';
 ---
 <dialog class="lightbox" aria-label="Enlarged image" data-lightbox>
   <figure>
-    <img alt="" />
-    <figcaption></figcaption>
+    <div class="stage" data-stage><img alt="" draggable="false" /></div>
+    <figcaption>
+      <span data-caption></span>
+      <span class="how"><b data-zoom-level>100%</b><span class="how-mouse">Scroll to zoom · drag to move · double-click to reset</span><span class="how-touch">Pinch to zoom · double-tap to reset</span></span>
+    </figcaption>
   </figure>
   <form method="dialog"><button class="close"><Icon name="close" />Close</button></form>
 </dialog>
 
 <script>
   import { ICONS } from '../lib/icons.js';
+  import { spring } from '../lib/spring.js';
+  import { clampView, wheelFactor, zoomAt } from '../lib/zoom.js';
 
   const FOLD_AFTER_LINES = 24;
   // Shown on a copy button once its text is copied (global.css pops it in).
@@ -88,14 +93,91 @@ import Icon from './Icon.astro';
         big.src = img.currentSrc || img.src;
         big.alt = img.alt;
       }
-      const caption = box.querySelector('figcaption');
+      const caption = box.querySelector('[data-caption]');
       if (caption) caption.textContent = img.alt;
+      resetZoom();
       box.showModal();
     });
   }
+  // A click on the picture or its line is for zooming; beside them (the backdrop) it closes, as Close and Esc do.
   box?.addEventListener('click', (e) => {
-    if (!(e.target instanceof Element) || !e.target.closest('.close')) box.close();
+    if (!(e.target instanceof Element) || !e.target.closest('.close, [data-stage], figcaption')) box.close();
   });
+
+  // Zoom where you point: scroll or pinch zooms on the spot under the pointer, a drag moves it, a double-click goes
+  // back to 100%. The picture is scaled and moved inside a window of its own size, which clips it.
+  const stage = box?.querySelector<HTMLElement>('[data-stage]');
+  const big = stage?.querySelector('img');
+  const level = box?.querySelector<HTMLElement>('[data-zoom-level]');
+  let view = { s: 1, x: 0, y: 0 };
+  let stopGlide = () => {};
+  function show(next: typeof view) {
+    view = next;
+    if (big) big.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`;
+    if (level) level.textContent = `${Math.round(view.s * 100)}%`;
+    stage?.classList.toggle('is-zoomed', view.s > 1.001);
+  }
+  function resetZoom() {
+    stopGlide();
+    show({ s: 1, x: 0, y: 0 });
+  }
+  if (stage && big) {
+    const size = () => [stage.clientWidth, stage.clientHeight] as const;
+    const point = (e: { clientX: number; clientY: number }) => {
+      const r = stage.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top] as const;
+    };
+    stage.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      stopGlide();
+      // A touchpad pinch arrives as a wheel with Ctrl held.
+      show(zoomAt(view, ...point(e), view.s * wheelFactor(e.deltaY, e.ctrlKey), ...size()));
+    }, { passive: false });
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pan: { x: number; y: number; view: typeof view } | null = null;
+    let pinch: { d: number; view: typeof view } | null = null;
+    const spread = () => {
+      const [a, b] = [...pointers.values()];
+      return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
+    stage.addEventListener('pointerdown', (e) => {
+      stopGlide();
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        pinch = { d: spread().d, view };
+        pan = null;
+      } else if (view.s > 1.001) {
+        pan = { x: e.clientX, y: e.clientY, view };
+        stage.classList.add('is-panning');
+      }
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pointers.size === 2) {
+        const now = spread();
+        show(zoomAt(view, ...point({ clientX: now.x, clientY: now.y }), (pinch.view.s * now.d) / pinch.d, ...size()));
+      } else if (pan) {
+        show(clampView({ s: view.s, x: pan.view.x + e.clientX - pan.x, y: pan.view.y + e.clientY - pan.y }, ...size()));
+      }
+    });
+    const lift = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (!pointers.size) {
+        pan = null;
+        stage.classList.remove('is-panning');
+      }
+    };
+    stage.addEventListener('pointerup', lift);
+    stage.addEventListener('pointercancel', lift);
+    stage.addEventListener('dblclick', () => {
+      const from = view;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return resetZoom();
+      stopGlide = spring(0, 1, (k) => show({ s: from.s + (1 - from.s) * k, x: from.x * (1 - k), y: from.y * (1 - k) }));
+    });
+  }
 
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy-link]')) {
     button.addEventListener('click', () => copy(location.href.split('#')[0], button, 'Link copied'));
@@ -106,8 +188,20 @@ import Icon from './Icon.astro';
   .lightbox { max-width: min(64rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: visible; border: 0; background: transparent; }
   .lightbox::backdrop { background: var(--backdrop-dark); }
   figure { display: grid; justify-items: center; gap: var(--space-3); margin: 0; }
-  img { width: auto; max-width: 100%; max-height: calc(100dvh - 7rem); border-radius: var(--radius-image); background: var(--surface); }
-  figcaption { color: var(--on-backdrop); font-size: var(--text-ui); }
+  /* The picture's window, its own size: it clips the picture as it grows, and takes the pointer for zooming. */
+  .stage { max-width: 100%; overflow: hidden; border-radius: var(--radius-image); background: var(--surface); touch-action: none; cursor: zoom-in; }
+  .stage.is-zoomed { cursor: grab; }
+  .stage.is-panning { cursor: grabbing; }
+  img { display: block; width: auto; max-width: 100%; max-height: calc(100dvh - 7rem); transform-origin: 0 0; user-select: none; -webkit-user-select: none; }
+  figcaption { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--space-2) var(--space-4); color: var(--on-backdrop); font-size: var(--text-ui); }
+  figcaption [data-caption]:empty { display: none; }
+  .how { display: inline-flex; align-items: center; gap: var(--space-3); color: color-mix(in srgb, var(--on-backdrop) 80%, transparent); font-size: var(--text-sm); }
+  .how b { min-width: 3.5em; padding: 0.125rem var(--space-2); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--on-backdrop) 14%, transparent); color: var(--on-backdrop); text-align: center; font-variant-numeric: tabular-nums; }
+  .how-touch { display: none; }
+  @media (hover: none) {
+    .how-mouse { display: none; }
+    .how-touch { display: inline; }
+  }
   .close { position: fixed; top: var(--space-4); right: var(--space-4); display: inline-flex; align-items: center; gap: 0.375rem; padding: var(--space-2) 0.875rem; border: 1px solid color-mix(in srgb, var(--on-backdrop) 35%, transparent); border-radius: var(--radius-pill); background: var(--backdrop-dark); color: var(--on-backdrop); font-size: var(--text-sm); font-weight: 650; cursor: pointer; }
   .close :global(.icon) { width: 16px; height: 16px; }
 </style>
