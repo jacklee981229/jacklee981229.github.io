@@ -25,6 +25,7 @@ export const TOOLS = [
   { slug: 'json-preview', name: 'JSON Preview', description: 'Tidy JSON you can read, fold and check.', group: 'preview', icon: 'braces', status: 'ready', example: ['{"name":"Jack","lab":true}', 'Tidy, coloured, foldable'] },
   { slug: 'convert-image', name: 'Convert Image', description: 'Change a picture to JPG, PNG, WebP or PDF.', group: 'image', icon: 'image', status: 'ready', example: ['photo.jpg', 'photo.png, .webp or .pdf'] },
   { slug: 'image-editor', name: 'Image Editor', description: 'Crop, resize, flip and compress a picture.', group: 'image', icon: 'crop', status: 'ready', example: ['4032 × 3024, 3.2 MB', '1200 × 900, 240 KB'] },
+  { slug: 'pdf-pages', name: 'PDF Pages', description: 'Merge, split, turn and reorder the pages of PDFs.', group: 'image', icon: 'file', status: 'ready', example: ['report.pdf + slides.pdf', 'One PDF, 9 pages'], words: ['pdf', 'merge', 'combine', 'split', 'rotate', 'reorder', 'pages'] },
   { slug: 'qr-code', name: 'QR Code Generator', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'ready', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
   { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
   { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },

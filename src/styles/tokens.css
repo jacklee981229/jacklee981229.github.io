@@ -142,6 +142,15 @@
   --tool-website: var(--collection-top-from);
   /* Behind the words the Toolbox's search found, in the theme's own focus colour. */
   --found-mark: color-mix(in srgb, var(--focus) 28%, transparent);
+  /* PDF Pages: each dropped file's colour, down its pages' edge and on its dot, taken in turn; and a page still
+     being drawn, which is paper white in both themes, as a real page is. */
+  --pdf-file-1: #2563EB;
+  --pdf-file-2: #C2410C;
+  --pdf-file-3: #7C3AED;
+  --pdf-file-4: #0C7D52;
+  --pdf-file-5: #BE185D;
+  --pdf-file-6: #A16207;
+  --pdf-sheet: #FFFFFF;
   --travel-top-from: #2563EB;
   --travel-top-to: var(--travel-base);
   --about-top-from: #9333EA;
@@ -447,6 +456,14 @@
   --card-light: rgb(255 255 255 / 0.07);
   /* The Toolbox's terminal grey would vanish on a dark card: a lighter one, still 6:1 under its white letter. */
   --tool-terminal: #636366;
+  /* PDF Pages' file colours, lighter so the list's dots show on the dark rows. */
+  --pdf-file-1: #60A5FA;
+  --pdf-file-2: #FB923C;
+  --pdf-file-3: #A78BFA;
+  --pdf-file-4: #34D399;
+  --pdf-file-5: #F472B6;
+  --pdf-file-6: #FBBF24;
+  --pdf-sheet: #F4F4F4;
   /* No fade in the dark: the page is one colour. */
   --paper-end: var(--paper);
   --visited-near: #E31A1C;

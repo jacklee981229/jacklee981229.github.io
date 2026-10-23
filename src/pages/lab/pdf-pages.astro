@@ -1,0 +1,614 @@
+---
+import Icon from '../../components/Icon.astro';
+import Switch from '../../components/Switch.astro';
+import ToolShell from '../../components/ToolShell.astro';
+import { TASKS } from '../../lib/lab/pdf-pages.js';
+---
+<ToolShell slug="pdf-pages" stays="Your files stay in your browser.">
+  <div class="pdf-pages">
+    <label class="drop" data-drop>
+      <input class="visually-hidden" type="file" accept="application/pdf,.pdf" multiple data-input />
+      <Icon name="file" />
+      <span class="drop-big">Drop PDFs here, or <span class="pick">choose them</span></span>
+      <span class="drop-small">Add more and their pages join the board.</span>
+    </label>
+    <p class="note" aria-live="polite" data-note></p>
+    <div class="work" data-work hidden>
+      <ul class="files" data-files></ul>
+      <fieldset class="choices tasks" data-tasks>
+        <legend class="visually-hidden">What to do</legend>
+        <div class="pills">
+          {TASKS.map((t, i) => <label class="pill"><input class="visually-hidden" type="radio" name="task" value={t.id} checked={i === 0} />{t.label}</label>)}
+        </div>
+      </fieldset>
+      <section class="board" aria-label="The pages">
+        <div class="bar">
+          <div class="bar-task" data-bar></div>
+          <Switch name="pdf-view" label="How the pages are shown" choices={[{ value: 'preview', label: 'Preview' }, { value: 'list', label: 'List' }]} />
+        </div>
+        <div class="pages grid" data-board></div>
+        <p class="hint" data-hint></p>
+        <p class="undo" aria-live="polite" data-undo hidden></p>
+      </section>
+      <div class="save" data-save></div>
+    </div>
+  </div>
+</ToolShell>
+
+<script>
+  import { ICONS } from '../../lib/icons.js';
+  import { sizeOf } from '../../lib/lab/convert-image.js';
+  import { announce } from '../../lib/lab/page';
+  import { byFileOrder, cutsAfter, move, parseRange, parts, quarter, saveFiles, toRange, turnsToList } from '../../lib/lab/pdf-pages.js';
+  import type { Opened } from '../../lib/lab/pdf-files';
+  import { sayWaiting } from '../../lib/waiting.js';
+
+  // Reading and writing PDFs (and the two packages behind it) loads only once a PDF is dropped.
+  const engine = () => import('../../lib/lab/pdf-files');
+
+  type Source = { id: string; name: string; colour: number; opened: Opened };
+  type Page = { key: string; file: string; n: number; turn: number; on: boolean; cut: boolean; thumb?: string; drawing?: boolean };
+  type Task = 'all' | 'merge' | 'split' | 'turn' | 'out' | 'pics';
+
+  const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
+  const input = $<HTMLInputElement>('[data-input]');
+  const drop = $('[data-drop]');
+  const note = $('[data-note]');
+  const work = $('[data-work]');
+  const filesBox = $('[data-files]');
+  const bar = $('[data-bar]');
+  const board = $('[data-board]');
+  const hint = $('[data-hint]');
+  const undoBox = $('[data-undo]');
+  const saveBox = $('[data-save]');
+
+  let sources: Source[] = [];
+  let pages: Page[] = [];
+  let task: Task = 'all';
+  let layout: 'preview' | 'list' = 'preview';
+  let splitBy: 'cuts' | 'each' | 'every' = 'cuts';
+  let every = 2;
+  let picture: 'jpg' | 'png' = 'jpg';
+  let undo: { text: string; label: string; run: () => void } | null = null;
+  let made = 0;
+  let saving = false;
+
+  const icon = (name: keyof typeof ICONS) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[name]}</svg>`;
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const sourceOf = (p: Page) => sources.find((s) => s.id === p.file)!;
+  const chosen = () => pages.filter((p) => p.on);
+  const cuts = () => cutsAfter(pages.length, splitBy, { every, cuts: pages.flatMap((p, i) => (p.cut ? [i] : [])) });
+
+  // ---------- Adding and removing files ----------
+
+  async function add(files: FileList | File[]) {
+    const before = pages.length;
+    const problems: string[] = [];
+    for (const file of files) {
+      if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) {
+        problems.push(`${file.name} isn't a PDF.`);
+        continue;
+      }
+      sayWaiting(note, `Reading ${file.name}`);
+      const opened = await (await engine()).openPdf(file);
+      if ('error' in opened) {
+        problems.push(opened.error === 'password' ? `${file.name} needs a password to open, so it can't open here.` : `${file.name} couldn't be read: it may be damaged.`);
+        continue;
+      }
+      const source: Source = { id: `f${++made}`, name: file.name, colour: ((made - 1) % 6) + 1, opened };
+      sources.push(source);
+      pages.push(...opened.shapes.map((_, i) => ({ key: `${source.id}-${i + 1}`, file: source.id, n: i + 1, turn: 0, on: false, cut: false })));
+    }
+    note.textContent = problems.join(' ');
+    if (layout === 'preview' && turnsToList(before, pages.length)) {
+      setLayout('list');
+      undo = { text: `${pages.length} pages, so they're shown as a list`, label: 'Show previews', run: () => setLayout('preview') };
+      announce(undo.text);
+    }
+    renderAll();
+  }
+
+  function removeFile(id: string) {
+    for (const p of pages) if (p.file === id && p.thumb) URL.revokeObjectURL(p.thumb);
+    sources.find((s) => s.id === id)?.opened.view.destroy();
+    sources = sources.filter((s) => s.id !== id);
+    pages = pages.filter((p) => p.file !== id);
+    undo = null;
+    renderAll();
+  }
+
+  function setLayout(to: 'preview' | 'list') {
+    layout = to;
+    document.querySelector<HTMLInputElement>(`input[name="pdf-view"][value="${to}"]`)!.checked = true;
+  }
+
+  // ---------- Drawing ----------
+
+  function renderAll() {
+    work.hidden = !pages.length;
+    filesBox.innerHTML = sources.map((s) => `<li class="file" style="--c: var(--pdf-file-${s.colour})"><i></i><span class="file-name">${esc(s.name)}</span> <span class="file-count">${plural(pages.filter((p) => p.file === s.id).length, 'page')}</span><button type="button" data-remove="${s.id}" aria-label="Remove ${esc(s.name)}">${icon('close')}</button></li>`).join('');
+    renderBar();
+    drawBoard();
+  }
+
+  /** The chosen task's own controls, above the board. Drawn when the task changes, so typing in its field isn't interrupted. */
+  function renderBar() {
+    const field = (say: string, placeholder: string) => `<label class="range"><span class="say">${say}</span><input type="text" autocomplete="off" spellcheck="false" placeholder="${placeholder}" value="${toRange(pages.flatMap((p, i) => (p.on ? [i] : [])))}" data-range /></label>`;
+    const pill = (attrs: string, label: string, on?: boolean) => `<button type="button" class="pill small" ${attrs}${on === undefined ? '' : ` aria-pressed="${on}"`}>${label}</button>`;
+    const bits: Record<Task, () => string> = {
+      all: () => field('Choose pages', 'e.g. 1-3, 5') + pill('data-pick="all"', 'All') + pill('data-pick="none"', 'None'),
+      merge: () => sources.length > 1
+        ? `<span class="say" id="order-say">Files in this order</span><ul class="order" aria-labelledby="order-say">${sources.map((s) => `<li class="file" tabindex="0" data-file="${s.id}" style="--c: var(--pdf-file-${s.colour})" aria-label="${esc(s.name)}: drag, or Shift and an arrow key, to move it"><span class="grip" aria-hidden="true">⠿</span><i></i>${esc(s.name)}</li>`).join('')}</ul>`
+        : '<span class="say">Drop another PDF to merge it with this one.</span>',
+      split: () => `<span class="say">Split</span>` + pill('data-split="cuts"', `${icon('scissors')} Where I cut`, splitBy === 'cuts') + pill('data-split="each"', 'Every page', splitBy === 'each') + pill('data-split="every"', `Every ${every} pages`, splitBy === 'every') +
+        (splitBy === 'every' ? pill('data-every="-1" aria-label="Fewer pages a part"', '−') + pill('data-every="1" aria-label="More pages a part"', '+') : ''),
+      turn: () => field('Turn', 'all pages') + pill('data-rot="-90"', `${icon('turn-left')} Left`) + pill('data-rot="90"', `${icon('turn-right')} Right`) + pill('data-rot="180"', '180°'),
+      out: () => field('Take out', 'e.g. 2, 4'),
+      pics: () => field('Pages', 'all pages') + pill('data-picture="jpg"', 'JPG', picture === 'jpg') + pill('data-picture="png"', 'PNG', picture === 'png'),
+    };
+    bar.innerHTML = bits[task]();
+    const range = bar.querySelector<HTMLInputElement>('[data-range]');
+    if (range) range.addEventListener('input', () => {
+      const picked = new Set(parseRange(range.value, pages.length));
+      pages.forEach((p, i) => (p.on = picked.has(i)));
+      drawBoard();
+    });
+    sortable(bar.querySelector<HTMLElement>('.order'), '[data-file]', (from, to) => {
+      sources = move(sources, from, to);
+      pages = byFileOrder(pages, sources.map((s) => s.id));
+    }, () => { renderAll(); });
+  }
+
+  const HINTS: Record<Task, string> = {
+    all: 'Click a page to choose it, drag it to move it. Shift and the arrow keys move it too.',
+    merge: 'Drag a file to move all its pages, or drag one page.',
+    split: 'Click the scissors between two pages to cut there.',
+    turn: 'Choose pages or type them, then turn. With none chosen, all of them turn.',
+    out: 'Click the pages to take out, or type them.',
+    pics: 'With no pages chosen, every page becomes a picture.',
+  };
+
+  /** The pages on the board, as previews or rows, showing what the task will do; then the Save under it. */
+  function drawBoard(focusKey?: string) {
+    const cut = task === 'split' ? cuts() : [];
+    const anyChosen = pages.some((p) => p.on);
+    let part = 1;
+    board.className = `pages ${layout === 'list' ? 'list' : 'grid'}`;
+    board.innerHTML = pages.map((p, i) => {
+      const source = sourceOf(p);
+      const shape = source.opened.shapes[p.n - 1];
+      const cutHere = cut[i];
+      const choosable = task !== 'split';
+      const cls = [choosable && p.on && 'on', task === 'out' && p.on && 'gone', task === 'pics' && anyChosen && !p.on && 'dim', cutHere && 'cut-after'].filter(Boolean).join(' ');
+      const label = task === 'split' ? `<span class="part">Part ${part}</span>` : '';
+      if (cutHere) part++;
+      const name = `Page ${i + 1}: ${esc(source.name)}, page ${p.n}`;
+      const tools = task === 'all' ? `<span class="tools"><button type="button" data-turn aria-label="Turn page ${i + 1}">${icon('turn-right')}</button><button type="button" data-out aria-label="Take page ${i + 1} out">${icon('close')}</button></span>` : '';
+      const canCut = task === 'split' && splitBy === 'cuts' && i < pages.length - 1;
+      const sheet = `<span class="fit"><span class="sheet ${shape < 1 ? 'tall' : 'wide'}" style="--ar: ${shape}; transform: rotate(${p.turn}deg);${p.thumb ? ` background-image: url(${p.thumb})` : ''}" data-sheet></span></span>`;
+      const attrs = `class="${layout === 'list' ? 'row' : 'pg'} ${cls}" data-key="${p.key}" tabindex="0" role="button" aria-label="${name}"${choosable ? ` aria-pressed="${p.on}"` : ''} style="--c: var(--pdf-file-${source.colour})"`;
+      const mark = `<span class="tick" aria-hidden="true">${task === 'out' ? icon('close') : icon('check')}</span>`;
+      if (layout === 'list') {
+        const snip = canCut ? `<button type="button" class="snip" data-cut aria-pressed="${p.cut}" aria-label="Cut after page ${i + 1}">${icon('scissors')}<span class="snip-words">Cut after</span></button>` : '';
+        return `<div ${attrs}>${mark}<span class="grip" aria-hidden="true">⠿</span>${sheet}<b class="num">${i + 1}</b><span class="from"><i></i><span class="from-name">${esc(source.name)} · </span>page ${p.n}</span>${label}<span class="gap"></span>${tools}${snip}</div>` +
+          (cutHere ? `<p class="cut-line">Part ${part} starts here</p>` : '');
+      }
+      const snip = canCut ? `<button type="button" class="cut" data-cut aria-pressed="${p.cut}" aria-label="Cut after page ${i + 1}">${icon('scissors')}</button>` : '';
+      return `<div ${attrs}>${mark}${tools}${snip}${sheet}<span class="num">${i + 1}</span>${label}</div>`;
+    }).join('');
+    hint.textContent = layout === 'list' && task === 'split' ? 'Click Cut after on a page to cut there.' : HINTS[task];
+    undoBox.hidden = !undo;
+    if (undo) {
+      undoBox.innerHTML = `<span>${esc(undo.text)}</span><button type="button" data-undo-run>${esc(undo.label)}</button>`;
+      undoBox.querySelector<HTMLButtonElement>('[data-undo-run]')!.onclick = () => {
+        undo!.run();
+        undo = null;
+        renderAll();
+      };
+    }
+    for (const sheet of board.querySelectorAll('[data-sheet]')) thumbs.observe(sheet);
+    sortable(board, '[data-key]', (from, to) => { pages = move(pages, from, to); }, () => drawBoard());
+    drawSave();
+    if (focusKey) board.querySelector<HTMLElement>(`[data-key="${focusKey}"]`)?.focus({ preventScroll: false });
+  }
+
+  /** What Save will make, in words and figures, and its buttons. */
+  function drawSave() {
+    const n = pages.length;
+    const c = chosen().length;
+    const button = (label: string, attrs = '', quiet = false) => `<button type="button" class="button${quiet ? ' quiet' : ''}" ${attrs}${saving ? ' disabled' : ''}>${label}</button>`;
+    let sum = '';
+    let buttons = '';
+    if (task === 'all') {
+      sum = `<b>${plural(n, 'page')}</b> in one PDF, in this order`;
+      buttons = (c ? button(`Save the ${c} chosen`, 'data-go="chosen"', true) : '') + button('Save PDF', 'data-go');
+    } else if (task === 'merge') {
+      sum = `<b>${plural(n, 'page')}</b> from ${plural(sources.length, 'file')} in one PDF`;
+      buttons = button('Merge', 'data-go');
+    } else if (task === 'split') {
+      const made = parts(cuts()).length;
+      sum = made > 1 ? `<b>${made} PDFs</b> in a ZIP` : 'No cuts yet: choose where to cut';
+      buttons = made > 1 ? button('Split', 'data-go') : '';
+    } else if (task === 'turn') {
+      sum = `<b>${plural(n, 'page')}</b> in one PDF, ${pages.filter((p) => quarter(p.turn)).length} turned`;
+      buttons = button('Save PDF', 'data-go');
+    } else if (task === 'out') {
+      sum = !c ? 'Choose the pages to take out' : c === n ? 'Every page is chosen: nothing would be left' : `<b>${plural(n - c, 'page')}</b> left in one PDF`;
+      buttons = c && c < n ? button('Take out and save', 'data-go') : '';
+    } else {
+      const k = c || n;
+      sum = `<b>${plural(k, `${picture.toUpperCase()} picture`)}</b>${k > 1 ? ' in a ZIP' : ''}`;
+      buttons = button('Make pictures', 'data-go');
+    }
+    saveBox.innerHTML = `<p class="sum" data-sum>${sum}</p><p class="go">${buttons}</p>`;
+  }
+
+  // Pages are drawn only as they come near the screen, a few at a time, so a long PDF stays quick.
+  const thumbs = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      thumbs.unobserve(entry.target);
+      const key = (entry.target as HTMLElement).closest<HTMLElement>('[data-key]')?.dataset.key;
+      const page = pages.find((p) => p.key === key);
+      if (page) drawThumb(page);
+    }
+  }, { rootMargin: '400px 0px' });
+
+  async function drawThumb(page: Page) {
+    if (page.thumb || page.drawing) return;
+    page.drawing = true;
+    const source = sources.find((s) => s.id === page.file);
+    if (!source) return;
+    try {
+      page.thumb = await (await engine()).thumbnail(source.opened, page.n);
+    } catch {
+      page.drawing = false;
+      return;
+    }
+    const sheet = board.querySelector<HTMLElement>(`[data-key="${page.key}"] [data-sheet]`);
+    if (sheet) sheet.style.backgroundImage = `url(${page.thumb})`;
+  }
+
+  // ---------- Using the board ----------
+
+  function choose(page: Page) {
+    page.on = !page.on;
+    const range = bar.querySelector<HTMLInputElement>('[data-range]');
+    if (range) range.value = toRange(pages.flatMap((p, i) => (p.on ? [i] : [])));
+    drawBoard(page.key);
+  }
+
+  function turn(which: Page[], deg: number) {
+    for (const p of which) {
+      p.turn += deg;
+      // Turned in place, so the page swings round instead of jumping.
+      const sheet = board.querySelector<HTMLElement>(`[data-key="${p.key}"] [data-sheet]`);
+      if (sheet) sheet.style.transform = `rotate(${p.turn}deg)`;
+    }
+    drawSave();
+  }
+
+  board.addEventListener('click', (e) => {
+    if (dragged) return;
+    const target = e.target as HTMLElement;
+    const el = target.closest<HTMLElement>('[data-key]');
+    const page = pages.find((p) => p.key === el?.dataset.key);
+    if (!page) return;
+    if (target.closest('[data-turn]')) return turn([page], 90);
+    if (target.closest('[data-out]')) {
+      const at = pages.indexOf(page);
+      pages.splice(at, 1);
+      undo = { text: `Page ${at + 1} taken out`, label: 'Undo', run: () => pages.splice(at, 0, page) };
+      announce(undo.text);
+      return renderAll();
+    }
+    if (target.closest('[data-cut]')) {
+      page.cut = !page.cut;
+      return drawBoard();
+    }
+    if (task !== 'split') choose(page);
+  });
+
+  // Keys: Space or Enter chooses, the arrows go to the next page, Shift and an arrow moves the page (or a file, in Merge).
+  document.querySelector('.pdf-pages')!.addEventListener('keydown', (e) => {
+    const ev = e as KeyboardEvent;
+    const el = ev.target as HTMLElement;
+    const isPage = el.matches('[data-key]');
+    const isFile = el.matches('[data-file]');
+    if (!isPage && !isFile) return;
+    const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[ev.key];
+    if (isPage && (ev.key === ' ' || ev.key === 'Enter')) {
+      ev.preventDefault();
+      const page = pages.find((p) => p.key === el.dataset.key)!;
+      if (task !== 'split') choose(page);
+      return;
+    }
+    if (!step) return;
+    ev.preventDefault();
+    if (isFile) {
+      const at = sources.findIndex((s) => s.id === el.dataset.file);
+      if (!ev.shiftKey || at + step < 0 || at + step >= sources.length) return;
+      sources = move(sources, at, at + step);
+      pages = byFileOrder(pages, sources.map((s) => s.id));
+      renderAll();
+      bar.querySelector<HTMLElement>(`[data-file="${el.dataset.file}"]`)?.focus();
+      return;
+    }
+    const at = pages.findIndex((p) => p.key === el.dataset.key);
+    if (at + step < 0 || at + step >= pages.length) return;
+    if (ev.shiftKey) {
+      pages = move(pages, at, at + step);
+      drawBoard(el.dataset.key);
+      announce(`Page moved to ${at + step + 1}`);
+    } else board.querySelector<HTMLElement>(`[data-key="${pages[at + step].key}"]`)?.focus();
+  });
+
+  /**
+   * Drag to reorder: a mouse drags at once, a finger after holding still a moment (so a swipe still scrolls). The
+   * item follows the pointer's place in the list; `moved` changes the list behind it, `done` redraws at the end.
+   */
+  let dragged = false;
+  function sortable(box: HTMLElement | null, selector: string, moved: (from: number, to: number) => void, done: () => void) {
+    if (!box) return;
+    box.onpointerdown = (down) => {
+      const item = (down.target as HTMLElement).closest<HTMLElement>(selector);
+      if (!item || (down.target as HTMLElement).closest('button, input') || down.button !== 0) return;
+      const touch = down.pointerType === 'touch';
+      let started = false;
+      let holdTimer = 0;
+      const start = () => {
+        started = dragged = true;
+        item.classList.add('lifted');
+        box.classList.add('dragging');
+      };
+      if (touch) holdTimer = window.setTimeout(start, 350);
+      const stopScroll = (e: TouchEvent) => { if (started) e.preventDefault(); };
+      document.addEventListener('touchmove', stopScroll, { passive: false });
+      const onMove = (e: PointerEvent) => {
+        if (!started) {
+          const far = Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) > (touch ? 8 : 5);
+          if (touch && far) return end();
+          if (!touch && far) start();
+          if (!started) return;
+        }
+        if (e.clientY < 60) scrollBy(0, -14);
+        else if (e.clientY > innerHeight - 60) scrollBy(0, 14);
+        const over = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>(selector);
+        if (!over || over === item || !box.contains(over)) return;
+        const items = [...box.querySelectorAll<HTMLElement>(selector)];
+        const from = items.indexOf(item);
+        const to = items.indexOf(over);
+        moved(from, to);
+        if (from < to) over.after(item);
+        else over.before(item);
+        box.querySelectorAll('.num').forEach((n, i) => (n.textContent = String(i + 1)));
+      };
+      const end = () => {
+        clearTimeout(holdTimer);
+        removeEventListener('pointermove', onMove);
+        removeEventListener('pointerup', end);
+        removeEventListener('pointercancel', end);
+        document.removeEventListener('touchmove', stopScroll);
+        if (!started) return;
+        item.classList.remove('lifted');
+        box.classList.remove('dragging');
+        done();
+        // The click that ends a drag isn't a choice.
+        setTimeout(() => (dragged = false));
+      };
+      addEventListener('pointermove', onMove);
+      addEventListener('pointerup', end);
+      addEventListener('pointercancel', end);
+    };
+  }
+
+  // The bar's buttons: choosing all or none, how Split cuts, turning, the picture type.
+  bar.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+    if (!b) return;
+    const d = b.dataset;
+    if (d.pick) pages.forEach((p) => (p.on = d.pick === 'all'));
+    if (d.split) splitBy = d.split as typeof splitBy;
+    if (d.every) every = Math.max(1, Math.min(Math.max(1, pages.length - 1), every + Number(d.every)));
+    if (d.picture) picture = d.picture as typeof picture;
+    if (d.rot) return turn(chosen().length ? chosen() : pages, Number(d.rot));
+    renderBar();
+    drawBoard();
+    bar.querySelector<HTMLElement>(Object.keys(d).map((k) => `[data-${k}="${d[k]}"]`).join(''))?.focus();
+  });
+
+  filesBox.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-remove]');
+    if (b) removeFile(b.dataset.remove!);
+  });
+
+  document.querySelector('[data-tasks]')!.addEventListener('change', (e) => {
+    task = (e.target as HTMLInputElement).value as Task;
+    undo = null;
+    renderBar();
+    drawBoard();
+  });
+
+  for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="pdf-view"]')) radio.addEventListener('change', () => {
+    layout = radio.value as typeof layout;
+    undo = null;
+    drawBoard();
+  });
+
+  saveBox.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-go]');
+    if (!b || saving) return;
+    const planned = saveFiles({
+      task, pages, chosen: pages.map((p) => p.on), base: sources.find((s) => s.id === pages[0]?.file)?.name ?? 'document.pdf',
+      onlyChosen: b.dataset.go === 'chosen', cuts: cuts(), picture,
+    });
+    if (!planned.files.length) return;
+    saving = true;
+    drawSave();
+    const sum = saveBox.querySelector<HTMLElement>('[data-sum]')!;
+    sayWaiting(sum, planned.files.length > 1 ? `Making ${planned.files.length} files` : 'Making the file');
+    try {
+      const opened = new Map(sources.map((s) => [s.id, s.opened]));
+      const got = await (await engine()).saveAll(planned, opened);
+      saving = false;
+      drawSave();
+      saveBox.querySelector('[data-sum]')!.innerHTML = `Saved <b>${esc(got.name)}</b>, ${sizeOf(got.size)}`;
+      announce(`Saved ${got.name}`);
+    } catch {
+      saving = false;
+      drawSave();
+      saveBox.querySelector('[data-sum]')!.textContent = "Your browser couldn't make that file. Try fewer pages at a time.";
+    }
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files?.length) add([...input.files]);
+    input.value = '';
+  });
+  // Dragged over: the box lights up, and a drop adds the PDFs instead of opening them in the tab.
+  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('is-over');
+  });
+  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (e.dataTransfer?.files.length) add([...e.dataTransfer.files]);
+  });
+</script>
+
+<style is:global>
+  .pdf-pages { display: grid; gap: var(--space-4); }
+  .pdf-pages .note { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+  .pdf-pages .note:empty { display: none; }
+  .pdf-pages .work { display: grid; gap: var(--space-4); }
+  .pdf-pages .icon { width: 1.1em; height: 1.1em; }
+  .pdf-pages .drop .icon { width: 2rem; height: 2rem; }
+
+  /* The dropped files: a dot in each one's colour, its pages, and a way to take it off */
+  .pdf-pages .files { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .pdf-pages .file { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-card); font-size: var(--text-sm); font-weight: 700; }
+  .pdf-pages .file > i, .pdf-pages .from > i { flex: none; width: 0.6rem; height: 0.6rem; border-radius: var(--radius-2xs); background: var(--c); }
+  .pdf-pages .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pdf-pages .file-count { color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .pdf-pages .file button { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--wash); color: var(--ink); cursor: pointer; }
+
+  /* The board: the task's bar on top, the pages, then a line of help */
+  .pdf-pages .board { padding: var(--space-4) var(--space-5) var(--space-5); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .pdf-pages .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: var(--hairline) solid var(--rule); }
+  .pdf-pages .bar-task { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; }
+  .pdf-pages .say { font-weight: 700; }
+  .pdf-pages .range { display: flex; align-items: center; gap: var(--space-3); }
+  .pdf-pages .range input { width: 11rem; padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--radius-md); background: var(--paper); color: var(--ink); font: 500 var(--text-sm) var(--font-code); }
+  .pdf-pages .range input::placeholder { color: var(--muted); }
+  .pdf-pages .range input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pdf-pages .pill.small { padding: var(--space-1) var(--space-3); border-color: transparent; background: var(--paper); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 650; }
+  .pdf-pages .pill.small:hover { border-color: var(--ink); }
+  .pdf-pages .pill.small[aria-pressed='true'] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+  .pdf-pages .pill.small:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pdf-pages .order { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .pdf-pages .order .file { background: var(--paper); box-shadow: none; cursor: grab; touch-action: pan-y; user-select: none; }
+  .pdf-pages .order .file:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pdf-pages .grip { color: var(--muted); }
+  .pdf-pages .hint { margin: var(--space-3) var(--space-1) 0; color: var(--muted); font-size: var(--text-sm); }
+
+  /* A page: its picture on a white sheet, its file's colour down the edge; turned in place */
+  .pdf-pages .fit { display: grid; place-items: center; aspect-ratio: 1; }
+  .pdf-pages .sheet { position: relative; aspect-ratio: var(--ar); border-radius: var(--radius-xs); background: var(--pdf-sheet) center / cover no-repeat; box-shadow: var(--shadow-card); overflow: hidden; }
+  .pdf-pages .sheet.tall { height: 100%; }
+  .pdf-pages .sheet.wide { width: 100%; }
+  .pdf-pages .sheet::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--c); }
+  .pdf-pages [data-key] { position: relative; cursor: grab; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: pan-y; transition: background-color var(--motion-quick) ease, opacity var(--motion-quick) ease; }
+  .pdf-pages [data-key]:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pdf-pages [data-key].lifted { opacity: 0.4; }
+  .pdf-pages .dragging, .pdf-pages .dragging [data-key] { cursor: grabbing; }
+  .pdf-pages .tick { display: none; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: var(--radius-pill); background: var(--focus); color: var(--paper); }
+  .pdf-pages .tick .icon { width: 0.85rem; height: 0.85rem; stroke-width: 3; }
+  .pdf-pages .on .tick { display: grid; }
+  .pdf-pages .gone .tick { background: var(--ink); }
+  .pdf-pages :is(.gone, .dim) .sheet { opacity: 0.3; }
+  .pdf-pages .part { color: var(--focus); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+  .pdf-pages .tools { display: flex; gap: var(--space-1); opacity: 0; transition: opacity var(--motion-quick) ease; }
+  .pdf-pages [data-key]:is(:hover, :focus-within) .tools { opacity: 1; }
+  .pdf-pages .tools button { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); cursor: pointer; }
+
+  /* Preview: big pages in a grid */
+  .pdf-pages .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
+  .pdf-pages .pg { display: grid; gap: var(--space-1); justify-items: center; padding: var(--space-2); border-radius: var(--radius-lg); }
+  .pdf-pages .pg:hover { background: var(--wash); }
+  .pdf-pages .pg.on { background: color-mix(in srgb, var(--focus) 16%, transparent); }
+  .pdf-pages .pg .fit { width: 100%; }
+  .pdf-pages .pg .num { color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pdf-pages .pg .tick { position: absolute; top: var(--space-3); left: var(--space-3); z-index: 1; }
+  .pdf-pages .pg .tools { position: absolute; top: var(--space-3); right: var(--space-3); z-index: 1; }
+  /* Split: the scissors sit in the gap after a page; a cut there is a dashed line */
+  .pdf-pages .pg .cut { position: absolute; top: 38%; right: calc(-0.5 * var(--space-4) - 0.85rem); z-index: 2; display: grid; place-items: center; width: 1.7rem; height: 1.7rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--paper); color: var(--muted); box-shadow: var(--shadow-card); cursor: pointer; }
+  .pdf-pages .pg.cut-after::after { content: ''; position: absolute; top: 6%; bottom: 6%; right: calc(-0.5 * var(--space-4) - 1px); border-right: 2px dashed var(--focus); }
+  .pdf-pages .pg.cut-after .cut, .pdf-pages .row.cut-after .snip { background: var(--focus); color: var(--paper); }
+
+  /* List: one slim row a page, set into the card */
+  .pdf-pages .list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); margin-top: var(--space-4); }
+  .pdf-pages .row { display: flex; align-items: center; gap: var(--space-3); min-height: 3.25rem; padding: var(--space-1) var(--space-3); border-radius: var(--radius-md); background: var(--paper); }
+  .pdf-pages .row:hover { background: color-mix(in srgb, var(--ink) 7%, var(--paper)); }
+  .pdf-pages .row.on { background: color-mix(in srgb, var(--focus) 18%, var(--paper)); }
+  .pdf-pages .row .tick { display: grid; flex: none; border: 2px solid var(--rule); background: none; color: transparent; }
+  .pdf-pages .row.on .tick { border-color: var(--focus); background: var(--focus); color: var(--paper); }
+  .pdf-pages .row.gone .tick { border-color: var(--ink); background: var(--ink); }
+  .pdf-pages .row .fit { flex: none; width: 2.5rem; }
+  .pdf-pages .row .sheet::before { width: 3px; }
+  .pdf-pages .row .num { min-width: 2.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+  .pdf-pages .from { min-width: 0; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+  .pdf-pages .from > i { display: inline-block; margin-right: var(--space-2); vertical-align: 0.05em; }
+  .pdf-pages :is(.gone, .dim) .from { opacity: 0.45; }
+  .pdf-pages .gone .from { text-decoration: line-through; }
+  .pdf-pages .row .gap { flex: 1; }
+  .pdf-pages .row .tools button { width: 1.75rem; height: 1.75rem; }
+  .pdf-pages .snip { display: inline-flex; flex: none; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--surface); color: var(--muted); font: inherit; font-size: var(--text-xs); font-weight: 700; cursor: pointer; }
+  .pdf-pages .cut-line { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: 0 var(--space-3); color: var(--focus); font-size: var(--text-xs); font-weight: 700; }
+  .pdf-pages .cut-line::before, .pdf-pages .cut-line::after { content: ''; flex: 1; border-top: 2px dashed var(--focus); }
+
+  /* "Page 3 taken out · Undo" stays in sight at the bottom while the board is on screen */
+  .pdf-pages .undo { position: sticky; bottom: var(--space-4); z-index: 3; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); width: fit-content; max-width: 100%; margin: var(--space-4) auto 0; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); box-shadow: var(--shadow-float); font-weight: 650; }
+  .pdf-pages .undo button { padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--paper) 18%, transparent); color: inherit; font: inherit; font-weight: 800; cursor: pointer; }
+  .pdf-pages .undo button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  /* Save: what you'll get, then the buttons */
+  .pdf-pages .save { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-4); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .pdf-pages .save p { margin: 0; }
+  .pdf-pages .sum { color: var(--muted); }
+  .pdf-pages .sum b { color: var(--ink); }
+  .pdf-pages .go { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .pdf-pages .go .button { border-color: var(--ink); background: var(--ink); color: var(--paper); font: inherit; font-weight: 800; cursor: pointer; }
+  .pdf-pages .go .button.quiet { border-color: var(--rule); background: var(--surface); color: var(--ink); }
+  .pdf-pages .go .button:disabled { opacity: 0.5; cursor: wait; }
+
+  /* After every rule that sets a display, so a hidden part stays hidden. */
+  .pdf-pages :is(.work, .undo)[hidden] { display: none; }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .pdf-pages .sheet { transition: transform var(--motion-soft) var(--ease-out), opacity var(--motion-quick) ease; }
+  }
+  /* On touch there's no hover: a page's buttons show once it's chosen. */
+  @media (hover: none) {
+    .pdf-pages [data-key]:hover .tools { opacity: 0; }
+    .pdf-pages [data-key].on .tools { opacity: 1; }
+  }
+  @media (max-width: 719px) {
+    .pdf-pages .board { padding: var(--space-3); }
+    /* The field takes a line of its own; the task's pills and the Preview | List switch share the next. */
+    .pdf-pages .bar { justify-content: flex-start; gap: var(--space-2); }
+    .pdf-pages .bar-task { display: contents; }
+    .pdf-pages .bar .switch { margin-left: auto; }
+    .pdf-pages .range { flex-wrap: wrap; width: 100%; }
+    .pdf-pages .range input { flex: 1; width: auto; min-width: 8rem; }
+    .pdf-pages .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    .pdf-pages .pg { padding: var(--space-1); }
+    .pdf-pages .pg .tick { top: var(--space-2); left: var(--space-2); }
+    .pdf-pages .pg .tools { top: auto; bottom: 1.9rem; right: var(--space-1); }
+    .pdf-pages .pg .cut { right: calc(-0.5 * var(--space-3) - 0.85rem); }
+    .pdf-pages .pg.cut-after::after { right: calc(-0.5 * var(--space-3) - 1px); }
+    .pdf-pages .row { gap: var(--space-2); padding-inline: var(--space-2); }
+    .pdf-pages .row .grip, .pdf-pages .from-name, .pdf-pages .snip-words { display: none; }
+  }
+</style>
