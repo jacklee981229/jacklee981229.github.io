@@ -17,6 +17,9 @@ export function byPlace(groups) {
   return PLACES.map((p) => ({ name: p.label, place: p.id, tools: tools.filter((t) => t.where === p.id) })).filter((g) => g.tools.length);
 }
 
+/** The tools Jack recommends (`star: true`), in the order they're listed, each also still in its own group. */
+export const starred = (groups) => groups.flatMap((g) => g.tools.filter((t) => t.star).map((tool) => ({ ...tool, group: g.name })));
+
 /** The words a tool is found by: its name, its note, where it runs and its group, in lower case. */
 export const searchText = (tool, group) => [tool.name, tool.note, placeLabel(tool.where), group].join(' ').toLowerCase();
 

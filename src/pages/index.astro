@@ -16,7 +16,7 @@ import { LINKS, SITE } from '../site';
 import { isExternal, newTab } from '../lib/links.js';
 import { listedPosts } from '../lib/collections';
 import { topicOf } from '../lib/topics.js';
-import { WORLDS, isListed, toolBySlug, toolUrl, worldUrl } from '../lib/lab/tools.js';
+import { WORLDS, toolBySlug, toolUrl, worldUrl } from '../lib/lab/tools.js';
 import { nowFile } from '../lib/now-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
@@ -68,7 +68,10 @@ const covers = interleave(
 const visited = (await getEntry('travel', 'visited'))?.data.visited ?? [];
 // The Lab card's two doors, to two of its tools: their names and descriptions from the Lab's list.
 const exactTime = toolBySlug('exact-time');
-const speedCheck = toolBySlug('speed-check');
+const speedTest = toolBySlug('speed-test');
+// Beside them, three more of different kinds: a little world and two tools.
+const town = WORLDS.find((w) => w.slug === 'town')!;
+const labPicks = [{ name: town.name, icon: town.icon, href: worldUrl(town.slug) }, ...['markdown-preview', 'image-editor'].map(toolBySlug).map((t) => ({ name: t.name, icon: t.icon, href: toolUrl(t.slug) }))];
 const places = placesFor(visited, namesIn(world), namesIn(fine));
 const GLOBE = 152;
 const globe = smallGlobe(world, land, places, colourSteps(middles(fine, places.map((p) => p.name))), GLOBE);
@@ -135,22 +138,22 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
             </a>
           </li>
           <li>
-            <a class="door tool" href={toolUrl(speedCheck.slug)} style={flowStyle(toolUrl(speedCheck.slug))}>
+            <a class="door tool" href={toolUrl(speedTest.slug)} style={flowStyle(toolUrl(speedTest.slug))}>
               <span class="pic" aria-hidden="true">
                 <svg class="speed-arc" viewBox="0 0 140 110" width="140" height="110" focusable="false">
                   <path class="track" d="M 28.43 86 A 48 48 0 1 1 111.57 86" pathLength="100" />
                   <path class="fill" d="M 28.43 86 A 48 48 0 1 1 111.57 86" pathLength="100" />
                 </svg>
               </span>
-              <span class="words"><span class="label">Tool</span><span class="door-title">{speedCheck.name}</span><span class="door-meta">{speedCheck.description}</span></span>
+              <span class="words"><span class="label">Tool</span><span class="door-title">{speedTest.name}</span><span class="door-meta">{speedTest.description}</span></span>
             </a>
           </li>
         </ul>
         <div class="lab-words">
           <p class="label">Lab</p>
           <p class="lab-line">Games, toys and little worlds I made for fun.</p>
-          <ul class="worlds">
-            {WORLDS.filter(isListed).map((w) => <li><a class="chip" href={worldUrl(w.slug)}><Icon name={w.icon} />{w.name}</a></li>)}
+          <ul class="picks">
+            {labPicks.map((pick) => <li><a class="chip" href={pick.href}><Icon name={pick.icon} />{pick.name}</a></li>)}
           </ul>
           <div class="lab-actions">
             <a class="explore" href="/lab/">Explore the Lab</a>
@@ -336,11 +339,11 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .lab-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: var(--space-4) 0 var(--space-4) var(--space-4); list-style: none; }
   .lab-words { display: flex; flex-direction: column; padding: var(--space-6) var(--space-6) var(--space-5); }
   .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
-  /* Every button the same height, their edges lined up: the worlds one per row, the full width, then a wide Explore the
+  /* Every button the same height, their edges lined up: the picks one per row, the full width, then a wide Explore the
      Lab with a round dice beside it. */
-  .worlds { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
+  .picks { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
   .chip { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 2.75rem; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--on-colour-chip); color: var(--on-colour); font: inherit; font-size: var(--text-ui); font-weight: 800; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background-color var(--motion-quick) ease; }
-  .worlds .chip { width: 100%; }
+  .picks .chip { width: 100%; }
   .chip :global(.icon) { width: 16px; height: 16px; }
   .chip:hover { background: var(--on-colour-chip-hover); }
   .lab-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }

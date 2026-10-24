@@ -94,6 +94,8 @@ const toolbox = defineCollection({
             note: z.string().min(1),
             // Only for a terminal tool: shown with a Copy button.
             command: z.string().min(1).optional(),
+            // Jack recommends it: also shown in Starred, at the top of both views.
+            star: z.boolean().optional(),
           }),
         ).min(1),
       }),

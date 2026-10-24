@@ -1,4 +1,4 @@
-// Jack's Exact Time (src/pages/lab/exact-time.astro): checking this device's clock against the site's server, and
+// Exact Time (src/pages/lab/exact-time.astro): checking this device's clock against the site's server, and
 // what the page shows for a moment in a time zone. The same check sets the beat of Jack's Firefly River.
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -42,7 +42,7 @@ export function offsetOf({ sent, answered, at, kept }) {
 /**
  * Checks this device's clock against the site's server: a few quick asks of a page's headers, keeping the surest.
  * GitHub Pages' CDN stamps each answer with when the ask reached it (X-Timer); a local preview doesn't, and then the
- * answer is null and the device's time stays. Used by Jack's Exact Time and Jack's Firefly River. `ask`, `wall` and
+ * answer is null and the device's time stays. Used by Exact Time and Jack's Firefly River. `ask`, `wall` and
  * `tick` are the browser's fetch, Date.now and performance.now, there for the tests.
  * @param {string} url
  * @param {{ ask?: (url: string, init: RequestInit) => Promise<{ headers: { get: (name: string) => string | null } }>, wall?: () => number, tick?: () => number }} [using]

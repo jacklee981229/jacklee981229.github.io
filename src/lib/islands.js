@@ -1,4 +1,4 @@
-// Jack's Writing Islands (/lab/writing-islands/): the posts as islands, for its page to raise and weather
+// Writing Islands (/lab/writing-islands/): the posts as islands, for its page to raise and weather
 // (src/islands/). Each topic with posts is an island, and each post a ridge on it, built from the post's own parts in
 // order: headings as peaks, paragraphs as hills, lists as terraces, code as flat-topped buttes of hard rock, and pictures
 // as hollows that fill as lakes. Worked out while the site is built, from what islands-file.js reads (the posts and their

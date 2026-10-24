@@ -1,4 +1,4 @@
-// Reading what Jack's Build Log counts, while the site is built: the commits (git; the deploy fetches the whole
+// Reading what Build Log counts, while the site is built: the commits (git; the deploy fetches the whole
 // history), the Changelog, the Lab's lists and the site's visits (GoatCounter's public counter, as the Lab's Most
 // Popular reads it). No git just means no commits, and no counter no visits: never a failed build.
 import { execFileSync } from 'node:child_process';

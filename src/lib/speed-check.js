@@ -1,4 +1,4 @@
-// Jack's Speed Check (/lab/speed-check/): ping and download speed, measured in the visitor's browser against
+// Speed Test (/lab/speed-test/): ping and download speed, measured in the visitor's browser against
 // Cloudflare's speed servers, the ones speed.cloudflare.com uses. They answer any site (CORS and Timing-Allow-Origin
 // are open) from the nearest Cloudflare city. Nothing is sent but the test traffic itself.
 

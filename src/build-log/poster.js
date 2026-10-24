@@ -1,4 +1,4 @@
-// Jack's Build Log, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen and not
+// Build Log, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen and not
 // paused: the site's history replayed on a clock tilted back like a dial on a desk. The day goes round (midnight at the
 // top), the days since the rebuild go outwards; each file a commit changed stands up off the face at the commit's hour
 // and day, as tall as its lines, and is wound once round the ring at the rim, like the wire of a coil. The commits play

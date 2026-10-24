@@ -1,4 +1,4 @@
-// Jack's Site Check (/lab/site-check/): the crawl itself, run in the visitor's browser. From the home page it reads
+// Site Check (/lab/site-check/): the crawl itself, run in the visitor's browser. From the home page it reads
 // this site's pages one after another, in the order it finds them, and checks every link on each: this site's own
 // addresses are fetched (pages once each, then read for their links in turn; other files with a HEAD only), links to
 // other sites are never fetched, only counted, for Jack to check by hand. src/site-check/web.js draws it.

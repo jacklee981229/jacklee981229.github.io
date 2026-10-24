@@ -249,7 +249,7 @@
   --diff-add-word: #A8E3BC;
   --diff-remove: #FCE8E6;
   --diff-remove-word: #F5B8B2;
-  /* Jack's Build Log (src/build-log/poster.js), in the site's colours, following the theme. By day: the six parts in
+  /* Build Log (src/build-log/poster.js), in the site's colours, following the theme. By day: the six parts in
      the muted ink and the deep colours of their pages' tops; the small hours in the guestbook's amber, their spots in
      the Travel Map's red; lines added in the Lab's green; words, lines and frames as any card's, on a card's colour;
      and the Changelog's teal behind the clock. Every colour used for words keeps 4.5:1 on the card. */
@@ -271,7 +271,7 @@
   /* Its cards and the ground they stand on: the site's own plain card on the page's colour, in every theme. */
   --log-card: var(--surface);
   --log-page: var(--paper);
-  /* Jack's Site Check (src/site-check/web.js): the three routes a link takes, the web's silk, the light on the wall
+  /* Site Check (src/site-check/web.js): the three routes a link takes, the web's silk, the light on the wall
      behind it and the shadow it throws there, and the spider's shell and its shine. Its parts and panels are the
      Build Log's (--log-*). */
   --check-fine: var(--lab-from);
@@ -284,7 +284,7 @@
   --check-shine: var(--muted);
   /* The light of the waves from the web's hub: at the start, at the end and the watching ones after. */
   --check-glow: var(--changelog-top-from);
-  /* Jack's Speed Check (src/speed-check/gauge.js): the arc's fill and its empty track, the light running along the
+  /* Speed Test (src/speed-check/gauge.js): the arc's fill and its empty track, the light running along the
      fill, the streaks pouring in, and the scale's numbers. */
   --speed-fill: var(--lab-from);
   --speed-track: var(--paper);
@@ -310,7 +310,7 @@
   --magnet-aurora-3: var(--paper);
   --magnet-aurora-4: var(--paper);
   --magnet-glint: var(--paper-end);
-  /* Jack's Writing Islands (src/islands/), by day: its --isle-* colours. */
+  /* Writing Islands (src/islands/), by day: its --isle-* colours. */
   --isle-sky-top: var(--paper-end);
   --isle-sky: var(--paper);
   --isle-light: var(--pond-light);
@@ -483,7 +483,7 @@
   --diff-add-word: #1E6236;
   --diff-remove: #3B1A18;
   --diff-remove-word: #7A2C27;
-  /* Jack's Build Log in the dark: the parts in their bright accents and Home in the ink, glowing; the small hours in
+  /* Build Log in the dark: the parts in their bright accents and Home in the ink, glowing; the small hours in
      Now's yellow; the panels set into the card in the page's colour. */
   --log-home: var(--ink);
   --log-writing: var(--accent-writing);
@@ -560,7 +560,7 @@
   --magnet-liquid: var(--rule);
   --magnet-gel-1: var(--accent-travel);
   --magnet-gel-2: var(--accent-collection);
-  /* Jack's Writing Islands in the dark: its --isle-* colours. */
+  /* Writing Islands in the dark: its --isle-* colours. */
   --isle-sky-top: var(--pond-shade);
   --isle-sky: var(--pond-water);
   --isle-sea: var(--pond-water);
@@ -603,7 +603,7 @@
   --aurora-4: #6F5FE0;
   --aurora-5: #8EF0AE;
   --star: #F4F1FF;
-  /* Jack's Build Log under the night sky: the aurora behind its clock. */
+  /* Build Log under the night sky: the aurora behind its clock. */
   --log-haze: var(--aurora-1);
   /* Magnetic Liquid under the night sky: its --magnet-* colours. */
   /* The studio open to the sky: the sky's own gradient, the aurora's four colours and the stars. */
@@ -614,7 +614,7 @@
   --magnet-aurora-3: var(--aurora-3);
   --magnet-aurora-4: var(--aurora-4);
   --magnet-glint: var(--star);
-  /* Jack's Writing Islands under the night sky: its --isle-* colours. */
+  /* Writing Islands under the night sky: its --isle-* colours. */
   --isle-sky-top: var(--sky-top);
   --isle-sky: var(--sky-bottom);
   --isle-star: var(--star);

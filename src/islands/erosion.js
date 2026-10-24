@@ -1,4 +1,4 @@
-// Jack's Writing Islands' weather (the piece is islands.js): rain falling on the land as it rises, running downhill,
+// Writing Islands' weather (the piece is islands.js): rain falling on the land as it rises, running downhill,
 // picking up what it can carry where it runs fast and steep and dropping it where it slows, and rock sliding where it's
 // steeper than it can stand. The water flows between neighbouring cells through "pipes", as in Mei, Decaudin and Hu's
 // fast hydraulic erosion on the GPU (2007), with Jákó and Tóth's limit on what a thin film can carry; hard rock (code)

@@ -1,4 +1,4 @@
-// Jack's Speed Check, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen: an
+// Speed Test, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen: an
 // arc that fills with the download speed on a log scale (0 to 1000 Mbps), light running along the filled part to a
 // soft glow at its tip, quicker the faster the line, and streaks pouring in from both sides that vanish at a ring
 // round it, more and faster with the speed. Each ping is an echo up the arc and back. When the check is done it all

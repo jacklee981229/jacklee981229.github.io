@@ -1,4 +1,4 @@
-// Jack's Writing Islands (/lab/writing-islands/), on the effects' stage (src/effects/stage.js) with WebGL2: Jack's
+// Writing Islands (/lab/writing-islands/), on the effects' stage (src/effects/stage.js) with WebGL2: Jack's
 // posts rising out of the sea as islands, one for each topic and one ridge for each post, each built from the post's own
 // parts (src/lib/islands.js works out the land from the posts while the site is built), then weathered by years of
 // rain (erosion.js) and drawn (terrain.js). A date runs from the first post to the day the site was built: each post's

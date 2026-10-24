@@ -1,5 +1,5 @@
 ---
-// Jack's Build Log, in the Lab's Misc (the Build Log tool in lab/tools.js): the site's own history replayed on a clock,
+// Build Log, in the Lab's Misc (the Build Log tool in lab/tools.js): the site's own history replayed on a clock,
 // or on a ring (the switch in the top card), a landscape card as wide as the page's top (a tall one on narrower
 // screens), drawn by src/build-log/poster.js on the effects' stage, then other Lab items. Everything on it is counted
 // while the site is built (build-log-file.js), so every publish and the daily rebuild bring it up to date. Linked from
@@ -74,7 +74,7 @@ const ringLabel = `A ring tilted back like the clock and wound like a coil. Each
       poster?.restart();
       if (toggle?.textContent === 'Play') toggle.click();
     });
-    // Full screen, where the browser can (iPhones can't), as on Jack's Exact Time.
+    // Full screen, where the browser can (iPhones can't), as on Exact Time.
     const full = root.querySelector<HTMLButtonElement>('[data-full]');
     if (full && document.fullscreenEnabled) {
       full.hidden = false;

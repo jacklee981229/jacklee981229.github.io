@@ -8,7 +8,7 @@ import Icon from '../components/Icon.astro';
 import { PILE_STEP, galleryOf, itemKey, moreAfter, pictureOf, pileWords, shineOf } from '../lib/shelves.js';
 import { cardColoursOf, pictures } from '../lib/shelf-pictures';
 import Switch from '../components/Switch.astro';
-import { PLACES, byPlace, searchText } from '../lib/toolbox.js';
+import { PLACES, byPlace, searchText, starred } from '../lib/toolbox.js';
 /** The widest a cover is drawn, doubled for sharp screens. */
 const COVER_WIDTH = 400;
 /** The sizes each gallery picture is made in, for the browser to choose from by the window's size and sharpness: up
@@ -29,6 +29,8 @@ const toolCount = toolGroups.reduce((n, g) => n + g.tools.length, 0);
 const placeOf = (id: string) => PLACES.find((p) => p.id === id)!.label;
 type Tool = (typeof toolGroups)[number]['tools'][number] & { group: string };
 type ToolGroup = { name: string; place?: string; tools: Tool[] };
+// Jack's recommended tools, at the top of both views; each stays in its own group too, so the counts leave them out.
+const starredTools = starred(toolGroups) as Tool[];
 const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
   { id: 'use', groups: toolGroups.map((g) => ({ name: g.name, tools: g.tools.map((t) => ({ ...t, group: g.name })) })) },
   { id: 'place', groups: byPlace(toolGroups) as ToolGroup[] },
@@ -126,9 +128,9 @@ const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
                       <button type="button" aria-pressed="true" data-chip="all">All <span data-chip-count>{toolCount}</span></button>
                       {view.groups.map((g, i) => <button type="button" aria-pressed="false" data-chip={i}>{g.name} <span data-chip-count>{g.tools.length}</span></button>)}
                     </div>
-                    {view.groups.map((g, i) => (
-                      <section class="group" data-group={i}>
-                        <h2>{g.place && <i style={`--c: var(--tool-${g.place})`}></i>}{g.name} <span class="group-count" data-group-count>{g.tools.length}</span></h2>
+                    {[...(starredTools.length ? [{ name: 'Starred', key: 'starred', tools: starredTools } as ToolGroup & { key: string }] : []), ...view.groups.map((g, i) => ({ ...g, key: String(i) }))].map((g) => (
+                      <section class="group" data-group={g.key}>
+                        <h2>{g.key === 'starred' && <Icon name="star" />}{g.place && <i style={`--c: var(--tool-${g.place})`}></i>}{g.name} <span class="group-count" data-group-count>{g.tools.length}</span></h2>
                         <ul class="tools">
                           {g.tools.map((t, k) => (
                             <li data-text={searchText(t, t.group)}>
@@ -142,8 +144,8 @@ const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
                               </a>
                               {t.command && (
                                 <div class="command">
-                                  <code id={`command-${view.id}-${i}-${k}`}>{t.command}</code>
-                                  <button type="button" class="button" data-copy={`command-${view.id}-${i}-${k}`}><Icon name="copy" /><span data-label>Copy</span></button>
+                                  <code id={`command-${view.id}-${g.key}-${k}`}>{t.command}</code>
+                                  <button type="button" class="button" data-copy={`command-${view.id}-${g.key}-${k}`}><Icon name="copy" /><span data-label>Copy</span></button>
                                 </div>
                               )}
                             </li>
@@ -618,7 +620,7 @@ const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
     const find = toolbox.querySelector<HTMLInputElement>('[data-find]')!;
     const foundLine = toolbox.querySelector<HTMLElement>('[data-found]')!;
     const views = [...toolbox.querySelectorAll<HTMLElement>('[data-view]')];
-    const total = toolbox.querySelectorAll('[data-view] li').length / views.length;
+    const total = toolbox.querySelectorAll('[data-view] [data-group]:not([data-group="starred"]) li').length / views.length;
     const plain = new Map([...toolbox.querySelectorAll<HTMLElement>('[data-mark]')].map((el) => [el, el.textContent ?? '']));
     const picked = new Map(views.map((view) => [view, 'all']));
 
@@ -629,20 +631,23 @@ const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
         const groups = [...view.querySelectorAll<HTMLElement>('[data-group]')];
         const chosen = picked.get(view)!;
         let inView = 0;
-        groups.forEach((group, i) => {
+        for (const group of groups) {
+          const key = group.dataset.group!;
           let n = 0;
           for (const li of group.querySelectorAll<HTMLElement>('li')) {
             const hit = found(li.dataset.text ?? '', query);
             li.hidden = !hit;
             if (hit) n++;
           }
-          inView += n;
           group.querySelector('[data-group-count]')!.textContent = String(n);
-          group.hidden = n === 0 || (chosen !== 'all' && chosen !== String(i));
-          const chip = view.querySelector<HTMLButtonElement>(`[data-chip="${i}"]`)!;
+          group.hidden = n === 0 || (chosen !== 'all' && chosen !== key);
+          // Starred repeats tools from the groups, so it has no chip and isn't counted twice.
+          if (key === 'starred') continue;
+          inView += n;
+          const chip = view.querySelector<HTMLButtonElement>(`[data-chip="${key}"]`)!;
           chip.querySelector('[data-chip-count]')!.textContent = String(n);
           chip.disabled = n === 0;
-        });
+        }
         view.querySelector('[data-chip="all"] [data-chip-count]')!.textContent = String(inView);
         view.querySelector<HTMLElement>('[data-nothing]')!.hidden = inView > 0;
         view.querySelector('[data-nothing-word]')!.textContent = query.trim();
@@ -844,6 +849,7 @@ const toolViews: { id: 'use' | 'place'; groups: ToolGroup[] }[] = [
   .find input::-webkit-search-cancel-button { display: none; }
   .found { flex: none; color: var(--muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
   .places { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: var(--space-3) var(--space-1) 0; color: var(--muted); font-size: var(--text-sm); }
+  .group h2 :global(.icon) { color: var(--collection-top-from); fill: currentColor; }
   .places span, .group h2 { display: flex; align-items: center; gap: var(--space-2); }
   .places i, .group h2 i { width: 0.625rem; height: 0.625rem; border-radius: var(--radius-2xs); background: var(--c); }
   .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-1); }

@@ -60,6 +60,7 @@ they're listed. Add a tool under its group's `tools:`:
   Where view.
 - **link:** the whole address, `https://` and all.
 - **command:** for a terminal tool only, such as `command: npx yoinks`; it's shown with a Copy button.
+- **star:** `star: true` for a tool you recommend; it's shown again in Starred, at the top of both views.
 - A new group is a new `- name:` with its own `tools:`.
 
 ## Remove one

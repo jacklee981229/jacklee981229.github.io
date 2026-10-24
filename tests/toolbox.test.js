@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PLACES, byPlace, found, marked, searchText } from '../src/lib/toolbox.js';
+import { PLACES, byPlace, found, marked, searchText, starred } from '../src/lib/toolbox.js';
 
 const groups = [
   { name: 'Find files', tools: [{ name: 'Everything', where: 'windows', note: 'instant file search' }] },
@@ -15,6 +15,15 @@ test('the Where view keeps the places in their order, each tool in the order lis
   assert.equal(view[0].tools[1].group, 'Video & music');
   assert.equal(view.flatMap((g) => g.tools).length, 4);
   assert.deepEqual(PLACES.map((p) => p.id), ['windows', 'terminal', 'chrome', 'website']);
+});
+
+test('the starred tools come in the order listed, each keeping its group', () => {
+  const list = [
+    { name: 'Clean up', tools: [{ name: 'A', where: 'windows', note: 'a', star: true }, { name: 'B', where: 'windows', note: 'b' }] },
+    { name: 'Find files', tools: [{ name: 'C', where: 'windows', note: 'c', star: true }] },
+  ];
+  assert.deepEqual(starred(list).map((t) => [t.name, t.group]), [['A', 'Clean up'], ['C', 'Find files']]);
+  assert.deepEqual(starred(groups), []);
 });
 
 test('a tool is found by its name, note, place or group, in any case, Chinese too', () => {

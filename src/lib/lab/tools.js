@@ -11,7 +11,7 @@ export const GROUPS = [
 /**
  * Each tool: its address (/lab/<slug>/), name, one-line description, group and icon; `ready` once its page is built,
  * `soon` until then; and the example its card shows (what goes in, what comes out). Effects has none: its card shows
- * one effect's drawing, a different one each day; nor have Jack's Build Log and Jack's Site Check, whose cards show
+ * one effect's drawing, a different one each day; nor have Build Log and Site Check, whose cards show
  * drawings of their own (src/components/BuildLogCover.astro, SiteCheckCover.astro). `words` are more words the palette finds it by. `hidden` keeps a finished one
  * off every list (the Lab, the palette, Random, the sitemap): only its address reaches it, marked noindex.
  * @type {{ slug: string, name: string, description: string, group: string, icon: string, status: 'ready' | 'soon', example?: readonly string[], words?: readonly string[], hidden?: boolean }[]}
@@ -28,12 +28,12 @@ export const TOOLS = [
   { slug: 'image-to-text', name: 'Image to Text', description: 'Copy the words out of a screenshot or photo.', group: 'image', icon: 'scan-text', status: 'ready', example: ['screenshot.png', 'Its words, ready to copy'], words: ['ocr', 'read text', 'screenshot', 'copy text', 'chinese', '中文', '识别', '文字'] },
   { slug: 'pdf-pages', name: 'PDF Pages', description: 'Merge, split, turn and reorder the pages of PDFs.', group: 'image', icon: 'file', status: 'ready', example: ['report.pdf + slides.pdf', 'One PDF, 9 pages'], words: ['pdf', 'merge', 'combine', 'split', 'rotate', 'reorder', 'pages'] },
   { slug: 'qr-code', name: 'QR Code Generator', description: 'Turn a link or message into a QR code.', group: 'image', icon: 'qr', status: 'ready', example: ['jacklee981229.github.io', 'A QR code, ready to scan'] },
-  { slug: 'exact-time', name: "Jack's Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
+  { slug: 'exact-time', name: "Exact Time", description: 'Check your clock, and the time around the world.', group: 'misc', icon: 'watch', status: 'ready', example: ['Your clock', 'Exact, 0.09 s ahead'] },
   { slug: 'effects', name: 'Effects', description: 'Toys to look at and play with, one after another.', group: 'misc', icon: 'pointer', status: 'ready' },
-  { slug: 'build-log', name: "Jack's Build Log", description: "This site's history, replayed on a clock or a ring.", group: 'misc', icon: 'branch', status: 'ready', words: ['build log', 'commits', 'git', 'history', 'numbers', 'stats'] },
-  { slug: 'speed-check', name: "Jack's Speed Check", description: 'Your download speed and ping, in a few seconds.', group: 'misc', icon: 'bolt', status: 'ready', example: ['Your connection', '527 Mbps, ping 8 ms'], words: ['speed test', 'internet speed', 'wifi', 'bandwidth', 'mbps', 'ping', 'download'] },
-  { slug: 'site-check', name: "Jack's Site Check", description: 'Every page of this site, checked link by link.', group: 'misc', icon: 'bug', status: 'ready', words: ['site check', 'crawler', 'spider', 'web', 'broken links', 'links', '404'] },
-  { slug: 'writing-islands', name: "Jack's Writing Islands", description: "This site's posts as islands, carved by years of rain.", group: 'misc', icon: 'mountain', status: 'ready', words: ['islands', 'posts', 'erosion', 'landscape', 'rain'], hidden: true },
+  { slug: 'build-log', name: "Build Log", description: "This site's history, replayed on a clock or a ring.", group: 'misc', icon: 'branch', status: 'ready', words: ['build log', 'commits', 'git', 'history', 'numbers', 'stats'] },
+  { slug: 'speed-test', name: "Speed Test", description: 'Your download speed and ping, in a few seconds.', group: 'misc', icon: 'bolt', status: 'ready', example: ['Your connection', '527 Mbps, ping 8 ms'], words: ['speed test', 'internet speed', 'wifi', 'bandwidth', 'mbps', 'ping', 'download'] },
+  { slug: 'site-check', name: "Site Check", description: 'Every page of this site, checked link by link.', group: 'misc', icon: 'bug', status: 'ready', words: ['site check', 'crawler', 'spider', 'web', 'broken links', 'links', '404'] },
+  { slug: 'writing-islands', name: "Writing Islands", description: "This site's posts as islands, carved by years of rain.", group: 'misc', icon: 'mountain', status: 'ready', words: ['islands', 'posts', 'erosion', 'landscape', 'rain'], hidden: true },
 ];
 
 /**

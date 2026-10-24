@@ -108,7 +108,7 @@
 - 2026-10-12 design: Gave [Jack's Site Check](/lab/site-check/) the site's own cards, as the Build Log
 - 2026-10-21 design: Turned focus rings, selections and the menu teal
 - 2026-10-22 design: Polished the small stuff: finer lines, springier buttons, softer edges
-- 2026-10-22 new: Added [Jack's Speed Check](/lab/speed-check/) to the Lab: your download speed and ping
+- 2026-10-22 new: Added [Jack's Speed Check](/lab/speed-test/) to the Lab: your download speed and ping
 - 2026-10-22 design: Lined up the Lab card's world buttons one per row
 - 2026-10-22 design: Swapped the home page's toy for doors to Exact Time and Speed Check
 - 2026-10-22 new: Added a [Toolbox](/collections/#toolbox) to the Collection: the tools I use
@@ -117,3 +117,6 @@
 - 2026-10-23 new: Added [Image to Text](/lab/image-to-text/) to the Lab: copy the words out of a picture
 - 2026-10-23 improved: Let you zoom post pictures and drag the line between Preview sides
 - 2026-10-24 new: Added a Projects page, with a short video of things I've built
+- 2026-10-24 improved: Starred the tools I recommend at the top of the Toolbox
+- 2026-10-24 design: Renamed Speed Check to Speed Test and dropped "Jack's" from tools
+- 2026-10-24 design: Put Town, Markdown Preview and Image Editor on the home Lab card

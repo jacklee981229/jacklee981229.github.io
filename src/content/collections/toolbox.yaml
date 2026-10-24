@@ -10,6 +10,7 @@ groups:
         where: windows
         link: https://www.voidtools.com/
         note: instant file search
+        star: true
 
   - name: Clean up the PC
     tools:
@@ -21,6 +22,7 @@ groups:
         where: windows
         link: https://www.bcuninstaller.com/
         note: 最强的卸载神器！免费开源
+        star: true
       - name: SpaceSniffer
         where: windows
         link: https://www.uderzo.it/main_products/space_sniffer/
@@ -29,10 +31,12 @@ groups:
         where: windows
         link: https://www.jam-software.com/treesize_free
         note: 磁盘空间分析器
+        star: true
       - name: Windows Memory Cleaner
         where: windows
         link: https://github.com/IgorMundstein/WinMemoryCleaner
         note: free up memory
+        star: true
       - name: LockHunter
         where: windows
         link: https://lockhunter.com/

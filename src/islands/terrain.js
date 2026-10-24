@@ -1,4 +1,4 @@
-// Jack's Writing Islands, drawn (the piece is islands.js): the sky, the sea out to the horizon, the land from the
+// Writing Islands, drawn (the piece is islands.js): the sky, the sea out to the horizon, the land from the
 // weather's grid (erosion.js) with its lakes and streams, the rain, and the shadows of the clouds it falls from. The
 // land's light (its slope, the shadows the low sun or moon casts across it, and how shut in each hollow is) is baked
 // into a small picture every frame or two while the land changes, and once when it stops; the land reads it as it's

@@ -1,4 +1,4 @@
-// Jack's Site Check, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen and not
+// Site Check, drawn on the effects' stage (src/effects/stage.js), which runs it only while it's on screen and not
 // paused: this site crawled live (src/lib/site-check.js), as a spider on an irregular orb web leaning back about 30°.
 // The spider lowers itself onto the hub, then walks the threads (never straight across) from page to page as the crawl
 // reads them; each page is a little knot of silk on a crossing, found pages faint, read ones in their part's colour.

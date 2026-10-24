@@ -83,7 +83,9 @@ export default defineConfig({
     // Each effect had its own page until they all moved onto the Effects page (9 Oct 2026); an old address opens it on
     // that effect.
     ...Object.fromEntries(EFFECTS.map((e) => [`/lab/effect/${e.slug}`, effectUrl(e.slug)])),
-    // Jack's Build Log moved into the Lab (10 Oct 2026), the day it went up.
+    // Build Log moved into the Lab (10 Oct 2026), the day it went up.
     '/build-log': '/lab/build-log/',
+    // Speed Check was renamed Speed Test (24 Oct 2026).
+    '/lab/speed-check': '/lab/speed-test/',
   },
 });

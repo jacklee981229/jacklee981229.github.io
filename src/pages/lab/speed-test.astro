@@ -1,12 +1,12 @@
 ---
-// Jack's Speed Check, in the Lab's Misc: download speed and ping, measured live in the visitor's browser against
+// Speed Test, in the Lab's Misc: download speed and ping, measured live in the visitor's browser against
 // Cloudflare's speed servers (src/lib/speed-check.js), drawn as an arc with streaks pouring into it by
 // src/speed-check/gauge.js on the effects' stage. Ping has a card of its own; the data a check used is only a note.
 import ToolShell from '../../components/ToolShell.astro';
 
 const label = 'An arc that fills with your download speed, from 0 to 1000 Mbps, while streaks pour in from both sides.';
 ---
-<ToolShell slug="speed-check">
+<ToolShell slug="speed-test">
   <section class="panel speed" aria-label="Speed check">
     <p class="status" data-status aria-live="polite">Press Start to check your connection.</p>
     <div class="dial" data-dial>

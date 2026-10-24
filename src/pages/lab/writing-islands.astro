@@ -1,5 +1,5 @@
 ---
-// Jack's Writing Islands, in the Lab's Misc (the Writing Islands tool in lab/tools.js): Jack's posts as islands, one
+// Writing Islands, in the Lab's Misc (the Writing Islands tool in lab/tools.js): Jack's posts as islands, one
 // for each topic and a ridge for each post, built from the post's parts and weathered by years of rain. A landscape card
 // as wide as the page's top (a tall one on narrower screens), grown and drawn by src/islands/ on the effects' stage, then
 // how to read it, the posts by island, and other Lab items. The land is worked out while the site is built
@@ -118,7 +118,7 @@ const shapes: Record<string, string> = {
       islands?.restart();
       if (toggle?.textContent === 'Play') toggle.click();
     });
-    // Full screen, where the browser can (iPhones can't), as on Jack's Build Log.
+    // Full screen, where the browser can (iPhones can't), as on Build Log.
     const full = root.querySelector<HTMLButtonElement>('[data-full]');
     if (full && document.fullscreenEnabled) {
       full.hidden = false;
