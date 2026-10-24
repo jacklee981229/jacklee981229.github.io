@@ -22,6 +22,9 @@ export const ICONS = {
   train: '<rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 10h14M9 13.5h.01M15 13.5h.01M8 17l-2 4M16 17l2 4"/>',
   bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1"/><path d="M9.5 13v2M14.5 13v2"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
+  // Filled, its corners rounded by the stroke; the triangle's balance point is the middle, so it looks centred.
+  play: '<path fill="currentColor" d="M8.5 5.8v12.4L19 12z"/>',
+  pause: '<rect x="7" y="5.5" width="3.5" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="13.5" y="5.5" width="3.5" height="13" rx="1" fill="currentColor" stroke="none"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   'turn-right': '<path d="M20 12a8 8 0 1 1-2.3-5.7L20 8.6"/><path d="M20 3v5.6h-5.6"/>',
   'turn-left': '<path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 3v5.6h5.6"/>',
