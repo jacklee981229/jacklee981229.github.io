@@ -1,13 +1,15 @@
 ---
 // Jack's projects, with the showcase video on top in a player of the site's own: its progress bar is cut into the
 // projects' chapters, each named above its stretch, and a name jumps there. The video is made in its own project,
-// showcase-video (Remotion), and copied into public/videos; the cover and the cards' pictures are frames of it.
+// showcase-video (Remotion), and lives in the media repo (SITE.media); the cover and the cards' pictures are frames of
+// it.
 import { Image } from 'astro:assets';
 import PageTop from '../components/PageTop.astro';
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
 import Go from '../components/Go.astro';
 import { newTab } from '../lib/links.js';
+import { SITE } from '../site';
 import cover from '../assets/projects/cover.webp';
 import jacksSpace from '../assets/projects/jacks-space.webp';
 import usage from '../assets/projects/usage.webp';
@@ -48,7 +50,7 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
     <PageTop tone="projects" icon="code" title="Jack's Projects" lead={LEAD} />
 
     <section class="reel" aria-label="Showcase video" data-reel data-length={LENGTH}>
-      <video playsinline preload="metadata" width="1920" height="1080" src="/videos/showcase.mp4"></video>
+      <video playsinline preload="metadata" width="1920" height="1080" src={`${SITE.media}projects/showcase.mp4`}></video>
       <button type="button" class="cover" aria-label={`Play the video, ${total}`}>
         <Image src={cover} alt="" widths={[960, 1600]} sizes="(min-width: 1200px) 71rem, 100vw" />
         <span class="go"><span class="big"><Icon name="play" /></span><span class="label">Watch my projects · {total}</span></span>

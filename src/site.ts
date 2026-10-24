@@ -20,6 +20,10 @@ export const SITE = {
   guestbook: 'https://jacks-space-guestbook.jacklee981229.workers.dev',
   // Jack's Now editor (workers/now): the palette's /now changes Now through it.
   nowEditor: 'https://jacks-space-now.jacklee981229.workers.dev',
+  // The media repo (jacklee981229/media, its own GitHub Pages site at this address): the travel posts' photos, one
+  // folder per trip, and the Projects page's video. Local previews serve it from C:\repos\Jack\media (astro.config.mjs).
+  media: '/media/',
+  mediaLive: 'https://jacklee981229.github.io/media/',
 } as const;
 
 // Jack's links, shown the same way on the About page and in the home page's profile card.
