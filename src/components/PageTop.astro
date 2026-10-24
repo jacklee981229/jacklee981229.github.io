@@ -11,7 +11,7 @@ interface Props {
   title: string;
   lead?: string;
   /** Whose colours the card wears; `plain` is a white card (dark in the dark theme), for the 404 page. */
-  tone: 'writing' | 'lab' | 'collection' | 'travel' | 'about' | 'now' | 'changelog' | 'guestbook' | 'plain';
+  tone: 'writing' | 'lab' | 'collection' | 'travel' | 'about' | 'projects' | 'now' | 'changelog' | 'guestbook' | 'plain';
   /** The part's icon, drawn large and faint in the card's corner. */
   icon: IconName;
 }
@@ -35,6 +35,7 @@ const { title, lead, tone, icon } = Astro.props;
   .collection { --from: var(--collection-top-from); --to: var(--collection-top-to); }
   .travel { --from: var(--travel-top-from); --to: var(--travel-top-to); }
   .about { --from: var(--about-top-from); --to: var(--about-top-to); }
+  .projects { --from: var(--projects-top-from); --to: var(--projects-top-to); }
   .now { --from: var(--now-from); --to: var(--now-to); }
   .changelog { --from: var(--changelog-top-from); --to: var(--changelog-top-to); }
   .guestbook { --from: var(--guestbook-top-from); --to: var(--guestbook-top-to); }

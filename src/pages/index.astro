@@ -13,7 +13,7 @@ import Updated from '../components/Updated.astro';
 import { CURSOR_MS, typingTimeline } from '../lib/typing.js';
 import { logoSvg } from '../lib/logo.js';
 import { LINKS, SITE } from '../site';
-import { isExternal, NEW_TAB } from '../lib/links.js';
+import { isExternal, newTab } from '../lib/links.js';
 import { listedPosts } from '../lib/collections';
 import { topicOf } from '../lib/topics.js';
 import { WORLDS, isListed, toolBySlug, toolUrl, worldUrl } from '../lib/lab/tools.js';
@@ -94,10 +94,10 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
         </div>
         <ul class="tiles" aria-label="Find me">
           {github && (
-            <li><a class="tile github link-github" href={github.href} title={github.label} aria-label={github.label} {...(github.external ? NEW_TAB : {})}><Icon name="github" /><span class="handle">{new URL(github.href).pathname.slice(1)}</span></a></li>
+            <li><a class="tile github link-github" href={github.href} title={github.label} aria-label={github.label} {...(github.external ? newTab() : {})}><Icon name="github" /><span class="handle">{new URL(github.href).pathname.slice(1)}</span></a></li>
           )}
           {tiles.map((link) => (
-            <li><a class:list={['tile', `link-${link.icon}`]} href={link.href} title={link.label} aria-label={link.label} {...(link.external ? NEW_TAB : {})}><Icon name={link.icon} /></a></li>
+            <li><a class:list={['tile', `link-${link.icon}`]} href={link.href} title={link.label} aria-label={link.label} {...(link.external ? newTab() : {})}><Icon name={link.icon} /></a></li>
           ))}
         </ul>
       </section>

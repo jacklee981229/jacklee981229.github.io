@@ -37,6 +37,7 @@ export const NAV = [
   { href: '/', label: 'Home', icon: 'home' },
   { href: '/writing/', label: 'Writing', icon: 'pen', accent: 'writing' },
   { href: '/lab/', label: 'Lab', icon: 'flask', accent: 'lab' },
+  { href: '/projects/', label: 'Projects', icon: 'code', accent: 'projects' },
   { href: '/collections/', label: 'Collection', icon: 'books', accent: 'collection' },
   { href: '/travel/', label: 'Travel', icon: 'globe', accent: 'travel' },
   { href: '/about/', label: 'About', icon: 'user', accent: 'about' },

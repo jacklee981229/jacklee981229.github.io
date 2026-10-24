@@ -1,7 +1,13 @@
 // Links to other sites open in a new tab, so readers keep their place on the blog.
 
 /** The attributes an outside link gets. "new-tab" is the hidden note in Base.astro that screen readers read out. */
-export const NEW_TAB = { target: '_blank', rel: 'noopener', 'aria-describedby': 'new-tab' };
+export const NEW_TAB = Object.freeze({ target: '_blank', rel: 'noopener', 'aria-describedby': 'new-tab' });
+
+/**
+ * A fresh copy of NEW_TAB, to spread onto a link (`{...newTab()}`). Astro writes the component's scope class into the
+ * object it spreads, so a shared object picked up every page's classes; frozen, it now stops the build instead.
+ */
+export const newTab = () => ({ ...NEW_TAB });
 
 /**
  * True for an http(s) link to another site. Relative links, #anchors, mailto: and links to the blog's own address stay put.

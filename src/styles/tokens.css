@@ -102,6 +102,7 @@
   --accent-collection: #FF9F0A;
   --accent-travel: #0A84FF;
   --accent-about: #BF5AF2;
+  --accent-projects: #5E5CE6;
   /* The home page's colour cards, the same in both themes: each fades between two colours and sets white text on
      them; a door card's words sit on its third, deeper colour. */
   --on-colour: #FFFFFF;
@@ -155,6 +156,8 @@
   --travel-top-to: var(--travel-base);
   --about-top-from: #9333EA;
   --about-top-to: #6B21A8;
+  --projects-top-from: #4F46E5;
+  --projects-top-to: #312E81;
   --changelog-top-from: #0E7490;
   --changelog-top-to: #155E75;
   /* The guestbook's amber: its page's top and the home page's Guestbook card. The light end is a touch darker than

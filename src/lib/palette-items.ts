@@ -14,6 +14,7 @@ const PAGE_WORDS: Record<string, string[]> = {
   '/lab/': ['tools', 'games', 'effects', 'worlds'],
   '/collections/': ['movies', 'games', 'favourites', 'favorites', 'shows'],
   '/travel/': ['map', 'countries', 'places', 'visited'],
+  '/projects/': ['apps', 'github', 'code', 'video', 'showcase'],
   '/about/': ['jack', 'me', 'contact', 'links'],
 };
 

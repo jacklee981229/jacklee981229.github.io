@@ -78,6 +78,7 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     ...tagCounts(posts).map(({ tag }) => ({ path: tagUrl(tag) })),
     { path: '/collections/' },
     { path: '/travel/' },
+    { path: '/projects/' },
     { path: '/about/' },
     { path: '/now/', lastmod: nowFile().updated },
     { path: '/changelog/', lastmod: lastUpdate() },

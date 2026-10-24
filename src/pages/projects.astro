@@ -1,0 +1,90 @@
+---
+// Jack's projects, with the showcase video on top. The video is made in its own project, showcase-video (Remotion),
+// and copied into public/videos; the cards' pictures are frames of it.
+import { Image } from 'astro:assets';
+import PageTop from '../components/PageTop.astro';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import Go from '../components/Go.astro';
+import { newTab } from '../lib/links.js';
+import jacksSpace from '../assets/projects/jacks-space.webp';
+import usage from '../assets/projects/usage.webp';
+import jarvis from '../assets/projects/jarvis.webp';
+import studio from '../assets/projects/studio.webp';
+import todo from '../assets/projects/todo.webp';
+import poster from '../assets/projects/poster.webp';
+
+const LEAD = 'Things I built with Claude Code, from this site to the little tools on my desktop.';
+const GITHUB = 'https://github.com/jacklee981229';
+
+const PROJECTS = [
+  { name: "Jack's Space", line: 'This site: writing, a Lab of tools, games and little worlds, my collections and travels.', tags: ['Astro', 'Cloudflare Workers'], kind: 'world', picture: jacksSpace, code: `${GITHUB}/jacklee981229.github.io`, wide: true },
+  { name: 'Claude usage widget', line: 'A desktop widget for my Claude plan: the 5-hour window and the weekly limit.', tags: ['Python', 'Claude Code mod'], kind: 'preview', picture: usage, code: `${GITHUB}/claude-usage-widget`, wide: true },
+  { name: "Jack's Jarvis", line: 'A small, safe Windows agent: ask, it picks a tool, you see what happened.', tags: ['TypeScript', 'Voice'], kind: 'misc', picture: jarvis },
+  { name: 'Media Studio', line: 'Pick the keepers from a trip, give them one look, export for the site.', tags: ['Python', 'FFmpeg'], kind: 'text', picture: studio },
+  { name: 'To-do widget', line: 'My to-do list on the desktop. Claude adds to it and ticks it off.', tags: ['Python'], kind: 'effect', picture: todo },
+] as const;
+---
+<Base title="Jack's Projects" description={LEAD}>
+  <div class="wrap page">
+    <PageTop tone="projects" icon="code" title="Jack's Projects" lead={LEAD} />
+
+    <section class="reel" aria-label="Showcase video">
+      <video controls muted playsinline preload="none" width="1920" height="1080" poster={poster.src} src="/videos/showcase.mp4"></video>
+    </section>
+
+    <ul class="projects">
+      {PROJECTS.map((p) => (
+        <li class:list={['project', p.kind, { wide: 'wide' in p && p.wide }]}>
+          <span class="picture"><Image src={p.picture} alt="" widths={[640, 1280]} sizes="(min-width: 720px) 40rem, 100vw" /></span>
+          <span class="body">
+            <span class="name">{p.name}</span>
+            <span class="line">{p.line}</span>
+            <span class="tags">{p.tags.map((t) => <span class="tag">{t}</span>)}</span>
+            <span class="links">
+              {'code' in p ? <Go href={p.code} {...newTab()}><Icon name="github" />Code</Go> : <span class="private">Not on GitHub yet</span>}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>
+
+<style>
+  .reel { overflow: hidden; margin-bottom: var(--space-7); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .reel video { display: block; width: 100%; height: auto; }
+
+  .projects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  .project { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-xl); background: var(--base); color: var(--on-colour); }
+  .wide { grid-column: 1 / -1; flex-direction: row; }
+  .text { --from: var(--kind-text-from); --to: var(--kind-text-to); --base: var(--kind-text-base); }
+  .preview { --from: var(--kind-preview-from); --to: var(--kind-preview-to); --base: var(--kind-preview-base); }
+  .misc { --from: var(--kind-misc-from); --to: var(--kind-misc-to); --base: var(--kind-misc-base); }
+  .effect { --from: var(--kind-effect-from); --to: var(--kind-effect-to); --base: var(--kind-effect-base); }
+  .world { --from: var(--kind-world-from); --to: var(--kind-world-to); --base: var(--kind-world-base); }
+
+  /* A project's picture is its window from the video on a clear background (900 × 760, 16:9 on a wide card), so the
+     card's own colours show behind it. */
+  .picture { display: block; aspect-ratio: 900 / 760; background: linear-gradient(150deg, var(--from), var(--to)); }
+  .wide .picture { flex: 0 0 58%; aspect-ratio: 16 / 9; }
+  .picture :global(img) { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  .body { display: grid; align-content: start; gap: var(--space-2); padding: var(--space-4); }
+  .wide .body { align-content: center; padding: var(--space-6); }
+  .name { font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
+  .wide .name { font-size: var(--text-xl); }
+  .line { color: var(--on-colour-soft); font-size: var(--text-sm); line-height: 1.45; }
+  .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+  .tag { padding: 0.125rem 0.625rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-family: var(--font-code); font-size: var(--text-xs); }
+  .links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+  .links :global(.go) { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--base); font-size: var(--text-sm); font-weight: 800; }
+  .links :global(.icon) { width: 16px; height: 16px; }
+  .private { color: var(--on-colour-soft); font-size: var(--text-sm); }
+
+  @media (max-width: 719px) {
+    .projects { grid-template-columns: 1fr; }
+    .wide { flex-direction: column; }
+    .wide .body { padding: var(--space-4); }
+  }
+</style>

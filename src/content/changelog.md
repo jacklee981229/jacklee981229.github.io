@@ -116,3 +116,4 @@
 - 2026-10-23 new: Added [PDF Pages](/lab/pdf-pages/) to the Lab: merge, split and turn PDF pages
 - 2026-10-23 new: Added [Image to Text](/lab/image-to-text/) to the Lab: copy the words out of a picture
 - 2026-10-23 improved: Let you zoom post pictures and drag the line between Preview sides
+- 2026-10-24 new: Added a Projects page, with a short video of things I've built

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isExternal, rehypeExternalLinks } from '../src/lib/links.js';
+import { isExternal, NEW_TAB, newTab, rehypeExternalLinks } from '../src/lib/links.js';
 
 const SITE = 'https://jacklee981229.github.io';
 
@@ -23,4 +23,11 @@ test('the plugin marks outside links in a post and leaves the rest alone', () =>
   assert.deepEqual(outside.properties, { href: 'https://hexo.io/', target: '_blank', rel: ['noopener'], ariaDescribedBy: 'new-tab' });
   assert.deepEqual(relative.properties, { href: '/2/' });
   assert.deepEqual(own.properties, { href: `${SITE}/7/` });
+});
+
+test('each link gets its own copy of the new-tab attributes, so a page writing into one leaves the rest alone', () => {
+  const first = newTab();
+  first.class = 'astro-abc';
+  assert.deepEqual(newTab(), { target: '_blank', rel: 'noopener', 'aria-describedby': 'new-tab' });
+  assert.throws(() => { NEW_TAB.class = 'astro-abc'; }, TypeError);
 });
