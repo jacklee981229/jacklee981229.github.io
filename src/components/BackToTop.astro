@@ -17,11 +17,21 @@ const { progress = false } = Astro.props;
   const button = document.querySelector<HTMLButtonElement>('[data-back-to-top]');
   if (button) {
     const ring = button.querySelector<SVGElement>('[data-ring]');
+    // A travel story (TravelStory.astro) is read a slide at a time and fills most of its page: on it the ring counts
+    // slides (its data-read), gliding from one to the next, and stays full once the story is behind the reader.
+    const story = document.querySelector<HTMLElement>('[data-story]');
     const toggle = () => {
       button.classList.toggle('is-visible', scrollY > innerHeight * 0.8);
-      if (ring) ring.style.setProperty('--read', String(Math.min(1, scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight))));
+      if (!ring) return;
+      const band = story?.getBoundingClientRect();
+      const inStory = !!band && band.top <= 1 && band.bottom >= 1;
+      const read = inStory ? Number(story!.dataset.read) : band && band.bottom < 1 ? 1 : scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight);
+      ring.classList.toggle('slides', inStory);
+      ring.classList.toggle('full', read >= 0.999);
+      ring.style.setProperty('--read', String(Math.min(1, read)));
     };
     addEventListener('scroll', toggle, { passive: true });
+    story?.addEventListener('story-read', toggle);
     toggle();
     button.addEventListener('click', () => {
       // Move keyboard focus back to the top too, so the next Tab starts at the page content.
@@ -41,4 +51,7 @@ const { progress = false } = Astro.props;
   .ring circle { fill: none; stroke-width: 2.5; }
   .track { stroke: transparent; }
   .read { stroke: var(--ink); stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--read, 0)); }
+  .slides .read { transition: stroke-dashoffset var(--motion-settle) var(--ease-out); }
+  /* Full, a dashed circle still shows a hairline where its two ends meet: draw it whole. */
+  .full .read { stroke-dasharray: none; }
 </style>

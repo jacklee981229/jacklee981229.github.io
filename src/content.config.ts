@@ -36,6 +36,52 @@ const posts = defineCollection({
     }),
 });
 
+// A travel post's story: story.json beside its index.md, written by Media Studio (C:\repos\Jack\media-studio) when
+// Jack publishes a trip. Never edited by hand: the next publish rewrites it. The photos are in the media repo
+// (src/lib/travel/story.js).
+const stories = defineCollection({
+  loader: glob({
+    pattern: '*/story.json',
+    base: './src/content/posts',
+    generateId: ({ entry }) => entry.split('/')[0],
+  }),
+  schema: z.object({
+    // The trip's folder in the media repo.
+    folder: z.string().regex(/^[a-z0-9-]+$/),
+    moments: z.array(z.object({
+      id: z.string().regex(/^[a-z0-9_~-]+$/),
+      // A photo, or a video's clip of about 7 seconds.
+      kind: z.enum(['photo', 'video']).default('photo'),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+      // When the photo was taken, in the place's own time; null when the file didn't say.
+      taken: z.string().nullable(),
+      words: z.string(),
+      // A clip's length. Clips are silent in a story: the story has one song of its own.
+      seconds: z.number().positive().optional(),
+      // Joined to the moment before: one group, sharing that one's words (its own are empty).
+      joined: z.boolean().optional(),
+      // Where it was, if Jack named it: shown with a pin over the words.
+      place: z.string().optional(),
+      // Words on their own after it (after its group): a slide of their own, without a photo.
+      after: z.string().optional(),
+    })).min(1),
+    // Words before the first photo and after the last, if Jack wrote any, and the moment whose photo is dimmed behind
+    // each if he picked one (else the first and the last).
+    intro: z.string().optional(),
+    outro: z.string().optional(),
+    introPhoto: z.string().optional(),
+    outroPhoto: z.string().optional(),
+    // The song under the whole story, in the trip's media folder, and who made it (shown at the story's end).
+    music: z.object({
+      file: z.string().regex(/^music\/[a-z0-9.-]+$/),
+      title: z.string().min(1),
+      artist: z.string().optional(),
+      url: z.string().url().optional(),
+    }).optional(),
+  }),
+});
+
 const pages = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/pages' }),
   schema: z.object({
@@ -113,4 +159,4 @@ const travel = defineCollection({
   }),
 });
 
-export const collections = { posts, pages, shelves, toolbox, travel };
+export const collections = { posts, stories, pages, shelves, toolbox, travel };

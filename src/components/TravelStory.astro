@@ -1,0 +1,491 @@
+---
+// A trip told in photos and clips (a travel post's story.json), on a dark band that fills the screen. The story is a
+// run of stops, one per photo: each scroll (a wheel turn, a swipe, an arrow key) goes straight to the next, and on
+// arriving the photo fades into the place of the last and its words come in, in the middle of their side (under the
+// photo on a phone). A clip plays, without sound, while it's the one on show. A group of photos (moments joined in
+// Media Studio) shares one paragraph that stays while its photos take turns, with a count of where the reader is in
+// it. Words Jack wrote between two photos are a slide of their own, over the photo before's blur. Behind each photo,
+// the same photo blurred and dimmed fills the screen. The words come in a line at a time, under
+// the place Jack named, if any. The opening and closing words are stops of their own, over a photo dimmed to fill the
+// screen (the first and the last unless Jack picked others). A rail of dots, one per paragraph, shows where the
+// reader is and jumps.
+// A story with a song has a music button on the rail: the song plays only once it's pressed (browsers allow no sound
+// before that) and then keeps playing while the page is open, wherever the reader scrolls; the song's credit ends it.
+// Until it's first pressed the button hops now and then to be noticed; pressed, it leaps with a few notes; while the
+// song plays it sways.
+import Icon from './Icon.astro';
+import { SITE } from '../site';
+import { newTab } from '../lib/links.js';
+import { clipPath, groupLabel, groupsOf, paragraphs, photoUrl, posterPath, srcsetOf } from '../lib/travel/story.js';
+import { photoFor, stopsOf } from '../lib/travel/story-scroll.js';
+
+interface Props {
+  story: {
+    folder: string;
+    moments: { id: string; kind: 'photo' | 'video'; width: number; height: number; taken: string | null; words: string; joined?: boolean; place?: string; after?: string }[];
+    intro?: string;
+    outro?: string;
+    introPhoto?: string;
+    outroPhoto?: string;
+    music?: { file: string; title: string; artist?: string; url?: string };
+  };
+}
+
+const { story } = Astro.props;
+const { folder, moments, music } = story;
+const intro = paragraphs(story.intro ?? '');
+const outro = paragraphs(story.outro ?? '');
+const sizes = '(max-width: 719px) 100vw, 60vw';
+// Each group with the words on their own that follow it, if any (a group's members' together, in order).
+const groups = groupsOf(moments).map(({ first, count }) => {
+  const after = moments.slice(first, first + count).map((m) => m.after ?? '').filter((words) => words.trim()).join('\n');
+  return { first, count, after: after || undefined };
+});
+const stops = stopsOf(groups.map(({ first, count, after }) => ({ first, count, after: !!after })), {
+  intro: intro.length ? photoFor(moments, story.introPhoto, 0) : null,
+  outro: outro.length ? photoFor(moments, story.outroPhoto, moments.length - 1) : null,
+});
+const first = stops[0];
+// A moment's photo as a picture behind things (a clip's cover for a clip): the opening and closing words' at 1280, the
+// blurred glow behind each photo at 640, as the blur hides the rest.
+const behind = (k: number, width: number) => (moments[k].kind === 'video' ? SITE.media + posterPath(folder, moments[k].id) : photoUrl(SITE.media, folder, moments[k].id, width));
+const ends = stops.filter((s) => typeof s.say !== 'number');
+---
+<section class="story" data-story data-stops={JSON.stringify(stops)} aria-label="The trip in photos">
+  <div class="screen">
+    {ends.map((s) => (
+      <img class:list={['behind', s === first && 'on']} src={s === first ? behind(s.photo, 1280) : undefined} data-src={behind(s.photo, 1280)} data-say={s.say}
+        width={moments[s.photo].width} height={moments[s.photo].height} alt="" aria-hidden="true" decoding="async" />
+    ))}
+    {moments.map((m, k) => {
+      const on = k === first.photo && typeof first.say === 'number';
+      return <img class:list={['glow', on && 'on']} src={on ? behind(k, 640) : undefined} data-src={behind(k, 640)} width={m.width} height={m.height} alt="" aria-hidden="true" decoding="async" />;
+    })}
+    <div class="stage" aria-hidden="true">
+      {moments.map((m, k) => {
+        const on = k === first.photo && typeof first.say === 'number' && 'on';
+        return m.kind === 'video' ? (
+          // Jack's Space's own video player takes over these once it's ready; until then a plain, silent loop.
+          <video class:list={['frame', on]} data-src={SITE.media + clipPath(folder, m.id)} data-poster={SITE.media + posterPath(folder, m.id)}
+            poster={k === 0 ? SITE.media + posterPath(folder, m.id) : undefined} width={m.width} height={m.height}
+            muted loop playsinline preload="none"></video>
+        ) : (
+          // Only the first moment loads with the page; the script loads each one shortly before it's needed.
+          <img class:list={['frame', on]} src={k === 0 ? photoUrl(SITE.media, folder, m.id, 1280) : undefined} srcset={k === 0 ? srcsetOf(SITE.media, folder, m.id) : undefined}
+            data-src={photoUrl(SITE.media, folder, m.id, 1280)} data-srcset={srcsetOf(SITE.media, folder, m.id)} sizes={sizes}
+            width={m.width} height={m.height} alt="" decoding="async" />
+        );
+      })}
+      <span class="count" data-count></span>
+    </div>
+    {intro.length > 0 && (
+      <div class:list={['say', 'end', first.say === 'intro' && 'on']} data-say="intro">{intro.map((line) => <p>{line}</p>)}</div>
+    )}
+    {groups.map(({ first: head, count }, g) => {
+      const label = groupLabel(moments[head].taken, moments[head + count - 1].taken);
+      return (
+        <div class:list={['say', first.say === g && 'on']} data-say={g}>
+          {(label || moments[head].place) && (
+            <div class="head">
+              {moments[head].place && <span class="place"><Icon name="pin" />{moments[head].place}</span>}
+              {label && <time datetime={moments[head].taken ?? undefined}>{label}</time>}
+            </div>
+          )}
+          {paragraphs(moments[head].words).map((line) => <p>{line}</p>)}
+        </div>
+      );
+    })}
+    {groups.map(({ after }, g) => after && (
+      <div class="say end" data-say={`after-${g}`}>{paragraphs(after).map((line) => <p>{line}</p>)}</div>
+    ))}
+    {outro.length > 0 && <div class="say end" data-say="outro">{outro.map((line) => <p>{line}</p>)}</div>}
+    {music && (
+      <p class="credit" data-credit>
+        Music: {music.url ? <a href={music.url} {...newTab()}>{music.title}</a> : music.title}{music.artist && ` by ${music.artist}`}
+      </p>
+    )}
+  </div>
+  {stops.map(() => <div class="stop"></div>)}
+  <nav class="rail" aria-label="Photos" data-away>
+    {music && (
+      <button type="button" class="music nudge" aria-pressed="false" aria-label={`Music: ${music.title}`} data-song={SITE.media + `${folder}/${music.file}`}>
+        <Icon name="music" />
+      </button>
+    )}
+    {groups.map(({ first: head, count }, g) => (
+      <button type="button" aria-label={`${count > 1 ? `${count} photos` : moments[head].kind === 'video' ? 'Clip' : 'Photo'}, ${g + 1} of ${groups.length}`}>
+        <i class:list={[count > 1 && 'long']}></i>
+      </button>
+    ))}
+  </nav>
+</section>
+
+<script>
+  import { stepTo, stopAt } from '../lib/travel/story-scroll.js';
+
+  type Stop = { photo: number; say: number | string; place: number };
+
+  for (const story of document.querySelectorAll<HTMLElement>('[data-story]')) {
+    const stops: Stop[] = JSON.parse(story.dataset.stops!);
+    const frames = [...story.querySelectorAll<HTMLImageElement | HTMLVideoElement>('.frame')];
+    const says = [...story.querySelectorAll<HTMLElement>('.say')];
+    const behinds = [...story.querySelectorAll<HTMLImageElement>('.behind')];
+    const glows = [...story.querySelectorAll<HTMLImageElement>('.glow')];
+    const places = [...story.querySelectorAll<HTMLElement>('.stop')];
+    const rail = story.querySelector<HTMLElement>('.rail')!;
+    const dots = [...rail.querySelectorAll<HTMLElement>('button:not(.music)')];
+    const count = story.querySelector<HTMLElement>('[data-count]')!;
+    const credit = story.querySelector<HTMLElement>('[data-credit]');
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    // Each group's size, for the count inside a group.
+    const sizes = new Map<number, number>();
+    for (const s of stops) if (typeof s.say === 'number') sizes.set(s.say, (sizes.get(s.say) ?? 0) + 1);
+
+    // How far into the story the screen is, in stops (story-scroll.js stopAt).
+    const depth = () => -story.getBoundingClientRect().top / places[0].getBoundingClientRect().height;
+
+    function load(k: number) {
+      const glow = glows[k];
+      if (glow && !glow.getAttribute('src')) glow.src = glow.dataset.src!;
+      const frame = frames[k];
+      if (!frame || frame.getAttribute('src')) return;
+      if (frame instanceof HTMLVideoElement) {
+        frame.poster = frame.dataset.poster!;
+        frame.preload = 'auto';
+      } else frame.srcset = frame.dataset.srcset!;
+      frame.src = frame.dataset.src!;
+    }
+
+    // A clip plays only while it's the one on show, and not at all when the reader asks for less motion.
+    function play(frame: HTMLVideoElement, on: boolean) {
+      if (on && frame.paused) frame.play().catch(() => {});
+      else if (!on && !frame.paused) frame.pause();
+    }
+
+    // Words come in a line at a time: each character in a span numbered by the line it lands on (--l), counted
+    // again each time, as the lines change with the window.
+    function number(say: HTMLElement) {
+      const paras = [...say.querySelectorAll('p')];
+      if (!say.dataset.split) {
+        for (const para of paras) para.replaceChildren(...[...para.textContent!].map((c) => Object.assign(document.createElement('span'), { className: 'ch', textContent: c })));
+        say.dataset.split = '';
+      }
+      let line = say.querySelector('.head') ? 1 : 0;
+      for (const para of paras) {
+        let top: number | null = null;
+        for (const ch of para.children as HTMLCollectionOf<HTMLElement>) {
+          if (top !== null && ch.offsetTop > top + 4) line++;
+          top = ch.offsetTop;
+          ch.style.setProperty('--l', String(line));
+        }
+        line++;
+      }
+    }
+
+    let shown = -1;
+    function show(k: number) {
+      if (k === shown) return;
+      shown = k;
+      const stop = stops[k];
+      const end = typeof stop.say !== 'number';
+      // Words on their own keep the photo before's blur behind them; the opening and closing have their own photo.
+      const between = end && String(stop.say).startsWith('after-');
+      for (let p = stop.photo - 1; p <= stop.photo + 2; p++) load(p);
+      if (k >= stops.length - 3) behinds.forEach((img) => { if (!img.getAttribute('src')) img.src = img.dataset.src!; });
+      frames.forEach((frame, p) => {
+        frame.classList.toggle('on', p === stop.photo && !end);
+        glows[p].classList.toggle('on', p === stop.photo && (!end || between));
+        if (frame instanceof HTMLVideoElement) play(frame, p === stop.photo && !end && !still.matches);
+      });
+      for (const say of says) if (say.dataset.say === String(stop.say) && !say.classList.contains('on')) number(say);
+      for (const el of [...says, ...behinds]) el.classList.toggle('on', el.dataset.say === String(stop.say));
+      credit?.classList.toggle('on', k === stops.length - 1);
+      const size = typeof stop.say === 'number' ? sizes.get(stop.say)! : 1;
+      count.textContent = size > 1 ? `${stop.place + 1} / ${size}` : '';
+      dots.forEach((dot, g) => dot.toggleAttribute('data-on', g === stop.say));
+      // For the back-to-top button's ring (BackToTop.astro): how much of the story has been shown.
+      story.dataset.read = String((k + 1) / stops.length);
+      story.dispatchEvent(new Event('story-read', { bubbles: true }));
+    }
+
+    // A step puts the stop's top at the screen's top. Inside the story nothing on screen scrolls (the screen stays put
+    // while the stops pass under it), so the jump is instant and the change of photo and words is the motion; coming
+    // in from outside, the band glides up. While a step lands, more scrolling is held back, so one swipe (and the
+    // touchpad's coast after it) is one step.
+    let held = 0;
+    function go(k: number) {
+      const coming = depth() < -0.02 || depth() > stops.length - 1 + 0.02;
+      show(k);
+      scrollTo({ top: scrollY + places[k].getBoundingClientRect().top, behavior: coming && !still.matches ? 'smooth' : 'instant' });
+      held = performance.now() + (coming ? 700 : 500);
+    }
+    const holding = () => performance.now() < held;
+    // The search palette or another dialog over the page keeps its own scrolling.
+    const covered = () => !!document.querySelector('dialog[open]');
+    // A paragraph too long for the screen scrolls in its own box first.
+    const readsOn = (target: EventTarget | null, way: number) => {
+      const box = (target as Element | null)?.closest?.('.say.on');
+      return !!box && (way > 0 ? box.scrollTop + box.clientHeight < box.scrollHeight - 1 : box.scrollTop > 0);
+    };
+
+    let pushed = 0;
+    let lastWheel = 0;
+    addEventListener('wheel', (e) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || !e.deltaY || covered()) return;
+      const now = performance.now();
+      const quiet = now - lastWheel > 250;
+      lastWheel = now;
+      if (holding()) {
+        e.preventDefault();
+        held = Math.max(held, now + 200);
+        return;
+      }
+      const way = e.deltaY > 0 ? 1 : -1;
+      if (readsOn(e.target, way)) return;
+      const to = stepTo(depth(), stops.length, way);
+      if (to === null) return;
+      e.preventDefault();
+      // A touchpad sends a swipe as many small turns: step once they add up to a little.
+      if (quiet || Math.sign(pushed) !== way) pushed = 0;
+      pushed += e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1);
+      if (Math.abs(pushed) >= 24) {
+        pushed = 0;
+        go(to);
+      }
+    }, { passive: false });
+
+    let touchY: number | null = null;
+    let touchTo: number | null | 'held' = null;
+    let touched = false;
+    addEventListener('touchstart', (e) => {
+      touchY = e.touches.length === 1 ? e.touches[0].clientY : null;
+      touchTo = null;
+      touched = false;
+    }, { passive: true });
+    addEventListener('touchmove', (e) => {
+      if (touchY === null || e.touches.length !== 1 || covered()) return;
+      const dy = touchY - e.touches[0].clientY;
+      if (!touched) {
+        if (!dy) return;
+        touched = true;
+        const way = dy > 0 ? 1 : -1;
+        touchTo = holding() ? 'held' : readsOn(e.target, way) ? null : stepTo(depth(), stops.length, way);
+      }
+      if (touchTo === null || !e.cancelable) return;
+      e.preventDefault();
+      if (touchTo !== 'held' && Math.abs(dy) > 32) {
+        go(touchTo);
+        touchTo = 'held';
+      }
+    }, { passive: false });
+
+    const keys: Record<string, 1 | -1> = { ArrowDown: 1, PageDown: 1, ' ': 1, ArrowUp: -1, PageUp: -1 };
+    addEventListener('keydown', (e) => {
+      const way = e.key === ' ' && e.shiftKey ? -1 : keys[e.key];
+      if (!way || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      const target = e.target as Element;
+      if (target.closest('input, textarea, select, [contenteditable]') || covered()) return;
+      if (e.key === ' ' && target.closest('button, a')) return;
+      const to = stepTo(depth(), stops.length, way);
+      if (to === null) return;
+      e.preventDefault();
+      if (!holding()) go(to);
+    });
+
+    // The song: off until pressed; pressed, it fades in and plays on until pressed again or the page is left.
+    const songButton = rail.querySelector<HTMLButtonElement>('.music');
+    const song = new Audio();
+    song.loop = true;
+    let wanted = false;
+    let fading = 0;
+    function fadeTo(volume: number, then?: () => void) {
+      cancelAnimationFrame(fading);
+      const from = song.volume;
+      const start = performance.now();
+      const ms = volume > from ? 900 : 450;
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / ms);
+        song.volume = from + (volume - from) * t;
+        if (t < 1) fading = requestAnimationFrame(step);
+        else then?.();
+      };
+      fading = requestAnimationFrame(step);
+    }
+    function sound(on: boolean) {
+      if (on && song.paused) {
+        if (!song.src) song.src = songButton!.dataset.song!;
+        song.volume = 0;
+        song.play().then(() => fadeTo(0.7), () => {});
+      } else if (!on && !song.paused) fadeTo(0, () => song.pause());
+    }
+    songButton?.addEventListener('click', () => {
+      wanted = !wanted;
+      songButton.setAttribute('aria-pressed', String(wanted));
+      sound(wanted);
+      // Pressed once, it has been found: no more hopping on this visit.
+      songButton.classList.remove('nudge');
+      if (!wanted || still.matches) return;
+      songButton.classList.remove('leap');
+      void songButton.offsetWidth;
+      songButton.classList.add('leap');
+      const icon = songButton.querySelector('svg')!;
+      [[-22, -26, -20], [2, -34, 10], [24, -24, 22]].forEach(([x, y, turn], i) => {
+        const note = document.createElement('span');
+        note.className = 'note';
+        note.append(icon.cloneNode(true));
+        note.style.cssText = `--x: ${x}px; --y: ${y}px; --turn: ${turn}deg; animation-delay: ${i * 70}ms`;
+        note.addEventListener('animationend', () => note.remove());
+        songButton.append(note);
+      });
+    });
+    songButton?.addEventListener('animationend', (e) => { if (e.animationName.endsWith('leap')) songButton.classList.remove('leap'); });
+
+    // A story with many paragraphs closes up its rail to fit the window.
+    function fit() {
+      rail.style.setProperty('--fit', '1');
+      const fixed = songButton ? songButton.offsetHeight + 16 : 0;
+      rail.style.setProperty('--fit', String(Math.min(1, Math.max(0.3, (innerHeight * 0.8 - fixed) / (rail.offsetHeight - fixed)))));
+    }
+
+    dots.forEach((dot, g) => dot.addEventListener('click', () => go(stops.findIndex((s) => s.say === g))));
+
+    // A scroll that wasn't a step (the scrollbar, Home and End, a resize) shows the nearest stop, and once it stops
+    // inside the story, settles on it.
+    let settling = 0;
+    function draw() {
+      const at = depth();
+      if (!holding()) show(stopAt(at, stops.length));
+      clearTimeout(settling);
+      settling = window.setTimeout(() => {
+        const k = stopAt(depth(), stops.length);
+        if (!holding() && depth() > 0 && depth() < stops.length - 1 && Math.abs(depth() - k) > 0.02) go(k);
+      }, 200);
+      // The rail shows only while the band fills the middle of the screen.
+      const band = story.getBoundingClientRect();
+      const away = band.top > innerHeight / 2 || band.bottom < innerHeight / 2;
+      rail.toggleAttribute('data-away', away);
+    }
+    let queued = false;
+    const later = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; draw(); });
+    };
+    addEventListener('scroll', later, { passive: true });
+    addEventListener('resize', later);
+    addEventListener('resize', fit);
+    fit();
+    draw();
+  }
+</script>
+
+<style>
+  /* The band: dark, the window's full width (the post page makes room for it), one screen tall per stop. The screen
+     stays put over the stops while they pass under it. */
+  .story { position: relative; margin-top: var(--space-7); background: var(--story-ground); color: var(--story-ink); --focus: var(--story-ink); }
+  /* The row is held to the screen's height: the photo behind the opening words would otherwise stretch it to its own. */
+  .screen { position: sticky; top: 0; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); height: 100svh; overflow: hidden; }
+  .stop { height: 100svh; }
+  /* The stops start under the screen. The pull-up is on them, not a negative margin under the screen: that would let
+     the screen stay pinned a screen past the story's end, over what follows. */
+  .screen + .stop { margin-top: -100svh; }
+  .stage { position: relative; grid-row: 1; grid-column: 1; }
+
+  /* A photo on show fades in over the last as it sinks back into place (the look Jack picked). Under the opening and
+     closing words, the photo fills the screen, dimmed. */
+  .frame, .behind { opacity: 0; transform: scale(1.035); transition: opacity 700ms var(--ease-out), transform 1400ms var(--ease-out); }
+  .frame { position: absolute; inset: 0; width: 100%; height: 100%; padding: var(--space-6) var(--space-5); object-fit: contain; }
+  .behind { grid-row: 1 / -1; grid-column: 1 / -1; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.32) saturate(0.7); }
+  .frame.on, .behind.on { opacity: 1; transform: none; }
+  /* Behind each photo, itself blurred and dimmed to the screen's edges: its colours, without a second picture. */
+  .glow { grid-row: 1 / -1; grid-column: 1 / -1; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.15); filter: blur(48px) brightness(0.42) saturate(1.3); transition: opacity 900ms var(--ease-out); }
+  .glow.on { opacity: 1; }
+  .count { position: absolute; left: var(--space-5); bottom: var(--space-4); z-index: 1; color: var(--story-dim); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* The words on show sit in the middle of their side and rise in; the others wait unseen in the same place. */
+  .say { z-index: 1; grid-row: 1; grid-column: 2; align-self: center; max-width: 34em; max-height: 100%; margin-right: var(--space-8); padding: var(--space-6) 0 var(--space-6) var(--space-5); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--story-dim) transparent; opacity: 0; translate: 0 var(--space-3); pointer-events: none; transition: opacity var(--motion-settle) var(--ease-out), translate 700ms var(--ease-out); }
+  .say.on { opacity: 1; translate: none; pointer-events: auto; transition-delay: 150ms; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-2); font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.02em; }
+  .head time { color: var(--story-dim); }
+  .place { display: inline-flex; align-items: center; gap: var(--space-1); }
+  .place :global(.icon) { width: 16px; height: 16px; }
+  .place + time::before { content: '·'; margin-right: var(--space-2); }
+  /* A line at a time, quickly, once the words are on show. */
+  .say :global(.ch) { opacity: 0; transition: opacity 260ms var(--ease-out); }
+  .say.on :global(.ch) { opacity: 1; transition-delay: calc(150ms + var(--l, 0) * 45ms); }
+  .say p { margin: var(--space-2) 0 0; font-size: var(--text-md); line-height: 1.75; }
+  /* The opening and closing words: across the middle of the whole screen, a little larger, over the dimmed photo. */
+  .say.end { grid-column: 1 / -1; justify-self: center; z-index: 1; max-width: 42em; margin: 0; padding: var(--space-6) var(--space-7); }
+  .say.end p { font-size: var(--text-lg); line-height: 1.8; }
+
+  .credit { grid-row: 1; grid-column: 1 / -1; align-self: end; justify-self: center; z-index: 1; margin: 0 0 var(--space-5); color: var(--story-dim); font-size: var(--text-sm); opacity: 0; pointer-events: none; transition: opacity var(--motion-settle) var(--ease-out); }
+  .credit.on { opacity: 1; pointer-events: auto; }
+  .credit a { color: var(--story-ink); }
+
+  .rail { position: fixed; top: 50%; right: var(--space-4); z-index: 5; display: grid; justify-items: center; gap: calc(var(--space-2) * var(--fit, 1)); translate: 0 -50%; transition: opacity var(--motion-quick) ease, visibility var(--motion-quick); }
+  .rail[data-away] { opacity: 0; visibility: hidden; }
+  .rail .music { position: relative; width: 2.25rem; height: 2.25rem; margin-bottom: var(--space-2); border-radius: var(--radius-pill); color: var(--story-dim); transition: color var(--motion-quick) ease, background-color var(--motion-quick) ease; }
+  .rail .music :global(.icon) { width: 18px; height: 18px; }
+  .rail .music[aria-pressed='true'] { color: var(--story-ink); background: color-mix(in srgb, var(--story-ink) 14%, transparent); }
+  @media (prefers-reduced-motion: no-preference) {
+    /* Not pressed yet: now and then a hop and a faint ring. */
+    .rail .music.nudge { animation: hop 5.5s var(--ease-out) 1.5s infinite; }
+    .rail .music.nudge::after { content: ''; position: absolute; inset: 0; border-radius: inherit; animation: ring 5.5s ease-out 1.5s infinite; pointer-events: none; }
+    .rail .music.leap { animation: leap 650ms var(--ease-out); }
+    .rail .music[aria-pressed='true']:not(.leap) > :global(.icon) { animation: sway 1.2s ease-in-out infinite; transform-origin: 50% 80%; }
+  }
+  .rail .music :global(.note) { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; margin: -6px; color: var(--story-ink); pointer-events: none; animation: fly 900ms var(--ease-out) both; }
+  .rail .music :global(.note .icon) { width: 12px; height: 12px; }
+  @keyframes hop {
+    0%, 82%, 100% { transform: none; }
+    85% { transform: translateY(-7px) rotate(-10deg); }
+    88% { transform: scale(1.08, 0.92); }
+    91% { transform: translateY(-3px) rotate(6deg); }
+    94% { transform: none; }
+  }
+  @keyframes ring {
+    0%, 84% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--story-ink) 35%, transparent); }
+    96%, 100% { box-shadow: 0 0 0 12px transparent; }
+  }
+  @keyframes leap {
+    0% { transform: scale(0.86); }
+    35% { transform: translateY(-12px) rotate(-14deg) scale(1.1); }
+    60% { transform: rotate(4deg) scale(1.08, 0.9); }
+    80% { transform: translateY(-3px) rotate(-3deg); }
+    100% { transform: none; }
+  }
+  @keyframes fly {
+    0% { opacity: 0; transform: scale(0.6); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--turn)); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-9deg); }
+    25%, 75% { transform: translateY(-2px); }
+    50% { transform: rotate(9deg); }
+  }
+  .rail button { display: grid; place-items: center; width: 1rem; height: calc(1rem * var(--fit, 1)); padding: 0; border: 0; border-radius: var(--radius-pill); background: none; cursor: pointer; }
+  .rail i { width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--story-ink); opacity: 0.3; transition: opacity var(--motion-settle) var(--ease-out), scale var(--motion-settle) var(--ease-out); }
+  .rail [data-on] i { opacity: 1; scale: 1.6; }
+  .rail i.long { height: calc(18px * var(--fit, 1)); }
+  .rail button:has(.long) { height: calc(1.75rem * var(--fit, 1)); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .frame, .behind { transform: none; transition: opacity var(--motion-soft) ease; }
+    .say { translate: none; transition: opacity var(--motion-soft) ease; }
+    .say.on { transition-delay: 0s; }
+    .say :global(.ch) { opacity: 1; transition: none; }
+  }
+
+  @media (max-width: 719px) {
+    .screen { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55% minmax(0, 1fr); }
+    /* Clear of the rail of dots down the right edge. */
+    .frame { padding: var(--space-3) var(--space-7) var(--space-6) var(--space-3); object-position: 50% 100%; }
+    .say { grid-row: 2; grid-column: 1; align-self: start; margin-right: var(--space-7); padding: var(--space-4) 0 var(--space-4) var(--space-5); }
+    .say.end { grid-row: 1 / -1; grid-column: 1; justify-self: stretch; margin: 0; padding: var(--space-6) var(--space-7) var(--space-6) var(--space-5); }
+    .say.end p { font-size: var(--text-md); }
+    .credit { grid-row: 1 / -1; grid-column: 1; }
+    .count { left: var(--space-3); bottom: var(--space-1); }
+    .rail { top: auto; bottom: 12svh; right: var(--space-2); translate: none; }
+  }
+</style>

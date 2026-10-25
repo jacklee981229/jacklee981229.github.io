@@ -370,12 +370,20 @@
   --topic-chatgpt: #7143B5;
   --topic-games: #276D2C;
   --topic-flutter: #1B5BBE;
+  /* Travel posts take the Travel Map's deep end, so a trip and the map read as one part of the site. */
+  --topic-travel: var(--travel-base);
   /* Topic lanes: colour always means topic, and always sits next to the topic's name. */
   --lane-hexo: var(--topic-hexo);
   --lane-git: var(--topic-git);
   --lane-chatgpt: var(--topic-chatgpt);
   --lane-games: var(--topic-games);
   --lane-flutter: var(--topic-flutter);
+  --lane-travel: var(--topic-travel);
+  /* A travel story's band (src/components/TravelStory.astro): dark in every theme, so its photos sit on the same
+     ground whatever the page around them; the words on it are at least 4.5:1. */
+  --story-ground: #0E1217;
+  --story-ink: #E8EDF3;
+  --story-dim: #9AA8B8;
 
   --font-sans: 'Schibsted Grotesk', system-ui, sans-serif;
   --font-code: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
@@ -479,6 +487,7 @@
   --lane-chatgpt: #BA9CF5;
   --lane-games: #74C678;
   --lane-flutter: #7AAAFF;
+  --lane-travel: #9D9BFF;
   --diff-add: #15301F;
   --diff-add-word: #1E6236;
   --diff-remove: #3B1A18;

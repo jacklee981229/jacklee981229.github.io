@@ -4,8 +4,9 @@
  * @typedef {{ id: string, data: { title: string, date: Date, updated?: Date, topic: string, tags: string[], draft?: boolean, hidden?: boolean } }} PostLike
  */
 
-// Folder names a post can't use: the site's own pages and files already live at these addresses.
-export const RESERVED_SLUGS = ['about', 'archives', 'tags', 'writing', 'page', 'games', 'fonts', 'pagefind', '_astro', '404', 'lab', 'random', 'collections', 'travel', 'projects', 'now', 'changelog'];
+// Folder names a post can't use: the site's own pages and files already live at these addresses (/media/ is the
+// travel photos' own site, SITE.media).
+export const RESERVED_SLUGS = ['about', 'archives', 'tags', 'writing', 'page', 'games', 'fonts', 'pagefind', '_astro', '404', 'lab', 'random', 'collections', 'travel', 'projects', 'now', 'changelog', 'media'];
 
 /** Newest first; same-moment posts fall back to id order so the result never depends on file order. */
 export const byNewest = (/** @type {PostLike} */ a, /** @type {PostLike} */ b) => b.data.date.getTime() - a.data.date.getTime() || a.id.localeCompare(b.id);

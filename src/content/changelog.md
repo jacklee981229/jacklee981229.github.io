@@ -122,3 +122,4 @@
 - 2026-10-24 design: Put Town, Markdown Preview and Image Editor on the home Lab card
 - 2026-10-24 improved: Gave the projects video its own player, with chapters and music
 - 2026-10-25 design: Gave the Now page pictures, a line on each thing and what came before
+- 2026-10-25 fix: Closed the tiny gap at the top of the back-to-top ring

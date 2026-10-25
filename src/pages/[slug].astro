@@ -1,5 +1,5 @@
 ---
-import { render } from 'astro:content';
+import { getEntry, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Cover from '../components/Cover.astro';
 import Go from '../components/Go.astro';
@@ -10,6 +10,7 @@ import PostScripts from '../components/PostScripts.astro';
 import ProfileCard from '../components/ProfileCard.astro';
 import SiteInfo from '../components/SiteInfo.astro';
 import Toc from '../components/Toc.astro';
+import TravelStory from '../components/TravelStory.astro';
 import '../styles/prose.css';
 import { SITE } from '../site';
 import { formatDate, isoDay } from '../lib/dates.js';
@@ -19,6 +20,7 @@ import { TOPICS, topicOf } from '../lib/topics.js';
 import { coverOf, listedPosts, pagePosts, postUrl, summaryOf, tagUrl, type Post } from '../lib/collections';
 import { EXPERIMENTS } from '../lib/lab/tools.js';
 import { flowStyle } from '../lib/flow.js';
+import { missingFiles } from '../lib/travel/story.js';
 
 export async function getStaticPaths() {
   const posts = await pagePosts();
@@ -42,9 +44,15 @@ const { newer, older } = neighbours(listed, post);
 const more = checkThese(listed, post);
 const topic = topicOf(data.topic);
 const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
+// A travel post's photos and words (story.json beside it); the build stops if any photo isn't in the media repo yet.
+const story = data.topic === 'travel' ? (await getEntry('stories', post.id))?.data : undefined;
+if (story) {
+  const missing = await missingFiles(story, { local: `${process.cwd()}/../media`, live: SITE.mediaLive });
+  if (missing.length) throw new Error(`Post "${post.id}" needs ${missing.length} photos the media repo doesn't have, such as ${missing[0]}. Publish the trip from Media Studio first.`);
+}
 ---
 <Base title={data.title} description={summaryOf(post)} image={coverOf(post)} topic={{ id: topic.id, name: topic.name }} article={{ published: data.date, updated: data.updated, tags: data.tags }}>
-  <article class="wrap post" style={`--c: var(--lane-${data.topic}); --deep: var(--topic-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
+  <article class:list={['wrap post', story && 'has-story']} style={`--c: var(--lane-${data.topic}); --deep: var(--topic-${data.topic})`} data-pagefind-body={data.hidden ? undefined : ''}>
     <header class="post-top">
       <Icon name={topic.icon} class="mark" />
       <p class="topic" data-pagefind-ignore><Go href={`/writing/#${data.topic}`}>{topic.name}</Go></p>
@@ -65,7 +73,7 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
       </div>
     </header>
 
-    <Cover post={post} variant="banner" />
+    {!story && <Cover post={post} variant="banner" />}
 
     <div class="grid">
       <Toc headings={headings} />
@@ -74,6 +82,8 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
         <Content />
       </div>
     </div>
+
+    {story && <TravelStory story={story} />}
 
     <footer class="foot" data-pagefind-ignore>
       {data.license && (
@@ -113,6 +123,10 @@ const showUpdated = data.updated && isoDay(data.updated) !== isoDay(data.date);
   /* The top: a card in the topic's deep colour, like the other pages' tops, with the topic's icon large in its
      corner; the words in white. */
   .post { margin-bottom: var(--space-8); padding-top: var(--space-6); }
+  /* A travel story's band runs the window's full width (as in the look Jack picked); the rest of the post keeps the
+     page's usual width, measured from the article so the window's scrollbar never adds a sideways scroll. */
+  .post.has-story { max-width: none; padding-inline: 0; }
+  .post.has-story > * { margin-inline: max(var(--gutter), calc((100% - var(--content-max)) / 2 + var(--gutter))); }
   .post-top { --focus: var(--on-colour); position: relative; overflow: hidden; padding: var(--space-6); border-radius: var(--radius-2xl); background: linear-gradient(150deg, transparent, var(--on-colour-chip)), var(--deep); color: var(--on-colour); }
   /* The words stay clear of the icon. */
   .post-top > :not(.mark) { position: relative; }

@@ -1,9 +1,9 @@
 import { defineConfig } from 'astro/config';
 import { codeTitleFromMeta, rehypeCodeFrame } from './src/lib/code-frame.js';
 import { rehypeExternalLinks } from './src/lib/links.js';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 import { compareSitemap, sitemapProblem } from './src/lib/sitemap-check.js';
 import { missingPictures, picturesToMake } from './src/lib/share.js';
 import { sharePicture } from './src/lib/share-image.js';
@@ -39,6 +39,26 @@ const siteChecks = {
   },
 };
 
+/**
+ * Travel posts' photos are the media repo's own site (SITE.media, /media/). The local preview serves them from that
+ * repo's folder beside this one, so a trip can be read before its photos are published.
+ */
+const localMedia = {
+  name: 'local-media',
+  /** @param {import('vite').ViteDevServer} server */
+  configureServer(server) {
+    const root = resolve(process.cwd(), '..', 'media');
+    server.middlewares.use('/media', (req, res, next) => {
+      const file = resolve(root, `.${decodeURIComponent((req.url ?? '').split('?')[0])}`);
+      if (!file.startsWith(root + sep) || !existsSync(file) || !statSync(file).isFile()) return next();
+      res.setHeader('Content-Type', file.endsWith('.webp') ? 'image/webp' : file.endsWith('.mp4') ? 'video/mp4' : file.endsWith('.mp3') ? 'audio/mpeg' : 'application/octet-stream');
+      // Read whole, not streamed: a stream left open by a cancelled request keeps the file locked on Windows, and Media
+      // Studio can't replace it on the next publish.
+      res.end(readFileSync(file));
+    });
+  },
+};
+
 export default defineConfig({
   site,
   // Old Hexo links all end in a slash (/11/, /archives/), so every page URL does.
@@ -46,6 +66,7 @@ export default defineConfig({
   integrations: [siteChecks],
   build: { format: 'directory' },
   vite: {
+    plugins: [localMedia],
     resolve: {
       // Image to Text's reader (PaddleOCR.js) asks for ONNX Runtime's default build, which carries the graphics
       // card's code too: twice the download. It runs on the processor only, so it gets that build instead.
