@@ -36,7 +36,7 @@ export function interleave(lists, count) {
 }
 
 /**
- * The posts the Writing tile shows: the "Start here" ones if any are marked, otherwise the newest posts not on a
+ * The posts the Writing tile shows: the featured ones if any are marked, otherwise the newest posts not on a
  * legacy topic. Posts come newest first.
  * @template {{ data: { featured?: boolean, topic: string } }} T
  * @param {T[]} posts @param {(topic: string) => boolean} legacy @param {number} count @returns {T[]}

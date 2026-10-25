@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkThese, featured, lastUpdated, listed, neighbours, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
-import { TOPICS, listOrder } from '../src/lib/topics.js';
+import { byYear, checkThese, lastUpdated, listed, neighbours, published, recent, related, tagCounts, topicCounts } from '../src/lib/posts.js';
+import { TOPICS } from '../src/lib/topics.js';
 
 const post = (id, date, extra = {}) => ({ id, data: { title: id, date: new Date(date), topic: 'hexo', tags: [], ...extra } });
 
@@ -77,16 +77,16 @@ test('lastUpdated takes the latest publish or update date', () => {
   assert.equal(lastUpdated([]), undefined);
 });
 
-test('featured picks only the posts marked to start with, newest first as given', () => {
-  const posts = [{ id: 'a', data: { featured: true } }, { id: 'b', data: {} }, { id: 'c', data: { featured: true } }];
-  assert.deepEqual(featured(posts).map((p) => p.id), ['a', 'c']);
-});
-
-test('legacy topics are listed last; the others keep their order', () => {
-  const order = listOrder(TOPICS).map((t) => t.id);
-  assert.equal(order.at(-1), 'hexo');
-  assert.deepEqual(order.slice(0, -1), TOPICS.map((t) => t.id).filter((id) => id !== 'hexo'));
-  assert.deepEqual(listOrder([{ id: 'x' }, { id: 'old', legacy: 'note' }, { id: 'y' }]).map((t) => t.id), ['x', 'y', 'old']);
+test('byYear keeps the order and splits it by year in Malaysia time', () => {
+  const list = [
+    post('a', '2026-10-24T22:00:00+08:00'),
+    // 1 Jan, 03:00 in Malaysia is still 31 Dec in UTC: it belongs to 2026.
+    post('b', '2026-01-01T03:00:00+08:00'),
+    post('c', '2025-12-31T23:00:00+08:00'),
+    post('d', '2023-03-02T09:00:00+08:00'),
+  ];
+  assert.deepEqual(byYear(list).map((y) => [y.year, y.posts.map((p) => p.id)]), [['2026', ['a', 'b']], ['2025', ['c']], ['2023', ['d']]]);
+  assert.deepEqual(byYear([]), []);
 });
 
 test("Hexo's posts carry the note about the old site", () => {

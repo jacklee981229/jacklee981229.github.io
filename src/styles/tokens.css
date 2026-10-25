@@ -129,6 +129,9 @@
   --writing-from: #FF375F;
   --writing-to: #C83BDB;
   --writing-base: #9D174D;
+  /* Writing's year numbers and the lines between its posts, on the page's ground: the deep pink in the light, the
+     bright one in the dark. */
+  --writing-ink: var(--writing-base);
   /* Every other page's top (PageTop.astro): a card fading between two of its part's colours, deep enough that white
      text keeps 4.5:1 on both. Now and the Lab use their home cards' colours. */
   --writing-top-from: #DB2777;
@@ -492,6 +495,7 @@
   --diff-add-word: #1E6236;
   --diff-remove: #3B1A18;
   --diff-remove-word: #7A2C27;
+  --writing-ink: var(--accent-writing);
   /* Build Log in the dark: the parts in their bright accents and Home in the ink, glowing; the small hours in
      Now's yellow; the panels set into the card in the page's colour. */
   --log-home: var(--ink);

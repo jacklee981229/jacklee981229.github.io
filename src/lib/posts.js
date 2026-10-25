@@ -1,4 +1,5 @@
 // Which posts show where, and in what order. Pure functions over { id, data } entries, so tests can cover them.
+import { yearOf } from './dates.js';
 
 /**
  * @typedef {{ id: string, data: { title: string, date: Date, updated?: Date, topic: string, tags: string[], draft?: boolean, hidden?: boolean } }} PostLike
@@ -27,8 +28,20 @@ export function listed(posts, options) {
   return published(posts, options).filter((p) => !p.data.hidden);
 }
 
-/** The posts to start with, listed at the top of Writing. @template {{ data: { featured?: boolean } }} T @param {T[]} listedPosts */
-export const featured = (listedPosts) => listedPosts.filter((p) => p.data.featured);
+/**
+ * Posts in runs by year (Malaysia time), in the order given: Writing's newest-first list.
+ * @template {PostLike} T @param {T[]} listedPosts @returns {{ year: string, posts: T[] }[]}
+ */
+export function byYear(listedPosts) {
+  /** @type {{ year: string, posts: T[] }[]} */
+  const years = [];
+  for (const post of listedPosts) {
+    const year = yearOf(post.data.date);
+    if (years.at(-1)?.year !== year) years.push({ year, posts: [] });
+    years[years.length - 1].posts.push(post);
+  }
+  return years;
+}
 
 /**
  * @template {PostLike} T @param {T[]} listedPosts @param {T} post

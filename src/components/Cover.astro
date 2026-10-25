@@ -1,8 +1,11 @@
 ---
-// A post's cover: its image (or the topic's icon) in front of the topic name, large and faint, on a tint of the topic colour.
+// A post's cover. On Writing, in Check these too and on the post's banner: drawn in the topic's deep colour with its
+// icon (lib/covers.js), the picture filling it (card) or standing whole on it (banner, and a tall picture anywhere).
+// The Lab's game cards (mini): the picture in front of the topic's name, large and faint, on a tint of its colour.
 import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
 import { coverOf, type Post } from '../lib/collections';
+import { drawnStyle } from '../lib/covers.js';
 import { topicOf } from '../lib/topics.js';
 
 interface Props {
@@ -15,48 +18,58 @@ const { post, variant = 'card', class: className, ...rest } = Astro.props;
 const image = coverOf(post);
 const topic = topicOf(post.data.topic);
 const tall = image ? image.height > image.width * 1.2 : false;
+const fills = variant === 'card' && image && !tall;
 // About twice the size each variant shows the image at, so it stays sharp on high-density screens.
-const maxWidth = { card: tall ? 240 : 480, mini: tall ? 200 : 400, banner: tall ? 420 : 1400 }[variant];
+const maxWidth = { card: tall ? 400 : 1200, mini: tall ? 200 : 400, banner: tall ? 420 : 1400 }[variant];
 ---
-<div class:list={['cover', `cover-${variant}`, className]} style={`--c: var(--lane-${post.data.topic})`} aria-hidden="true" data-pagefind-ignore {...rest}>
-  <span class="word">{topic.name}</span>
-  {image ? (
-    <Image src={image} alt="" width={Math.min(image.width, maxWidth)} class:list={['art', { tall }]} loading={variant === 'banner' ? 'eager' : 'lazy'} />
-  ) : (
-    <Icon name={topic.icon} class="topic-icon" />
-  )}
-</div>
+{variant === 'mini' ? (
+  <div class:list={['cover', 'cover-mini', className]} style={`--c: var(--lane-${post.data.topic})`} aria-hidden="true" data-pagefind-ignore {...rest}>
+    <span class="word">{topic.name}</span>
+    {image ? (
+      <Image src={image} alt="" width={Math.min(image.width, maxWidth)} class:list={['art', { tall }]} loading="lazy" />
+    ) : (
+      <Icon name={topic.icon} class="topic-icon" />
+    )}
+  </div>
+) : (
+  <div class:list={['cover', 'drawn', `cover-${variant}`, className]} style={`--c: var(--topic-${post.data.topic}); ${drawnStyle(post.id)}`} aria-hidden="true" data-pagefind-ignore {...rest}>
+    {!fills && <Icon name={topic.icon} class="mark" />}
+    {image && <Image src={image} alt="" width={Math.min(image.width, maxWidth)} class:list={['art', { tall, fill: fills }]} loading={variant === 'banner' ? 'eager' : 'lazy'} />}
+  </div>
+)}
 
 <style>
-  .cover {
-    position: relative;
+  .cover { position: relative; overflow: hidden; }
+
+  .drawn { aspect-ratio: 16 / 10; background: radial-gradient(90% 80% at var(--light) 0%, var(--on-colour-faint), transparent 60%), linear-gradient(var(--angle), color-mix(in srgb, var(--c) 70%, black), var(--c)); }
+  .drawn :global(.mark) { position: absolute; left: var(--x); top: var(--y); width: var(--size); height: auto; aspect-ratio: 1; color: var(--on-colour-faint); stroke-width: 1.4; translate: -50% -50%; rotate: var(--turn); }
+  .drawn :global(.art) { position: absolute; display: block; }
+  .drawn :global(.art.fill) { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  /* A tall picture (a phone's screen) stands whole on the cover, its foot cut by the cover's edge, instead of being
+     cropped to a strip. */
+  .drawn :global(.art.tall) { top: 8%; left: 50%; width: auto; height: 92%; border-radius: var(--radius-md) var(--radius-md) 0 0; box-shadow: var(--shadow-cover); translate: -50% 0; }
+
+  .cover-banner { aspect-ratio: 3 / 1; margin-top: var(--space-6); border-radius: var(--radius-xl); }
+  .cover-banner :global(.mark) { width: calc(var(--size) / 2.4); }
+  /* Absolutely positioned so the percentage limits resolve against the cover's own height. */
+  .cover-banner :global(.art:not(.tall)) { top: 50%; left: 50%; width: auto; height: auto; max-width: 74%; max-height: 80%; border-radius: var(--radius-art); background: var(--surface); box-shadow: var(--shadow-cover); translate: -50% -50%; }
+
+  .cover-mini {
     display: grid;
     place-items: center;
-    overflow: hidden;
-    aspect-ratio: 2.2 / 1;
+    aspect-ratio: 2 / 1;
     background:
       radial-gradient(120% 90% at 50% 115%, color-mix(in srgb, var(--c) 28%, transparent), transparent 70%),
       linear-gradient(160deg, color-mix(in srgb, var(--c) 7%, var(--surface)), color-mix(in srgb, var(--c) 18%, var(--surface)));
   }
-  .word { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--c) 22%, transparent); font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 900; line-height: 1; letter-spacing: -0.04em; white-space: nowrap; user-select: none; }
-  /* Absolutely positioned so the percentage limits resolve against the cover's own height. */
-  .cover :global(.art) { position: absolute; top: 50%; left: 50%; width: auto; height: auto; max-width: 74%; max-height: 80%; border-radius: var(--radius-art); background: var(--surface); box-shadow: var(--shadow-cover); translate: -50% -50%; }
-  .cover :global(.art.tall) { max-width: 34%; max-height: 90%; border-radius: var(--radius-md); }
-  .cover :global(.topic-icon) { position: relative; width: 64px; height: 64px; color: var(--c); stroke-width: 1.5; }
-
-  .cover-banner { aspect-ratio: 3 / 1; margin-top: var(--space-6); border: var(--hairline) solid var(--rule); border-radius: var(--radius-xl); }
-  .cover-banner .word { font-size: clamp(4rem, 13vw, 10rem); }
-  .cover-banner :global(.topic-icon) { width: 96px; height: 96px; }
-  .cover-banner :global(.art.tall) { max-width: 24%; }
-
-  .cover-mini { aspect-ratio: 2 / 1; }
-  .cover-mini .word { font-size: 3rem; }
-  .cover-mini :global(.topic-icon) { width: 40px; height: 40px; }
+  .word { position: absolute; inset: 0; display: grid; place-items: center; color: color-mix(in srgb, var(--c) 22%, transparent); font-size: 3rem; font-weight: 900; line-height: 1; letter-spacing: -0.04em; white-space: nowrap; user-select: none; }
+  .cover-mini :global(.art) { position: absolute; top: 50%; left: 50%; width: auto; height: auto; max-width: 74%; max-height: 80%; border-radius: var(--radius-art); background: var(--surface); box-shadow: var(--shadow-cover); translate: -50% -50%; }
+  .cover-mini :global(.art.tall) { max-width: 34%; max-height: 90%; border-radius: var(--radius-md); }
+  .cover-mini :global(.topic-icon) { position: relative; width: 40px; height: 40px; color: var(--c); stroke-width: 1.5; }
 
   @media (max-width: 719px) {
-    .cover { aspect-ratio: 16 / 9; }
-    .word { font-size: 3.5rem; }
+    .cover-mini { aspect-ratio: 16 / 9; }
     .cover-banner { aspect-ratio: 16 / 10; border-radius: var(--radius-lg); }
-    .cover-banner :global(.art.tall) { max-width: 38%; }
+    .cover-banner :global(.mark) { width: var(--size); }
   }
 </style>

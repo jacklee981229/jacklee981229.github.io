@@ -23,13 +23,13 @@ const posts = defineCollection({
         .default([]),
       // Shown on cards and in search results instead of the automatic summary.
       description: z.string().optional(),
-      // Without one, the post's first image is the cover, else a cover in the topic's colour.
+      // Without one, the post's first image is the cover, else a cover drawn in the topic's colour (lib/covers.js).
       cover: image().optional(),
       // Drafts only show in local preview (npm run dev).
       draft: z.boolean().default(false),
       // Hidden posts have a page but appear in no list, feed, search or sitemap.
       hidden: z.boolean().default(false),
-      // Featured posts are listed under "Start here" at the top of Writing: the ones to read first.
+      // Featured posts are the ones to read first: the home page's Writing card names them.
       featured: z.boolean().default(false),
       // false hides the CC licence notice, for posts that are mostly other people's code.
       license: z.boolean().default(true),

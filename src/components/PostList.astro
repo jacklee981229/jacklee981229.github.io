@@ -1,5 +1,5 @@
 ---
-// A compact list of posts: topic dot, title, date. Used by Writing, tag pages and "Recent posts".
+// A compact list of posts: topic dot, title, date. Used by the tag pages.
 import { formatDate } from '../lib/dates.js';
 import { topicOf } from '../lib/topics.js';
 import { postUrl, type Post } from '../lib/collections';
@@ -7,19 +7,16 @@ import { flowStyle } from '../lib/flow.js';
 
 interface Props {
   posts: Post[];
-  showTopic?: boolean;
-  /** Titles grow into their post's title on the way there (flow.js); off for a list repeating another's posts. */
-  flow?: boolean;
 }
 
-const { posts, showTopic = true, flow = true } = Astro.props;
+const { posts } = Astro.props;
 ---
 <ul class="list">
   {posts.map((post) => (
     <li style={`--c: var(--lane-${post.data.topic})`}>
       <a href={postUrl(post)}>
-        {showTopic && <span class="dot" title={topicOf(post.data.topic).name} aria-hidden="true" />}
-        <span class="title" style={flow ? flowStyle(postUrl(post)) : undefined}><span class="words">{post.data.title}</span></span>
+        <span class="dot" title={topicOf(post.data.topic).name} aria-hidden="true" />
+        <span class="title" style={flowStyle(postUrl(post))}><span class="words">{post.data.title}</span></span>
         <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
       </a>
     </li>

@@ -1,50 +1,106 @@
 ---
 import Base from '../layouts/Base.astro';
-import Icon from '../components/Icon.astro';
+import Cover from '../components/Cover.astro';
 import PageTop from '../components/PageTop.astro';
-import PostList from '../components/PostList.astro';
-import { featured, topicCounts } from '../lib/posts.js';
-import { TOPICS, listOrder } from '../lib/topics.js';
-import { listedPosts } from '../lib/collections';
+import { listedPosts, postUrl, summaryOf, type Post } from '../lib/collections';
+import { formatDate } from '../lib/dates.js';
+import { byYear } from '../lib/posts.js';
+import { topicOf } from '../lib/topics.js';
+import { flowStyle } from '../lib/flow.js';
 
-const posts = await listedPosts();
-const topics = listOrder(topicCounts(posts, TOPICS).filter((t) => t.count > 0));
-const start = featured(posts);
+const [newest, ...rest] = await listedPosts();
+const years = byYear(rest);
+const meta = (p: Post) => ({ topic: topicOf(p.data.topic).name, date: formatDate(p.data.date), iso: p.data.date.toISOString(), summary: summaryOf(p) });
 ---
-<Base title="Writing" description="Posts grouped by topic.">
+<Base title="Writing" description="Everything I've written, newest first.">
   <div class="wrap page">
-    <PageTop tone="writing" icon="pen" title="Writing" lead="Posts grouped by topic." />
-    {topics.length === 0 && <p class="empty">No posts yet.</p>}
-    <div class="topics">
-      {start.length > 0 && (
-        <section class="topic start" aria-labelledby="start-here">
-          <h2 id="start-here"><Icon name="star" />Start here</h2>
-          <PostList posts={start} flow={false} />
-        </section>
-      )}
-      {topics.map((t) => (
-        <section class="topic" id={t.id} style={`--c: var(--topic-${t.id})`} aria-labelledby={`topic-${t.id}`}>
-          <h2 id={`topic-${t.id}`}><Icon name={t.icon} />{t.name} <span class="count">{t.count}</span></h2>
-          <PostList posts={posts.filter((p) => p.data.topic === t.id)} showTopic={false} />
-        </section>
-      ))}
-    </div>
+    <PageTop tone="writing" icon="pen" title="Writing" lead="Everything I've written, newest first." />
+    {!newest && <p class="empty">No posts yet.</p>}
+    {newest && (
+      <article class="newest" style={`--lane: var(--lane-${newest.data.topic})`}>
+        <Cover post={newest} />
+        <div class="text">
+          <p class="meta"><span class="topic"><span class="dot" />{meta(newest).topic}</span><time datetime={meta(newest).iso}>{meta(newest).date}</time></p>
+          <a class="title" href={postUrl(newest)} style={flowStyle(postUrl(newest))}><span class="words">{newest.data.title}</span></a>
+          {meta(newest).summary && <p class="summary">{meta(newest).summary}</p>}
+        </div>
+      </article>
+    )}
+    {years.map(({ year, posts }) => (
+      <section class="year" aria-labelledby={`y${year}`}>
+        <h2 id={`y${year}`}>{year}</h2>
+        <ul>
+          {posts.map((p) => (
+            <li class="post" style={`--lane: var(--lane-${p.data.topic})`}>
+              <Cover post={p} />
+              <div class="text">
+                <p class="meta"><span class="topic"><span class="dot" />{meta(p).topic}</span><time datetime={meta(p).iso}>{meta(p).date}</time></p>
+                <a class="title" href={postUrl(p)} style={flowStyle(postUrl(p))}><span class="words">{p.data.title}</span></a>
+                {meta(p).summary && <p class="summary">{meta(p).summary}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
   </div>
 </Base>
 
 <style>
-  /* The topics as cards in two columns, each as tall as its posts: a band of its topic's colour (Start here in
-     Writing's pink) over its posts. */
-  .topics { columns: 2; column-gap: var(--space-5); }
-  .topic { overflow: hidden; margin-bottom: var(--space-5); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); break-inside: avoid; scroll-margin-top: var(--space-5); }
-  h2 { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4) var(--space-5); background: linear-gradient(150deg, transparent, var(--on-colour-chip)), var(--c); color: var(--on-colour); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.02em; }
-  .start h2 { background: linear-gradient(150deg, var(--writing-top-from), var(--writing-top-to)); }
-  h2 :global(.icon) { width: 22px; height: 22px; stroke-width: 2.2; }
-  .count { margin-left: auto; min-width: 1.75rem; padding: 0.0625rem var(--space-2); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
-  .topic :global(.list) { padding: var(--space-2) var(--space-5) var(--space-3); }
-  .topic :global(li:last-child a) { border-bottom: 0; }
+  /* The newest post as one big card across the row; the rest by year, each a big cover with its words beside it on
+     the page, no card, the sides taking turns, a line in Writing's pink between them. The whole post is the link
+     (the title's ::after). */
+  .newest, .post { position: relative; }
+  .newest { overflow: hidden; border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); transition: transform var(--motion-quick) ease; }
+  .newest :global(.cover) { aspect-ratio: 21 / 8; }
+  .newest .text { padding: var(--space-5) var(--space-6) var(--space-6); }
 
-  @media (max-width: 959px) {
-    .topics { columns: 1; }
+  .year { margin-top: var(--space-8); }
+  h2 { margin: 0 0 var(--space-5); color: var(--writing-ink); font-size: var(--text-display); font-weight: 900; line-height: 0.9; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+  ul { margin: 0; padding: 0; list-style: none; }
+  .post { display: grid; grid-template-columns: 5fr 4fr; gap: var(--space-6); align-items: center; padding-block: var(--space-7); }
+  .post:first-child { padding-top: 0; }
+  .post:last-child { padding-bottom: 0; }
+  .post + .post { border-top: var(--hairline) solid var(--writing-ink); }
+  .post:nth-child(even) { grid-template-columns: 4fr 5fr; }
+  .post:nth-child(even) :global(.cover) { order: 2; }
+  .post :global(.cover) { border-radius: var(--radius-2xl); box-shadow: var(--shadow-card); }
+
+  .text { display: grid; gap: var(--space-3); align-content: start; }
+  .meta { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .topic { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--ink); font-weight: 700; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--lane); }
+  time { font-variant-numeric: tabular-nums; }
+  .title { font-size: var(--text-xl); font-weight: 900; line-height: 1.15; letter-spacing: -0.02em; text-decoration: none; text-wrap: balance; }
+  .title:focus-visible { outline: none; }
+  .title::after { content: ''; position: absolute; inset: 0; }
+  .summary { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+
+  /* Pointed at: a marker sweeps in behind the title in its topic's colour (as in the post lists), the cover's
+     insides lean in a little, and the newest card rises. A keyboard focus gets the same. */
+  .words { background: linear-gradient(color-mix(in srgb, var(--lane) 38%, transparent), color-mix(in srgb, var(--lane) 38%, transparent)) 0 88% / 0% 42% no-repeat; box-decoration-break: clone; -webkit-box-decoration-break: clone; transition: background-size var(--motion-soft) var(--ease-out); }
+  :is(.newest, .post) :global(.cover > *) { transition: scale var(--motion-settle) var(--ease-out); }
+  .newest:has(.title:focus-visible), .post:has(.title:focus-visible) :global(.cover) { outline: 2px solid var(--focus); outline-offset: 3px; }
+  :is(.newest, .post):has(.title:focus-visible) .words { background-size: 100% 42%; }
+  @media (hover: hover) {
+    :is(.newest, .post):hover .words { background-size: 100% 42%; }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .newest:hover { transform: translateY(-4px); }
+    :is(.newest, .post):hover :global(.cover > *) { scale: 1.04; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .newest:has(.title:focus-visible) { transform: translateY(-4px); }
+    :is(.newest, .post):has(.title:focus-visible) :global(.cover > *) { scale: 1.04; }
+  }
+
+  @media (max-width: 719px) {
+    .newest :global(.cover) { aspect-ratio: 16 / 10; }
+    .newest .text { padding: var(--space-4) var(--space-5) var(--space-5); }
+    .year { margin-top: var(--space-7); }
+    .post { padding-block: var(--space-6); }
+    .post, .post:nth-child(even) { grid-template-columns: 1fr; gap: var(--space-4); }
+    .post:nth-child(even) :global(.cover) { order: 0; }
+    .title { font-size: var(--text-lg); }
   }
 </style>
