@@ -125,3 +125,4 @@
 - 2026-10-25 fix: Closed the tiny gap at the top of the back-to-top ring
 - 2026-10-25 new: Started telling trips in photos, one slide at a time
 - 2026-10-25 design: Laid out Writing newest first, every post with a cover
+- 2026-10-25 fix: Centred each photo and its words on phones in trip stories
