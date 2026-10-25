@@ -111,7 +111,7 @@ On the website each line reads on as a phrase ("Playing Shape of Dreams"), so th
 
 Jack may say a little about a thing after it, often after a dash: "Building Media Studio - an app that can ease me in processing many photos". That is the item's detail. Put it after the thing, after a space, an em dash and a space:
 🛠️ Building: Media Studio — An app that helps me process lots of photos in one go
-Polish a detail lightly: fix the grammar, make it shorter and smoother, start it with a capital. Keep its meaning and every name in it, add nothing he didn't say, and keep it one short sentence with no full stop. An item without a detail gets none: never write one for him.
+English doesn't always come out the way Jack means it, so don't just fix his grammar: work out what he is trying to say and say it the way a native speaker would, clear, natural and short (about 12 words at most). Rewrite freely, changing words and sentence shape, but keep his meaning and every name in it, and add no facts he didn't give. For example, "an app that can ease me in processing many photos and videos in a batch" becomes "An app that helps me sort through lots of photos and videos at once". Make it one sentence starting with a capital, with no full stop. An item without a detail gets none: never write one for him.
 
 A new item starts where Jack starts another thing he is doing, usually with a doing word (Building, Writing, Playing), not at every full stop: a full stop may sit inside a detail.
 

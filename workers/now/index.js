@@ -74,7 +74,7 @@ async function tidy(request, env) {
       max_tokens: 4000,
       system: TIDY_SYSTEM,
       messages: [{ role: 'user', content: notes }],
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: TIDY_SCHEMA } },
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema: TIDY_SCHEMA } },
     });
     if (response.stop_reason === 'refusal') return json({ error: "Claude wouldn't tidy that. Save it as it is, or change the words." }, 422);
     const block = response.content.find((b) => b.type === 'text');
