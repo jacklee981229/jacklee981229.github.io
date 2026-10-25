@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { firstColon, inlineHtml, plainText, readList, readNow } from '../src/lib/now.js';
+import { firstColon, inlineHtml, itemKey, namesTitle, nowHistory, plainText, readList, readNow } from '../src/lib/now.js';
 import { timeAgo } from '../src/lib/dates.js';
 
 const SITE = 'https://example.github.io';
@@ -73,4 +73,52 @@ test('how long ago, in Malaysia days', () => {
 test('a day changes at midnight in Malaysia, not in UTC', () => {
   // 11 pm on the 3rd and 1 am on the 4th, Malaysia time: one day apart, though the same UTC day.
   assert.equal(timeAgo(new Date('2026-10-03T23:00:00+08:00'), new Date('2026-10-04T01:00:00+08:00')), 'yesterday');
+});
+
+test('a detail follows " — " or " - ", never a hyphen inside a word or a link', () => {
+  assert.deepEqual(readNow('- 🛠️ Building: Media Studio — An app for my photos').items, [{ label: '🛠️ Building', value: 'Media Studio', detail: 'An app for my photos' }]);
+  assert.deepEqual(readNow('- Writing: Yunnan Post - figuring out a style - and more').items, [{ label: 'Writing', value: 'Yunnan Post', detail: 'figuring out a style - and more' }]);
+  assert.deepEqual(readNow('- Watching: Spider-Man').items, [{ label: 'Watching', value: 'Spider-Man' }]);
+  assert.deepEqual(readNow('- Reading: [a - b](https://x.y/a-b)').items, [{ label: 'Reading', value: '[a - b](https://x.y/a-b)' }]);
+  assert.deepEqual(readNow('- Resting - after a trip').items, [{ value: 'Resting', detail: 'after a trip' }]);
+  assert.deepEqual(readNow('- Building: — nothing before').items, [{ label: 'Building', value: '— nothing before' }]);
+});
+
+test("an item's key ignores emoji, capitals, links and its detail", () => {
+  assert.equal(itemKey({ label: '🛠️ Building', value: 'Media Studio' }), 'building media studio');
+  assert.equal(itemKey(readNow('- 🔨 building: [media studio](/projects/) — new words').items[0]), 'building media studio');
+});
+
+const day = (d) => new Date(`2026-10-${String(d).padStart(2, '0')}T12:00:00+08:00`);
+
+test("Now's history: since when each item has been on, and the Nows before, each dated by when it was set", () => {
+  const versions = [
+    { date: day(25), text: '- 🛠️ Building: Media Studio — new detail\n- ✍️ Writing: Yunnan Post' },
+    { date: day(24), text: '- ✍️ Writing: Yunnan Post\n- 🛠️ Building: Media Studio' },
+    { date: day(21), text: '- 😴 Resting: after a trip\n- 🛠️ Building: Media Studio' },
+    { date: day(13), text: '- Visiting: Yunnan' },
+    { date: day(12), text: '<!-- only a comment -->' },
+    { date: day(9), text: '- Getting ready ✈' },
+    { date: day(8), text: '- Getting ready ✈' },
+  ];
+  const current = readNow(versions[0].text).items;
+  const { since, earlier } = nowHistory(current, versions);
+  assert.deepEqual(since, [day(21), day(24)]);
+  assert.deepEqual(earlier.map((e) => [e.date, e.items.map((i) => i.value)]), [[day(21), ['after a trip', 'Media Studio']], [day(13), ['Yunnan']], [day(8), ['Getting ready ✈']]]);
+  assert.equal(nowHistory(current, versions, 2).earlier.length, 2);
+});
+
+test("Now's history while an edit isn't committed: every version is an earlier one, a new item has no since", () => {
+  const versions = [{ date: day(21), text: '- Resting: at home\n- Building: Media Studio' }];
+  const { since, earlier } = nowHistory(readNow('- Building: Media Studio\n- Playing: Chess').items, versions);
+  assert.deepEqual(since, [day(21), undefined]);
+  assert.equal(earlier.length, 1);
+  assert.deepEqual(nowHistory([], []), { since: [], earlier: [] });
+});
+
+test('a value names a title as it is, or with "post" after it', () => {
+  assert.equal(namesTitle('Yunnan Post', 'Yunnan'), true);
+  assert.equal(namesTitle('[media  studio](/projects/)', 'Media Studio'), true);
+  assert.equal(namesTitle('Yunnan trip', 'Yunnan'), false);
+  assert.equal(namesTitle('Post', ''), false);
 });

@@ -1,21 +1,38 @@
 ---
-// Now: everything in src/content/now.md, its note, and when it last changed. In the sitemap, not in the menu.
+// Now: everything in src/content/now.md, its note, the Nows before it (from the file's git history) and when it last
+// changed. In the sitemap, not in the menu.
 import Base from '../layouts/Base.astro';
 import PageTop from '../components/PageTop.astro';
 import NowList from '../components/NowList.astro';
 import Updated from '../components/Updated.astro';
-import { blockHtml } from '../lib/now.js';
-import { nowFile } from '../lib/now-file.js';
+import { blockHtml, inlineHtml } from '../lib/now.js';
+import { nowFile, nowPast } from '../lib/now-file.js';
+import { shortDate } from '../lib/dates.js';
 import '../styles/prose.css';
 
 const { items, note, updated } = nowFile();
+const { since, earlier } = nowPast(items);
+const site = String(Astro.site);
 ---
 <Base title="Now" description="What Jack is up to at the moment.">
   <div class="wrap page">
     <PageTop tone="now" icon="clock" title="Now" lead="What I'm up to at the moment." />
     <div class="body">
-      {items.length ? <NowList items={items} /> : <p class="empty">Nothing here right now.</p>}
+      {items.length ? <NowList items={items} since={since} /> : <p class="empty">Nothing here right now.</p>}
       {note && <div class="prose note" set:html={blockHtml(note, String(Astro.site))} />}
+      {earlier.length > 0 && (
+        <section class="earlier" aria-labelledby="earlier-title">
+          <h2 id="earlier-title">Before this</h2>
+          <ol>
+            {earlier.map((then) => (
+              <li>
+                <time datetime={then.date.toISOString()}>{shortDate(then.date)}</time>
+                <span set:html={then.items.map((item) => `${item.label ? `${item.label} ` : ''}${inlineHtml(item.value, site)}`).join(' · ')} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       {updated && <Updated date={updated} />}
     </div>
   </div>
@@ -26,4 +43,10 @@ const { items, note, updated } = nowFile();
   .note { max-width: 44rem; }
   .note :global(> :first-child) { margin-top: 0; }
   .note :global(> :last-child) { margin-bottom: 0; }
+  /* The Nows before this one, newest first, on a card of their own under the items. */
+  .earlier { padding: var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .earlier h2 { margin: 0 0 var(--space-3); color: var(--muted); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .earlier ol { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+  .earlier li { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: var(--space-3); font-weight: 600; }
+  .earlier time { color: var(--muted); font-variant-numeric: tabular-nums; }
 </style>

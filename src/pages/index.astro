@@ -22,7 +22,7 @@ import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
 import { pictureOf } from '../lib/shelves.js';
 import { changelogFile } from '../lib/changelog-file.js';
-import { interleave, joiner, lately, lowerFirst, splitEmoji, writingPicks } from '../lib/home.js';
+import { interleave, joiner, lately, lowerFirst, writingPicks } from '../lib/home.js';
 import { colourSteps, middles, namesIn, smallGlobe } from '../lib/travel/map.js';
 import { placesFor } from '../lib/travel/places.js';
 import { flowStyle } from '../lib/flow.js';
@@ -39,12 +39,12 @@ const links = LINKS.map((link) => ({ ...link, external: isExternal(link.href, si
 const github = links.find((link) => link.icon === 'github');
 const tiles = links.filter((link) => link !== github);
 
-// Now: up to three lines, each "label value" (the label's emoji stays on the Now page); the first item that names
+// Now: up to three lines, each "label value", the label's emoji included; the first item that names
 // something in the Collection lends its cover. Then when it changed, and the newest change to the site.
 const now = nowFile();
 const nowItems = await Promise.all(
   now.items.slice(0, 3).map(async (item) => ({
-    label: splitEmoji(item.label ?? '').text,
+    label: item.label ?? '',
     html: inlineHtml(item.value, site),
     found: await shelfItemNamed(plainText(item.value)),
   })),

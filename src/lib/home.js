@@ -65,12 +65,3 @@ export const lowerFirst = (text) => (/^\p{Lu}\p{Ll}/u.test(text) ? text.charAt(0
  * @param {number} index @param {number} count
  */
 export const joiner = (index, count) => (index === 0 ? '' : index === count - 1 ? ' and ' : ', ');
-
-/**
- * A Now label split into its leading emoji, if it has one, and the words: "🎮 Playing" is 🎮 and "Playing".
- * @param {string} label @returns {{ emoji?: string, text: string }}
- */
-export function splitEmoji(label) {
-  const match = label.match(/^(\p{Extended_Pictographic}(?:\u{FE0F}|\u{200D}\p{Extended_Pictographic}|\p{Emoji_Modifier})*)\s*(.*)$/u);
-  return match ? { emoji: match[1], text: match[2].trim() } : { text: label.trim() };
-}

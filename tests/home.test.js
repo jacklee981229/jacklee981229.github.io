@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayNumber, interleave, joiner, lately, lowerFirst, splitEmoji, todaysToy, writingPicks } from '../src/lib/home.js';
+import { dayNumber, interleave, joiner, lately, lowerFirst, todaysToy, writingPicks } from '../src/lib/home.js';
 
 const toys = Array.from({ length: 17 }, (_, i) => `toy${i}`);
 const day = (iso, hour = 12) => new Date(`${iso}T${String(hour).padStart(2, '0')}:00:00`);
@@ -70,13 +70,4 @@ test('Now items read as a list: a, b and c', () => {
   assert.equal(read(['a']), 'a');
   assert.equal(read(['a', 'b']), 'a and b');
   assert.equal(read(['a', 'b', 'c']), 'a, b and c');
-});
-
-test("a Now label's leading emoji is split from its words", () => {
-  assert.deepEqual(splitEmoji('🎮 Playing'), { emoji: '🎮', text: 'Playing' });
-  assert.deepEqual(splitEmoji('💻 Building'), { emoji: '💻', text: 'Building' });
-  assert.deepEqual(splitEmoji('❤️ Loving'), { emoji: '❤️', text: 'Loving' });
-  assert.deepEqual(splitEmoji('👩‍💻 Coding'), { emoji: '👩‍💻', text: 'Coding' });
-  assert.deepEqual(splitEmoji('Reading'), { text: 'Reading' });
-  assert.deepEqual(splitEmoji(''), { text: '' });
 });

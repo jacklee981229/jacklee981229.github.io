@@ -21,6 +21,9 @@ export function formatDate(date) {
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
 
+/** "16 Oct", with the year only when it isn't the year of `now`: "16 Oct 2023". @param {Date} date @param {Date} now */
+export const shortDate = (date, now = new Date()) => (yearOf(date) === yearOf(now) ? formatDate(date).replace(/ \d{4}$/, '') : formatDate(date));
+
 /** "Oct" @param {Date} date */
 export const monthName = (date) => MONTHS[localParts(date).m - 1];
 

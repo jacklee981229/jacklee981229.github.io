@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { daysBetween, formatDate, isoDay, localTimestamp, monthKey, monthName, yearOf } from '../src/lib/dates.js';
+import { daysBetween, formatDate, isoDay, localTimestamp, monthKey, monthName, shortDate, yearOf } from '../src/lib/dates.js';
 
 test('dates show the Malaysia calendar day, even near midnight', () => {
   // 11:47 pm in Malaysia is still the same day there, although it is 15:47 UTC.
@@ -27,4 +27,11 @@ test('daysBetween counts calendar days in Malaysia time', () => {
 test('localTimestamp writes Malaysia time with a +08:00 offset', () => {
   assert.equal(localTimestamp(new Date('2026-09-26T06:05:09Z')), '2026-09-26T14:05:09+08:00');
   assert.equal(localTimestamp(new Date('2026-09-26T17:30:00Z')), '2026-09-27T01:30:00+08:00');
+});
+
+test('a short date leaves out the year only when it is this year, in Malaysia time', () => {
+  const now = new Date('2026-10-25T12:00:00+08:00');
+  assert.equal(shortDate(new Date('2026-10-21T13:06:22Z'), now), '21 Oct');
+  assert.equal(shortDate(new Date('2025-12-31T17:00:00Z'), now), '1 Jan');
+  assert.equal(shortDate(new Date('2025-12-31T15:00:00Z'), now), '31 Dec 2025');
 });

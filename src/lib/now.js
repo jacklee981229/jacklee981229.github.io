@@ -39,9 +39,29 @@ export function firstColon(text) {
 }
 
 /**
+ * A value and its detail: the words after the first " — " (or " - ", easier to type on a phone) that isn't inside a
+ * link. "Media Studio — An app for my photos" is "Media Studio" and "An app for my photos".
+ * @param {string} text @returns {{ value: string, detail?: string }}
+ */
+export function splitDetail(text) {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '(' || c === '[' || c === '<') depth++;
+    else if ((c === ')' || c === ']' || c === '>') && depth > 0) depth--;
+    else if (depth === 0 && (c === '—' || c === '-') && text[i - 1] === ' ' && text[i + 1] === ' ') {
+      const value = text.slice(0, i).trim();
+      const detail = text.slice(i + 1).trim();
+      if (value && detail) return { value, detail };
+    }
+  }
+  return { value: text };
+}
+
+/**
  * Now's items: the label before the first colon (an emoji is part of it) and the value after it, which may hold more
- * colons. A line without a colon is just a line.
- * @param {string} text the file @returns {{ items: { label?: string, value: string }[], note: string }}
+ * colons, then the value's detail, if it has one (splitDetail). A line without a colon is just a line.
+ * @param {string} text the file @returns {{ items: { label?: string, value: string, detail?: string }[], note: string }}
  */
 export function readNow(text) {
   const { items, note } = readList(text);
@@ -50,10 +70,62 @@ export function readNow(text) {
       const at = firstColon(line);
       const label = at < 0 ? '' : line.slice(0, at).trim();
       const value = at < 0 ? line : line.slice(at + 1).trim();
-      return label && value ? { label, value } : { value: line };
+      return label && value ? { label, ...splitDetail(value) } : splitDetail(line);
     }),
     note,
   };
+}
+
+/**
+ * Which thing an item is, the same whatever its emoji, capitals or detail: "🛠️ Building: Media Studio — …" is
+ * "building media studio".
+ * @param {{ label?: string, value: string }} item
+ */
+export const itemKey = (item) => `${item.label ?? ''} ${plainText(item.value)}`.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+
+/**
+ * Now's past, from the versions of now.md (newest first, each with when it was committed): since when each current
+ * item has been on Now without a break, and the Nows before this one, newest first, each dated by when it was set.
+ * A version that only changes details, emoji or order is the same Now.
+ * @param {{ label?: string, value: string }[]} current the items shown now
+ * @param {{ date: Date, text: string }[]} versions @param {number} most how many earlier Nows
+ * @returns {{ since: (Date | undefined)[], earlier: { date: Date, items: ReturnType<typeof readNow>['items'] }[] }}
+ */
+export function nowHistory(current, versions, most = 5) {
+  /** @type {{ id: string, keys: string[], date: Date, items: ReturnType<typeof readNow>['items'] }[]} */
+  const runs = [];
+  for (const version of versions) {
+    const items = readNow(version.text).items;
+    const keys = items.map(itemKey);
+    const id = [...keys].sort().join('\n');
+    const last = runs.at(-1);
+    if (last?.id === id) last.date = version.date;
+    else runs.push({ id, keys, date: version.date, items });
+  }
+  const keys = current.map(itemKey);
+  // The newest run is usually this Now itself; while an edit isn't committed yet, every run is an earlier one.
+  const first = runs[0]?.id === [...keys].sort().join('\n') ? 1 : 0;
+  const since = keys.map((key) => {
+    let date;
+    for (const run of runs) {
+      if (!run.keys.includes(key)) break;
+      date = run.date;
+    }
+    return date;
+  });
+  const earlier = runs.slice(first).filter((run) => run.items.length).slice(0, most).map(({ date, items }) => ({ date, items }));
+  return { since, earlier };
+}
+
+/**
+ * Whether an item's value names this title: the title itself, or the title and "post" ("Yunnan Post" names the post
+ * "Yunnan"), ignoring capitals and links.
+ * @param {string} value @param {string} title
+ */
+export function namesTitle(value, title) {
+  const said = plainText(value).toLowerCase().replace(/\s+/g, ' ');
+  const name = title.trim().toLowerCase().replace(/\s+/g, ' ');
+  return Boolean(name) && (said === name || said === `${name} post`);
 }
 
 /** Links to other sites open in a new tab, as they do in posts (rehypeExternalLinks in links.js). */

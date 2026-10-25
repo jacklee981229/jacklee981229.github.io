@@ -2,7 +2,7 @@
 // there's no date to write in the file. A missing file, an empty one or no git just mean less to show.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { readNow } from './now.js';
+import { nowHistory, readNow } from './now.js';
 
 const FILE = 'src/content/now.md';
 
@@ -32,3 +32,24 @@ export function nowFile() {
   }
   return { ...readNow(text), updated: text.trim() ? lastCommitted(FILE) : undefined };
 }
+
+/**
+ * The committed versions of now.md, newest first, each with when it was committed; none without git.
+ * shortcut: reads only the last 50 commits, one git call each; enough for months of Nows, upgrade to a single
+ * `git log -p` read if the build slows.
+ * @returns {{ date: Date, text: string }[]}
+ */
+export function nowVersions() {
+  const git = (/** @type {string[]} */ args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    return git(['log', '-50', '--format=%H %cI', '--', FILE]).trim().split('\n').filter(Boolean).map((line) => {
+      const [hash, when] = line.split(' ');
+      return { date: new Date(when), text: git(['show', `${hash}:${FILE}`]) };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Now's past for these items (nowHistory in now.js). @param {{ label?: string, value: string }[]} items */
+export const nowPast = (items) => nowHistory(items, nowVersions());

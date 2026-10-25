@@ -64,6 +64,7 @@ test('emoji and accents survive the trip through base64 both ways', () => {
 test("Claude's answer becomes the editor's lines, and anything else is turned away", () => {
   assert.equal(tidiedText({ items: ['🎮 Playing: Shape of Dreams', '- ✈️ Visiting: Yunnan'] }), '- 🎮 Playing: Shape of Dreams\n- ✈️ Visiting: Yunnan');
   assert.equal(tidiedText({ items: ['  🛠️ Building:   a  tool '] }), '- 🛠️ Building: a tool');
+  assert.equal(tidiedText({ items: ['🛠️ Building: Media Studio — An app for my photos. Videos too'] }), '- 🛠️ Building: Media Studio — An app for my photos. Videos too');
   assert.equal(tidiedText({ items: [] }), null);
   assert.equal(tidiedText({ items: ['', '  '] }), null);
   assert.equal(tidiedText({ lines: ['🎮 Playing: Chess'] }), null);

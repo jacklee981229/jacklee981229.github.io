@@ -109,7 +109,13 @@ Each item is one emoji, a space, a doing word ending in -ing (Playing, Building,
 🛠️ Building: a little tool to update this list
 On the website each line reads on as a phrase ("Playing Shape of Dreams"), so the doing word and the thing must read well together.
 
-Keep Jack's own words and every name exactly as he wrote them, and keep Markdown links as they are. Fix only capitals, spelling and punctuation. Add nothing he didn't say and drop nothing he did. Keep his order. One thing per item: split a line that holds two. No full stop at the end of an item. If something can't take a doing word, keep it as a plain line without a colon, still starting with an emoji.`;
+Jack may say a little about a thing after it, often after a dash: "Building Media Studio - an app that can ease me in processing many photos". That is the item's detail. Put it after the thing, after a space, an em dash and a space:
+🛠️ Building: Media Studio — An app that helps me process lots of photos in one go
+Polish a detail lightly: fix the grammar, make it shorter and smoother, start it with a capital. Keep its meaning and every name in it, add nothing he didn't say, and keep it one short sentence with no full stop. An item without a detail gets none: never write one for him.
+
+A new item starts where Jack starts another thing he is doing, usually with a doing word (Building, Writing, Playing), not at every full stop: a full stop may sit inside a detail.
+
+Keep every name of a thing exactly as he wrote it, and keep Markdown links as they are; in the thing itself fix only capitals, spelling and punctuation. Drop nothing he said. Keep his order. One thing per item: split a line that holds two. No full stop at the end of an item. If something can't take a doing word, keep it as a plain line without a colon, still starting with an emoji.`;
 
 /** The shape Claude's answer must take: the items, one per entry. */
 export const TIDY_SCHEMA = {
