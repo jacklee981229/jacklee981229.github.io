@@ -127,3 +127,4 @@
 - 2026-10-25 design: Laid out Writing newest first, every post with a cover
 - 2026-10-25 fix: Centred each photo and its words on phones in trip stories
 - 2026-10-26 new: A morning tech brief in 华语, picked by Claude every day
+- 2026-10-26 fix: Morning Brief's top cards close back to the same height

@@ -76,6 +76,7 @@ const sourceLine = (i: (typeof day.items)[number]) => [SOURCES[i.source], signal
   function setOpen(card: HTMLElement, open: boolean) {
     card.classList.toggle('open', open);
     card.querySelector('.toggle')?.setAttribute('aria-expanded', String(open));
+    if (!open && card.classList.contains('lead')) afterClosing(card);
   }
   for (const card of cards) {
     const toggle = card.querySelector<HTMLButtonElement>('.toggle');
@@ -91,18 +92,45 @@ const sourceLine = (i: (typeof day.items)[number]) => [SOURCES[i.source], signal
     });
   }
 
-  // The three leads, closed, are as tall as the tallest, so opening one doesn't make the others jump. Measured again
-  // when the window changes size, unless one is open.
+  // The three leads, closed, are as tall as the tallest, so opening one doesn't make the others jump. Measured only
+  // while all three are closed and settled: on load, once the fonts are in, when the window changes size, and after a
+  // card has finished closing. (Measuring while one was still closing pinned all three at its open height.)
   const leads = cards.filter((c) => c.classList.contains('lead'));
+  let settling = 0;
   function level() {
-    if (leads.some((c) => c.classList.contains('open'))) return;
+    if (settling || leads.some((c) => c.classList.contains('open'))) return;
     leads.forEach((c) => { c.style.minHeight = ''; });
     const tallest = Math.max(...leads.map((c) => c.getBoundingClientRect().height));
     leads.forEach((c) => { c.style.minHeight = `${tallest}px`; });
   }
+  /** After a lead closes, wait for its closing to end (or a moment, when nothing moves), then level again. */
+  function afterClosing(card: HTMLElement) {
+    settling++;
+    const more = card.querySelector<HTMLElement>('.more');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      settling--;
+      level();
+    };
+    // Only the card's own closing counts, not a chip's colour easing inside it.
+    const ended = (e: TransitionEvent) => {
+      if (e.target !== more) return;
+      more?.removeEventListener('transitionend', ended);
+      finish();
+    };
+    more?.addEventListener('transitionend', ended);
+    setTimeout(finish, 600);
+  }
   if (leads.length) {
     level();
-    new ResizeObserver(() => level()).observe(document.querySelector('.leads') as Element);
+    document.fonts?.ready.then(level);
+    let resizing: ReturnType<typeof setTimeout> | undefined;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizing);
+      resizing = setTimeout(level, 150);
+    });
   }
 
   // Scores: only in a browser logged in to the Now editor.
