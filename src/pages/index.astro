@@ -346,7 +346,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .lab { --focus: var(--on-colour); display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); background: linear-gradient(120deg, var(--lab-from), var(--lab-to)); color: var(--on-colour); }
   .lab-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: var(--space-4) 0 var(--space-4) var(--space-4); list-style: none; }
   .lab-words { display: flex; flex-direction: column; padding: var(--space-6) var(--space-6) var(--space-5); }
-  .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
+  .lab-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
   /* Every button the same height, their edges lined up: the picks one per row, the full width, then a wide Explore the
      Lab with a round dice beside it. */
   .picks { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); margin-top: var(--space-4); }
@@ -374,8 +374,8 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
   .tool { --from: var(--kind-misc-from); --to: var(--kind-misc-to); --base: var(--kind-misc-base); }
   .pic { display: flex; align-items: center; justify-content: center; height: 11.875rem; background: linear-gradient(150deg, var(--from), var(--to)); }
   .words { display: grid; gap: 0.375rem; padding: var(--space-4) var(--space-5) var(--space-5); }
-  .door-title { font-size: var(--text-lg); font-weight: 900; line-height: 1.25; }
-  .door-meta { color: var(--on-colour-soft); font-size: var(--text-sm); font-weight: 600; }
+  .door-title { font-size: var(--text-lg); font-weight: 900; line-height: 1.25; text-wrap: balance; }
+  .door-meta { color: var(--on-colour-soft); font-size: var(--text-sm); font-weight: 600; text-wrap: pretty; }
 
   .covers :global(img) { flex: none; width: 76px; height: 114px; object-fit: cover; border-radius: var(--radius-art); box-shadow: var(--shadow-cover); transition: transform var(--motion-soft) var(--ease-spring); }
   .covers :global(img:nth-child(1)) { transform: rotate(-9deg); }
@@ -449,7 +449,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
 
   /* The Guestbook: amber, the words and the way in on the left, the newest notes on paper on the right. */
   .guestbook { --focus: var(--on-colour); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); align-items: center; gap: var(--space-6); padding: var(--space-6); background: linear-gradient(120deg, var(--guestbook-top-from), var(--guestbook-top-to)); color: var(--on-colour); }
-  .guestbook-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; }
+  .guestbook-line { margin: var(--space-2) 0 0; font-size: var(--text-xl); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; text-wrap: balance; }
   .guestbook-sub { margin: var(--space-2) 0 var(--space-5); color: var(--on-colour-soft); font-weight: 600; }
   .guestbook-go { flex: none; color: var(--guestbook-top-to); }
   .guestbook-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); align-items: start; gap: var(--space-4); }

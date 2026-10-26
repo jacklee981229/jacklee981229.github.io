@@ -1,6 +1,6 @@
 ---
-// Now's items (src/content/now.md, read by src/lib/now.js), each a card: its label, its name, a line about it and
-// since when it's been on Now. An item that names a project or a post shows its picture across the card's top, lends
+// Now's items (src/content/now.md, read by src/lib/now.js), each a card: its label and name read as one line, as on
+// the home page ("🛠️ Building Media Studio"), a line about it and since when it's been on Now. An item that names a project or a post shows its picture across the card's top, lends
 // its line when Jack wrote none, and leads to it; one that names something in a collection shows its cover beside the
 // name and leads to that collection's tab.
 import { Image } from 'astro:assets';
@@ -64,8 +64,7 @@ const rows = await Promise.all(
           <span class="text">
             <span class="head">
               <span class="words">
-                {row.label && <span class="label">{row.label}</span>}
-                <span class="name">{row.name}</span>
+                <span class="name">{row.label && `${row.label} `}{row.name}</span>
               </span>
               {row.thumb && <span class="thumb"><Image src={row.thumb} alt="" width={THUMB * 2} style={`width: ${THUMB}px`} /></span>}
             </span>
@@ -115,7 +114,6 @@ const rows = await Promise.all(
   .text { display: flex; flex: 1; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5) var(--space-5); }
   .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
   .words { display: grid; gap: var(--space-1); min-width: 0; }
-  .label { color: var(--muted); font-size: var(--text-xs); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
   .name { font-size: var(--text-xl); font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
   .thumb { flex: none; line-height: 0; }
   .thumb :global(img) { height: auto; border-radius: var(--radius-xs); box-shadow: var(--shadow-card); rotate: 5deg; }

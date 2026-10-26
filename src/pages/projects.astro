@@ -38,7 +38,7 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
       <video playsinline preload="metadata" width="1920" height="1080" src={`${SITE.media}projects/showcase.mp4`}></video>
       <button type="button" class="cover" aria-label={`Play the video, ${total}`}>
         <Image src={cover} alt="" widths={[960, 1600]} sizes="(min-width: 1200px) 71rem, 100vw" />
-        <span class="go"><span class="big"><Icon name="play" /></span><span class="label">Watch my projects · {total}</span></span>
+        <span class="go"><span class="big"><Icon name="play" /></span><span class="label">Watch my projects</span><span class="length">{total}</span></span>
       </button>
       <div class="controls">
         <ol class="chapters" aria-label="Jump to a project in the video">
@@ -168,6 +168,8 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
   .big { display: grid; place-items: center; width: clamp(4.5rem, 10vw, 7rem); aspect-ratio: 1; border-radius: 50%; background: var(--on-colour); color: var(--projects-top-from); box-shadow: var(--shadow-card); transition: transform var(--motion-soft) var(--ease-release); }
   .big :global(.icon) { width: 76%; height: 76%; stroke-width: 2; }
   .label { font-size: var(--text-lg); font-weight: 800; text-shadow: 0 2px 8px var(--on-colour-glass); }
+  /* The video's length, a figure with a place of its own under the words. */
+  .length { margin-top: calc(-1 * var(--space-2)); font-size: var(--text-sm); font-weight: 700; text-shadow: 0 2px 8px var(--on-colour-glass); }
   .cover:active .big { transform: scale(0.96); transition-duration: var(--motion-press); transition-timing-function: ease; }
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .cover:hover .big, .cover:focus-visible .big { transform: scale(1.06); }
@@ -234,7 +236,7 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
   .wide .name { font-size: var(--text-xl); }
   .line { color: var(--on-colour-soft); font-size: var(--text-sm); line-height: 1.45; }
   .tags { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
-  .tag { padding: 0.125rem 0.625rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-family: var(--font-code); font-size: var(--text-xs); }
+  .tag { padding: 0.125rem 0.625rem; border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-xs); font-weight: 600; }
   .links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
   .links :global(.go) { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour); color: var(--base); font-size: var(--text-sm); font-weight: 800; }
   .links :global(.icon) { width: 16px; height: 16px; }
