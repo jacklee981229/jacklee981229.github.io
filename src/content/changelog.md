@@ -133,3 +133,4 @@
 - 2026-10-27 design: Turned small-caps labels and dotted lines into plain words
 - 2026-10-27 fix: Brought back the Code button on Projects' wide card on phones
 - 2026-10-27 new: Marked my trips in the Changelog, starting with Yunnan
+- 2026-10-27 fix: Made the trip chip wait for your pointer, and Expand glide again

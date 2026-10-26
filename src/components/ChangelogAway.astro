@@ -40,6 +40,8 @@ const flag = FLAGS[trip.flag];
 </a>
 
 <script>
+  import { motionMs } from '../lib/motion.js';
+
   // Opens after the pointer rests for --motion-hold (passing over does nothing; leaving early undoes the wait), at
   // once on the keys' focus, or on a first tap where there's no hover. Once open it stays open until the page is left.
   const touch = matchMedia('(hover: none)');
@@ -51,7 +53,7 @@ const flag = FLAGS[trip.flag];
     };
     away.addEventListener('pointerenter', (event) => {
       if (event.pointerType !== 'mouse' || away.classList.contains('open')) return;
-      const hold = parseFloat(getComputedStyle(away).getPropertyValue('--motion-hold')) || 800;
+      const hold = motionMs(away, '--motion-hold', 800);
       away.classList.add('waiting');
       timer = setTimeout(open, hold);
     });

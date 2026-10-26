@@ -42,6 +42,8 @@ const { open, folded } = fold(byYear(changelogFile(), await awayTrips()), SHOWN)
 </Base>
 
 <script>
+  import { motionMs } from '../lib/motion.js';
+
   // About's calendar links to days here; one behind Expand opens it first, as not every browser does that itself.
   const target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
   const older = target?.closest('details');
@@ -58,7 +60,7 @@ const { open, folded } = fold(byYear(changelogFile(), await awayTrips()), SHOWN)
     fold.classList.add('glide');
     clearTimeout(settled);
     // The browser tells no one when the fold has finished growing, so it gets the growth's own time.
-    const growth = parseFloat(getComputedStyle(fold).getPropertyValue('--motion-soft')) || 0;
+    const growth = motionMs(fold, '--motion-soft');
     settled = setTimeout(() => fold.classList.remove('glide'), growth + 100);
   });
 </script>
