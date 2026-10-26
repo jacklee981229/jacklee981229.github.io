@@ -12,8 +12,65 @@ export const TASKS = [
   { id: 'split', label: 'Split' },
   { id: 'turn', label: 'Turn' },
   { id: 'out', label: 'Take pages out' },
+  { id: 'numbers', label: 'Page numbers' },
+  { id: 'text', label: 'Get text' },
   { id: 'pics', label: 'To pictures' },
 ];
+
+/** A page's number as printed: "3", or "3 / 9" with the count. @param {number} i 0-based place @param {number} count @param {'n' | 'of'} style */
+export const pageNumber = (i, count, style) => (style === 'of' ? `${i + 1} / ${count}` : `${i + 1}`);
+
+/**
+ * Where a page number goes so it reads upright at the bottom of the page as it shows, however the page is turned:
+ * the start of its baseline in the page's own (unturned, y-up) space, and how far to turn the text.
+ * @param {object} o
+ * @param {{ x: number, y: number, width: number, height: number }} o.box the page's visible box
+ * @param {number} o.turn how far the page shows turned, clockwise
+ * @param {'centre' | 'right'} o.where
+ * @param {number} o.textWidth @param {number} o.size the text's width and height
+ * @returns {{ x: number, y: number, rotate: number, size: number }}
+ */
+export function numberSpot({ box, turn, where, textWidth, size }) {
+  const q = quarter(turn);
+  const { x, y, width: w, height: h } = box;
+  // Worked out on the page as it shows (vw by vh, y up), then carried back onto the unturned page.
+  const [vw] = q % 180 ? [h, w] : [w, h];
+  const u = where === 'right' ? vw - size * 3.6 - textWidth : (vw - textWidth) / 2;
+  const v = size * 2.4;
+  const at = { 0: [x + u, y + v], 90: [x + w - v, y + u], 180: [x + w - u, y + h - v], 270: [x + v, y + h - u] }[q];
+  return { x: at[0], y: at[1], rotate: q, size };
+}
+
+/** The page numbers' size for a page: 11 points on A4 and bigger, smaller on small pages, never under 6. @param {{ width: number, height: number }} box */
+export const numberSize = (box) => Math.max(6, Math.min(11, Math.min(box.width, box.height) / 50));
+
+/**
+ * Where the board's preview of a number sits on a page's picture, in percent from its top left, before the picture
+ * is turned by `turn`: so after turning it shows at the bottom. @param {number} turn @param {'centre' | 'right'} where
+ */
+export function previewSpot(turn, where) {
+  const far = where === 'right' ? 12 : 50;
+  return { 0: { x: 100 - far, y: 93 }, 90: { x: 93, y: far }, 180: { x: far, y: 7 }, 270: { x: 7, y: 100 - far } }[quarter(turn)];
+}
+
+/**
+ * A page's text from pdf.js's pieces (each with its words and whether a line ends after it), line by line, with
+ * spaces tidied and empty lines dropped.
+ * @param {{ str?: string, hasEOL?: boolean, type?: string }[]} items (a marked-content piece has only a type)
+ */
+export function pageText(items) {
+  let out = '';
+  for (const item of items) {
+    if (typeof item.str !== 'string') continue;
+    out += item.str;
+    if (item.hasEOL) out += '\n';
+  }
+  return out.split('\n').map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+}
+
+/** Every page's text in one, a line before each page; a page with none says so. @param {string[]} texts in the board's order */
+export const joinPages = (texts) =>
+  texts.map((text, i) => (text ? `— Page ${i + 1} —\n${text}` : `— Page ${i + 1}: no text, it may be a scan —`)).join('\n\n');
 
 /**
  * The pages a typed range picks, as 0-based places on the board, in order and once each. "1-3, 5" picks the first
@@ -117,9 +174,10 @@ export function baseName(name) {
  * @param {boolean} [o.onlyChosen] All: save the chosen pages only
  * @param {boolean[]} [o.cuts] Split: cutsAfter() for the board
  * @param {'jpg' | 'png'} [o.picture] To pictures: the type
- * @returns {{ zip: string | null, files: { name: string, kind: 'pdf' | 'jpg' | 'png', pages: { file: string, n: number, turn: number }[] }[] }}
+ * @param {{ where: 'centre' | 'right', style: 'n' | 'of' }} [o.numbers] Page numbers: where and how
+ * @returns {{ zip: string | null, files: { name: string, kind: 'pdf' | 'jpg' | 'png', pages: { file: string, n: number, turn: number }[], numbers?: { where: 'centre' | 'right', style: 'n' | 'of' } }[] }}
  */
-export function saveFiles({ task, pages, chosen, base, onlyChosen = false, cuts = [], picture = 'jpg' }) {
+export function saveFiles({ task, pages, chosen, base, onlyChosen = false, cuts = [], picture = 'jpg', numbers = { where: 'centre', style: 'n' } }) {
   const stem = baseName(base);
   const page = (i) => ({ file: pages[i].file, n: pages[i].n, turn: quarter(pages[i].turn) });
   const all = pages.map((_, i) => i);
@@ -129,6 +187,12 @@ export function saveFiles({ task, pages, chosen, base, onlyChosen = false, cuts 
   if (task === 'merge') return pdf(`${stem}-merged.pdf`, all);
   if (task === 'turn') return pdf(`${stem}-turned.pdf`, all);
   if (task === 'out') return pdf(`${stem}-edited.pdf`, all.filter((i) => !chosen[i]));
+  if (task === 'numbers') {
+    const made = pdf(`${stem}-numbered.pdf`, all);
+    return { ...made, files: made.files.map((f) => ({ ...f, numbers })) };
+  }
+  // Get text saves what it has read, on the page itself.
+  if (task === 'text') return { zip: null, files: [] };
   if (task === 'split') {
     const made = parts(cuts.length === pages.length ? cuts : cutsAfter(pages.length, 'cuts'));
     if (made.length < 2) return { zip: null, files: [] };

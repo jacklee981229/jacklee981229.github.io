@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { baseName, byFileOrder, cutsAfter, move, parseRange, parts, quarter, saveFiles, toRange, turnsToList } from '../src/lib/lab/pdf-pages.js';
+import { baseName, byFileOrder, cutsAfter, joinPages, move, numberSize, numberSpot, pageNumber, pageText, parseRange, parts, previewSpot, quarter, saveFiles, toRange, turnsToList } from '../src/lib/lab/pdf-pages.js';
 
 test('a typed range picks those pages, in order, once each', () => {
   assert.deepEqual(parseRange('1-3, 5', 9), [0, 1, 2, 4]);
@@ -113,4 +113,76 @@ test('To pictures makes one picture a page: the chosen ones, else all; one pictu
 test('Merge and Turn save every page in one PDF', () => {
   assert.deepEqual(saveFiles({ task: 'merge', pages: board, chosen: none, base: 'report.pdf' }).files.map((f) => f.name), ['report-merged.pdf']);
   assert.deepEqual(saveFiles({ task: 'turn', pages: board, chosen: none, base: 'report.pdf' }).files.map((f) => f.name), ['report-turned.pdf']);
+});
+
+test('Page numbers saves every page in one PDF and says where and how to number them', () => {
+  const made = saveFiles({ task: 'numbers', pages: board, chosen: none, base: 'report.pdf', numbers: { where: 'right', style: 'of' } });
+  assert.deepEqual(made.files.map((f) => f.name), ['report-numbered.pdf']);
+  assert.equal(short(made.files[0]), 'r1 r2@90 r3@270 s1 s2');
+  assert.deepEqual(made.files[0].numbers, { where: 'right', style: 'of' });
+  assert.deepEqual(saveFiles({ task: 'numbers', pages: board, chosen: none, base: 'report.pdf' }).files[0].numbers, { where: 'centre', style: 'n' });
+  assert.deepEqual(saveFiles({ task: 'text', pages: board, chosen: none, base: 'report.pdf' }).files, []);
+});
+
+test('a number reads "3" or "3 / 9"', () => {
+  assert.equal(pageNumber(2, 9, 'n'), '3');
+  assert.equal(pageNumber(2, 9, 'of'), '3 / 9');
+});
+
+/**
+ * Where a point on the unturned page (y up) shows once the page is turned clockwise by `q`, worked out by turning
+ * the page's corners, apart from numberSpot's own sums. Returns the point on the shown page and the shown width.
+ */
+function shown(box, q, [px, py]) {
+  const r = (q * Math.PI) / 180;
+  const spin = ([a, b]) => [a * Math.cos(r) + b * Math.sin(r), -a * Math.sin(r) + b * Math.cos(r)];
+  const corners = [[0, 0], [box.width, 0], [0, box.height], [box.width, box.height]].map(spin);
+  const minX = Math.min(...corners.map((c) => c[0])), minY = Math.min(...corners.map((c) => c[1]));
+  const [u, v] = spin([px - box.x, py - box.y]);
+  return { u: u - minX, v: v - minY, width: Math.max(...corners.map((c) => c[0])) - minX };
+}
+
+test('a page number sits upright at the bottom of the page as it shows, however the page is turned', () => {
+  const box = { x: 10, y: 20, width: 600, height: 800 };
+  const textWidth = 30, size = 11;
+  for (const turn of [0, 90, 180, 270, -90, 450]) {
+    for (const where of ['centre', 'right']) {
+      const spot = numberSpot({ box, turn, where, textWidth, size });
+      const q = quarter(turn);
+      const start = shown(box, q, [spot.x, spot.y]);
+      // The text runs left to right on the shown page: its direction, turned with the page, points right.
+      const end = shown(box, q, [spot.x + textWidth * Math.cos((spot.rotate * Math.PI) / 180), spot.y + textWidth * Math.sin((spot.rotate * Math.PI) / 180)]);
+      const label = `${where} at ${turn}°`;
+      assert.ok(Math.abs(end.v - start.v) < 1e-6 && end.u > start.u, `${label}: upright`);
+      assert.ok(Math.abs(start.v - size * 2.4) < 1e-6, `${label}: near the bottom`);
+      if (where === 'centre') assert.ok(Math.abs((start.u + end.u) / 2 - start.width / 2) < 1e-6, `${label}: centred`);
+      else assert.ok(Math.abs(start.width - end.u - size * 3.6) < 1e-6, `${label}: at the right`);
+    }
+  }
+});
+
+test('page numbers are 11 points on big pages and smaller on small ones', () => {
+  assert.equal(numberSize({ width: 595, height: 842 }), 11);
+  assert.equal(numberSize({ width: 400, height: 600 }), 8);
+  assert.equal(numberSize({ width: 100, height: 100 }), 6);
+});
+
+test("the board's preview number sits at the bottom of the page once its picture is turned", () => {
+  assert.deepEqual(previewSpot(0, 'centre'), { x: 50, y: 93 });
+  assert.deepEqual(previewSpot(0, 'right'), { x: 88, y: 93 });
+  // Turned right, the page's right edge is the bottom, and its top is the right.
+  assert.deepEqual(previewSpot(90, 'centre'), { x: 93, y: 50 });
+  assert.deepEqual(previewSpot(90, 'right'), { x: 93, y: 12 });
+  assert.deepEqual(previewSpot(-90, 'right'), { x: 7, y: 88 });
+  assert.deepEqual(previewSpot(180, 'right'), { x: 12, y: 7 });
+});
+
+test("a page's text comes out line by line, spaces tidied", () => {
+  const items = [{ str: 'Hello ', hasEOL: false }, { str: ' world', hasEOL: true }, { type: 'beginMarkedContent' }, { str: '', hasEOL: true }, { str: '  second   line ', hasEOL: true }, { str: '中文', hasEOL: false }];
+  assert.equal(pageText(items), 'Hello world\nsecond line\n中文');
+  assert.equal(pageText([]), '');
+});
+
+test('all the text comes with a line before each page, and an empty page says it may be a scan', () => {
+  assert.equal(joinPages(['One', '', 'Three\nmore']), '— Page 1 —\nOne\n\n— Page 2: no text, it may be a scan —\n\n— Page 3 —\nThree\nmore');
 });

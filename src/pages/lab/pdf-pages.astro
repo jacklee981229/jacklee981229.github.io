@@ -30,6 +30,10 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
         <p class="hint" data-hint></p>
         <p class="undo" aria-live="polite" data-undo hidden></p>
       </section>
+      <div class="text-out" data-text-out hidden>
+        <textarea id="pdf-text" rows="12" readonly spellcheck="false" aria-label="The text of the pages"></textarea>
+        <p class="hint" data-scan-note hidden>A page with no text may be a scan: save it with To pictures, and <a href="/lab/image-to-text/">Image to Text</a> can read it.</p>
+      </div>
       <div class="save" data-save></div>
     </div>
   </div>
@@ -38,8 +42,8 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
 <script>
   import { ICONS } from '../../lib/icons.js';
   import { sizeOf } from '../../lib/lab/convert-image.js';
-  import { announce } from '../../lib/lab/page';
-  import { byFileOrder, cutsAfter, move, parseRange, parts, quarter, saveFiles, toRange, turnsToList } from '../../lib/lab/pdf-pages.js';
+  import { announce, wireCopyButtons } from '../../lib/lab/page';
+  import { baseName, byFileOrder, cutsAfter, joinPages, move, pageNumber, parseRange, parts, previewSpot, quarter, saveFiles, toRange, turnsToList } from '../../lib/lab/pdf-pages.js';
   import type { Opened } from '../../lib/lab/pdf-files';
   import { sayWaiting } from '../../lib/waiting.js';
 
@@ -48,7 +52,7 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
 
   type Source = { id: string; name: string; colour: number; opened: Opened };
   type Page = { key: string; file: string; n: number; turn: number; on: boolean; cut: boolean; thumb?: string; drawing?: boolean };
-  type Task = 'all' | 'merge' | 'split' | 'turn' | 'out' | 'pics';
+  type Task = 'all' | 'merge' | 'split' | 'turn' | 'out' | 'numbers' | 'text' | 'pics';
 
   const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
   const input = $<HTMLInputElement>('[data-input]');
@@ -61,6 +65,9 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   const hint = $('[data-hint]');
   const undoBox = $('[data-undo]');
   const saveBox = $('[data-save]');
+  const textOut = $('[data-text-out]');
+  const textBox = $<HTMLTextAreaElement>('#pdf-text');
+  const scanNote = $('[data-scan-note]');
 
   let sources: Source[] = [];
   let pages: Page[] = [];
@@ -69,6 +76,10 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   let splitBy: 'cuts' | 'each' | 'every' = 'cuts';
   let every = 2;
   let picture: 'jpg' | 'png' = 'jpg';
+  let numbers: { where: 'centre' | 'right'; style: 'n' | 'of' } = { where: 'centre', style: 'n' };
+  /** Each page's text once read (by its key), and whether reading is under way. */
+  const texts = new Map<string, string>();
+  let reading = false;
   let undo: { text: string; label: string; run: () => void } | null = null;
   let made = 0;
   let saving = false;
@@ -78,6 +89,8 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
   const sourceOf = (p: Page) => sources.find((s) => s.id === p.file)!;
   const chosen = () => pages.filter((p) => p.on);
+  /** Whether clicking a page chooses it: not in the tasks that use every page as it stands. */
+  const choosing = () => !['split', 'numbers', 'text'].includes(task);
   const cuts = () => cutsAfter(pages.length, splitBy, { every, cuts: pages.flatMap((p, i) => (p.cut ? [i] : [])) });
 
   // ---------- Adding and removing files ----------
@@ -145,6 +158,9 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
         (splitBy === 'every' ? pill('data-every="-1" aria-label="Fewer pages a part"', '−') + pill('data-every="1" aria-label="More pages a part"', '+') : ''),
       turn: () => field('Turn', 'all pages') + pill('data-rot="-90"', `${icon('turn-left')} Left`) + pill('data-rot="90"', `${icon('turn-right')} Right`) + pill('data-rot="180"', '180°'),
       out: () => field('Take out', 'e.g. 2, 4'),
+      numbers: () => `<span class="say">Where</span>` + pill('data-where="centre"', 'Bottom centre', numbers.where === 'centre') + pill('data-where="right"', 'Bottom right', numbers.where === 'right') +
+        `<span class="say">Style</span>` + pill('data-style="n"', '1', numbers.style === 'n') + pill('data-style="of"', `1 / ${pages.length}`, numbers.style === 'of'),
+      text: () => '<span class="say">Every page, in this order</span>',
       pics: () => field('Pages', 'all pages') + pill('data-picture="jpg"', 'JPG', picture === 'jpg') + pill('data-picture="png"', 'PNG', picture === 'png'),
     };
     bar.innerHTML = bits[task]();
@@ -166,6 +182,8 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
     split: 'Click the scissors between two pages to cut there.',
     turn: 'Choose pages or type them, then turn. With none chosen, all of them turn.',
     out: 'Click the pages to take out, or type them.',
+    numbers: 'The pages are numbered in this order. Drag a page to move it.',
+    text: 'The text comes out in this order. Drag a page to move it.',
     pics: 'With no pages chosen, every page becomes a picture.',
   };
 
@@ -179,14 +197,17 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
       const source = sourceOf(p);
       const shape = source.opened.shapes[p.n - 1];
       const cutHere = cut[i];
-      const choosable = task !== 'split';
+      const choosable = choosing();
       const cls = [choosable && p.on && 'on', task === 'out' && p.on && 'gone', task === 'pics' && anyChosen && !p.on && 'dim', cutHere && 'cut-after'].filter(Boolean).join(' ');
       const label = task === 'split' ? `<span class="part">Part ${part}</span>` : '';
       if (cutHere) part++;
       const name = `Page ${i + 1}: ${esc(source.name)}, page ${p.n}`;
       const tools = task === 'all' ? `<span class="tools"><button type="button" data-turn aria-label="Turn page ${i + 1}">${icon('turn-right')}</button><button type="button" data-out aria-label="Take page ${i + 1} out">${icon('close')}</button></span>` : '';
       const canCut = task === 'split' && splitBy === 'cuts' && i < pages.length - 1;
-      const sheet = `<span class="fit"><span class="sheet ${shape < 1 ? 'tall' : 'wide'}" style="--ar: ${shape}; transform: rotate(${p.turn}deg);${p.thumb ? ` background-image: url(${p.thumb})` : ''}" data-sheet></span></span>`;
+      // Page numbers: the number shows where it will print, upright once the page's turn is counted.
+      const spot = task === 'numbers' ? previewSpot(p.turn, numbers.where) : null;
+      const number = spot ? `<span class="pno" style="left: ${spot.x}%; top: ${spot.y}%; --undo-turn: ${-quarter(p.turn)}deg">${pageNumber(i, pages.length, numbers.style)}</span>` : '';
+      const sheet = `<span class="fit"><span class="sheet ${shape < 1 ? 'tall' : 'wide'}" style="--ar: ${shape}; transform: rotate(${p.turn}deg);${p.thumb ? ` background-image: url(${p.thumb})` : ''}" data-sheet>${number}</span></span>`;
       const attrs = `class="${layout === 'list' ? 'row' : 'pg'} ${cls}" data-key="${p.key}" tabindex="0" role="button" aria-label="${name}"${choosable ? ` aria-pressed="${p.on}"` : ''} style="--c: var(--pdf-file-${source.colour})"`;
       const mark = `<span class="tick" aria-hidden="true">${task === 'out' ? icon('close') : icon('check')}</span>`;
       if (layout === 'list') {
@@ -236,12 +257,53 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
     } else if (task === 'out') {
       sum = !c ? 'Choose the pages to take out' : c === n ? 'Every page is chosen: nothing would be left' : `<b>${plural(n - c, 'page')}</b> left in one PDF`;
       buttons = c && c < n ? button('Take out and save', 'data-go') : '';
+    } else if (task === 'numbers') {
+      sum = `<b>${plural(n, 'page')}</b> numbered in one PDF`;
+      buttons = button('Save PDF', 'data-go');
+    } else if (task === 'text') {
+      const missing = pages.filter((p) => !texts.has(p.key)).length;
+      const empty = pages.filter((p) => texts.get(p.key) === '').length;
+      sum = missing ? '' : `<b>Text from ${plural(n, 'page')}</b>${empty ? `, ${empty} with none` : ''}`;
+      buttons = missing ? '' : `<button type="button" class="button quiet" data-copy="pdf-text">${icon('copy')}<span data-label>Copy</span></button>` + button('Save as .txt', 'data-go="txt"');
     } else {
       const k = c || n;
       sum = `<b>${plural(k, `${picture.toUpperCase()} picture`)}</b>${k > 1 ? ' in a ZIP' : ''}`;
       buttons = button('Make pictures', 'data-go');
     }
     saveBox.innerHTML = `<p class="sum" data-sum>${sum}</p><p class="go">${buttons}</p>`;
+    textOut.hidden = task !== 'text';
+    if (task === 'text') showText();
+  }
+
+  /** Get text: reads the pages not read yet, one at a time, then shows all the text in the board's order. */
+  async function showText() {
+    const missing = pages.filter((p) => !texts.has(p.key));
+    if (!missing.length) {
+      textBox.value = joinPages(pages.map((p) => texts.get(p.key) ?? ''));
+      scanNote.hidden = !pages.some((p) => texts.get(p.key) === '');
+      wireCopyButtons();
+      return;
+    }
+    sayWaiting(saveBox.querySelector<HTMLElement>('[data-sum]')!, `Reading the text of ${plural(missing.length, 'page')}`);
+    if (reading) return;
+    reading = true;
+    const { readText } = await engine();
+    // Pages added while reading are read too, before the text shows.
+    for (let next: Page | undefined = missing[0]; next; next = pages.find((p) => !texts.has(p.key))) {
+      const source = sources.find((s) => s.id === next.file);
+      let text = '';
+      try {
+        if (source) text = await readText(source.opened, next.n);
+      } catch {
+        // A page whose text can't be read counts as one without text.
+      }
+      texts.set(next.key, text);
+    }
+    reading = false;
+    if (task === 'text') {
+      drawSave();
+      announce(`Read the text of ${plural(pages.length, 'page')}`);
+    }
   }
 
   // Pages are drawn only as they come near the screen, a few at a time, so a long PDF stays quick.
@@ -307,7 +369,7 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
       page.cut = !page.cut;
       return drawBoard();
     }
-    if (task !== 'split') choose(page);
+    if (choosing()) choose(page);
   });
 
   // Keys: Space or Enter chooses, the arrows go to the next page, Shift and an arrow moves the page (or a file, in Merge).
@@ -321,7 +383,7 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
     if (isPage && (ev.key === ' ' || ev.key === 'Enter')) {
       ev.preventDefault();
       const page = pages.find((p) => p.key === el.dataset.key)!;
-      if (task !== 'split') choose(page);
+      if (choosing()) choose(page);
       return;
     }
     if (!step) return;
@@ -412,6 +474,8 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
     if (d.split) splitBy = d.split as typeof splitBy;
     if (d.every) every = Math.max(1, Math.min(Math.max(1, pages.length - 1), every + Number(d.every)));
     if (d.picture) picture = d.picture as typeof picture;
+    if (d.where) numbers = { ...numbers, where: d.where as typeof numbers.where };
+    if (d.style) numbers = { ...numbers, style: d.style as typeof numbers.style };
     if (d.rot) return turn(chosen().length ? chosen() : pages, Number(d.rot));
     renderBar();
     drawBoard();
@@ -439,9 +503,15 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   saveBox.addEventListener('click', async (e) => {
     const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-go]');
     if (!b || saving) return;
+    const base = sources.find((s) => s.id === pages[0]?.file)?.name ?? 'document.pdf';
+    if (b.dataset.go === 'txt') {
+      const got = (await engine()).saveText(textBox.value, `${baseName(base)}.txt`);
+      saveBox.querySelector('[data-sum]')!.innerHTML = `Saved <b>${esc(got.name)}</b>, ${sizeOf(got.size)}`;
+      announce(`Saved ${got.name}`);
+      return;
+    }
     const planned = saveFiles({
-      task, pages, chosen: pages.map((p) => p.on), base: sources.find((s) => s.id === pages[0]?.file)?.name ?? 'document.pdf',
-      onlyChosen: b.dataset.go === 'chosen', cuts: cuts(), picture,
+      task, pages, chosen: pages.map((p) => p.on), base, onlyChosen: b.dataset.go === 'chosen', cuts: cuts(), picture, numbers,
     });
     if (!planned.files.length) return;
     saving = true;
@@ -532,6 +602,15 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   .pdf-pages .tools { display: flex; gap: var(--space-1); opacity: 0; transition: opacity var(--motion-quick) ease; }
   .pdf-pages [data-key]:is(:hover, :focus-within) .tools { opacity: 1; }
   .pdf-pages .tools button { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); cursor: pointer; }
+  /* Page numbers: the number where it will print, turned back so it reads upright; too small to show in the list */
+  .pdf-pages .pno { position: absolute; transform: translate(-50%, -50%) rotate(var(--undo-turn)); color: var(--pdf-sheet-ink); font: 700 var(--text-xs) / 1 var(--font-code); white-space: nowrap; }
+  .pdf-pages .row .pno { display: none; }
+
+  /* Get text: the pages' text in a field of its own, a card on the page */
+  .pdf-pages .text-out { display: grid; gap: var(--space-2); }
+  .pdf-pages .text-out textarea { width: 100%; min-height: 14rem; padding: var(--space-4) var(--space-5); border: 0; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); font: inherit; line-height: 1.6; resize: vertical; }
+  .pdf-pages .text-out textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pdf-pages .text-out .hint { margin: 0 var(--space-1); }
 
   /* Preview: big pages in a grid */
   .pdf-pages .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--space-4); margin-top: var(--space-4); }
@@ -584,7 +663,7 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
   .pdf-pages .go .button:disabled { opacity: 0.5; cursor: wait; }
 
   /* After every rule that sets a display, so a hidden part stays hidden. */
-  .pdf-pages :is(.work, .undo)[hidden] { display: none; }
+  .pdf-pages :is(.work, .undo, .text-out, .hint)[hidden] { display: none; }
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .pdf-pages .sheet { transition: transform var(--motion-soft) var(--ease-out), opacity var(--motion-quick) ease; }

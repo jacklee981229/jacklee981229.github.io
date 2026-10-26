@@ -4,6 +4,7 @@
 import type { PDFDocument as Doc } from '@cantoo/pdf-lib';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { zipFiles } from './convert-image.js';
+import { numberSize, numberSpot, pageNumber, pageText } from './pdf-pages.js';
 
 const libs = () => Promise.all([
   import('@cantoo/pdf-lib'),
@@ -60,11 +61,22 @@ const PICTURE_MAX = 4000;
 // One page is drawn at a time: tidying up after one drawing can cut off another running on the same PDF, and a
 // long board would otherwise start dozens at once.
 let queue: Promise<unknown> = Promise.resolve();
-const draw = (view: PDFDocumentProxy, n: number, size: (w: number, h: number) => number, turn = 0) => {
-  const next = queue.then(() => drawNow(view, n, size, turn));
+const inTurn = <T>(job: () => Promise<T>) => {
+  const next = queue.then(job);
   queue = next.catch(() => {});
   return next;
 };
+const draw = (view: PDFDocumentProxy, n: number, size: (w: number, h: number) => number, turn = 0) => inTurn(() => drawNow(view, n, size, turn));
+
+/** Page `n`'s text (from 1), line by line; empty when it has none, as a scanned page. */
+export const readText = (opened: Opened, n: number) => inTurn(async () => {
+  // The same page count fix as drawNow's, for the same reason.
+  (await load())[1].PagesMapper.instance.pagesNumber = opened.view.numPages;
+  const page = await opened.view.getPage(n);
+  const text = pageText((await page.getTextContent()).items);
+  page.cleanup();
+  return text;
+});
 
 /** A page drawn into a canvas, white behind it, turned by `turn` more than its own turn. */
 async function drawNow(view: PDFDocumentProxy, n: number, size: (w: number, h: number) => number, turn: number) {
@@ -97,9 +109,14 @@ export async function thumbnail(opened: Opened, n: number) {
   return URL.createObjectURL(await blobOf(canvas, 'image/jpeg', 0.85));
 }
 
-export type Planned = { name: string; kind: 'pdf' | 'jpg' | 'png'; pages: { file: string; n: number; turn: number }[] };
+export type Planned = {
+  name: string;
+  kind: 'pdf' | 'jpg' | 'png';
+  pages: { file: string; n: number; turn: number }[];
+  numbers?: { where: 'centre' | 'right'; style: 'n' | 'of' };
+};
 
-/** The bytes of one planned file: a PDF of copied pages, each turned, or a picture of one page. */
+/** The bytes of one planned file: a PDF of copied pages, each turned (and numbered, if asked), or a picture of one page. */
 async function makeFile(plan: Planned, opened: Map<string, Opened>): Promise<Uint8Array> {
   if (plan.kind !== 'pdf') {
     const { file, n, turn } = plan.pages[0];
@@ -107,12 +124,23 @@ async function makeFile(plan: Planned, opened: Map<string, Opened>): Promise<Uin
     const blob = await blobOf(canvas, plan.kind === 'jpg' ? 'image/jpeg' : 'image/png', 0.92);
     return new Uint8Array(await blob.arrayBuffer());
   }
-  const [{ PDFDocument, degrees }] = await load();
+  const [{ PDFDocument, StandardFonts, degrees, rgb }] = await load();
   const out = await PDFDocument.create();
-  for (const { file, n, turn } of plan.pages) {
+  // shortcut: the PDF's built-in Helvetica has no Chinese, but numbers need only digits, spaces and "/"; a font of
+  // our own would be needed for words in other scripts.
+  const font = plan.numbers ? await out.embedFont(StandardFonts.Helvetica) : null;
+  for (const [i, { file, n, turn }] of plan.pages.entries()) {
     const [page] = await out.copyPages(opened.get(file)!.doc, [n - 1]);
-    page.setRotation(degrees((page.getRotation().angle + turn) % 360));
+    const angle = (page.getRotation().angle + turn) % 360;
+    page.setRotation(degrees(angle));
     out.addPage(page);
+    if (font && plan.numbers) {
+      const text = pageNumber(i, plan.pages.length, plan.numbers.style);
+      const box = page.getCropBox();
+      const size = numberSize(box);
+      const spot = numberSpot({ box, turn: angle, where: plan.numbers.where, textWidth: font.widthOfTextAtSize(text, size), size });
+      page.drawText(text, { x: spot.x, y: spot.y, size, font, rotate: degrees(spot.rotate), color: rgb(0.2, 0.2, 0.2) });
+    }
   }
   return out.save();
 }
@@ -126,13 +154,20 @@ export async function saveAll(planned: { zip: string | null; files: Planned[] },
   const blob = planned.zip
     ? new Blob([zipFiles(made)], { type: 'application/zip' })
     : new Blob([made[0].bytes as BlobPart], { type: TYPES[planned.files[0].kind] });
+  return download(blob, planned.zip ?? planned.files[0].name);
+}
+
+/** Get text's words handed to the browser to download as a .txt file. */
+export const saveText = (text: string, name: string) => download(new Blob([text], { type: 'text/plain;charset=utf-8' }), name);
+
+function download(blob: Blob, name: string) {
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = planned.zip ?? planned.files[0].name;
+  link.download = name;
   document.body.append(link);
   link.click();
   link.remove();
   // The download has its copy once it starts; a minute is plenty.
   setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
-  return { name: link.download, size: blob.size };
+  return { name, size: blob.size };
 }

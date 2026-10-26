@@ -155,6 +155,8 @@
   --pdf-file-5: #BE185D;
   --pdf-file-6: #A16207;
   --pdf-sheet: #FFFFFF;
+  /* A page number previewed on a sheet: dark, as it prints. */
+  --pdf-sheet-ink: #3F3F46;
   --travel-top-from: #2563EB;
   --travel-top-to: var(--travel-base);
   --about-top-from: #9333EA;
@@ -500,6 +502,7 @@
   --pdf-file-5: #F472B6;
   --pdf-file-6: #FBBF24;
   --pdf-sheet: #F4F4F4;
+  --pdf-sheet-ink: #3F3F46;
   /* No fade in the dark: the page is one colour. */
   --paper-end: var(--paper);
   --visited-near: #E31A1C;
