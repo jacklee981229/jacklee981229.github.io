@@ -14,6 +14,16 @@ export function momentLabel(taken) {
 }
 
 /**
+ * The days a trip ran, from its first photo's day to its last's, in the place's own time; null when no photo had a
+ * time.
+ * @param {{ taken: string | null }[]} moments @returns {{ from: string, to: string } | null}
+ */
+export function tripDays(moments) {
+  const days = /** @type {string[]} */ (moments.map((m) => m.taken?.slice(0, 10)).filter((day) => day && /^\d{4}-\d\d-\d\d$/.test(day))).sort();
+  return days.length ? { from: days[0], to: days[days.length - 1] } : null;
+}
+
+/**
  * The story's moments in groups: a moment marked `joined` belongs with the one before it, sharing that one's words.
  * Each group is the index of its first moment and how many it holds.
  * @param {{ joined?: boolean }[]} moments @returns {{ first: number, count: number }[]}

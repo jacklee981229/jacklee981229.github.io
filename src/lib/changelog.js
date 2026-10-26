@@ -54,11 +54,28 @@ export function byDay(changes) {
   return days;
 }
 
-/** Newest-first changes grouped by year, then by day. @param {Change[]} changes */
-export function byYear(changes) {
-  /** @type {{ year: string, days: { day: string, changes: Change[] }[] }[]} */
+/**
+ * A trip Jack marked `away` in its travel post, shown in the Changelog over the days he was away (ChangelogAway.astro):
+ * its first and last day, what the chip says, the open card's words, picture and flag, and the post's address.
+ * @typedef {{ from: string, to: string, title: string, note: string, flag: string, href: string, photo: string }} Trip
+ */
+
+/** A day of changes, or a trip (no changes of its own), placed by its last day. @typedef {{ day: string, changes: Change[], trip?: Trip }} Entry */
+
+/**
+ * Newest-first changes grouped by year, then by day, with any trips among the days by their last day; a trip that
+ * ends on a day with changes comes after that day's changes.
+ * @param {Change[]} changes
+ * @param {Trip[]} [trips]
+ */
+export function byYear(changes, trips = []) {
+  /** @type {Entry[]} */
+  const entries = [...byDay(changes), ...trips.map((trip) => ({ day: trip.to, changes: [], trip }))];
+  // Array.prototype.sort keeps equal items in their order, so a day's changes stay ahead of a trip ending that day.
+  entries.sort((a, b) => (a.day < b.day ? 1 : a.day > b.day ? -1 : 0));
+  /** @type {{ year: string, days: Entry[] }[]} */
   const years = [];
-  for (const day of byDay(changes)) {
+  for (const day of entries) {
     const year = day.day.slice(0, 4);
     if (years.at(-1)?.year !== year) years.push({ year, days: [] });
     years.at(-1)?.days.push(day);
@@ -68,16 +85,18 @@ export function byYear(changes) {
 
 /**
  * A year's days as cards: one a day, except that days with a single change each, one after another, share a card,
- * so a quiet spell doesn't stand as a row of near-empty cards. A lone quiet day keeps a card of its own.
- * @param {{ day: string, changes: Change[] }[]} days newest first
- * @returns {{ day: string, changes: Change[] }[][]} each card's days, newest first
+ * so a quiet spell doesn't stand as a row of near-empty cards. A trip counts as a quiet day, as nothing changed while
+ * Jack was away. A lone quiet day keeps a card of its own.
+ * @param {Entry[]} days newest first
+ * @returns {Entry[][]} each card's days, newest first
  */
 export function cardsOf(days) {
-  /** @type {{ day: string, changes: Change[] }[][]} */
+  const quiet = (/** @type {Entry} */ d) => Boolean(d.trip) || d.changes.length === 1;
+  /** @type {Entry[][]} */
   const cards = [];
   for (const day of days) {
     const last = cards.at(-1);
-    if (day.changes.length === 1 && last?.every((d) => d.changes.length === 1)) last.push(day);
+    if (quiet(day) && last?.every(quiet)) last.push(day);
     else cards.push([day]);
   }
   return cards;
@@ -86,13 +105,13 @@ export function cardsOf(days) {
 /**
  * The Changelog's cards year by year, split at the fold: the newest `shown` cards show at once, the rest wait behind
  * Expand. A year the fold cuts goes on below it without its heading again (`continued`).
- * @param {{ year: string, days: { day: string, changes: Change[] }[] }[]} years newest first
+ * @param {{ year: string, days: Entry[] }[]} years newest first
  * @param {number} shown
  */
 export function fold(years, shown) {
-  /** @type {{ year: string, cards: { day: string, changes: Change[] }[][] }[]} */
+  /** @type {{ year: string, cards: Entry[][] }[]} */
   const open = [];
-  /** @type {{ year: string, cards: { day: string, changes: Change[] }[][], continued: boolean }[]} */
+  /** @type {{ year: string, cards: Entry[][], continued: boolean }[]} */
   const folded = [];
   let left = shown;
   for (const { year, days } of years) {
@@ -109,14 +128,18 @@ export function fold(years, shown) {
 export const shortDay = (day) => `${Number(day.slice(8))} ${MONTHS[Number(day.slice(5, 7)) - 1]}`;
 
 /**
- * What a shared card's days span, oldest to newest: "26–29 Sep 2026", or "30 Sep – 1 Oct 2026" across a month.
- * @param {{ day: string }[]} days newest first, all in one year
+ * What a shared card's days span, oldest to newest: "26–29 Sep 2026", or "30 Sep – 1 Oct 2026" across a month. A
+ * trip's span starts on its first day.
+ * @param {{ day: string, trip?: { from: string } }[]} days newest first, all in one year
  */
 export function spanOf(days) {
-  const [newest, oldest] = [days[0].day, days.at(-1).day];
-  const year = newest.slice(0, 4);
-  if (newest.slice(0, 7) === oldest.slice(0, 7)) return `${Number(oldest.slice(8))}–${shortDay(newest)} ${year}`;
-  return `${shortDay(oldest)} – ${shortDay(newest)} ${year}`;
+  const last = days[days.length - 1];
+  return `${daysSpan(last.trip?.from ?? last.day, days[0].day)} ${days[0].day.slice(0, 4)}`;
+}
+
+/** "14–20 Oct", or "30 Sep – 1 Oct" across a month. @param {string} from @param {string} to */
+export function daysSpan(from, to) {
+  return from.slice(0, 7) === to.slice(0, 7) ? `${Number(from.slice(8))}–${shortDay(to)}` : `${shortDay(from)} – ${shortDay(to)}`;
 }
 
 /** The day as a Date at the start of that day in Malaysia, where the site's dates are kept. @param {string} day */

@@ -2,15 +2,16 @@
 // Changelog days as cards, one under another: the date, then each change with a label for its kind (New, Improved,
 // Design, Fix). Quiet days in a row share a card, each change with its day (cardsOf in changelog.js). Used by
 // /changelog/, where About's calendar links to each day by its date: a card's own, or in a shared card, its change's
-// (a shared card's days have one change each).
+// (a shared card's days have one change each). A trip away sits among the quiet days as a chip (ChangelogAway).
 import ChangeKind from './ChangeKind.astro';
-import { type KINDS, dayToDate, shortDay, spanOf } from '../lib/changelog.js';
+import ChangelogAway from './ChangelogAway.astro';
+import { type Entry, dayToDate, daysSpan, shortDay, spanOf } from '../lib/changelog.js';
 import { formatDate } from '../lib/dates.js';
 import { inlineHtml } from '../lib/now.js';
 
 interface Props {
   /** Each card's days, newest first (cardsOf in changelog.js). */
-  cards: { day: string; changes: { day: string; kind: keyof typeof KINDS; text: string }[] }[][];
+  cards: Entry[][];
 }
 
 const { cards } = Astro.props;
@@ -18,18 +19,24 @@ const site = String(Astro.site);
 ---
 <div class="days">
   {cards.map((card) => {
-    const shared = card.length > 1;
+    const shared = card.length > 1 || Boolean(card[0].trip);
+    const hasTrip = card.some((d) => d.trip);
     return (
-      <section class:list={['day', { shared }]} id={shared ? undefined : card[0].day}>
+      <section class:list={['day', { shared, 'has-trip': hasTrip }]} id={shared ? undefined : card[0].day}>
         <h3 class="date">{shared ? spanOf(card) : <time datetime={card[0].day}>{formatDate(dayToDate(card[0].day))}</time>}</h3>
         <ul>
-          {card.flatMap(({ day, changes }) => changes.map((change) => (
+          {card.flatMap(({ day, changes, trip }) => (trip ? [(
+            <li class="trip">
+              <time class="when" datetime={trip.from}>{daysSpan(trip.from, trip.to)}</time>
+              <ChangelogAway trip={trip} />
+            </li>
+          )] : changes.map((change) => (
             <li id={shared ? day : undefined}>
               {shared && <time class="when" datetime={day}>{shortDay(day)}</time>}
               <ChangeKind kind={change.kind} />
               <span class="text" set:html={inlineHtml(change.text, site)} />
             </li>
-          )))}
+          ))))}
         </ul>
       </section>
     );
@@ -46,10 +53,25 @@ const site = String(Astro.site);
   li { display: grid; grid-template-columns: 6.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }
   /* A shared card's changes, each with its day first. */
   .shared li { grid-template-columns: 3.25rem 6.75rem minmax(0, 1fr); }
+  /* A card with a trip: the day column wide enough for the trip's span ("14–20 Oct"), its chip at the row's top. */
+  .has-trip li { grid-template-columns: 4.75rem 6.75rem minmax(0, 1fr); }
+  .trip { align-items: start; }
+  .trip .when { padding-top: 0.3rem; overflow: hidden; }
+  /* Open, the chip takes the whole row: the day column folds away, the days now in the chip's title. Global, as
+     Astro's scoping drops a :has() holding another component's class; .has-trip outranks the row's own columns. */
+  :global(.has-trip .trip:has(.away.open)) { grid-template-columns: 0 0 minmax(0, 1fr); column-gap: 0; }
+  :global(.has-trip .trip:has(.away.open) .when) { opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .trip { transition: grid-template-columns var(--motion-settle) var(--ease-out), column-gap var(--motion-settle) var(--ease-out); }
+    .trip .when { transition: opacity var(--motion-quick) ease; }
+  }
   .when { color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .text { line-height: 1.6; }
 
   @media (max-width: 479px) {
-    li, .shared li { grid-template-columns: 1fr; gap: var(--space-1); }
+    li, .shared li, .has-trip li { grid-template-columns: 1fr; gap: var(--space-1); }
+    .trip .when { padding-top: 0; }
+    :global(.has-trip .trip:has(.away.open)) { grid-template-columns: 1fr; }
+    :global(.has-trip .trip:has(.away.open) .when) { display: none; }
   }
 </style>

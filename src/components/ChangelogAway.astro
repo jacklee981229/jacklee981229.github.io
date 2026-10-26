@@ -1,0 +1,152 @@
+---
+// A trip in the Changelog's cards (Trip in changelog.js): a chip in Travel's colour, "Away - <title>" and its flag,
+// standing in the label and text columns. Rested on for --motion-hold, its photo shows through from the left while the
+// globe turns and the flag waves, then it opens into a card across the whole row (the row's day column folds away,
+// ChangelogDays): the photo grown in from the start, the title with its days under it, Jack's line and Read the trip. Once open it
+// stays open on this page, so the rows under it don't jump back. A click goes to the post.
+import Icon from './Icon.astro';
+import { FLAGS } from '../lib/flags.js';
+import { type Trip, daysSpan } from '../lib/changelog.js';
+import { flowStyle } from '../lib/flow.js';
+
+interface Props {
+  trip: Trip;
+}
+
+const { trip } = Astro.props;
+const flag = FLAGS[trip.flag];
+---
+<a class="away" href={trip.href} style={`--photo: url(${trip.photo})`}>
+  <span class="reveal" aria-hidden="true"></span>
+  <span class="pic"><img src={trip.photo} alt="" width="1280" height="960" /></span>
+  <span class="body">
+    <span class="head">
+      <span class="globe"><Icon name="globe" /></span>
+      <span class="label" style={flowStyle(trip.href)}>
+        <span class="closed">Away - {trip.title}</span>
+        <span class="opened" aria-hidden="true">{trip.title}</span>
+      </span>
+      <svg class="flag" viewBox={`0 0 ${flag.width} ${flag.height}`} role="img" aria-label={flag.name}>
+        <rect width={flag.width} height={flag.height} fill={flag.ground} />
+        {flag.stars.map((star) => <polygon points={star.points} fill={star.fill} />)}
+      </svg>
+    </span>
+    <span class="more"><span class="more-in">
+      <time class="days" datetime={trip.from}>{daysSpan(trip.from, trip.to)}</time>
+      <span class="note">{trip.note}</span>
+      <span class="read"><Icon name="image" />Read the trip</span>
+    </span></span>
+  </span>
+</a>
+
+<script>
+  // Opens after the pointer rests for --motion-hold (passing over does nothing; leaving early undoes the wait), at
+  // once on the keys' focus, or on a first tap where there's no hover. Once open it stays open until the page is left.
+  const touch = matchMedia('(hover: none)');
+  for (const away of document.querySelectorAll<HTMLAnchorElement>('.away')) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const open = () => {
+      away.classList.remove('waiting');
+      away.classList.add('open');
+    };
+    away.addEventListener('pointerenter', (event) => {
+      if (event.pointerType !== 'mouse' || away.classList.contains('open')) return;
+      const hold = parseFloat(getComputedStyle(away).getPropertyValue('--motion-hold')) || 800;
+      away.classList.add('waiting');
+      timer = setTimeout(open, hold);
+    });
+    away.addEventListener('pointerleave', () => {
+      clearTimeout(timer);
+      away.classList.remove('waiting');
+    });
+    away.addEventListener('focus', () => {
+      if (away.matches(':focus-visible')) open();
+    });
+    away.addEventListener('click', (event) => {
+      if (!touch.matches || away.classList.contains('open')) return;
+      event.preventDefault();
+      open();
+    });
+  }
+</script>
+
+<style>
+  .away {
+    --chip-h: 2rem;
+    position: relative; grid-column: 2 / -1; display: flex; width: fit-content; max-width: 100%; overflow: hidden;
+    interpolate-size: allow-keywords; border-radius: calc(var(--chip-h) / 2); background: var(--topic-travel);
+    color: var(--on-colour); text-decoration: none; -webkit-tap-highlight-color: transparent;
+  }
+  .away:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .body { position: relative; flex: 1; display: grid; align-content: start; min-width: 0; padding: 0 var(--space-4); }
+  .head { display: flex; align-items: center; gap: var(--space-2); height: var(--chip-h); font-weight: 800; white-space: nowrap; }
+  .globe { display: inline-flex; }
+  /* Both titles in one place, crossing over as it opens; the open one, longer, adds no width to the closed chip. */
+  .label { display: grid; }
+  .closed, .opened { grid-area: 1 / 1; }
+  .opened { contain: inline-size; opacity: 0; }
+  /* Open, the closed title fades out of the way, taking no room. */
+  .label { position: relative; }
+  .open .closed { position: absolute; top: 0; left: 0; opacity: 0; white-space: nowrap; }
+  .open .opened { opacity: 1; contain: none; }
+  .head :global(.icon) { width: 1.05rem; height: 1.05rem; stroke-width: 2.2; }
+  .flag { flex: none; width: 1.35em; height: 0.9em; border-radius: 2px; }
+  /* Hidden, the words add no width: the closed chip is only as wide as its line. */
+  .more { contain: inline-size; display: grid; grid-template-rows: 0fr; }
+  .more-in { display: grid; align-content: start; justify-items: start; gap: var(--space-3); min-height: 0; overflow: hidden; }
+  .days, .note, .read { opacity: 0; translate: 0 0.4rem; }
+  /* The days under the title, its own smaller line, so the title stays the trip. */
+  .days { color: var(--on-colour-soft); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .note { line-height: 1.6; }
+  .read { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 2.25rem; margin-bottom: var(--space-4); padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 800; }
+  .read :global(.icon) { width: 1rem; height: 1rem; stroke-width: 2.2; }
+  /* No picture until it opens; then it grows in from the chip's start, running to its edges. */
+  .pic { position: relative; flex: none; width: 0; overflow: hidden; }
+  .pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  /* The wait: the photo, under Travel's colour, shows through from the left, and drains back quickly if the pointer
+     leaves early. */
+  .reveal {
+    position: absolute; inset: 0; pointer-events: none; clip-path: inset(0 100% 0 0);
+    background: linear-gradient(var(--away-veil), var(--away-veil)), var(--photo) center 35% / cover;
+    --away-veil: color-mix(in srgb, var(--topic-travel) 68%, transparent);
+  }
+  .open .reveal { clip-path: inset(0 0 0 0); opacity: 0; }
+
+  /* Open, for good: the chip and its photo grow, then the line and the button rise in, one after the other. */
+  .open { width: 100%; border-radius: var(--radius-lg); }
+  .open .head { height: auto; padding: var(--space-4) 0 var(--space-1); font-size: var(--text-lg); line-height: 1.3; }
+  .open .more { grid-template-rows: 1fr; }
+  .open .pic { width: min(20rem, 40%); }
+  .open :is(.days, .note, .read) { opacity: 1; translate: 0 0; }
+
+  @media (hover: hover) {
+    .open .read { transition: background-color var(--motion-quick) ease; }
+    .open:hover .read { background: var(--on-colour-chip-hover); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { transition: clip-path var(--motion-quick) var(--ease-out), opacity var(--motion-settle) ease; }
+    .waiting .reveal { clip-path: inset(0 0 0 0); transition: clip-path var(--motion-hold) cubic-bezier(0.45, 0, 0.55, 1); }
+    .waiting .globe { animation: away-turn var(--motion-hold) var(--ease-out); }
+    .waiting .flag { transform-origin: left center; animation: away-wave calc(var(--motion-hold) / 3) ease-in-out 3; }
+    .open { transition: width var(--motion-settle) var(--ease-out), border-radius var(--motion-settle) var(--ease-out); }
+    .open .head { transition: height var(--motion-settle) var(--ease-out), padding var(--motion-settle) var(--ease-out), font-size var(--motion-settle) var(--ease-out); }
+    .open .more { transition: grid-template-rows var(--motion-settle) var(--ease-out); }
+    .open .pic { transition: width var(--motion-settle) var(--ease-out); }
+    .open :is(.closed, .opened) { transition: opacity var(--motion-soft) ease; }
+    .open :is(.days, .note, .read) { transition: opacity var(--motion-soft) ease 160ms, translate var(--motion-soft) var(--ease-out) 160ms, background-color var(--motion-quick) ease; }
+    .open .days { transition-delay: 100ms; }
+    .open .read { transition-delay: 240ms, 240ms, 0ms; }
+  }
+  @keyframes away-turn { to { rotate: 360deg; } }
+  @keyframes away-wave { 25% { transform: skewY(-7deg) scaleX(0.94); } 75% { transform: skewY(5deg) scaleX(0.97); } }
+
+  @media (max-width: 479px) {
+    .away { grid-column: auto; }
+    .head { white-space: normal; }
+    .open { flex-direction: column; }
+    .open .pic { width: 100%; height: 10rem; }
+    /* Too narrow for the title on one line: the row grows with it instead. */
+    .open .head { padding-top: var(--space-3); font-size: var(--text-md); }
+  }
+</style>

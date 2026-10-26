@@ -1,5 +1,6 @@
 ---
-// The Changelog: src/content/changelog.md, newest first, a card for each day (quiet days share one), under its year.
+// The Changelog: src/content/changelog.md, newest first, a card for each day (quiet days share one), under its year,
+// with Jack's trips away among them (awayTrips).
 // The newest few show at once; the rest open under Expand (fold in changelog.js). In the sitemap, not in the menu;
 // the footer and Site info link here.
 import Base from '../layouts/Base.astro';
@@ -8,10 +9,11 @@ import PageTop from '../components/PageTop.astro';
 import ChangelogDays from '../components/ChangelogDays.astro';
 import { byYear, fold } from '../lib/changelog.js';
 import { changelogFile } from '../lib/changelog-file.js';
+import { awayTrips } from '../lib/collections';
 
 /** How many cards show before Expand. */
 const SHOWN = 2;
-const { open, folded } = fold(byYear(changelogFile()), SHOWN);
+const { open, folded } = fold(byYear(changelogFile(), await awayTrips()), SHOWN);
 ---
 <Base title="Changelog" description="What changed on Jack's Space, newest first.">
   <div class="wrap page">

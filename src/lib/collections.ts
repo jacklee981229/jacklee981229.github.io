@@ -1,5 +1,5 @@
 // Reading posts from Astro's content collection. The rules themselves live in posts.js, where tests cover them.
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
@@ -8,6 +8,8 @@ import { EXPERIMENTS, TOOLS, WORLDS, isListed, toolUrl, worldUrl } from './lab/t
 import { nowFile } from './now-file.js';
 import { briefDays } from './brief-file.js';
 import { lastUpdate } from './changelog-file.js';
+import type { Trip } from './changelog.js';
+import { photoUrl, tripDays } from './travel/story.js';
 import { SITE } from '../site';
 
 export type Post = CollectionEntry<'posts'>;
@@ -20,6 +22,22 @@ export const pagePosts = async () => published(await getCollection('posts'), opt
 
 /** The posts that appear in lists, feeds, search and the sitemap, newest first. */
 export const listedPosts = async () => listed(await getCollection('posts'), options);
+
+/** The trips marked `away` in their posts, for the Changelog: their days run from the story's first photo to its last. */
+export async function awayTrips(): Promise<Trip[]> {
+  const posts = (await listedPosts()).filter((post) => post.data.away);
+  return Promise.all(posts.map(async (post) => {
+    const away = post.data.away!;
+    const story = (await getEntry('stories', post.id))?.data;
+    const days = story && tripDays(story.moments);
+    if (!story || !days) throw new Error(`Post "${post.id}" is marked away, but has no story with dated photos to say when. Publish the trip from Media Studio first.`);
+    if (!story.moments.some((m) => m.id === away.photo && m.kind === 'photo')) throw new Error(`Post "${post.id}": its away photo "${away.photo}" isn't a photo in its story.`);
+    return {
+      // One width for the wait and the open card alike, so the photo is already there when the card opens.
+      ...days, title: away.title, note: away.note, flag: away.flag, href: postUrl(post), photo: photoUrl(SITE.media, story.folder, away.photo, 1280),
+    };
+  }));
+}
 
 /** The Lab's experiments (EXPERIMENTS in lab/tools.js) as posts, in the Lab's order. */
 export async function experimentPosts(): Promise<Post[]> {

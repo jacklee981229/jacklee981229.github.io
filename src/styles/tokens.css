@@ -462,6 +462,9 @@
   --motion-quick: 160ms;
   --motion-soft: 320ms;
   --motion-settle: 400ms;
+  /* How long the pointer rests on something before it opens by itself (a trip's chip in the Changelog), so passing
+     over it does nothing. */
+  --motion-hold: 800ms;
   /* Waiting (the dots after "Posting"): each dot brightens once a beat, the next a step behind. */
   --motion-wait: 1200ms;
   --motion-wait-step: 150ms;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { groupLabel, groupsOf, missingFiles, momentLabel, paragraphs, photoPath, srcsetOf, storyFiles } from '../src/lib/travel/story.js';
+import { groupLabel, groupsOf, missingFiles, momentLabel, paragraphs, photoPath, srcsetOf, storyFiles, tripDays } from '../src/lib/travel/story.js';
 import { photoFor, stepTo, stopAt, stopsOf } from '../src/lib/travel/story-scroll.js';
 
 const story = { folder: 'yunnan-2026', moments: [{ id: 'img_6050' }, { id: 'img_6061' }] };
@@ -19,6 +19,12 @@ test('the largest photo sits on top of its folder, the smaller two in their own'
 test('a clip needs its video and its cover, in the trip\'s videos folder', () => {
   const told = { folder: 'yunnan-2026', moments: [{ id: 'img_6050' }, { id: 'img_6051', kind: 'video' }] };
   assert.deepEqual(storyFiles(told).slice(3), ['yunnan-2026/videos/img_6051.mp4', 'yunnan-2026/videos/img_6051.webp']);
+});
+
+test("a trip runs from its first photo's day to its last's, in the place's own time, skipping photos with no time", () => {
+  const taken = (t) => ({ taken: t });
+  assert.deepEqual(tripDays([taken('2026-10-15T08:37:13+08:00'), taken(null), taken('2026-10-14T14:58:20+08:00'), taken('2026-10-20T23:59:00+08:00')]), { from: '2026-10-14', to: '2026-10-20' });
+  assert.equal(tripDays([taken(null)]), null);
 });
 
 test('joined moments make a group with the one before', () => {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { KINDS, byDay, byYear, calendarMonth, cardsOf, changesSince, dayToDate, fold, isDay, readChangelog, shortDay, spanOf, stepOf } from '../src/lib/changelog.js';
+import { KINDS, byDay, byYear, calendarMonth, cardsOf, changesSince, dayToDate, daysSpan, fold, isDay, readChangelog, shortDay, spanOf, stepOf } from '../src/lib/changelog.js';
 import { changelogFile, lastUpdate } from '../src/lib/changelog-file.js';
 import { isoDay } from '../src/lib/dates.js';
 
@@ -67,6 +67,33 @@ test('the newest cards show at once and the rest wait behind Expand, none lost; 
   assert.deepEqual(folded.map((y) => [y.year, y.continued, y.cards.map((card) => card[0].day)]), [['2026', true, ['2026-09-26']], ['2023', false, ['2023-02-23']]]);
   // Fewer cards than the fold: everything shows, nothing waits.
   assert.equal(fold(years, 10).folded.length, 0);
+});
+
+const trip = (from, to) => ({ from, to, title: 'Visiting Somewhere', note: '', flag: 'china', href: '/trip/', photo: '' });
+const cardDays = (years) => years.flatMap((y) => fold([y], 99).open.flatMap((o) => o.cards)).map((card) => card.map((d) => (d.trip ? `trip ${d.trip.from}` : d.day)));
+
+test('a trip sits among the days by its last day, sharing a card with quiet days round it', () => {
+  // The Yunnan gap: one change on 21 Oct, the trip 14–20 Oct, one change on 13 Oct, a busy 12 Oct.
+  const changes = readChangelog('- 2026-10-12 new: A\n- 2026-10-12 fix: B\n- 2026-10-13 improved: C\n- 2026-10-21 design: D');
+  const years = byYear(changes, [trip('2026-10-14', '2026-10-20')]);
+  assert.deepEqual(cardDays(years), [['2026-10-21', 'trip 2026-10-14', '2026-10-13'], ['2026-10-12']]);
+  assert.equal(spanOf(years[0].days.slice(0, 3)), '13–21 Oct 2026');
+});
+
+test('a trip between busy days gets a card of its own, spanning its days; one ending on a day with changes comes after them', () => {
+  const changes = readChangelog('- 2026-10-01 new: A\n- 2026-10-01 fix: B\n- 2026-10-09 new: C\n- 2026-10-09 fix: D');
+  const years = byYear(changes, [trip('2026-10-03', '2026-10-07')]);
+  assert.deepEqual(cardDays(years), [['2026-10-09'], ['trip 2026-10-03'], ['2026-10-01']]);
+  assert.equal(spanOf([years[0].days[1]]), '3–7 Oct 2026');
+  assert.equal(daysSpan('2026-09-29', '2026-10-02'), '29 Sep – 2 Oct');
+  const sameDay = byYear(readChangelog('- 2026-10-07 new: A'), [trip('2026-10-03', '2026-10-07')]);
+  assert.deepEqual(sameDay[0].days.map((d) => (d.trip ? 'trip' : d.day)), ['2026-10-07', 'trip']);
+});
+
+test('without trips the Changelog is as before', () => {
+  const changes = readChangelog('- 2026-10-12 new: A\n- 2026-10-13 improved: C');
+  assert.deepEqual(byYear(changes, []), byYear(changes));
+  assert.deepEqual(cardDays(byYear(changes)), [['2026-10-13', '2026-10-12']]);
 });
 
 test("a day's square gets lighter in steps: none, 1, 2–4, 5–9, 10 or more", () => {

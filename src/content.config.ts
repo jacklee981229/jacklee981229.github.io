@@ -3,6 +3,7 @@ import { glob } from 'astro/loaders';
 import { byStars, validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
 import { PLACE_IDS } from './lib/toolbox.js';
+import { FLAG_IDS } from './lib/flags.js';
 
 // One folder per post: src/content/posts/<address>/index.md, with its images beside it.
 // The folder name is the post's address, so src/content/posts/11/index.md is /11/.
@@ -33,6 +34,9 @@ const posts = defineCollection({
       featured: z.boolean().default(false),
       // false hides the CC licence notice, for posts that are mostly other people's code.
       license: z.boolean().default(true),
+      // A trip post (with a story) marked as time away: the Changelog shows it over the days of its photos, as a chip
+      // ("Away - <title>") that opens to its photo (a moment's id in the story), Jack's line and its flag (lib/flags.js).
+      away: z.object({ title: z.string().min(1), note: z.string().min(1), photo: z.string(), flag: z.enum(FLAG_IDS) }).optional(),
     }),
 });
 

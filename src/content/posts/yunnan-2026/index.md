@@ -5,4 +5,9 @@ topic: travel
 tags: []
 cover: ./cover.webp
 draft: false
+away:
+  title: Visiting Yunnan
+  note: 来看看我这几天在云南游玩了什么吧！
+  photo: img_6485
+  flag: china
 ---
