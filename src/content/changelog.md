@@ -126,3 +126,4 @@
 - 2026-10-25 new: Started telling trips in photos, one slide at a time
 - 2026-10-25 design: Laid out Writing newest first, every post with a cover
 - 2026-10-25 fix: Centred each photo and its words on phones in trip stories
+- 2026-10-26 new: A morning tech brief in 华语, picked by Claude every day

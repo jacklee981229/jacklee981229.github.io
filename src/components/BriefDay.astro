@@ -1,0 +1,271 @@
+---
+// One day of the Morning Brief (src/lib/brief.js): the day, a way to the days on either side, its three 今日重点 as
+// cards in their kinds' colours, and the rest as rows. Any of them opens where it is to its description, why it's
+// worth a look and its links. Logged in to the Now editor (the palette's /now login), Jack also sees 1 to 5 to score
+// each item; the brief's maker reads those scores to learn his taste.
+import Go from './Go.astro';
+import Icon from './Icon.astro';
+import { KINDS, SOURCES, dayTitle, signalText } from '../lib/brief.js';
+import { newTab } from '../lib/links.js';
+
+interface Props {
+  day: import('../lib/brief.js').Brief;
+  /** Where 昨天 and 明天 lead, when there's such a day. */
+  before?: string;
+  after?: string;
+}
+
+const { day, before, after } = Astro.props;
+/** Each kind's chip carries its own little drawing, so the kinds differ by more than colour. */
+const KIND_ICONS = { ai: 'sparkles', open: 'branch', dev: 'code', fun: 'gamepad' } as const;
+const leads = day.items.filter((i) => i.lead);
+const rest = day.items.filter((i) => !i.lead);
+const time = /T(\d{2}:\d{2})/.exec(day.made)?.[1];
+const sourceLine = (i: (typeof day.items)[number]) => [SOURCES[i.source], signalText(i)].filter(Boolean).join(' · ');
+---
+<div class="day-line">
+  <h2 class="day">{dayTitle(day.date)}</h2>
+  <p class="meta">{day.items.length} 条 · 来自 Hacker News、GitHub、Lobsters{time && ` · ${time} 更新`}</p>
+  <nav class="day-nav" aria-label="别的日子">
+    {before ? <Go href={before}>← 昨天</Go> : <span class="go off" aria-disabled="true">← 昨天</span>}
+    {after ? <Go href={after}>明天 →</Go> : <span class="go off" aria-disabled="true">明天 →</span>}
+  </nav>
+</div>
+
+{[{ items: leads, lead: true }, { items: rest, lead: false }].map(({ items, lead }) => items.length > 0 && (
+  <section class:list={[lead ? 'leads' : 'rows']} aria-label={lead ? '今日重点' : '其他'}>
+    {items.map((item, n) => (
+      <article class:list={['item', { lead }]} style={`--kind: var(--brief-${item.kind}); --kind-ink: var(--brief-${item.kind}-ink)`} data-brief-item data-id={item.id} data-day={day.date} data-title={item.title} data-kind={item.kind} data-source={item.source}>
+        <p class="eyebrow">
+          {lead && <span class="rank">今日重点 0{n + 1}</span>}
+          <span class="kind"><Icon name={KIND_ICONS[item.kind]} />{KINDS[item.kind]}</span>
+        </p>
+        <h3 class="title"><button type="button" class="toggle" aria-expanded="false" aria-controls={`brief-${item.id}`}>{item.title}</button></h3>
+        {lead && item.line && <p class="line">{item.line}</p>}
+        <p class="foot">
+          <span class="source">{sourceLine(item)}</span>
+          <span class="badge" data-badge hidden></span>
+          <span class="caret" aria-hidden="true"></span>
+        </p>
+        <div class="more" id={`brief-${item.id}`}>
+          <div>
+            <div class="more-inner">
+              {!lead && item.line && <p class="line">{item.line}</p>}
+              {item.desc && <p>{item.desc}</p>}
+              {item.why && <p class="why">{item.why}</p>}
+              <p class="orig">原标题：{item.orig}</p>
+              <p class="links">
+                <a class="chip" href={item.url} {...newTab()}>看原文 ↗</a>
+                {item.discuss && item.discuss !== item.url && <a class="chip" href={item.discuss} {...newTab()}>看讨论 ↗</a>}
+              </p>
+              <div class="scorer" data-scorer hidden></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    ))}
+  </section>
+))}
+
+<script>
+  import { PASS_KEY } from '../lib/now-command.js';
+  import { SITE } from '../site';
+
+  const cards = [...document.querySelectorAll<HTMLElement>('[data-brief-item]')];
+
+  function setOpen(card: HTMLElement, open: boolean) {
+    card.classList.toggle('open', open);
+    card.querySelector('.toggle')?.setAttribute('aria-expanded', String(open));
+  }
+  for (const card of cards) {
+    const toggle = card.querySelector<HTMLButtonElement>('.toggle');
+    toggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setOpen(card, !card.classList.contains('open'));
+    });
+    // The whole card opens and closes, but not when a link, a score or a text selection was the point.
+    card.addEventListener('click', (e) => {
+      if (e.target instanceof Element && e.target.closest('a, button, [data-scorer]')) return;
+      if (window.getSelection()?.toString()) return;
+      setOpen(card, !card.classList.contains('open'));
+    });
+  }
+
+  // The three leads, closed, are as tall as the tallest, so opening one doesn't make the others jump. Measured again
+  // when the window changes size, unless one is open.
+  const leads = cards.filter((c) => c.classList.contains('lead'));
+  function level() {
+    if (leads.some((c) => c.classList.contains('open'))) return;
+    leads.forEach((c) => { c.style.minHeight = ''; });
+    const tallest = Math.max(...leads.map((c) => c.getBoundingClientRect().height));
+    leads.forEach((c) => { c.style.minHeight = `${tallest}px`; });
+  }
+  if (leads.length) {
+    level();
+    new ResizeObserver(() => level()).observe(document.querySelector('.leads') as Element);
+  }
+
+  // Scores: only in a browser logged in to the Now editor.
+  let pass = '';
+  try { pass = localStorage.getItem(PASS_KEY) ?? ''; } catch { /* blocked: no scores here */ }
+  const SCALE = [1, 2, 3, 4, 5];
+
+  async function call(path: string, body?: unknown) {
+    const headers: Record<string, string> = { Authorization: `Bearer ${pass}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) };
+    const answer = await fetch(`${SITE.nowEditor}${path}`, body === undefined ? { headers } : { method: 'POST', headers, body: JSON.stringify(body) });
+    return { status: answer.status, data: await answer.json().catch(() => ({})) };
+  }
+
+  function show(card: HTMLElement, score: number) {
+    const badge = card.querySelector<HTMLElement>('[data-badge]');
+    if (badge) {
+      badge.hidden = !score;
+      badge.textContent = score ? `你打了 ${score} 分` : '';
+    }
+    card.querySelectorAll<HTMLButtonElement>('[data-score]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.score) === score)));
+  }
+
+  function scorer(card: HTMLElement, start: number) {
+    const box = card.querySelector<HTMLElement>('[data-scorer]');
+    if (!box) return;
+    let score = start;
+    const label = document.createElement('p');
+    label.className = 'scorer-label';
+    label.textContent = '你有多感兴趣？';
+    const row = document.createElement('div');
+    row.className = 'scale';
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', '兴趣，1 到 5');
+    const note = document.createElement('p');
+    note.className = 'scorer-note';
+    note.textContent = '1 完全没兴趣 · 5 非常感兴趣 · 再点一次取消';
+    for (const n of SCALE) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.score = String(n);
+      b.textContent = String(n);
+      b.addEventListener('click', async () => {
+        const next = n === score ? 0 : n;
+        const was = score;
+        score = next;
+        show(card, score);
+        const { status, data } = await call('/api/brief/score', { id: card.dataset.id, day: card.dataset.day, title: card.dataset.title, kind: card.dataset.kind, source: card.dataset.source, score: next }).catch(() => ({ status: 0, data: {} }));
+        if (status === 200) return void (note.textContent = '1 完全没兴趣 · 5 非常感兴趣 · 再点一次取消');
+        score = was;
+        show(card, score);
+        note.textContent = status === 401 ? '登录过期了：在命令面板输入 /now login 再登录一次。' : (data.error ?? '没存上，等一下再试。');
+      });
+      row.append(b);
+    }
+    box.replaceChildren(label, row, note);
+    box.hidden = false;
+    show(card, score);
+  }
+
+  if (pass && cards.length) {
+    call('/api/brief/scores')
+      .then(({ status, data }) => {
+        if (status !== 200) return;
+        const scores = new Map<string, number>((data.scores ?? []).map((s: { id: string; score: number }) => [s.id, s.score]));
+        for (const card of cards) scorer(card, scores.get(card.dataset.id ?? '') ?? 0);
+      })
+      .catch(() => {});
+  }
+</script>
+
+<style>
+  .day-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-5); }
+  .day { margin: 0; font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.01em; }
+  .meta { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .day-nav { display: flex; gap: var(--space-2); margin-left: auto; }
+  .go.off { opacity: 0.45; cursor: default; }
+
+  /* The three cards are one height (the script levels them); one opened grows alone. */
+  .leads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); align-items: start; margin-bottom: var(--space-4); }
+  .rows { display: grid; padding: var(--space-2) var(--space-5); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+
+  .item { position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* A column, so the foot sits at the bottom of every lead, whatever its title's length. */
+  .lead { display: flex; flex-direction: column; gap: var(--space-3); min-height: 15rem; padding: var(--space-5); border-radius: var(--radius-2xl); background: var(--kind); color: var(--on-colour); --focus: var(--on-colour); transition: transform var(--motion-quick) var(--ease-out); }
+  .rows .item { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); column-gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-bottom: 1px solid var(--rule); }
+  .rows .item:last-child { border-bottom: 0; }
+
+  .eyebrow { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); margin: 0; font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.04em; }
+  .rank { font-family: var(--font-code); font-weight: 500; opacity: 0.88; }
+  /* The kind as a chip: on a lead's colour a white-tinted one, on the rows its own colour faintly behind its ink. */
+  .kind { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.625rem 0.25rem 0.5rem; border-radius: var(--radius-pill); background: color-mix(in srgb, var(--kind-ink) 14%, transparent); color: var(--kind-ink); white-space: nowrap; }
+  .kind :global(.icon) { width: 0.875rem; height: 0.875rem; stroke-width: 2.25; }
+  .lead .kind { background: var(--on-colour-chip); color: var(--on-colour); }
+  .rows .eyebrow { grid-row: 1 / span 2; justify-content: flex-start; }
+
+  .title { margin: 0; font-size: var(--text-md); font-weight: 800; line-height: 1.4; }
+  .lead .title { font-size: var(--text-lg); line-height: 1.3; letter-spacing: -0.01em; }
+  .toggle { all: unset; cursor: pointer; border-radius: var(--radius-xs); }
+  .toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+  .line { margin: 0; font-weight: 500; }
+  .lead .line { color: var(--on-colour-soft); }
+
+  .foot { display: flex; align-items: center; gap: var(--space-3); margin: 0; font: 500 var(--text-xs) / 1.4 var(--font-code); color: var(--muted); }
+  .lead .foot { margin-top: auto; color: var(--on-colour-soft); }
+  .rows .foot { grid-column: 2; }
+  .source { margin-right: auto; }
+  .badge { font-family: var(--font-sans); font-weight: 700; padding: 0.125rem var(--space-2); border-radius: var(--radius-pill); background: var(--wash); color: var(--ink); }
+  .lead .badge { background: var(--on-colour-chip); color: var(--on-colour); }
+  .caret { flex: none; display: grid; place-items: center; width: 1.875rem; height: 1.875rem; border-radius: 50%; background: var(--wash); color: var(--ink); transition: rotate var(--motion-quick) var(--ease-out); }
+  .lead .caret { background: var(--on-colour-chip); color: var(--on-colour); }
+  .rows .caret { position: absolute; right: 0; top: var(--space-4); }
+  .caret::before { content: ''; width: 0.5rem; height: 0.5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; translate: 0 -2px; rotate: 45deg; }
+  .open .caret { rotate: 180deg; transition-duration: var(--motion-soft); }
+  .rows .title, .rows .foot { padding-right: 3rem; }
+
+  /* Opening in place: the extra grows from nothing to its own height; it closes quicker than it opens. */
+  .more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--motion-quick) var(--ease-out); }
+  .rows .more { grid-column: 2; }
+  .more > div { overflow: hidden; min-height: 0; }
+  .open .more { grid-template-rows: 1fr; transition-duration: var(--motion-soft); }
+  .more-inner { display: grid; gap: var(--space-3); padding-top: var(--space-3); max-width: 44rem; cursor: auto; }
+  .more-inner p { margin: 0; }
+  .why { font-weight: 700; }
+  .orig { color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+  .lead .orig { color: var(--on-colour-soft); }
+  .links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .chip { display: inline-flex; padding: var(--space-2) var(--space-4); border-radius: var(--radius-pill); background: var(--wash); color: inherit; font-size: var(--text-sm); font-weight: 700; text-decoration: none; transition: background var(--motion-quick) ease, transform var(--motion-press) var(--ease-out); }
+  .chip:active { transform: scale(0.97); }
+  .lead .chip { background: var(--on-colour-chip); }
+  @media (hover: hover) {
+    .chip:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+    .lead .chip:hover { background: var(--on-colour-chip-hover); }
+  }
+
+  .scorer[hidden] { display: none; }
+  .scorer { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px dashed var(--rule); }
+  .lead .scorer { border-top-color: var(--on-colour-faint); }
+  .scorer :global(.scorer-label) { font-weight: 700; font-size: var(--text-sm); }
+  .scorer :global(.scorer-note) { color: var(--muted); font-size: var(--text-xs); }
+  .lead .scorer :global(.scorer-note) { color: var(--on-colour-soft); }
+  .scorer :global(.scale) { display: flex; gap: var(--space-2); }
+  .scorer :global(.scale button) { width: 2.5rem; height: 2.5rem; border: 0; border-radius: 50%; background: var(--wash); color: inherit; font: 800 var(--text-ui) / 1 var(--font-sans); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background var(--motion-quick) ease, transform var(--motion-press) var(--ease-out); }
+  .lead .scorer :global(.scale button) { background: var(--on-colour-chip); }
+  .scorer :global(.scale button[aria-pressed='true']) { background: var(--ink); color: var(--paper); }
+  .lead .scorer :global(.scale button[aria-pressed='true']) { background: var(--on-colour); color: var(--kind); }
+  .scorer :global(.scale button:active) { transform: scale(0.92); }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .lead:hover { transform: translateY(-3px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lead, .more, .caret, .chip { transition: none; }
+  }
+
+  @media (max-width: 899px) {
+    .leads { grid-template-columns: minmax(0, 1fr); }
+    .lead { min-height: 0; }
+  }
+  @media (max-width: 599px) {
+    .day-nav { margin-left: 0; }
+    .rows { padding: var(--space-1) var(--space-4); }
+    .rows .item { grid-template-columns: minmax(0, 1fr); }
+    .rows .eyebrow { grid-row: auto; margin-bottom: var(--space-1); }
+    .rows .foot, .rows .more { grid-column: 1; }
+  }
+</style>

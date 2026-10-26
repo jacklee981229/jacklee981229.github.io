@@ -4,6 +4,7 @@
 // palette uses it too (/now, src/lib/now-command.js).
 import Anthropic from '@anthropic-ai/sdk';
 import { page } from './page.js';
+import { MOST_SCORES, readScore } from './scores.js';
 import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidiedText, toBase64 } from './now-editor.js';
 
 const PRIVATE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
@@ -102,6 +103,22 @@ async function login(request, env) {
   return json({ pass: await makePass(env.SESSION_SECRET) });
 }
 
+/** Jack's Morning Brief scores, newest first. @param {any} env */
+async function scoresList(env) {
+  const { results } = await env.DB.prepare(`SELECT id, day, title, kind, source, score, scored_at FROM brief_scores ORDER BY scored_at DESC LIMIT ${MOST_SCORES}`).all();
+  return json({ scores: results });
+}
+
+/** Saves one score, or takes it back with 0. @param {Request} request @param {any} env */
+async function scoreSave(request, env) {
+  const read = readScore(await readBody(request));
+  if ('error' in read) return json({ error: read.error }, 400);
+  const { id, day, title, kind, source, score } = read.score;
+  if (score === 0) await env.DB.prepare('DELETE FROM brief_scores WHERE id = ?').bind(id).run();
+  else await env.DB.prepare("INSERT INTO brief_scores (id, day, title, kind, source, score, scored_at) VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) ON CONFLICT (id) DO UPDATE SET score = excluded.score, scored_at = excluded.scored_at").bind(id, day, title, kind, source, score).run();
+  return json({ id, score });
+}
+
 /** @param {Request} request */
 async function readBody(request) {
   const raw = await request.text();
@@ -130,7 +147,11 @@ async function answer(request, env, method, pathname, origin) {
   try {
     if (method === 'POST' && !origin) return json({ error: 'Not allowed.' }, 403);
     if (method === 'POST' && pathname === '/api/login') return await login(request, env);
+    // The brief's maker reads the scores with its own read-only token; the page reads them with Jack's pass.
+    if (method === 'GET' && pathname === '/api/brief/scores' && (await rightPassword(request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''), env.BRIEF_READ_TOKEN))) return await scoresList(env);
     if (!(await signedIn(request.headers.get('Authorization'), env.SESSION_SECRET))) return json({ error: 'Please log in.' }, 401);
+    if (method === 'GET' && pathname === '/api/brief/scores') return await scoresList(env);
+    if (method === 'POST' && pathname === '/api/brief/score') return await scoreSave(request, env);
     if (method === 'GET' && pathname === '/api/now') return await load(env);
     if (method === 'POST' && pathname === '/api/tidy') return await tidy(request, env);
     if (method === 'POST' && pathname === '/api/save') return await save(request, env);

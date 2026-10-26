@@ -167,6 +167,23 @@
      #B45309, where the soft white on it fell just under 4.5:1. */
   --guestbook-top-from: #AF500A;
   --guestbook-top-to: #92400E;
+  /* Morning Brief (/brief/): its page's top and its home door, a sky at dawn, deep blue to orange (Jack's pick of
+     three), and its four kinds. Each kind's fill keeps white at 4.5:1 or more; its ink is the same hue for words
+     on the page's cards, at 4.5:1 or more on --surface. */
+  --brief-top-from: #1E3A8A;
+  --brief-top-to: #C2410C;
+  --brief-from: #1E3A8A;
+  --brief-to: #F97316;
+  --brief-base: #1E3A8A;
+  --brief-ai: #6D28D9;
+  --brief-open: #15803D;
+  --brief-dev: #1D4ED8;
+  --brief-fun: #C2410C;
+  --brief-ai-ink: var(--brief-ai);
+  /* Green and orange a shade deeper, to keep 4.5:1 on their own faint tint. */
+  --brief-open-ink: #166534;
+  --brief-dev-ink: var(--brief-dev);
+  --brief-fun-ink: #9A3412;
   /* The guestbook's notes, on paper in six colours whatever the theme, with dark ink. */
   --note-1: #FDE68A;
   --note-2: #FBCFE8;
@@ -470,6 +487,11 @@
   --card-light: rgb(255 255 255 / 0.07);
   /* The Toolbox's terminal grey would vanish on a dark card: a lighter one, still 6:1 under its white letter. */
   --tool-terminal: #636366;
+  /* Morning Brief's kinds as words on dark cards: the light end of each hue. */
+  --brief-ai-ink: #C4B5FD;
+  --brief-open-ink: #86EFAC;
+  --brief-dev-ink: #93C5FD;
+  --brief-fun-ink: #FDBA74;
   /* PDF Pages' file colours, lighter so the list's dots show on the dark rows. */
   --pdf-file-1: #60A5FA;
   --pdf-file-2: #FB923C;

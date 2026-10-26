@@ -23,6 +23,7 @@ export async function paletteItems(): Promise<PaletteItem[]> {
   return [
     ...NAV.map(({ href, label, icon }) => ({ title: label, group: 'Pages' as const, href, icon, words: PAGE_WORDS[href] })),
     { title: 'Now', group: 'Pages', href: '/now/', icon: 'clock', words: ['doing', 'currently', 'playing', 'building'] },
+    { title: 'Morning Brief', group: 'Pages', href: '/brief/', icon: 'sunrise', words: ['news', 'tech', 'daily', 'today', '简报', '新闻', '科技'] },
     { title: 'Changelog', group: 'Pages', href: '/changelog/', icon: 'list', words: ['changes', 'updates', 'history', 'new'] },
     { title: 'Guestbook', group: 'Pages', href: '/guestbook/', icon: 'message', words: ['notes', 'comments', 'messages', 'say hi'] },
     { title: 'Toolbox', group: 'Pages', href: '/collections/#toolbox', icon: 'wrench', words: ['tools', 'apps', 'software', 'extensions', 'chrome', 'windows', 'websites', 'uses'] },

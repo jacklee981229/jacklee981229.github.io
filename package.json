@@ -10,6 +10,7 @@
     "check": "astro check",
     "test": "node --test tests/",
     "new": "node scripts/new-post.mjs",
+    "brief": "node --env-file=scripts/brief/.env scripts/brief/make-brief.mjs",
     "astro": "astro"
   },
   "dependencies": {

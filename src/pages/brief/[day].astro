@@ -1,0 +1,23 @@
+---
+// Morning Brief: a day before the newest, at /brief/YYYY-MM-DD/. The newest day is /brief/ itself (index.astro).
+import Base from '../../layouts/Base.astro';
+import PageTop from '../../components/PageTop.astro';
+import BriefDay from '../../components/BriefDay.astro';
+import { briefDays } from '../../lib/brief-file.js';
+import { BRIEF_LEAD, briefPath, dayTitle, neighbours } from '../../lib/brief.js';
+
+export function getStaticPaths() {
+  const days = briefDays();
+  return days.slice(0, -1).map((day) => ({ params: { day: day.date }, props: { day, dates: days.map((d) => d.date) } }));
+}
+
+const { day, dates } = Astro.props;
+const newest = dates.at(-1);
+const { before, after } = neighbours(dates, day.date);
+---
+<Base title={`Morning Brief · ${dayTitle(day.date)}`} description={`${dayTitle(day.date)}的华语科技简报。`}>
+  <div class="wrap page">
+    <PageTop tone="brief" icon="sunrise" title="Morning Brief" lead={BRIEF_LEAD} />
+    <BriefDay day={day} before={before && briefPath(before, newest)} after={after && briefPath(after, newest)} />
+  </div>
+</Base>

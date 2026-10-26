@@ -1,0 +1,45 @@
+# Makes the day's Morning Brief (scripts/brief/make-brief.mjs) at 07:00 in Malaysia, commits it, and starts the
+# deploy. A push made with the workflow's own token doesn't start other workflows, so it starts deploy.yml itself.
+name: Morning Brief
+
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: brief
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20.18.0
+          cache: npm
+      - run: npm ci
+      - run: node scripts/brief/make-brief.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BRIEF_READ_TOKEN: ${{ secrets.BRIEF_READ_TOKEN }}
+      - name: Commit the brief and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add src/content/brief
+          if git diff --cached --quiet; then echo "No new brief."; exit 0; fi
+          day=$(TZ=Asia/Kuala_Lumpur date +%F)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Brief - $day"
+          # Jack may have pushed since the checkout.
+          git pull --rebase origin main
+          git push origin HEAD:main
+          gh workflow run deploy.yml --ref main

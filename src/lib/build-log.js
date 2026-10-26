@@ -112,6 +112,12 @@ export function foldersOf(paths) {
 }
 
 /**
+ * Whether a commit is the Morning Brief's daily one (.github/workflows/brief.yml), which isn't Jack building.
+ * @param {string} subject
+ */
+export const madeByTheBrief = (subject) => /^Brief - \d{4}-\d{2}-\d{2}$/.test(subject);
+
+/**
  * Everything the Build Log shows.
  * @param {{
  *   commits: { at: number, hash: string, subject: string, files: { path: string, added: number, removed: number }[] }[],
@@ -124,7 +130,8 @@ export function foldersOf(paths) {
  *   maxCells?: number,
  * }} input `commits` oldest first, `changes` newest first (readChangelog), `today` the Malaysia day it's built
  */
-export function buildLog({ commits, changes, lab, visits, today, started, rebuilt, maxCells = MAX_CELLS }) {
+export function buildLog({ commits: all, changes, lab, visits, today, started, rebuilt, maxCells = MAX_CELLS }) {
+  const commits = all.filter((commit) => !madeByTheBrief(commit.subject));
   const played = commits.map((commit) => {
     const files = commit.files.map((file) => ({ part: partOf(file.path), lines: file.added + file.removed }));
     const parts = PARTS.map((_, part) => files.filter((f) => f.part === part).length);

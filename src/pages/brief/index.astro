@@ -1,0 +1,23 @@
+---
+// Morning Brief: the newest day's brief (src/content/brief/, made each morning by scripts/brief/). The days before
+// are at /brief/YYYY-MM-DD/ ([day].astro). In the sitemap, the palette and a door on the home page, not the menu.
+import Base from '../../layouts/Base.astro';
+import PageTop from '../../components/PageTop.astro';
+import BriefDay from '../../components/BriefDay.astro';
+import { briefDays } from '../../lib/brief-file.js';
+import { BRIEF_LEAD, briefPath } from '../../lib/brief.js';
+
+const days = briefDays();
+const day = days.at(-1);
+const before = days.at(-2);
+---
+<Base title="Morning Brief" description="每天早上的华语科技简报：Claude 从 Hacker News、GitHub 和 Lobsters 挑出值得看的几件事。">
+  <div class="wrap page">
+    <PageTop tone="brief" icon="sunrise" title="Morning Brief" lead={BRIEF_LEAD} />
+    {day ? <BriefDay day={day} before={before && briefPath(before.date, day.date)} /> : <p class="empty">第一份简报会在明天早上 7 点出来。</p>}
+  </div>
+</Base>
+
+<style>
+  .empty { color: var(--muted); }
+</style>

@@ -76,6 +76,8 @@ test('the numbers the page shows', () => {
       { at: utc(2026, 9, 26, 14, 0), hash: 'a1', subject: 'Site - rebuilt', files: [{ path: 'src/pages/index.astro', added: 100, removed: 0 }, { path: 'src/content/posts/1/index.md', added: 20, removed: 0 }] },
       { at: utc(2026, 10, 7, 17, 12), hash: 'b2', subject: 'Lab - Snake', files: [{ path: 'src/games/snake/game.js', added: 30, removed: 5 }, { path: 'src/games/snake/rules.js', added: 10, removed: 2 }] },
       { at: utc(2026, 10, 7, 18, 30), hash: 'c3', subject: 'Travel - map', files: [{ path: 'src/lib/travel/map.js', added: 1, removed: 1 }] },
+      // The Morning Brief's daily commit isn't Jack building, so none of it counts.
+      { at: utc(2026, 10, 7, 23, 0), hash: 'd4', subject: 'Brief - 2026-10-08', files: [{ path: 'src/content/brief/2026-10-08.json', added: 200, removed: 0 }] },
     ],
     changes: [
       { day: '2026-10-08', kind: 'new', text: 'Added [Snake](/lab/game/snake/)' },

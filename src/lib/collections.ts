@@ -6,6 +6,7 @@ import { excerpt, slugify } from './text.js';
 import { mostPopular, pageVisits } from './lab/popular.js';
 import { EXPERIMENTS, TOOLS, WORLDS, isListed, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
+import { briefDays } from './brief-file.js';
 import { lastUpdate } from './changelog-file.js';
 import { SITE } from '../site';
 
@@ -81,6 +82,12 @@ export async function publicPages(): Promise<{ path: string; lastmod?: Date }[]>
     { path: '/projects/' },
     { path: '/about/' },
     { path: '/now/', lastmod: nowFile().updated },
+    // The newest brief is /brief/ itself; each day before it has its own page.
+    ...(() => {
+      const days = briefDays();
+      const made = (made: string) => (made ? new Date(made) : undefined);
+      return days.length ? [{ path: '/brief/', lastmod: made(days.at(-1)!.made) }, ...days.slice(0, -1).map((d) => ({ path: `/brief/${d.date}/`, lastmod: made(d.made) }))] : [{ path: '/brief/' }];
+    })(),
     { path: '/changelog/', lastmod: lastUpdate() },
     { path: '/guestbook/' },
     // The Lab: its finished tools (the Effects page among them), its games and its worlds. /random/ stays out (it's

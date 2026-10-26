@@ -7,6 +7,12 @@ compatibility_date = "2026-04-01"
 # The page takes the site's tokens.css in as text.
 rules = [{ type = "Text", globs = ["**/*.css"], fallthrough = true }]
 
+# Jack's Morning Brief scores (schema.sql).
+[[d1_databases]]
+binding = "DB"
+database_name = "jacks-space-now"
+database_id = "611fef95-b59a-4019-a1ec-e64a962de971"
+
 [vars]
 REPO = "jacklee981229/jacklee981229.github.io"
 BRANCH = "main"
