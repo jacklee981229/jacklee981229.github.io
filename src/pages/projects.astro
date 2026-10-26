@@ -247,6 +247,8 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
     .chapters { display: none; }
     .projects { grid-template-columns: 1fr; }
     .wide { flex-direction: column; }
+    /* Stacked, the picture keeps its own height: 58% of the card's would push the words, and the Code button, out. */
+    .wide .picture { flex: none; }
     .wide .body { padding: var(--space-4); }
   }
 </style>

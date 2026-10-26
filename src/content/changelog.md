@@ -131,3 +131,4 @@
 - 2026-10-26 improved: Gave PDF Pages page numbers and a way to copy out the text
 - 2026-10-27 design: Took the small labels off the home page's cards
 - 2026-10-27 design: Turned small-caps labels and dotted lines into plain words
+- 2026-10-27 fix: Brought back the Code button on Projects' wide card on phones
