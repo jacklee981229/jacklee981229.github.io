@@ -129,3 +129,4 @@
 - 2026-10-26 new: A morning tech brief in 华语, picked by Claude every day
 - 2026-10-26 fix: Morning Brief's top cards close back to the same height
 - 2026-10-26 improved: Gave PDF Pages page numbers and a way to copy out the text
+- 2026-10-27 design: Took the small labels off the home page's cards
