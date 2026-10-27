@@ -110,6 +110,12 @@ export const storyFiles = (story) => [
 export async function missingFiles(story, { local, live, fetch: get = fetch }) {
   const files = storyFiles(story);
   if (existsSync(local)) return files.filter((file) => !existsSync(`${local}/${file}`));
-  const answers = await Promise.all(files.map((file) => get(`${live}${file}`, { method: 'HEAD' }).then((r) => r.ok, () => false)));
-  return files.filter((_, k) => !answers[k]);
+  const there = (file) => get(`${live}${file}`, { method: 'HEAD' }).then((r) => r.ok, () => false);
+  const first = await Promise.all(files.map(there));
+  if (first.every(Boolean)) return [];
+  // A file that didn't answer is asked once more, a second later: with a hundred asked at once, one can drop now and
+  // then, and a deploy failed on a photo that was there (27 Oct 2026).
+  await new Promise((done) => setTimeout(done, 1000));
+  const second = await Promise.all(files.map((file, k) => first[k] || there(file)));
+  return files.filter((_, k) => !second[k]);
 }

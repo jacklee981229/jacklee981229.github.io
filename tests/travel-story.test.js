@@ -74,7 +74,14 @@ test('missing photos are found in the local media folder, else on the live site'
   const asked = [];
   const fetch = async (url) => { asked.push(url); return { ok: !url.includes('img_6061_640') }; };
   assert.deepEqual(await missingFiles(story, { local: join(local, 'nowhere'), live: 'https://example.test/media/', fetch }), ['yunnan-2026/smaller/img_6061_640.webp']);
-  assert.equal(asked.length, 6);
+  assert.equal(asked.length, 7, 'six asked, and the missing one asked again');
+});
+
+test('a photo that drops its answer once is asked again, not counted missing', async () => {
+  let tries = 0;
+  const flaky = async (url) => (url.includes('img_6050_640') && tries++ === 0 ? Promise.reject(new Error('dropped')) : { ok: true });
+  assert.deepEqual(await missingFiles(story, { local: join(tmpdir(), 'nowhere-at-all'), live: 'https://example.test/media/', fetch: flaky }), []);
+  assert.equal(tries, 2);
 });
 
 test('each scroll goes one stop, and past the ends the page scrolls on', () => {
