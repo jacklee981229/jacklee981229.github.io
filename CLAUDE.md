@@ -93,6 +93,7 @@ In the sweep, after Jack confirms a feature, every UI change passes these:
 ## Testing habits
 
 - The dev preview runs in this folder (`cwd` in launch.json): run from anywhere else, whatever the build reads from git or files (Now's date, the Changelog, the Build Log) comes up empty. While other sessions edit files, the dev server reloads a page under a probe: block its live-reload connection in the probe.
+- The dev server serves a picture from `src/assets/` at an address that doesn't change with the file, and tells the browser to keep it for a year: after replacing one under the same name, Ctrl+F5 shows the new one.
 - Headless Chrome here runs WebGL2 on the laptop's real GPU, and its screen runs at 90 Hz with devicePixelRatio 1.5: time GPU work with `EXT_disjoint_timer_query_webgl2`, not frame gaps alone. Safari and phones need real devices.
 - My preview ports (`C:\repos\Jack\.claude\launch.json`): 4600 serves `dist/`, 4602 is dev (shows drafts), 4604 serves a build in a separate folder, 8790 is the guestbook's Worker with a local copy of its database. A preview's guestbook asks the real Worker: to test posting, answer those requests from 8790 instead (CDP `Fetch`). Jack's own preview is 4321: while it runs, never build into `dist/`; build with `--outDir` into another folder and serve that on my port. A build into a folder outside the project moves its `.astro/` folder into the output: finish with `npm run check` to bring it back.
 - Probe with headless Chrome over CDP; Node 20 needs `node --experimental-websocket`. Probes stay in the scratchpad.
