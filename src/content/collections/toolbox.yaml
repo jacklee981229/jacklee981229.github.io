@@ -37,14 +37,6 @@ groups:
         link: https://github.com/IgorMundstein/WinMemoryCleaner
         note: free up memory
         star: true
-      - name: LockHunter
-        where: windows
-        link: https://lockhunter.com/
-        note: 文件锁解锁器，删除无法被删除的文件或文件夹
-      - name: FolderMove
-        where: windows
-        link: https://foldermove.com/
-        note: Move files from Disk C to D
 
   - name: Handy on Windows
     tools:
@@ -52,22 +44,10 @@ groups:
         where: windows
         link: https://learn.microsoft.com/en-us/windows/powertoys/
         note: Check rgb color, and more
-      - name: Sandboxie Plus
-        where: windows
-        link: https://sandboxie-plus.com/
-        note: 沙盒工具
-      - name: f.lux
-        where: windows
-        link: https://justgetflux.com/
-        note: 护眼程序
       - name: Ninite
         where: website
         link: https://ninite.com/
         note: Common useful apps customized package
-      - name: scrcpy
-        where: windows
-        link: https://github.com/Genymobile/scrcpy
-        note: 安卓手机屏幕镜像
 
   - name: Video & music
     tools:
@@ -110,6 +90,10 @@ groups:
         where: website
         link: https://tinywow.com/
         note: Files Converter
+      - name: PDF Pages
+        where: website
+        link: https://jacklee981229.github.io/lab/pdf-pages/
+        note: Merge, split, turn and reorder the pages of PDFs
 
   - name: In the browser
     tools:
@@ -121,32 +105,26 @@ groups:
         where: chrome
         link: https://chromewebstore.google.com/detail/cidlcjdalomndpeagkjpnefhljffbnlo
         note: 禁用网页JS脚本 破右键锁
-      - name: Temp Mail
-        where: website
-        link: https://temp-mail.org/
-        note: 临时邮件
 
-  - name: AI helpers
+  - name: Build & host
     tools:
-      - name: JetWriter AI (was ChatGPT Writer)
-        where: chrome
-        link: https://chromewebstore.google.com/detail/pdnenlnelpdomajfejgapbdpmjkfpjkp
-        note: write and reply to emails with AI
-      - name: YouTube Summary with ChatGPT
-        where: chrome
-        link: https://chromewebstore.google.com/detail/nmmicjeknamkfloonkhhcjmomieiodli
-        note: summarise a video
-      - name: AI Prompt Genius
-        where: chrome
-        link: https://chromewebstore.google.com/detail/jjdnakkfjnnbbckhifcfchagnpofjffo
-        note: save and share prompts
+      - name: OpenCode
+        where: terminal
+        link: https://opencode.ai/
+        note: open-source AI coding agent, any model
+        command: npm i -g opencode-ai
+      - name: Claude SEO
+        where: terminal
+        link: https://github.com/AgriciDaniel/claude-seo
+        note: SEO check-up inside Claude Code
+        command: claude plugin marketplace add AgriciDaniel/claude-seo
+      - name: Coolify
+        where: website
+        link: https://coolify.io/
+        note: host your own apps, like Vercel
 
   - name: Learn & get things done
     tools:
-      - name: eJOY AI Dictionary
-        where: chrome
-        link: https://chromewebstore.google.com/detail/amfojhdiedpdnlijjbhjnhokbnohfdfb
-        note: 视频多语种字幕生成插件
       - name: roadmap.sh
         where: website
         link: https://roadmap.sh/roadmaps
@@ -159,10 +137,6 @@ groups:
         where: website
         link: https://musclewiki.com/
         note: pick a muscle, see the exercises
-      - name: Todoist for Chrome
-        where: chrome
-        link: https://chromewebstore.google.com/detail/jldhpllghnbhlbpcmnajkpdmadaolakh
-        note: 最佳 Chrome 版任务清单
 
   - name: Just for fun
     tools:
