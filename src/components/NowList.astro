@@ -2,9 +2,11 @@
 // Now's items (src/content/now.md, read by src/lib/now.js), each a card: its label and name read as one line, as on
 // the home page ("🛠️ Building Media Studio"), a line about it and since when it's been on Now. An item that names a project or a post shows its picture across the card's top, lends
 // its line when Jack wrote none, and leads to it; one that names something in a collection shows its cover beside the
-// name and leads to that collection's tab.
+// name and leads to that collection's tab. An item that is only a mood (none of those, and no line) is a card in
+// Now's colours. The cards sit by nowLayout's rules, so none stretches into an empty block beside a picture.
 import { Image } from 'astro:assets';
 import { namesTitle, plainText } from '../lib/now.js';
+import { howLong, nowLayout, splitEmoji } from '../lib/now-layout.js';
 import { shelfItemNamed } from '../lib/shelf-pictures';
 import { PROJECTS } from '../lib/projects';
 import { coverOf, pagePosts, postUrl } from '../lib/collections';
@@ -16,9 +18,11 @@ interface Props {
   items: { label?: string; value: string; detail?: string }[];
   /** Since when each item has been on Now, in the same order; none when git can't say. */
   since: (Date | undefined)[];
+  /** The Now before this one, as words ("🛠️ Building Media Studio, ✍️ Writing Yunnan Post"); none when there was none. */
+  before?: string;
 }
 
-const { items, since } = Astro.props;
+const { items, since, before } = Astro.props;
 const site = String(Astro.site);
 /** The cover's width on screen, in pixels; drawn at twice that for sharp screens. */
 const THUMB = 44;
@@ -37,12 +41,17 @@ const rows = await Promise.all(
     // A value that is its own link keeps it; otherwise what it names decides where the card leads.
     const href = own ?? (project ? '/projects/' : postHref ?? (shelf ? `/collections/#${shelf.shelf}` : undefined));
     const go = own ? 'Open' : project ? 'See it on Projects' : post ? (postHref ? 'Read the post' : 'Coming soon') : shelf ? 'In my Collection' : undefined;
+    const picture = project?.picture ?? (post && coverOf(post));
+    const detail = item.detail ? plainText(item.detail) : (project?.line ?? post?.data.description);
+    const words = splitEmoji(`${item.label ?? ''} ${name}`);
+    const mood = !picture && !shelf?.picture && !detail && !href && words[1] ? words : undefined;
     return {
       label: item.label,
       name,
       // As plain text: the card is itself a link, and links can't sit inside links.
-      detail: item.detail ? plainText(item.detail) : (project?.line ?? post?.data.description),
-      picture: project?.picture ?? (post && coverOf(post)),
+      detail,
+      picture,
+      mood,
       // A project's picture is its window on a clear background, so it sits on its kind's colours, as on Projects.
       kind: project?.kind,
       thumb: shelf?.picture,
@@ -53,23 +62,61 @@ const rows = await Promise.all(
     };
   }),
 );
+
+// Each card's place on the two-column grid, as nowLayout says; on a phone it's one column in now.md's order.
+const places: { row: number; col: number; rows: number; cols: number }[] = [];
+// Each grid line's height. Beside a picture, a mood stacked with another card takes the height the other doesn't
+// need, so the one with words and a cover isn't stretched hollow.
+const lines: string[] = [];
+/** The moods that take that height. */
+const grows = new Set<number>();
+let line = 1;
+for (const block of nowLayout(rows.map((row) => Boolean(row.picture)))) {
+  if (block.type === 'tall') {
+    const right = block.beside[0] < block.picture;
+    places[block.picture] = { row: line, col: right ? 2 : 1, rows: 2, cols: 1 };
+    block.beside.forEach((i, k) => { places[i] = { row: line + k, col: right ? 1 : 2, rows: block.beside.length === 1 ? 2 : 1, cols: 1 }; });
+    const moods = block.beside.map((i) => Boolean(rows[i].mood));
+    const lean = moods.length === 2 && moods[0] !== moods[1];
+    lines.push(...(lean ? moods.map((mood) => (mood ? '1fr' : 'auto')) : ['auto', 'auto']));
+    if (lean) grows.add(block.beside[moods.indexOf(true)]);
+    line += 2;
+  } else {
+    const [first, second] = block.type === 'pair' ? block.items : [block.item];
+    places[first] = { row: line, col: 1, rows: 1, cols: block.type === 'row' ? 2 : 1 };
+    if (second !== undefined) places[second] = { row: line, col: 2, rows: 1, cols: 1 };
+    lines.push('auto');
+    line += 1;
+  }
+}
 ---
-<ul class="now">
-  {rows.map((row) => {
+<ul class="now" style={`--lines: ${lines.join(' ')}`}>
+  {rows.map((row, i) => {
     const Tag = row.href ? 'a' : 'div';
+    const place = places[i];
+    // A mood made tall beside a picture fills its height with how long it's been going and the Now before it.
+    const tall = row.mood && (place.rows === 2 || grows.has(i));
     return (
-      <li>
+      <li class:list={{ mood: row.mood, tall }} style={`--row: ${place.row}; --col: ${place.col}; --rows: ${place.rows}; --cols: ${place.cols}`}>
         <Tag class="item" href={row.href} {...(row.external ? newTab() : {})}>
           {row.picture && <span class="pic" style={row.kind && `--from: var(--kind-${row.kind}-from); --to: var(--kind-${row.kind}-to)`}><Image src={row.picture} alt="" width={720} /></span>}
+          {row.mood?.[0] && <span class="big" aria-hidden="true">{row.mood[0]}</span>}
           <span class="text">
             <span class="head">
               <span class="words">
-                <span class="name">{row.label && `${row.label} `}{row.name}</span>
+                <span class="name">{row.mood ? row.mood[1] : <>{row.label && `${row.label} `}{row.name}</>}</span>
               </span>
               {row.thumb && <span class="thumb"><Image src={row.thumb} alt="" width={THUMB * 2} style={`width: ${THUMB}px`} /></span>}
             </span>
             {row.detail && <span class="detail">{row.detail}</span>}
-            {(row.since || row.go) && (
+            {tall && row.since && (
+              <span class="long">
+                <time class="for" datetime={row.since.toISOString()} data-for>{howLong(row.since, new Date())}</time>
+                <span class="so-far">of {row.mood![1][0].toLowerCase() + row.mood![1].slice(1)} so far</span>
+                {before && <span class="before">Before this: {before}</span>}
+              </span>
+            )}
+            {!(tall && row.since) && (row.since || row.go) && (
               <span class="foot">
                 {row.since && <span class="since">Since <time datetime={row.since.toISOString()} data-since>{shortDate(row.since)}</time></span>}
                 {row.go && <span class:list={['go', { soon: !row.href }]}>{row.go}{row.href && ' →'}</span>}
@@ -84,19 +131,23 @@ const rows = await Promise.all(
 
 <script>
   import { daysBetween } from '../lib/dates.js';
+  import { howLong } from '../lib/now-layout.js';
 
-  // The page is built once, so "today" and "yesterday" are worked out in the visitor's browser.
+  // The page is built once, so "today", "yesterday" and how long are worked out in the visitor's browser.
   document.querySelectorAll<HTMLTimeElement>('time[data-since]').forEach((el) => {
     const days = daysBetween(new Date(), new Date(el.dateTime));
     if (days <= 0) el.textContent = 'today';
     else if (days === 1) el.textContent = 'yesterday';
   });
+  document.querySelectorAll<HTMLTimeElement>('time[data-for]').forEach((el) => {
+    el.textContent = howLong(new Date(el.dateTime), new Date());
+  });
 </script>
 
 <style>
   /* Two across: a picture over the words when the item has one, the cover of a collection's item beside its name. */
-  .now { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
-  li { display: flex; }
+  .now { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: var(--lines); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+  li { display: flex; grid-row: var(--row) / span var(--rows); grid-column: var(--col) / span var(--cols); }
   .item { display: flex; flex-direction: column; width: 100%; overflow: hidden; border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); color: inherit; text-decoration: none; transition: transform var(--motion-quick) ease; }
   /* Like the Lab's cards: the one pointed at rises and its picture zooms in. */
   a.item:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; transform: translateY(-4px); }
@@ -124,9 +175,26 @@ const rows = await Promise.all(
   .go { margin-left: auto; color: var(--now-from); }
   .go.soon { color: var(--muted); }
   :global([data-theme='dark']) .go:not(.soon) { color: var(--now-soft); }
+  /* A mood alone is a card in Now's colours, its emoji big in the corner. */
+  .mood .item { position: relative; background: radial-gradient(120% 120% at 85% 110%, color-mix(in srgb, var(--on-colour-faint) 50%, transparent), transparent 55%), linear-gradient(150deg, var(--now-from), var(--now-to)); color: var(--on-colour); }
+  .mood .name { font-size: var(--text-2xl); }
+  .mood .since { color: var(--on-colour-soft); }
+  .big { position: absolute; right: var(--space-5); bottom: var(--space-4); font-size: calc(var(--text-2xl) * 1.5); line-height: 1; filter: drop-shadow(0 8px 18px var(--on-colour-chip)); }
+  .mood .item { container-type: inline-size; }
+  .mood .text { position: relative; }
+  /* The name keeps clear of the emoji's corner. */
+  .mood .head { padding-right: calc(var(--text-2xl) * 1.5); }
+  /* Two rows tall: how long reads first, in big type, the Now before it under a line. */
+  .tall .big { top: var(--space-5); bottom: auto; }
+  .long { display: grid; gap: var(--space-2); margin-top: auto; padding-top: var(--space-4); }
+  /* Sized by the card, not the window, so "45 mins" stays on one line in a half-width card. */
+  .for { font-size: min(var(--text-display), 14cqi); font-weight: 900; line-height: 0.9; letter-spacing: -0.04em; white-space: nowrap; }
+  .so-far { font-size: var(--text-lg); font-weight: 700; color: var(--on-colour-soft); }
+  .before { margin-top: var(--space-3); padding-top: var(--space-3); border-top: var(--hairline) solid var(--on-colour-faint); font-weight: 700; color: var(--on-colour-soft); }
 
   @media (max-width: 719px) {
-    .now { grid-template-columns: minmax(0, 1fr); }
+    .now { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+    li { grid-row: auto; grid-column: auto; }
     .name { font-size: var(--text-lg); }
   }
 </style>

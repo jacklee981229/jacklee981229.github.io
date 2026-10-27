@@ -141,3 +141,4 @@
 - 2026-10-27 improved: Put the to-do widget's code on GitHub, with its new look
 - 2026-10-27 improved: Added Ultimate Vocal Remover to the Toolbox
 - 2026-10-27 improved: Rewrote the Morning Brief's subtitle
+- 2026-10-27 design: Gave Now's cards a tidier layout, with moods in colour
