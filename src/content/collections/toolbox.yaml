@@ -60,6 +60,10 @@ groups:
         where: windows
         link: https://handbrake.fr/
         note: convert videos
+      - name: Ultimate Vocal Remover
+        where: windows
+        link: https://github.com/Anjok07/ultimatevocalremovergui
+        note: separate vocals from music, offline
 
   - name: Pictures
     tools:

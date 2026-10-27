@@ -139,3 +139,4 @@
 - 2026-10-27 new: Added a music player that keeps playing as you move between pages
 - 2026-10-27 design: Gave the usage widget's project card its new look
 - 2026-10-27 improved: Put the to-do widget's code on GitHub, with its new look
+- 2026-10-27 improved: Added Ultimate Vocal Remover to the Toolbox
