@@ -4,7 +4,8 @@ import { itemId } from '../../src/lib/brief.js';
 
 /**
  * @typedef {{ id: string, source: 'hn' | 'github' | 'lobsters', title: string, url: string, discuss: string,
- *   signal: number, about: string, excerpt?: string }} Candidate
+ *   signal: number, about: string, posted?: number, excerpt?: string }} Candidate
+ * (`posted`: when the story went up, in ms; GitHub Trending has none.)
  */
 
 /** @param {unknown} v */
@@ -23,7 +24,7 @@ export function readHn(items) {
     .map((it) => {
       const discuss = `https://news.ycombinator.com/item?id=${it.id}`;
       const url = text(it.url) || discuss;
-      return { id: itemId(url), source: 'hn', title: text(it.title), url, discuss, signal: Number(it.score) || 0, about: '' };
+      return { id: itemId(url), source: 'hn', title: text(it.title), url, discuss, signal: Number(it.score) || 0, about: '', posted: Number(it.time) * 1000 || undefined };
     });
 }
 
@@ -56,9 +57,17 @@ export function readLobsters(stories) {
     .map((s) => {
       const discuss = text(s.comments_url) || text(s.short_id_url);
       const url = text(s.url) || discuss;
-      return { id: itemId(url), source: 'lobsters', title: text(s.title), url, discuss, signal: Number(s.score) || 0, about: Array.isArray(s.tags) ? s.tags.join(', ') : '' };
+      return { id: itemId(url), source: 'lobsters', title: text(s.title), url, discuss, signal: Number(s.score) || 0, about: Array.isArray(s.tags) ? s.tags.join(', ') : '', posted: Date.parse(s.created_at) || undefined };
     });
 }
+
+/**
+ * Only the news since the last brief, so each day tells what happened since the day before: a story that went up
+ * earlier is left out, however hot it still is. GitHub Trending's daily list has no date and needs none: its stars
+ * are the last day's already.
+ * @param {Candidate[]} candidates @param {number} from ms
+ */
+export const postedSince = (candidates, from) => candidates.filter((c) => !c.posted || c.posted >= from);
 
 /** How much of a page the model reads about each candidate, in characters: enough to say what it is, cheap to send. */
 export const EXCERPT = 1500;

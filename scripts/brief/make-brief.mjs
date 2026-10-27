@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import Anthropic from '@anthropic-ai/sdk';
 import { isoDay, localTimestamp } from '../../src/lib/dates.js';
 import { MODEL, SCHEMA, SYSTEM, briefFile, userMessage } from './prompt.js';
-import { excerptOf, mergeCandidates, readHn, readLobsters, readTrending } from './sources.js';
+import { excerptOf, mergeCandidates, postedSince, readHn, readLobsters, readTrending } from './sources.js';
 
 const FOLDER = 'src/content/brief';
 const EDITOR = process.env.NOW_EDITOR_URL || 'https://jacks-space-now.jacklee981229.workers.dev';
@@ -67,19 +67,26 @@ async function scores() {
   }
 }
 
-/** The ids told in the last few days' briefs. @param {string} today */
-function recentIds(today) {
+/**
+ * The ids told in the last few days' briefs, and since when the news is new: when the latest of them was made, or a
+ * day back when there's none.
+ * @param {string} today @param {Date} now
+ */
+function earlier(today, now) {
   const ids = new Set();
+  let since = 0;
   const day = new Date(`${today}T12:00:00+08:00`);
   for (let back = 1; back <= RECENT_DAYS; back++) {
     const name = `${FOLDER}/${isoDay(new Date(day.getTime() - back * 86400000))}.json`;
     try {
-      for (const item of JSON.parse(readFileSync(name, 'utf8')).items ?? []) ids.add(item.id);
+      const brief = JSON.parse(readFileSync(name, 'utf8'));
+      for (const item of brief.items ?? []) ids.add(item.id);
+      since = Math.max(since, Date.parse(brief.made) || 0);
     } catch {
       // No brief that day.
     }
   }
-  return ids;
+  return { ids, since: since || now.getTime() - 86400000 };
 }
 
 async function main() {
@@ -90,7 +97,8 @@ async function main() {
 
   const lists = await Promise.allSettled([hackerNews(), trending(), lobsters()]);
   lists.forEach((r, i) => { if (r.status === 'rejected') console.warn(`${['Hacker News', 'GitHub Trending', 'Lobsters'][i]} skipped: ${r.reason?.message ?? r.reason}`); });
-  const candidates = mergeCandidates(lists.map((r) => (r.status === 'fulfilled' ? r.value : [])), recentIds(date));
+  const { ids, since } = earlier(date, now);
+  const candidates = mergeCandidates(lists.map((r) => postedSince(r.status === 'fulfilled' ? r.value : [], since)), ids);
   if (!candidates.length) throw new Error('No source answered, so there is nothing to brief.');
   const excerpts = await inTurns(candidates, 8, excerpt);
   candidates.forEach((c, i) => { c.excerpt = excerpts[i]; });

@@ -1,7 +1,7 @@
 // The Morning Brief's maker (scripts/brief/): reading each source, and turning the model's answer into a day's file.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EXCERPT, excerptOf, mergeCandidates, readHn, readLobsters, readTrending } from '../scripts/brief/sources.js';
+import { EXCERPT, excerptOf, mergeCandidates, postedSince, readHn, readLobsters, readTrending } from '../scripts/brief/sources.js';
 import { FEWEST, briefFile, userMessage } from '../scripts/brief/prompt.js';
 import { itemId } from '../src/lib/brief.js';
 
@@ -43,6 +43,23 @@ test('Lobsters: tags say what a story is about; a text post links to its discuss
     { title: 'Ask: editors?', url: '', score: 5, tags: [], comments_url: 'https://lobste.rs/s/def' },
   ]);
   assert.deepEqual(got.map((c) => [c.url, c.about, c.discuss]), [['https://example.com/w', 'c, security', 'https://lobste.rs/s/abc'], ['https://lobste.rs/s/def', '', 'https://lobste.rs/s/def']]);
+});
+
+test('each story keeps when it went up: Hacker News in seconds, Lobsters as a date; Trending has none', () => {
+  assert.equal(readHn([{ id: 1, type: 'story', title: 'A', url: 'https://a', time: 1793000000 }])[0].posted, 1793000000000);
+  assert.equal(readLobsters([{ title: 'B', url: 'https://b', created_at: '2026-10-26T10:00:00.000-05:00' }])[0].posted, Date.parse('2026-10-26T15:00:00Z'));
+  assert.equal(readLobsters([{ title: 'C', url: 'https://c' }])[0].posted, undefined);
+});
+
+test('only news since the last brief: older stories go, undated ones (Trending) stay', () => {
+  const from = Date.parse('2026-10-27T05:30:00+08:00');
+  const list = [
+    { id: 'old', posted: from - 60000 },
+    { id: 'edge', posted: from },
+    { id: 'new', posted: from + 3600000 },
+    { id: 'trending' },
+  ];
+  assert.deepEqual(postedSince(list, from).map((c) => c.id), ['edge', 'new', 'trending']);
 });
 
 test('each address once, and nothing from the last days again', () => {

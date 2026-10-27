@@ -1,10 +1,12 @@
-# Makes the day's Morning Brief (scripts/brief/make-brief.mjs) at 07:00 in Malaysia, commits it, and starts the
+# Makes the day's Morning Brief (scripts/brief/make-brief.mjs) by 07:00 in Malaysia, commits it, and starts the
 # deploy. A push made with the workflow's own token doesn't start other workflows, so it starts deploy.yml itself.
 name: Morning Brief
 
 on:
   schedule:
-    - cron: '0 23 * * *'
+    # 03:13 in Malaysia: GitHub starts scheduled runs hours late (about three on 27 Oct 2026, more on the hour), so
+    # this lands before 07:00.
+    - cron: '13 19 * * *'
   workflow_dispatch:
 
 permissions:
