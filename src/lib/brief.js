@@ -12,7 +12,7 @@ export const SOURCES = { hn: 'Hacker News', github: 'GitHub', lobsters: 'Lobster
 export const LEADS = 3;
 
 /** The page's lead, under its title. */
-export const BRIEF_LEAD = '每天早上 7 点，Claude 从科技圈挑出值得看的几件事，用华语写给我。';
+export const BRIEF_LEAD = '每天早上更新最新的 GitHub 项目和新闻。';
 
 /** A day's address: the newest day is /brief/ itself. @param {string} date @param {string | undefined} newest */
 export const briefPath = (date, newest) => (date === newest ? '/brief/' : `/brief/${date}/`);
