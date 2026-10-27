@@ -11,7 +11,7 @@ import { CITIES } from '../../lib/lab/exact-time.js';
       <p class="verdict" data-verdict data-level="checking"><strong data-title>Checking your clock<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></strong><span data-detail></span></p>
       <p class="where" data-where></p>
       <p class="face"><span data-hours>--</span><i>:</i><span data-minutes>--</span><i>:</i><span data-seconds>--</span><small data-half></small></p>
-      <p class="date"><span data-date></span><span class="week"><span class="dot" aria-hidden="true"> · </span><span data-week></span></span></p>
+      <p class="date"><span data-date></span><span class="week" data-week></span></p>
       <div class="controls">
         <fieldset class="choices">
           <legend class="visually-hidden">Clock</legend>
@@ -115,7 +115,8 @@ import { CITIES } from '../../lib/lab/exact-time.js';
   .face i { position: relative; top: -0.07em; padding: 0 0.02em; color: var(--muted); font-style: normal; font-weight: 700; }
   .face small { margin-left: 0.15em; color: var(--muted); font-size: 0.28em; letter-spacing: 0; }
   .date { margin: var(--space-2) 0 0; font-size: var(--text-lg); font-weight: 700; letter-spacing: -0.01em; }
-  .week { color: var(--muted); font-weight: 650; white-space: nowrap; }
+  /* Set apart from the date by its colour and a gap, not a middle dot. */
+  .week { margin-left: var(--space-2); color: var(--muted); font-weight: 650; white-space: nowrap; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3); margin-top: var(--space-5); }
   [data-full][hidden] { display: none; }
   .world { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
@@ -137,9 +138,8 @@ import { CITIES } from '../../lib/lab/exact-time.js';
   @media (max-width: 719px) {
     .clock { padding: var(--space-5) var(--space-4); }
     .date { font-size: var(--text-md); }
-    /* The week on a line of its own, rather than wrapping on its own with a dot before it. */
-    .week { display: block; }
-    .week .dot { display: none; }
+    /* The week on a line of its own, rather than wrapping on its own. */
+    .week { display: block; margin-left: 0; }
     .world { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
