@@ -401,6 +401,27 @@
   --lane-games: var(--topic-games);
   --lane-flutter: var(--topic-flutter);
   --lane-travel: var(--topic-travel);
+  /* The music player (src/components/MusicPlayer.astro), the same in both themes. A colour for each song, in the order
+     of src/lib/music-songs.json and round again after the eighth: the site's deep colours, which take white words.
+     Its glass lets most of the song's colour through over the page behind, blurred; the shade under it keeps white
+     words readable over a bright page, the edge lights its top, and the chip is the play button inside it. */
+  --music-1: var(--travel-base);
+  --music-2: var(--collection-base);
+  --music-3: var(--topic-flutter);
+  --music-4: var(--topic-games);
+  --music-5: var(--writing-base);
+  --music-6: var(--topic-hexo);
+  --music-7: var(--topic-git);
+  --music-8: var(--topic-chatgpt);
+  --music-glass: 85%;
+  --music-shade: rgb(0 0 0 / 0.2);
+  --music-edge: rgb(255 255 255 / 0.45);
+  --music-rim: rgb(255 255 255 / 0.18);
+  --music-chip: rgb(255 255 255 / 0.2);
+  --music-hover: rgb(255 255 255 / 0.16);
+  --music-dim: rgb(255 255 255 / 0.9);
+  --music-bar: rgb(255 255 255 / 0.45);
+  --music-bar-ahead: rgb(255 255 255 / 0.72);
   /* A travel story's band (src/components/TravelStory.astro): dark in every theme, so its photos sit on the same
      ground whatever the page around them; the words on it are at least 4.5:1. */
   --story-ground: #0E1217;
@@ -438,6 +459,8 @@
   /* The width a Lab game plays in: as much as the screen's height allows for a square board with its scores above
      (the page glides to the game when play starts), up to a comfortable size. */
   --game-width: min(44rem, calc(100svh - 7rem));
+  /* The round buttons that float in the bottom corner: the music player's and Back to top above it. */
+  --float-size: 2.75rem;
 
   --radius-2xs: 3px;
   --radius-xs: 4px;

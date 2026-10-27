@@ -340,7 +340,8 @@ const ends = stops.filter((s) => typeof s.say !== 'number');
       if (on && song.paused) {
         if (!song.src) song.src = songButton!.dataset.song!;
         song.volume = 0;
-        song.play().then(() => fadeTo(0.7), () => {});
+        // The site's music player (MusicPlayer.astro) pauses for the song.
+        song.play().then(() => { fadeTo(0.7); dispatchEvent(new Event('page-sound')); }, () => {});
       } else if (!on && !song.paused) fadeTo(0, () => song.pause());
     }
     songButton?.addEventListener('click', () => {
@@ -362,6 +363,13 @@ const ends = stops.filter((s) => typeof s.say !== 'number');
         note.addEventListener('animationend', () => note.remove());
         songButton.append(note);
       });
+    });
+    // And the player starting turns the song off.
+    addEventListener('site-music', () => {
+      if (!wanted) return;
+      wanted = false;
+      songButton?.setAttribute('aria-pressed', 'false');
+      sound(false);
     });
     songButton?.addEventListener('animationend', (e) => { if (e.animationName.endsWith('leap')) songButton.classList.remove('leap'); });
 
@@ -514,6 +522,7 @@ const ends = stops.filter((s) => typeof s.say !== 'number');
     .say.end p { font-size: var(--text-md); }
     .credit { grid-column: 1; }
     .count { left: var(--space-3); top: var(--count-top, auto); bottom: auto; }
-    .rail { top: auto; bottom: 12svh; right: var(--space-2); translate: none; }
+    /* Clear of Back to top and the music player's button, stacked in the corner. */
+    .rail { top: auto; bottom: max(12svh, calc(var(--space-4) + var(--float-size) * 2 + var(--space-3) * 2)); right: var(--space-2); translate: none; }
   }
 </style>

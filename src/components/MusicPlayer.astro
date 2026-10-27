@@ -1,0 +1,540 @@
+---
+// The site's music player, on every page: a round button in the bottom corner, tinted glass in the colour of the song
+// (each song has its own, --music-*). Pointed at (tapped, on a touch screen), it grows to the left into a bar: the
+// song's name and artist, its waveform to seek on, previous and next, volume and mute, and the button itself turns to
+// play or pause; left alone a while, it tucks back in. Closed and playing, four bars in it rise and fall with the
+// song's loudness. The music never starts by itself. Each page is a fresh page (the site has no client router), so the
+// player keeps its song and second in the tab's storage and the next page plays on from there; a page opened some
+// other way, or in a browser that wants a press first (Safari), waits at that second for one. A page's own sound (a
+// travel story's song, a game, a video) pauses it, and it pauses theirs. Its rules: src/lib/music.js; its songs:
+// src/lib/music-songs.json, the files in the media repo's music/.
+import Icon from './Icon.astro';
+import { SITE } from '../site';
+import { newTab } from '../lib/links.js';
+import { RESUME_WITHIN, SONG_COLOURS } from '../lib/music.js';
+---
+<div class="music" data-music data-media={SITE.media} data-site={SITE.title}>
+  <button type="button" class="main" aria-label="Music player" aria-expanded="false" aria-controls="music-bar" data-main>
+    <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <Icon name="music" class="i-music" />
+    <Icon name="play" class="i-play" />
+    <Icon name="pause" class="i-pause" />
+  </button>
+  <div class="pill" id="music-bar">
+    <div class="body" inert data-body>
+      <button type="button" class="ib" aria-label="Mute" data-mute><Icon name="sound" class="i-sound" /><Icon name="sound-off" class="i-muted" /></button>
+      <input type="range" class="volume" min="0" max="1" step="0.01" aria-label="Volume" data-volume />
+      <div class="info">
+        <p class="name"><span class="title" data-title></span> <span class="by">by <a data-artist {...newTab()}></a></span></p>
+        <div class="seek">
+          <span class="time" data-now>0:00</span>
+          <div class="wave" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" data-wave></div>
+          <span class="time length" data-length>0:00</span>
+        </div>
+      </div>
+      <button type="button" class="ib" aria-label="Previous song" data-back><Icon name="previous" /></button>
+      <button type="button" class="ib" aria-label="Next song" data-next><Icon name="next" /></button>
+    </div>
+  </div>
+</div>
+<script is:inline define:vars={{ within: RESUME_WITHIN, colours: SONG_COLOURS }}>
+  // Before the first paint: the colour of the song this tab is on, and its playing look when it plays on, so a page
+  // change shows no jump (the player's script takes over from here; src/lib/music.js has the same rules).
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('music') || 'null');
+    var player = document.querySelector('[data-music]');
+    if (saved && player && Number.isInteger(saved.index) && saved.index >= 0) {
+      player.style.setProperty('--song', 'var(--music-' + ((saved.index % colours) + 1) + ')');
+      if (saved.playing === true && Date.now() - saved.at < within && document.visibilityState === 'visible') player.classList.add('playing');
+    }
+  } catch (e) {}
+</script>
+
+<script>
+  import { back, barHeights, clock, resume, songAfter, songColour, volumeFrom } from '../lib/music.js';
+
+  type Song = { file: string; title: string; artist: string; url: string; duration: number; bars: number[]; level: string };
+
+  // How long the pointer rests before it opens, and how long it stays open once left alone (longer after a touch,
+  // which has no pointer to come back with).
+  const OPEN_AFTER = 150;
+  const TUCK_AFTER = 2500;
+  const TUCK_AFTER_TOUCH = 4000;
+  // Fades, as a travel story's song has them: in slowly from silence, out quicker; picking up on a new page, quicker.
+  const FADE_IN = 900;
+  const FADE_OUT = 450;
+  const FADE_ON = 400;
+  const SAVED = 'music';
+
+  const read = (store: () => Storage, key: string) => { try { return store().getItem(key); } catch { return null; } };
+  const keep = (store: () => Storage, key: string, value: string) => { try { store().setItem(key, value); } catch {} };
+  const local = () => localStorage;
+  const tab = () => sessionStorage;
+
+  function start(root: HTMLElement) {
+    const $ = <T extends Element>(name: string) => root.querySelector<T>(`[data-${name}]`)!;
+    const main = $<HTMLButtonElement>('main');
+    const body = $<HTMLElement>('body');
+    const title = $<HTMLElement>('title');
+    const artist = $<HTMLAnchorElement>('artist');
+    const now = $<HTMLElement>('now');
+    const length = $<HTMLElement>('length');
+    const wave = $<HTMLElement>('wave');
+    const volumeInput = $<HTMLInputElement>('volume');
+    const mute = $<HTMLButtonElement>('mute');
+    const eq = [...root.querySelectorAll<HTMLElement>('.eq i')];
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+    const session = 'mediaSession' in navigator ? navigator.mediaSession : null;
+    const channel = 'BroadcastChannel' in window ? new BroadcastChannel('music') : null;
+
+    let songs: Song[] | null = null;
+    let loading: Promise<Song[]> | null = null;
+    const load = () => (loading ??= import('../lib/music-songs.json').then((m) => (songs = m.default as Song[])));
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    let index = 0;
+    let wanted = false;
+    let volume = volumeFrom(read(local, 'music-volume'));
+    let muted = read(local, 'music-muted') === '1';
+    audio.muted = muted;
+    // Phones that keep the volume to their own buttons (iPhones) show no slider: setting it there does nothing.
+    audio.volume = 0.5;
+    if (audio.volume !== 0.5) root.classList.add('fixed-volume');
+    audio.volume = volume;
+
+    const song = () => songs![index];
+    const total = () => (Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : song().duration);
+    const isOpen = () => root.classList.contains('open');
+
+    // The volume, faded by steps on a timer, not frames: a page in the background gets no frames, and a pause asked
+    // for there (from the keyboard's media keys) must still end.
+    let fading = 0;
+    function fadeTo(to: number, ms: number, then?: () => void) {
+      clearInterval(fading);
+      const from = audio.volume;
+      const begun = performance.now();
+      fading = window.setInterval(() => {
+        const t = Math.min(1, (performance.now() - begun) / ms);
+        audio.volume = Math.min(1, Math.max(0, from + (to - from) * t));
+        if (t < 1) return;
+        clearInterval(fading);
+        fading = 0;
+        then?.();
+      }, 16);
+    }
+
+    function cue(i: number, at = 0) {
+      index = i;
+      const s = song();
+      root.style.setProperty('--song', songColour(i));
+      audio.src = `${root.dataset.media}${s.file}`;
+      // Set before the file's details are in, a time is where it starts.
+      audio.currentTime = at;
+      title.textContent = s.title;
+      artist.textContent = s.artist;
+      artist.href = s.url;
+      length.textContent = clock(s.duration);
+      wave.replaceChildren(...s.bars.map((bar) => {
+        const b = document.createElement('i');
+        b.style.setProperty('--v', String(0.15 + bar * 0.85));
+        return b;
+      }));
+      if (session && 'MediaMetadata' in window) session.metadata = new MediaMetadata({ title: s.title, artist: s.artist, album: root.dataset.site });
+      paint();
+    }
+
+    function save() {
+      if (!songs || !audio.src) return;
+      keep(tab, SAVED, JSON.stringify({ index, time: audio.currentTime, playing: wanted, at: Date.now() }));
+    }
+
+    // Starting: the page's own sounds stop (a video, a travel story's song) and so does the player in another tab.
+    function play(fade = FADE_IN) {
+      if (!songs) {
+        load().then(() => play(fade));
+        return;
+      }
+      if (!audio.src) cue(index);
+      wanted = true;
+      paint();
+      // From silence, unless it was still fading out from a pause.
+      if (audio.paused) audio.volume = 0;
+      audio.play().then(() => {
+        // Paused again before it started.
+        if (!wanted) return audio.pause();
+        fadeTo(volume, fade);
+        document.querySelectorAll<HTMLMediaElement>('video, audio').forEach((m) => { if (!m.paused && !m.muted) m.pause(); });
+        dispatchEvent(new Event('site-music'));
+        channel?.postMessage('play');
+        frames();
+        save();
+      }, () => {
+        wanted = false;
+        paint();
+      });
+    }
+
+    function pause() {
+      if (!wanted) return;
+      wanted = false;
+      paint();
+      fadeTo(0, FADE_OUT, () => audio.pause());
+      save();
+    }
+
+    function seek(time: number) {
+      if (!songs) return;
+      if (!audio.src) cue(index);
+      audio.currentTime = Math.max(0, Math.min(total() - 0.25, time));
+      paint();
+      save();
+    }
+
+    function skip(by: 1 | -1) {
+      if (!songs) return;
+      const next = by < 0 ? back(index, songs.length, audio.currentTime) : songAfter(index, songs.length);
+      if (next === index && by < 0) return seek(0);
+      const was = wanted;
+      cue(next);
+      if (was) play(FADE_ON);
+      save();
+    }
+
+    // What shows: the button's look, the time (or, while pointing at the wave, the time pointed at), the wave's played
+    // part and the part up to the pointer.
+    let peek = -1;
+    function paint() {
+      root.classList.toggle('playing', wanted);
+      root.classList.toggle('muted', muted || volume === 0);
+      mute.setAttribute('aria-pressed', String(muted || volume === 0));
+      main.setAttribute('aria-label', isOpen() ? (wanted ? 'Pause' : 'Play') : 'Music player');
+      volumeInput.value = String(muted ? 0 : volume);
+      root.style.setProperty('--vol', volumeInput.value);
+      if (session) session.playbackState = wanted ? 'playing' : 'paused';
+      if (!songs) return;
+      const whole = total();
+      const at = audio.currentTime;
+      now.textContent = clock(peek >= 0 ? peek * whole : at);
+      now.classList.toggle('peek', peek >= 0);
+      wave.setAttribute('aria-valuemax', String(Math.round(whole)));
+      wave.setAttribute('aria-valuenow', String(Math.round(at)));
+      wave.setAttribute('aria-valuetext', `${clock(at)} of ${clock(whole)}`);
+      const played = at / whole;
+      [...wave.children].forEach((b, i) => {
+        const f = (i + 0.5) / wave.children.length;
+        b.classList.toggle('done', f <= played);
+        b.classList.toggle('ahead', peek >= 0 && f > played && f <= peek);
+      });
+    }
+
+    // While playing: the open bar's time and wave, and the closed button's four bars, every frame.
+    let frame = 0;
+    function frames() {
+      if (frame) return;
+      const step = () => {
+        frame = 0;
+        if (!wanted || !songs) return;
+        if (isOpen()) paint();
+        const heights = still.matches ? [0.55, 0.85, 0.65, 0.75] : barHeights(song().level, audio.currentTime);
+        eq.forEach((b, i) => (b.style.transform = `scaleY(${heights[i]})`));
+        frame = requestAnimationFrame(step);
+      };
+      frame = requestAnimationFrame(step);
+    }
+
+    // Opening and closing.
+    let touch = false;
+    let opening = 0;
+    let tucking = 0;
+    let dragging = false;
+    let leaving = false;
+    function open() {
+      clearTimeout(tucking);
+      if (isOpen()) return;
+      load().then(() => { if (!audio.src) cue(index); });
+      root.classList.add('open');
+      body.inert = false;
+      main.setAttribute('aria-expanded', 'true');
+      paint();
+    }
+    function close(force = false) {
+      if (!force && (dragging || root.querySelector(':focus-visible'))) return;
+      root.classList.remove('open');
+      body.inert = true;
+      main.setAttribute('aria-expanded', 'false');
+      peek = -1;
+      paint();
+    }
+    const tuckIn = (ms: number) => {
+      clearTimeout(tucking);
+      tucking = window.setTimeout(close, ms);
+    };
+
+    root.addEventListener('pointerenter', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(tucking);
+      load();
+      opening = window.setTimeout(open, OPEN_AFTER);
+    });
+    root.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(opening);
+      if (isOpen()) tuckIn(TUCK_AFTER);
+    });
+    root.addEventListener('pointerdown', (e) => {
+      touch = e.pointerType !== 'mouse';
+      load();
+      if (touch && isOpen()) tuckIn(TUCK_AFTER_TOUCH);
+    });
+    document.addEventListener('pointerdown', (e) => { if (isOpen() && !root.contains(e.target as Node)) close(true); });
+    root.addEventListener('focusin', (e) => {
+      if (!leaving && (e.target as Element).matches(':focus-visible')) open();
+    });
+    root.addEventListener('focusout', (e) => { if (!root.contains(e.relatedTarget as Node)) tuckIn(TUCK_AFTER); });
+    root.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !isOpen()) return;
+      close(true);
+      leaving = true;
+      main.focus();
+      leaving = false;
+    });
+
+    // Closed, a press opens it; on a touch screen that's all it does, so a second tap on the same spot plays.
+    main.addEventListener('click', () => {
+      if (!isOpen()) {
+        open();
+        if (touch) return tuckIn(TUCK_AFTER_TOUCH);
+      }
+      if (wanted) pause();
+      else play();
+    });
+    $('back').addEventListener('click', () => skip(-1));
+    $('next').addEventListener('click', () => skip(1));
+    mute.addEventListener('click', () => {
+      muted = !(muted || volume === 0);
+      if (!muted && volume === 0) volume = 0.5;
+      audio.muted = muted;
+      if (!fading) audio.volume = volume;
+      keep(local, 'music-muted', muted ? '1' : '0');
+      keep(local, 'music-volume', String(volume));
+      paint();
+    });
+    volumeInput.addEventListener('input', () => {
+      volume = Number(volumeInput.value);
+      muted = false;
+      audio.muted = false;
+      if (!fading) audio.volume = volume;
+      keep(local, 'music-volume', String(volume));
+      keep(local, 'music-muted', '0');
+      paint();
+    });
+
+    // The wave: press or drag to go there; pointing shows the time there; the arrow keys step 5 seconds.
+    const along = (e: PointerEvent) => {
+      const box = wave.getBoundingClientRect();
+      return Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
+    };
+    wave.addEventListener('pointerdown', (e) => {
+      if (!songs) return;
+      dragging = true;
+      wave.setPointerCapture(e.pointerId);
+      peek = along(e);
+      seek(peek * total());
+    });
+    wave.addEventListener('pointermove', (e) => {
+      if (!songs || (e.pointerType !== 'mouse' && !dragging)) return;
+      peek = along(e);
+      if (dragging) seek(peek * total());
+      else paint();
+    });
+    wave.addEventListener('pointerleave', () => {
+      if (dragging) return;
+      peek = -1;
+      paint();
+    });
+    const letGo = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      if (e.pointerType !== 'mouse') peek = -1;
+      paint();
+      if (touch) tuckIn(TUCK_AFTER_TOUCH);
+      else if (!root.matches(':hover')) tuckIn(TUCK_AFTER);
+    };
+    wave.addEventListener('pointerup', letGo);
+    wave.addEventListener('pointercancel', letGo);
+    wave.addEventListener('keydown', (e) => {
+      if (!songs) return;
+      const by = ({ ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5 } as Record<string, number>)[e.key];
+      if (by) seek(audio.currentTime + by);
+      else if (e.key === 'Home') seek(0);
+      else if (e.key === 'End') seek(total());
+      else return;
+      e.preventDefault();
+    });
+
+    audio.addEventListener('ended', () => {
+      if (!songs) return;
+      cue(songAfter(index, songs.length));
+      play(FADE_ON);
+    });
+    audio.addEventListener('loadedmetadata', paint);
+    audio.addEventListener('seeked', paint);
+
+    // Another sound on the page pauses the music: a video or song in the page, a travel story's song, a game.
+    document.addEventListener('play', (e) => {
+      const m = e.target;
+      if (m instanceof HTMLMediaElement && m !== audio && !m.muted) pause();
+    }, true);
+    addEventListener('page-sound', pause);
+    channel?.addEventListener('message', (e) => { if (e.data === 'play') pause(); });
+
+    // The keyboard's media keys and a phone's lock screen.
+    if (session) {
+      const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
+        ['play', () => play()],
+        ['pause', pause],
+        ['previoustrack', () => skip(-1)],
+        ['nexttrack', () => skip(1)],
+        ['seekto', (d) => seek(d.seekTime ?? 0)],
+      ];
+      for (const [action, handler] of actions) {
+        try { session.setActionHandler(action, handler); } catch {}
+      }
+    }
+
+    // Leaving, the song and second are kept for the next page; arriving, or coming back to this page from the
+    // browser's back button, the player takes them up.
+    addEventListener('pagehide', () => {
+      save();
+      audio.pause();
+    });
+    function arrive() {
+      let saved: unknown = null;
+      try { saved = JSON.parse(read(tab, SAVED) ?? 'null'); } catch {}
+      if (!saved) {
+        wanted = false;
+        paint();
+        return;
+      }
+      load().then((list) => {
+        const { index: i, time, play: playOn } = resume(saved, list.length, Date.now(), document.visibilityState === 'visible');
+        wanted = false;
+        cue(i, time);
+        if (!playOn) return;
+        wanted = true;
+        paint();
+        audio.volume = 0;
+        audio.play().then(() => {
+          if (!wanted) return audio.pause();
+          fadeTo(volume, FADE_ON);
+          channel?.postMessage('play');
+          frames();
+        }, () => {
+          // The browser wants a press first: the music waits here, and the button hops once to say so.
+          wanted = false;
+          paint();
+          save();
+          if (still.matches) return;
+          root.classList.remove('nudge');
+          void root.offsetWidth;
+          root.classList.add('nudge');
+        });
+      });
+    }
+    root.addEventListener('animationend', () => root.classList.remove('nudge'));
+    addEventListener('pageshow', (e) => { if (e.persisted) arrive(); });
+    arrive();
+  }
+
+  const root = document.querySelector<HTMLElement>('[data-music]');
+  if (root) start(root);
+</script>
+
+<style>
+  /* The button sits in the corner, Back to top above it (BackToTop.astro). The bar grows out of it to the left, a
+     little past it on every side, so the button stays where it was. */
+  .music { --song: var(--music-1); --size: var(--float-size); --open: min(33.75rem, 100vw - var(--space-2) * 2); position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; width: var(--size); height: var(--size); }
+
+  /* Tinted glass: most of the song's colour, the page behind blurred through it; a lit top edge, and a shadow in the
+     song's colour under it, so it reads as a layer above the page. */
+  /* Closed, the pill is the round button's glass too (the button itself is clear), so it keeps its shade as it
+     opens. */
+  .pill { background-color: color-mix(in srgb, var(--song) var(--music-glass), transparent); background-image: linear-gradient(var(--music-shade), var(--music-shade)); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); box-shadow: inset 0 1px 0 var(--music-edge), inset 0 0 0 1px var(--music-rim), 0 16px 34px -14px color-mix(in srgb, var(--song) 75%, var(--on-colour-glass)); color: var(--on-colour); }
+
+  .pill { position: absolute; right: 0; bottom: 0; width: var(--size); height: var(--size); overflow: hidden; border-radius: var(--radius-pill); transition: width var(--motion-soft) ease-in-out, height var(--motion-soft) ease-in-out, right var(--motion-soft) ease-in-out, bottom var(--motion-soft) ease-in-out, background-color var(--motion-soft) ease, transform var(--motion-soft) var(--ease-release); }
+  .music:not(.open):has(.main:active) .pill { transform: scale(0.94); transition-duration: var(--motion-press); }
+  .open .pill { right: calc(var(--space-2) * -1); bottom: calc(var(--space-2) * -1); width: var(--open); height: calc(var(--size) + var(--space-2) * 2); transition-duration: var(--motion-settle), var(--motion-settle), var(--motion-settle), var(--motion-settle), var(--motion-soft), var(--motion-soft); transition-timing-function: var(--ease-out), var(--ease-out), var(--ease-out), var(--ease-out), ease, var(--ease-release); }
+  /* A light across the glass's top left, as on the home page's colour cards. */
+  .pill::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(110deg, var(--music-rim), transparent 45%); pointer-events: none; }
+  .body { position: absolute; top: 0; bottom: 0; right: calc(var(--size) + var(--space-2) * 2); width: calc(var(--open) - var(--size) - var(--space-2) * 3); display: flex; align-items: center; gap: var(--space-1); opacity: 0; transition: opacity var(--motion-press) ease; }
+  .open .body { opacity: 1; transition: opacity var(--motion-soft) ease var(--motion-press); }
+
+  .main { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--on-colour); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--motion-soft) ease, box-shadow var(--motion-quick) ease, transform var(--motion-soft) var(--ease-release); }
+  .main:active { transform: scale(0.94); transition-duration: var(--motion-soft), var(--motion-quick), var(--motion-press); }
+  /* Open, the button is the play button inside the bar: a lighter chip of glass. */
+  .open .main { background-color: var(--music-chip); background-image: none; box-shadow: inset 0 1px 0 var(--music-edge), inset 0 0 0 1px var(--music-rim); }
+  .main > :global(.icon) { position: absolute; transition: opacity var(--motion-quick) ease, transform var(--motion-soft) var(--ease-out); }
+  .main > :global(.i-play), .main > :global(.i-pause), .playing:not(.open) .main > :global(.i-music) { opacity: 0; transform: scale(0.6); }
+  .open .main > :global(.i-music) { opacity: 0; transform: scale(0.6) rotate(-20deg); }
+  .open:not(.playing) .main > :global(.i-play), .open.playing .main > :global(.i-pause) { opacity: 1; transform: none; }
+  /* Closed and playing: four bars that follow the song's loudness (set by the script). */
+  .eq { position: absolute; display: flex; align-items: end; gap: 3px; height: 16px; opacity: 0; transition: opacity var(--motion-quick) ease; }
+  .eq i { width: 3px; height: 100%; border-radius: var(--radius-pill); background: currentColor; transform-origin: bottom; transform: scaleY(0.3); }
+  .playing:not(.open) .eq { opacity: 1; }
+
+  .ib { display: grid; place-items: center; flex: none; width: 2.125rem; height: 2.125rem; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--motion-quick) ease, transform var(--motion-soft) var(--ease-release); }
+  .ib:hover { background: var(--music-hover); }
+  .ib:active { transform: scale(0.9); transition-duration: var(--motion-quick), var(--motion-press); }
+  .ib :global(.icon) { width: 18px; height: 18px; }
+  .ib :global(.i-muted), .muted .ib :global(.i-sound) { display: none; }
+  .muted .ib :global(.i-muted) { display: block; }
+  /* The volume in the same whites as the wave: the part turned up white, the rest faint. */
+  .volume { flex: none; width: 4rem; height: 1rem; margin: 0 var(--space-1) 0 0; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
+  .volume::-webkit-slider-runnable-track { height: 4px; border-radius: var(--radius-pill); background: linear-gradient(to right, var(--on-colour) calc(var(--vol, 0.7) * 100%), var(--music-bar) 0); }
+  .volume::-webkit-slider-thumb { width: 12px; height: 12px; margin-top: -4px; border: 0; border-radius: var(--radius-pill); background: var(--on-colour); box-shadow: 0 1px 3px var(--music-shade); -webkit-appearance: none; appearance: none; }
+  .volume::-moz-range-track { height: 4px; border-radius: var(--radius-pill); background: var(--music-bar); }
+  .volume::-moz-range-progress { height: 4px; border-radius: var(--radius-pill); background: var(--on-colour); }
+  .volume::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: var(--radius-pill); background: var(--on-colour); }
+  .fixed-volume .volume { display: none; }
+  .music :focus-visible { outline-color: var(--on-colour); outline-offset: 1px; }
+
+  .info { flex: 1; min-width: 0; padding: 0 var(--space-2); }
+  /* The title and the artist each keep a place: when both don't fit, the artist gives way first, down to its first
+     letters, then the title. */
+  .name { display: flex; gap: 0.3em; margin: 0; font-size: var(--text-sm); line-height: 1.3; white-space: nowrap; text-shadow: 0 1px 2px var(--music-shade); }
+  .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+  .by { flex-shrink: 4; min-width: 4em; overflow: hidden; text-overflow: ellipsis; color: var(--music-dim); }
+  .by a { color: inherit; text-decoration-color: var(--music-bar-ahead); text-underline-offset: 2px; transition: color var(--motion-quick) ease, text-decoration-color var(--motion-quick) ease; }
+  .by a:hover { color: var(--on-colour); text-decoration-color: currentColor; }
+  .seek { display: flex; align-items: center; gap: var(--space-2); margin-top: 2px; }
+  .time { flex: none; width: 2.25rem; color: var(--music-dim); font-size: var(--text-xs); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px var(--music-shade); transition: color var(--motion-quick) ease; }
+  .time:first-child { text-align: right; }
+  .time.peek { color: var(--on-colour); font-weight: 700; }
+
+  /* The song's own waveform: what has played in white, the rest faint, and up to the pointer in between. */
+  .wave { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; height: 1.625rem; overflow: hidden; cursor: pointer; touch-action: none; }
+  .wave :global(i) { flex: 1; min-width: 0; height: calc(var(--v) * 100%); border-radius: var(--radius-pill); background: var(--music-bar); transition: background-color var(--motion-quick) ease; }
+  .wave :global(i.ahead) { background: var(--music-bar-ahead); }
+  .wave :global(i.done) { background: var(--on-colour); }
+  /* Every other of the song's 64 bars: thick enough to tell played from not. */
+  .wave :global(i:nth-child(even)) { display: none; }
+
+  /* A phone: the bar spans the screen, without the volume (the phone's buttons have it) or the song's length. */
+  @media (max-width: 30rem) {
+    .volume, .length { display: none; }
+  }
+
+  /* Coming to a new page that won't play on by itself: a hop, once, like a travel story's music button. */
+  @media (prefers-reduced-motion: no-preference) {
+    .nudge { animation: music-hop 900ms var(--ease-out); }
+  }
+  @keyframes music-hop {
+    0%, 100% { transform: none; }
+    25% { transform: translateY(-7px) rotate(-10deg); }
+    45% { transform: scale(1.08, 0.92); }
+    65% { transform: translateY(-3px) rotate(6deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pill, .body, .main, .main > :global(.icon), .eq { transition: none; }
+  }
+</style>

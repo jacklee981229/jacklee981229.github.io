@@ -80,7 +80,18 @@ export function held(k, at, { wave = 'sine', duty, f, peak = 0.1, length = 0.2, 
   osc.stop(end + release + 0.02);
 }
 
+// When a sound last told the page (MusicPlayer.astro pauses the site's music for a game's sounds): once a second at most.
+let told = 0;
+
+function tell(k) {
+  if (k.ctx.currentTime - told > 1 || k.ctx.currentTime < told) {
+    told = k.ctx.currentTime;
+    globalThis.dispatchEvent?.(new Event('page-sound'));
+  }
+}
+
 function connect(k, source, gain, lowpass) {
+  tell(k);
   if (lowpass) {
     const filter = k.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -104,6 +115,7 @@ export function hiss(k, at, { type = 'bandpass', f = 2000, to, q = 1, peak = 0.2
   gain.gain.setValueAtTime(0.0001, at);
   gain.gain.exponentialRampToValueAtTime(peak, at + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, at + attack + decay);
+  tell(k);
   source.connect(filter).connect(gain).connect(k.out);
   source.start(at, Math.random() * 0.5);
   source.stop(at + attack + decay + 0.03);

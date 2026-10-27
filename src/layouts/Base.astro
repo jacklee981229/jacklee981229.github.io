@@ -7,6 +7,7 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
+import MusicPlayer from '../components/MusicPlayer.astro';
 import SearchDialog from '../components/SearchDialog.astro';
 import NightSky from '../components/NightSky.astro';
 import Splash from '../components/Splash.astro';
@@ -136,6 +137,7 @@ const structured = Astro.url.pathname === '/' && {
     <NightSky />
     <Footer />
     <BackToTop progress={Boolean(article)} />
+    <MusicPlayer />
     <SearchDialog />
     <p class="visually-hidden" aria-live="polite" data-announcer></p>
     <!-- Screen readers read this out for links to other sites, which open in a new tab (src/lib/links.js). -->

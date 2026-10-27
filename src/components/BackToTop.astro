@@ -43,8 +43,10 @@ const { progress = false } = Astro.props;
 </script>
 
 <style>
-  /* Hidden with visibility (not just opacity) so it can't be tabbed to until it shows. */
-  .to-top { position: fixed; right: var(--space-4); bottom: var(--space-4); z-index: 20; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease, visibility var(--motion-quick); }
+  /* Hidden with visibility (not just opacity) so it can't be tabbed to until it shows. It sits above the music
+     player's button (MusicPlayer.astro), the same size, and steps up out of the way while the player's bar is open. */
+  .to-top { position: fixed; right: var(--space-4); bottom: calc(var(--space-4) + var(--float-size) + var(--space-3)); z-index: 20; display: grid; place-items: center; width: var(--float-size); height: var(--float-size); border: 0; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease, visibility var(--motion-quick), translate var(--motion-soft) ease-in-out; }
+  :global(body:has([data-music].open)) .to-top { translate: 0 calc(var(--space-2) * -1); transition: opacity var(--motion-quick) ease, transform var(--motion-quick) ease, visibility var(--motion-quick), translate var(--motion-settle) var(--ease-out); }
   .to-top.is-visible { opacity: 1; visibility: visible; transform: none; }
   /* How far down the post the reader is, drawn round the button's edge from the top, clockwise. */
   .ring { position: absolute; inset: 0; width: 100%; height: 100%; rotate: -90deg; pointer-events: none; }

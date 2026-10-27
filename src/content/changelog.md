@@ -136,3 +136,4 @@
 - 2026-10-27 fix: Made the trip chip wait for your pointer, and Expand glide again
 - 2026-10-27 improved: Tidied the Toolbox and added OpenCode, Claude SEO and Coolify
 - 2026-10-27 fix: Tidied the date line on Exact Time
+- 2026-10-27 new: Added a music player that keeps playing as you move between pages

@@ -28,8 +28,15 @@ export function wake() {
   return true;
 }
 
+// When a key last told the page (MusicPlayer.astro pauses the site's music for Key Jam): once a second at most.
+let told = 0;
+
 /** A swell to `peak` in a few thousandths of a second, then a fade to nothing over `fade` seconds. */
 function shaped(at, peak, fade) {
+  if (at - told > 1 || at < told) {
+    told = at;
+    globalThis.dispatchEvent?.(new Event('page-sound'));
+  }
   const gain = audio.createGain();
   gain.gain.setValueAtTime(0.0001, at);
   gain.gain.exponentialRampToValueAtTime(peak, at + 0.004);

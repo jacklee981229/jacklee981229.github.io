@@ -51,10 +51,27 @@ const localMedia = {
     server.middlewares.use('/media', (req, res, next) => {
       const file = resolve(root, `.${decodeURIComponent((req.url ?? '').split('?')[0])}`);
       if (!file.startsWith(root + sep) || !existsSync(file) || !statSync(file).isFile()) return next();
-      res.setHeader('Content-Type', file.endsWith('.webp') ? 'image/webp' : file.endsWith('.mp4') ? 'video/mp4' : file.endsWith('.mp3') ? 'audio/mpeg' : 'application/octet-stream');
+      res.setHeader('Content-Type', file.endsWith('.webp') ? 'image/webp' : file.endsWith('.mp4') ? 'video/mp4' : file.endsWith('.mp3') ? 'audio/mpeg' : file.endsWith('.m4a') ? 'audio/mp4' : 'application/octet-stream');
       // Read whole, not streamed: a stream left open by a cancelled request keeps the file locked on Windows, and Media
       // Studio can't replace it on the next publish.
-      res.end(readFileSync(file));
+      const data = readFileSync(file);
+      // A part of the file when asked for one, as GitHub Pages answers: without it a browser can't start a song or a
+      // video partway through (the music player picking up on the next page, a seek).
+      res.setHeader('Accept-Ranges', 'bytes');
+      const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+      if (range && (range[1] || range[2])) {
+        const start = range[1] ? Number(range[1]) : Math.max(0, data.length - Number(range[2]));
+        const end = range[1] && range[2] ? Math.min(Number(range[2]), data.length - 1) : data.length - 1;
+        if (start > end) {
+          res.statusCode = 416;
+          res.setHeader('Content-Range', `bytes */${data.length}`);
+          return res.end();
+        }
+        res.statusCode = 206;
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${data.length}`);
+        return res.end(data.subarray(start, end + 1));
+      }
+      res.end(data);
     });
   },
 };
