@@ -142,3 +142,4 @@
 - 2026-10-27 improved: Added Ultimate Vocal Remover to the Toolbox
 - 2026-10-27 improved: Rewrote the Morning Brief's subtitle
 - 2026-10-27 design: Gave Now's cards a tidier layout, with moods in colour
+- 2026-10-31 design: Turned the music player's artist name into plain text
