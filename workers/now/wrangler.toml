@@ -7,7 +7,7 @@ compatibility_date = "2026-04-01"
 # The page takes the site's tokens.css in as text.
 rules = [{ type = "Text", globs = ["**/*.css"], fallthrough = true }]
 
-# Jack's Morning Brief scores (schema.sql).
+# Jack's Morning Brief scores and his drafts (schema.sql).
 [[d1_databases]]
 binding = "DB"
 database_name = "jacks-space-now"

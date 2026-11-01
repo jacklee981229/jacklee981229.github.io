@@ -1,0 +1,327 @@
+---
+// Jack's draft editor: one draft from his Now editor Worker (workers/now/drafts.js), opened from Writing's Drafts.
+// Everything here comes from the Worker after the page loads, with the pass the palette's "/now login" keeps, so the
+// built page holds nothing private. Kept out of search engines and the sitemap.
+import Base from '../../layouts/Base.astro';
+import PageTop from '../../components/PageTop.astro';
+import { TOPICS } from '../../lib/topics.js';
+import { LIMITS } from '../../lib/drafts.js';
+import '../../styles/prose.css';
+---
+<Base title="Draft" description="Jack's draft editor." noindex>
+  <div class="wrap page">
+    <PageTop tone="writing" icon="pen" title="Draft" />
+    <p class="gate" data-gate>Loading the draft<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+
+    <div class="editor" data-editor hidden>
+      <div class="bar">
+        <div class="switch" role="tablist" aria-label="View">
+          <button type="button" role="tab" aria-selected="true" data-view="write">Write</button>
+          <button type="button" role="tab" aria-selected="false" data-view="preview">Preview</button>
+        </div>
+        <p class="said" data-said role="status"></p>
+        <div class="actions">
+          <button type="button" class="button" data-delete>Delete</button>
+          <button type="button" class="button" data-save>Save</button>
+          <button type="button" class="publish" data-publish>Publish</button>
+        </div>
+      </div>
+
+      <form class="write" data-write>
+        <div class="fields">
+          <div class="field title-field"><label for="d-title">Title</label><input id="d-title" name="title" maxlength={LIMITS.title} autocomplete="off" /></div>
+          <div class="field">
+            <label for="d-topic">Topic</label>
+            <select id="d-topic" name="topic">
+              <option value="">Pick one</option>
+              {TOPICS.map((t) => <option value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div class="field"><label for="d-tags">Tags <span>(commas between)</span></label><input id="d-tags" name="tags" maxlength="300" autocomplete="off" /></div>
+        </div>
+        <div class="field">
+          <label for="d-body">Text <span>(Markdown)</span></label>
+          <textarea id="d-body" name="body" maxlength={LIMITS.body} spellcheck="true"></textarea>
+        </div>
+        <div class="pictures">
+          <div class="pictures-head">
+            <h2>Pictures</h2>
+            <label class="button add-picture">+ Picture<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple data-add class="visually-hidden" /></label>
+          </div>
+          <p class="hint">Click a picture to put it in the text where the cursor is. The first one in the text is the cover.</p>
+          <ul class="picture-list" data-pictures></ul>
+        </div>
+      </form>
+
+      <article class="preview" data-preview hidden>
+        <header class="preview-top" data-preview-top>
+          <p class="preview-topic" data-preview-topic></p>
+          <h1 class="preview-title" data-preview-title></h1>
+        </header>
+        <div class="prose" data-preview-body></div>
+      </article>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { marked } from 'marked';
+  import { draftCall, draftPass, fileBase64, pictureUrl, publishDraft, type Draft, type DraftImage } from '../../lib/drafts-api';
+  import { pictureNames, problems } from '../../lib/drafts.js';
+  import { topicOf } from '../../lib/topics.js';
+  import { slidePills } from '../../lib/switch-pill';
+  import { sayWaiting } from '../../lib/waiting.js';
+
+  const $ = <T extends Element>(s: string) => document.querySelector<T>(s)!;
+  const gate = $<HTMLElement>('[data-gate]');
+  const editor = $<HTMLElement>('[data-editor]');
+  const form = $<HTMLFormElement>('[data-write]');
+  const said = $<HTMLElement>('[data-said]');
+  const title = $<HTMLInputElement>('#d-title');
+  const topic = $<HTMLSelectElement>('#d-topic');
+  const tags = $<HTMLInputElement>('#d-tags');
+  const body = $<HTMLTextAreaElement>('#d-body');
+  const pictureList = $<HTMLUListElement>('[data-pictures]');
+  const add = $<HTMLInputElement>('[data-add]');
+  const saveButton = $<HTMLButtonElement>('[data-save]');
+  const publishButton = $<HTMLButtonElement>('[data-publish]');
+  const deleteButton = $<HTMLButtonElement>('[data-delete]');
+  const preview = $<HTMLElement>('[data-preview]');
+
+  const id = new URLSearchParams(location.search).get('id') ?? '';
+  let stamp = '';
+  let pictures: DraftImage[] = [];
+  const urls = new Map<string, string>();
+  let saved = '';
+  let busy = false;
+
+  const say = (words: string) => { said.textContent = words; };
+  const waiting = (words: string) => sayWaiting(said, words);
+  const values = () => ({ title: title.value, topic: topic.value, tags: tags.value, body: body.value });
+  const snapshot = () => JSON.stringify(values());
+  const changed = () => snapshot() !== saved;
+
+  function fill(draft: Draft) {
+    title.value = draft.title;
+    topic.value = draft.topic;
+    tags.value = draft.tags;
+    body.value = draft.body;
+    stamp = draft.updated_at;
+    saved = snapshot();
+  }
+
+  /** Two presses for anything that can't be taken back: the first only changes the button's words. */
+  function twoPress(button: HTMLButtonElement, again: string, act: () => Promise<void>) {
+    const words = button.textContent ?? '';
+    let armed = false;
+    button.addEventListener('click', async () => {
+      if (busy) return;
+      if (!armed) { armed = true; button.textContent = again; return; }
+      armed = false;
+      button.textContent = words;
+      await act();
+    });
+    button.addEventListener('blur', () => { armed = false; button.textContent = words; });
+  }
+
+  async function lock<T>(work: () => Promise<T>): Promise<T | undefined> {
+    busy = true;
+    for (const b of [saveButton, publishButton, deleteButton]) b.disabled = true;
+    try { return await work(); } catch (error) { say((error as Error).message); return undefined; } finally {
+      busy = false;
+      for (const b of [saveButton, publishButton, deleteButton]) b.disabled = false;
+    }
+  }
+
+  async function save() {
+    if (!changed()) return true;
+    waiting('Saving');
+    const done = await draftCall<{ updated_at: string }>(`/api/drafts/${id}`, { json: { ...values(), updated_at: stamp } });
+    stamp = done.updated_at;
+    saved = snapshot();
+    say('Saved.');
+    return true;
+  }
+
+  function pictureCard(p: DraftImage) {
+    const li = document.createElement('li');
+    li.className = 'picture';
+    const put = document.createElement('button');
+    put.type = 'button';
+    put.className = 'put';
+    put.title = `Put ${p.name} in the text`;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.width = 160;
+    img.height = 120;
+    if (urls.has(p.name)) img.src = urls.get(p.name)!;
+    else pictureUrl(id, p.name).then((url) => { urls.set(p.name, url); img.src = url; }, () => { img.alt = p.name; });
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = p.name;
+    put.append(img, name);
+    put.addEventListener('click', () => {
+      const text = `![](./${p.name})`;
+      const at = body.selectionStart ?? body.value.length;
+      const before = body.value.slice(0, at);
+      const gap = before && !before.endsWith('\n\n') ? (before.endsWith('\n') ? '\n' : '\n\n') : '';
+      body.setRangeText(`${gap}${text}\n\n`, at, body.selectionEnd ?? at, 'end');
+      body.focus();
+    });
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove';
+    remove.textContent = 'Delete';
+    remove.setAttribute('aria-label', `Delete ${p.name}`);
+    twoPress(remove, 'Sure?', () => lock(async () => {
+      const done = await draftCall<{ updated_at: string }>(`/api/drafts/${id}/images/${p.name}/delete`, { method: 'POST' });
+      stamp = done.updated_at;
+      pictures = pictures.filter((x) => x.name !== p.name);
+      showPictures();
+      const used = pictureNames(body.value).includes(p.name);
+      say(used ? `Deleted ${p.name}. The text still shows it: take that line out before publishing.` : `Deleted ${p.name}.`);
+    }).then(() => undefined));
+    li.append(put, remove);
+    return li;
+  }
+
+  function showPictures() {
+    pictureList.replaceChildren(...pictures.map(pictureCard));
+  }
+
+  add.addEventListener('change', () => lock(async () => {
+    for (const file of [...(add.files ?? [])]) {
+      waiting(`Adding ${file.name}`);
+      const done = await draftCall<DraftImage & { updated_at: string }>(`/api/drafts/${id}/images?name=${encodeURIComponent(file.name)}`, { text: await fileBase64(file) });
+      stamp = done.updated_at;
+      urls.set(done.name, URL.createObjectURL(file));
+      pictures.push({ name: done.name, type: done.type, size: done.size });
+      showPictures();
+    }
+    say('Pictures added.');
+  }).finally(() => { add.value = ''; }));
+
+  function showPreview() {
+    const t = topicOf(topic.value);
+    const top = $<HTMLElement>('[data-preview-top]');
+    top.style.setProperty('--deep', topic.value ? `var(--topic-${t.id})` : 'var(--writing-base)');
+    preview.style.setProperty('--c', topic.value ? `var(--lane-${t.id})` : 'var(--ink)');
+    $<HTMLElement>('[data-preview-topic]').textContent = topic.value ? t.name : 'No topic yet';
+    $<HTMLElement>('[data-preview-title]').textContent = title.value.trim() || 'Untitled';
+    // Jack's own words, shown only to him in his own browser.
+    const html = marked.parse(body.value, { async: false });
+    const box = $<HTMLElement>('[data-preview-body]');
+    box.innerHTML = html;
+    for (const img of box.querySelectorAll<HTMLImageElement>('img')) {
+      const name = img.getAttribute('src')?.replace(/^\.\//, '') ?? '';
+      if (urls.has(name)) img.src = urls.get(name)!;
+    }
+  }
+
+  for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-view]')) {
+    tab.addEventListener('click', () => {
+      const showing = tab.dataset.view === 'preview';
+      for (const t of document.querySelectorAll<HTMLButtonElement>('[data-view]')) t.setAttribute('aria-selected', String(t === tab));
+      if (showing) showPreview();
+      form.hidden = showing;
+      preview.hidden = !showing;
+    });
+  }
+
+  saveButton.addEventListener('click', () => lock(save));
+
+  twoPress(publishButton, 'Press again to publish', () => lock(async () => {
+    const found = problems(values(), pictures.map((p) => p.name));
+    if (found.length) { say(found.join(' ')); return; }
+    await save();
+    const address = await publishDraft(id, waiting);
+    saved = snapshot();
+    editor.hidden = true;
+    gate.hidden = false;
+    gate.textContent = 'Published. It goes live at ';
+    const link = document.createElement('a');
+    link.href = `/${address}/`;
+    link.textContent = `/${address}/`;
+    gate.append(link, ' in about two minutes.');
+  }).then(() => undefined));
+
+  twoPress(deleteButton, 'Press again to delete', () => lock(async () => {
+    await draftCall(`/api/drafts/${id}/delete`, { method: 'POST' });
+    saved = snapshot();
+    location.href = '/writing/';
+  }).then(() => undefined));
+
+  // Leaving with words not saved asks first.
+  addEventListener('beforeunload', (event) => { if (!editor.hidden && changed()) event.preventDefault(); });
+
+  async function open() {
+    if (!draftPass()) { gate.textContent = 'Log in first: open the palette and type /now login.'; return; }
+    if (!/^[0-9a-f-]{36}$/.test(id)) { gate.textContent = 'This draft address is missing its draft. Open one from Writing.'; return; }
+    try {
+      const { draft, images } = await draftCall<{ draft: Draft; images: DraftImage[] }>(`/api/drafts/${id}`);
+      fill(draft);
+      pictures = images;
+      showPictures();
+      gate.hidden = true;
+      editor.hidden = false;
+      slidePills();
+    } catch (error) {
+      gate.textContent = (error as { status?: number }).status === 401 ? 'The login ran out: open the palette and type /now login again.' : (error as Error).message;
+    }
+  }
+
+  open();
+</script>
+
+<style>
+  .gate { margin: 0; padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); font-weight: 650; }
+
+  /* The bar: the view switch, what just happened, and the buttons, on one card above the draft. */
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-4); padding: var(--space-4) var(--space-5); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .bar .switch { --switch-fill: var(--writing-ink); }
+  .said { flex: 1; min-width: 10rem; margin: 0; color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .actions button { cursor: pointer; }
+  .actions button:disabled { opacity: 0.6; cursor: default; }
+  .publish { display: inline-flex; align-items: center; padding: var(--space-2) var(--space-5); border: 0; border-radius: var(--radius-pill); background: linear-gradient(120deg, var(--writing-top-from), var(--writing-top-to)); color: var(--on-colour); font-weight: 800; transition: transform var(--motion-soft) var(--ease-release); }
+  .publish:active:not(:disabled) { transform: scale(0.96); transition-duration: var(--motion-press); transition-timing-function: var(--ease-out); }
+
+  /* The draft's fields, as the guestbook's: a card with the fields set in. */
+  .write { display: grid; gap: var(--space-4); padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .write[hidden] { display: none; }
+  .fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); }
+  .field { display: grid; gap: var(--space-2); }
+  label { font-weight: 700; }
+  label span { color: var(--muted); font-weight: 500; }
+  .field :is(input, select, textarea) { box-sizing: border-box; width: 100%; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--radius-md); background: var(--paper); color: var(--ink); font: inherit; }
+  .field :is(input, select, textarea):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  textarea { min-height: 28rem; line-height: 1.7; resize: vertical; }
+
+  .pictures-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+  .pictures h2 { margin: 0; font-size: var(--text-lg); }
+  .add-picture { cursor: pointer; }
+  .add-picture:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .hint { margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); }
+  .picture-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--space-3); margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+  .picture-list:empty { display: none; }
+  .picture-list :global(.picture) { display: grid; gap: var(--space-2); padding: var(--space-2); border-radius: var(--radius-md); background: var(--paper); }
+  .picture-list :global(.put) { display: grid; gap: var(--space-2); padding: 0; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .picture-list :global(.put img) { width: 100%; height: 7.5rem; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface); }
+  .picture-list :global(.name) { overflow: hidden; font-size: var(--text-sm); white-space: nowrap; text-overflow: ellipsis; }
+  .picture-list :global(.remove) { justify-self: start; padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--surface); color: var(--muted); font: inherit; font-size: var(--text-sm); font-weight: 650; cursor: pointer; transition: color var(--motion-quick) ease; }
+  .picture-list :global(.remove:hover) { color: var(--ink); }
+
+  /* The preview: the post page's top card in the topic's deep colour, then the text in the posts' look. */
+  .preview { display: grid; gap: var(--space-6); }
+  .preview[hidden] { display: none; }
+  .preview-top { padding: var(--space-6); border-radius: var(--radius-2xl); background: linear-gradient(150deg, transparent, var(--on-colour-chip)), var(--deep); color: var(--on-colour); }
+  .preview-topic { margin: 0 0 var(--space-3); font-size: var(--text-ui); font-weight: 800; }
+  .preview-title { max-width: 22ch; margin: 0; font-size: var(--text-2xl); font-weight: 900; line-height: 1.04; letter-spacing: -0.04em; text-wrap: balance; }
+  .preview .prose { max-width: 40rem; }
+
+  @media (max-width: 719px) {
+    .write, .gate { padding: var(--space-5); }
+    .fields { grid-template-columns: minmax(0, 1fr); }
+    .preview-top { padding: var(--space-5); }
+  }
+</style>

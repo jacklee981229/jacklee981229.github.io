@@ -7,6 +7,7 @@ export const TOPICS = [
   { id: 'chatgpt', name: 'ChatGPT', icon: 'sparkles' },
   { id: 'games', name: 'Games', icon: 'gamepad' },
   { id: 'flutter', name: 'Flutter', icon: 'phone' },
+  { id: 'ai', name: 'AI', icon: 'bot' },
   // A trip told in photos, each with a few words under it: the post's story.json (src/lib/travel/story.js).
   { id: 'travel', name: 'Travel', icon: 'globe' },
 ];

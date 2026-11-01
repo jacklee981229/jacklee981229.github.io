@@ -2,6 +2,7 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { byStars, validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
+import { TAG_PATTERN } from './lib/drafts.js';
 import { PLACE_IDS } from './lib/toolbox.js';
 import { FLAG_IDS } from './lib/flags.js';
 
@@ -20,7 +21,7 @@ const posts = defineCollection({
       updated: z.coerce.date().optional(),
       topic: z.enum(TOPIC_IDS),
       tags: z
-        .array(z.string().regex(/^[a-z0-9]+(?:[ -][a-z0-9]+)*$/, 'Tags are lowercase words, like "flutter" or "dev tools"'))
+        .array(z.string().regex(TAG_PATTERN, 'Tags are lowercase words, like "flutter" or "dev tools"'))
         .default([]),
       // Shown on cards and in search results instead of the automatic summary.
       description: z.string().optional(),

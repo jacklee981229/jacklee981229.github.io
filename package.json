@@ -21,6 +21,7 @@
     "d3-geo": "3.1.1",
     "diff": "9.0.0",
     "fflate": "0.8.3",
+    "marked": "15.0.12",
     "micromark": "4.0.2",
     "micromark-extension-gfm": "3.0.0",
     "onnxruntime-web": "1.26.0",

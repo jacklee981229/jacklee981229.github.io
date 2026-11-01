@@ -10,3 +10,24 @@ CREATE TABLE IF NOT EXISTS brief_scores (
   scored_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS brief_scores_newest ON brief_scores (scored_at DESC);
+
+-- Jack's drafts (drafts.js): posts written on the site and kept here, private, until Publish commits them to GitHub
+-- and removes them. Each picture is kept as base64 text under its name in the post's folder (drafts.js says why).
+CREATE TABLE IF NOT EXISTS drafts (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL DEFAULT '',
+  topic TEXT NOT NULL DEFAULT '',
+  tags TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS draft_images (
+  draft_id TEXT NOT NULL REFERENCES drafts (id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (draft_id, name)
+);

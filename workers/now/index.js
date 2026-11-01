@@ -3,7 +3,9 @@
 // file to main, which deploys the site as any push does. Only Jack, logged in with his password, can change anything; the site's command
 // palette uses it too (/now, src/lib/now-command.js).
 import Anthropic from '@anthropic-ai/sdk';
+import { draftRoute } from './drafts.js';
 import { page } from './page.js';
+import { LIMITS } from '../../src/lib/drafts.js';
 import { MOST_SCORES, readScore } from './scores.js';
 import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidiedText, toBase64 } from './now-editor.js';
 
@@ -119,10 +121,10 @@ async function scoreSave(request, env) {
   return json({ id, score });
 }
 
-/** @param {Request} request */
-async function readBody(request) {
+/** @param {Request} request @param {number} [longest] the most characters taken */
+async function readBody(request, longest = LONGEST * 4) {
   const raw = await request.text();
-  if (raw.length > LONGEST * 4) return null;
+  if (raw.length > longest) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
 
@@ -155,6 +157,10 @@ async function answer(request, env, method, pathname, origin) {
     if (method === 'GET' && pathname === '/api/now') return await load(env);
     if (method === 'POST' && pathname === '/api/tidy') return await tidy(request, env);
     if (method === 'POST' && pathname === '/api/save') return await save(request, env);
+    if (pathname.startsWith('/api/drafts')) {
+      const drafted = await draftRoute(request, env, method, pathname, PRIVATE, (r) => readBody(r, LIMITS.body * 6 + 2000));
+      if (drafted) return drafted;
+    }
     return json({ error: 'Not found.' }, 404);
   } catch (error) {
     console.error(error);

@@ -20,6 +20,13 @@ credits. Run every command in `C:\repos\Jack\jacks-space`.
 - Each save is a commit, "Now - update", made on GitHub: pull before your next commit on the laptop.
 - A login lasts 30 days. To log every device out, set a new `SESSION_SECRET`.
 
+## Drafts
+
+Writing (`/writing/`) shows Drafts and `+ Draft` only in a browser that did `/now login`. A draft (text and pictures)
+stays in the D1 database, private, until Publish commits `src/content/posts/<first free number>/` to `main` as
+"Post - publish /N/" and removes it; the post is live about two minutes later. The editor is `/writing/draft/?id=…`.
+Once, before first use: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`.
+
 ## Trying it on the laptop
 
 Copy `.dev.vars.example` to `.dev.vars`, fill it in, and run

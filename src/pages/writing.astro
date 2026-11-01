@@ -15,6 +15,15 @@ const meta = (p: Post) => ({ topic: topicOf(p.data.topic).name, date: formatDate
 <Base title="Writing" description="Everything I've written, newest first.">
   <div class="wrap page">
     <PageTop tone="writing" icon="pen" title="Writing" lead="Everything I've written, newest first." />
+    <!-- Jack's drafts (src/lib/drafts-api.ts): shown only in a browser logged in with the palette's /now login. -->
+    <section class="drafts" aria-labelledby="drafts-title" data-drafts hidden>
+      <div class="drafts-head">
+        <h2 id="drafts-title">Drafts</h2>
+        <button type="button" class="new-draft" data-new-draft>+ Draft</button>
+      </div>
+      <p class="drafts-said" data-drafts-said role="status"></p>
+      <ul class="draft-list" data-draft-list></ul>
+    </section>
     {!newest && <p class="empty">No posts yet.</p>}
     {newest && (
       <article class="newest" style={`--lane: var(--lane-${newest.data.topic})`}>
@@ -46,7 +55,123 @@ const meta = (p: Post) => ({ topic: topicOf(p.data.topic).name, date: formatDate
   </div>
 </Base>
 
+<script>
+  import { draftCall, draftPass, publishDraft, type DraftSummary } from '../lib/drafts-api';
+  import { topicOf } from '../lib/topics.js';
+  import { shortDate } from '../lib/dates.js';
+  import { sayWaiting } from '../lib/waiting.js';
+
+  const section = document.querySelector<HTMLElement>('[data-drafts]')!;
+  const list = section.querySelector<HTMLUListElement>('[data-draft-list]')!;
+  const said = section.querySelector<HTMLElement>('[data-drafts-said]')!;
+  const newButton = section.querySelector<HTMLButtonElement>('[data-new-draft]')!;
+  const say = (words: string) => { said.textContent = words; };
+  const editUrl = (id: string) => `/writing/draft/?id=${id}`;
+
+  function card(d: DraftSummary) {
+    const li = document.createElement('li');
+    li.className = 'draft';
+    li.style.setProperty('--lane', `var(--lane-${topicOf(d.topic).id})`);
+    const meta = document.createElement('p');
+    meta.className = 'meta';
+    const when = new Date(d.updated_at);
+    meta.innerHTML = '<span class="topic"><span class="dot"></span><span data-t></span></span><span data-w></span>';
+    meta.querySelector('[data-t]')!.textContent = d.topic ? topicOf(d.topic).name : 'No topic yet';
+    meta.querySelector('[data-w]')!.textContent = `Edited ${shortDate(when)}${d.images ? `, ${d.images} picture${d.images === 1 ? '' : 's'}` : ''}`;
+    const title = document.createElement('a');
+    title.className = 'draft-title';
+    title.href = editUrl(d.id);
+    title.textContent = d.title.trim() || 'Untitled';
+    const actions = document.createElement('div');
+    actions.className = 'draft-actions';
+    const edit = document.createElement('a');
+    edit.className = 'button';
+    edit.href = editUrl(d.id);
+    edit.textContent = 'Edit';
+    const publish = document.createElement('button');
+    publish.type = 'button';
+    publish.className = 'button';
+    publish.textContent = 'Publish';
+    const note = document.createElement('p');
+    note.className = 'draft-said';
+    note.setAttribute('role', 'status');
+    let armed = false;
+    publish.addEventListener('click', async () => {
+      // Publishing puts the post on the live site, so it takes a second press.
+      if (!armed) { armed = true; publish.textContent = 'Press again to publish'; return; }
+      publish.disabled = true;
+      try {
+        const address = await publishDraft(d.id, (words) => sayWaiting(publish, words));
+        actions.remove();
+        note.textContent = '';
+        note.append(`Published. It goes live at `);
+        const link = document.createElement('a');
+        link.href = `/${address}/`;
+        link.textContent = `/${address}/`;
+        note.append(link, ' in about two minutes.');
+      } catch (error) {
+        armed = false;
+        publish.disabled = false;
+        publish.textContent = 'Publish';
+        note.textContent = (error as Error).message;
+      }
+    });
+    publish.addEventListener('blur', () => { if (armed && !publish.disabled) { armed = false; publish.textContent = 'Publish'; } });
+    actions.append(edit, publish);
+    li.append(meta, title, actions, note);
+    return li;
+  }
+
+  async function show() {
+    if (!draftPass()) return;
+    try {
+      const { drafts } = await draftCall<{ drafts: DraftSummary[] }>('/api/drafts');
+      list.replaceChildren(...drafts.map(card));
+      say(drafts.length ? '' : 'No drafts right now.');
+      section.hidden = false;
+    } catch (error) {
+      // A pass that ran out, or the editor out of reach: Writing stays as everyone sees it.
+      if ((error as { status?: number }).status !== 401) console.warn(error);
+    }
+  }
+
+  newButton.addEventListener('click', async () => {
+    newButton.disabled = true;
+    try {
+      const { id } = await draftCall<{ id: string }>('/api/drafts', { json: { title: '', topic: '', tags: '', body: '' } });
+      location.href = editUrl(id);
+    } catch (error) {
+      newButton.disabled = false;
+      say((error as Error).message);
+    }
+  });
+
+  show();
+</script>
+
 <style>
+  /* Jack's drafts: a card above the posts, each draft a card set in it, Writing's pink on the + Draft button. */
+  .drafts { margin-bottom: var(--space-6); padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); }
+  .drafts-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+  .drafts h2 { margin: 0; color: var(--ink); font-size: var(--text-xl); letter-spacing: -0.02em; }
+  .new-draft { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--space-5); border: 0; border-radius: var(--radius-pill); background: linear-gradient(120deg, var(--writing-top-from), var(--writing-top-to)); color: var(--on-colour); font-weight: 800; cursor: pointer; transition: transform var(--motion-soft) var(--ease-release); }
+  .new-draft:active:not(:disabled) { transform: scale(0.96); transition-duration: var(--motion-press); transition-timing-function: var(--ease-out); }
+  .new-draft:disabled { opacity: 0.7; cursor: default; }
+  .drafts-said { margin: var(--space-4) 0 0; color: var(--muted); }
+  .drafts-said:empty { display: none; }
+  .draft-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--space-4); margin: var(--space-5) 0 0; padding: 0; list-style: none; }
+  .draft-list:empty { display: none; }
+  /* The cards are made by the script, so their rules reach them through :global. */
+  .drafts :global(.draft) { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-5); border-radius: var(--radius-xl); background: var(--paper); }
+  .drafts :global(.meta) { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .drafts :global(.topic) { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--ink); font-weight: 700; }
+  .drafts :global(.dot) { width: 9px; height: 9px; border-radius: 50%; background: var(--lane, var(--muted)); }
+  .drafts :global(.draft-title) { font-size: var(--text-lg); font-weight: 900; line-height: 1.2; letter-spacing: -0.02em; text-decoration: none; overflow-wrap: anywhere; }
+  .drafts :global(.draft-title:hover) { text-decoration: underline; text-decoration-color: var(--lane, var(--ink)); }
+  .drafts :global(.draft-actions) { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .drafts :global(.draft-said) { margin: 0; font-weight: 650; }
+  .drafts :global(.draft-said:empty) { display: none; }
+
   /* The newest post as one big card across the row; the rest by year, each a big cover with its words beside it on
      the page, no card, the sides taking turns, a line in Writing's pink between them. The whole post is the link
      (the title's ::after). */

@@ -392,6 +392,7 @@
   --topic-chatgpt: #7143B5;
   --topic-games: #276D2C;
   --topic-flutter: #1B5BBE;
+  --topic-ai: #8A5300;
   /* Travel posts take the Travel Map's deep end, so a trip and the map read as one part of the site. */
   --topic-travel: var(--travel-base);
   /* Topic lanes: colour always means topic, and always sits next to the topic's name. */
@@ -400,6 +401,7 @@
   --lane-chatgpt: var(--topic-chatgpt);
   --lane-games: var(--topic-games);
   --lane-flutter: var(--topic-flutter);
+  --lane-ai: var(--topic-ai);
   --lane-travel: var(--topic-travel);
   /* The music player (src/components/MusicPlayer.astro), the same in both themes. A colour for each song, in the order
      of src/lib/music-songs.json and round again after the eighth: the site's deep colours, which take white words.
@@ -541,6 +543,7 @@
   --lane-chatgpt: #BA9CF5;
   --lane-games: #74C678;
   --lane-flutter: #7AAAFF;
+  --lane-ai: #F5B54A;
   --lane-travel: #9D9BFF;
   --diff-add: #15301F;
   --diff-add-word: #1E6236;
