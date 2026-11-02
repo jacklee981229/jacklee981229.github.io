@@ -4,7 +4,7 @@
 
 export const SIZE = 16;
 const START_LENGTH = 3;
-const DIRECTIONS = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+export const DIRECTIONS = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 
 /** @typedef {{ x: number, y: number }} Cell */
@@ -43,6 +43,19 @@ export function turn(game, dir) {
 }
 
 /**
+ * The cell one step from `cell` in `dir`: through a wall and in on the opposite side when the walls are open (`wrap`),
+ * else null past a wall. Used by `step()` and the bot (bot.js), so both move by the same rule.
+ * @param {Cell} cell @param {string} dir @param {boolean} [wrap]
+ * @returns {Cell | null}
+ */
+export function next(cell, dir, wrap) {
+  const d = DIRECTIONS[dir];
+  const ahead = { x: cell.x + d.x, y: cell.y + d.y };
+  if (wrap) return { x: (ahead.x + SIZE) % SIZE, y: (ahead.y + SIZE) % SIZE };
+  return ahead.x < 0 || ahead.y < 0 || ahead.x >= SIZE || ahead.y >= SIZE ? null : ahead;
+}
+
+/**
  * One step: the snake takes its next waiting turn, then moves a cell. Eating the food grows it by one and scores a
  * point; running into itself ends the game, and so does a wall unless the walls are open (`wrap`). The tail's cell
  * is free to move into, since the tail leaves it in the same step, unless the snake is growing. Returns the game and
@@ -52,13 +65,10 @@ export function turn(game, dir) {
 export function step(game, random = Math.random) {
   if (game.over) return { game, event: null };
   const [dir, ...queue] = game.queue.length ? game.queue : [game.dir];
-  const d = DIRECTIONS[dir];
-  const ahead = { x: game.snake[0].x + d.x, y: game.snake[0].y + d.y };
-  const head = game.wrap ? { x: (ahead.x + SIZE) % SIZE, y: (ahead.y + SIZE) % SIZE } : ahead;
-  const eats = game.food !== null && head.x === game.food.x && head.y === game.food.y;
+  const head = next(game.snake[0], dir, game.wrap);
+  const eats = head !== null && game.food !== null && head.x === game.food.x && head.y === game.food.y;
   const body = eats ? game.snake : game.snake.slice(0, -1);
-  const outside = head.x < 0 || head.y < 0 || head.x >= SIZE || head.y >= SIZE;
-  if (outside || body.some((c) => c.x === head.x && c.y === head.y)) return { game: { ...game, dir, queue, over: 'crashed' }, event: 'crashed' };
+  if (!head || body.some((c) => c.x === head.x && c.y === head.y)) return { game: { ...game, dir, queue, over: 'crashed' }, event: 'crashed' };
   const snake = [head, ...body];
   if (!eats) return { game: { ...game, snake, dir, queue }, event: 'moved' };
   const food = placeFood(snake, random);

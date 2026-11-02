@@ -143,3 +143,4 @@
 - 2026-10-27 improved: Rewrote the Morning Brief's subtitle
 - 2026-10-27 design: Gave Now's cards a tidier layout, with moods in colour
 - 2026-10-31 design: Turned the music player's artist name into plain text
+- 2026-11-02 new: Gave Jack's Snake a Bot and a smoother, fading body

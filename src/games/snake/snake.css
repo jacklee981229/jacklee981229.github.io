@@ -19,24 +19,45 @@
 .snk .snk-label { display: block; color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
 .snk .snk-score strong { font-size: var(--text-md); font-weight: 800; font-variant-numeric: tabular-nums; }
 .snk .button { color: var(--ink); cursor: pointer; }
+/* Bot and New game are an icon and a name, as 2048's buttons are. Where the row would otherwise wrap (a laptop's
+   board, between a phone's width and a wide screen's), the names hide and the buttons are square, so the scores and
+   the controls keep one line. On a phone the controls have a line of their own anyway, so their names show. */
+.snk .snk-play { container-type: inline-size; }
+.snk .snk-controls .button { gap: 0.375rem; }
+.snk .snk-controls .icon { width: 18px; height: 18px; }
+@container (width < 26rem) {
+  .snk .snk-controls .button { padding-inline: var(--space-2); white-space: nowrap; }
+}
+@container (min-width: 26rem) and (max-width: 46rem) {
+  .snk .snk-controls .button { justify-content: center; width: 2.75rem; padding-inline: 0; }
+  .snk .snk-label-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
-/* The game's colours: the board, the field inside it and its faint cells, the snake's body, head and eyes, the food,
-   and the words before play starts. */
-.snk { --board: linear-gradient(135deg, var(--kind-game-from), var(--kind-game-to)); --field: var(--on-colour-chip); --grid: color-mix(in srgb, var(--on-colour) 8%, transparent); --body: color-mix(in srgb, var(--on-colour) 80%, transparent); --head: var(--on-colour); --eye: var(--kind-game-to); --food: var(--now-first); --hint: var(--on-colour); }
+/* The game's colours: the board, the field inside it and its faint cells, the snake's body (its colour, and how much
+   of it shows by the head and by the tail), head and eyes, the food, and the words before play starts. */
+.snk { --board: linear-gradient(135deg, var(--kind-game-from), var(--kind-game-to)); --field: var(--on-colour-chip); --grid: color-mix(in srgb, var(--on-colour) 8%, transparent); --body: var(--on-colour); --body-from: 0.92; --body-to: 0.28; --head: var(--on-colour); --eye: var(--kind-game-to); --food: var(--now-first); --hint: var(--on-colour); }
 
 .snk .snk-board { position: relative; padding: 2.5%; border-radius: var(--radius-lg); background: var(--board); touch-action: none; }
 .snk .snk-board:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .snk .snk-field { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-md); background: var(--field); }
 
-/* The grid the snake moves on: faint cells the size and shape of its parts. */
+/* The grid the snake moves on: faint cells the size and shape of its parts, hidden under the snake. */
 .snk .snk-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--size), 1fr); grid-template-rows: repeat(var(--size), 1fr); }
 .snk .snk-grid i { margin: 7%; border-radius: 30%; background: var(--grid); }
+.snk .snk-grid i.is-under { visibility: hidden; }
 
-/* A part of the snake (or the food) is placed by --x and --y, in cells. No transition: it jumps there, old-school. */
+/* The body, drawn by game.js in its colour (`color` is how the script reads --body). */
+.snk .snk-body { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--body); }
+
+/* The head (or the food) is placed by --x and --y, in cells. No transition: it jumps there, old-school. */
 .snk .snk-part, .snk .snk-food { position: absolute; top: 0; left: 0; width: calc(100% / var(--size)); aspect-ratio: 1; transform: translate(calc(var(--x) * 100%), calc(var(--y) * 100%)); }
-.snk .snk-part::before { content: ''; position: absolute; inset: 7%; border-radius: 30%; background: var(--body); }
 .snk .snk-part.is-head { z-index: 1; }
-.snk .snk-part.is-head::before { inset: 2%; border-radius: 36%; background: var(--head); }
+.snk .snk-part.is-head::before { content: ''; position: absolute; inset: 2%; border-radius: 36%; background: var(--head); }
+/* The head's back, where the body joins it, is square, so the head sits flat on the body. */
+.snk .is-head[data-back='left']::before { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.snk .is-head[data-back='right']::before { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.snk .is-head[data-back='up']::before { border-top-left-radius: 0; border-top-right-radius: 0; }
+.snk .is-head[data-back='down']::before { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 /* Eyes on the side the head is facing (drawn facing right, then turned). */
 .snk .snk-eyes { position: absolute; inset: 0; }
 .snk [data-dir='down'] .snk-eyes { transform: rotate(90deg); }
@@ -68,7 +89,7 @@
 
 /* The old look, which the switch on the page's top card brings back (data-game-look on the page): the board in a
    faint Games green, the snake in the full green, the food in the page's ink. */
-:root[data-game-look='old'] .snk { --board: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); --field: color-mix(in srgb, var(--lane-games) 8%, var(--surface)); --grid: color-mix(in srgb, var(--lane-games) 14%, var(--surface)); --body: color-mix(in srgb, var(--lane-games) 70%, var(--surface)); --head: var(--lane-games); --eye: var(--surface); --food: var(--ink); --hint: var(--ink); }
+:root[data-game-look='old'] .snk { --board: color-mix(in srgb, var(--lane-games) 20%, var(--surface)); --field: color-mix(in srgb, var(--lane-games) 8%, var(--surface)); --grid: color-mix(in srgb, var(--lane-games) 14%, var(--surface)); --body: var(--lane-games); --body-from: 0.85; --body-to: 0.3; --head: var(--lane-games); --eye: var(--surface); --food: var(--ink); --hint: var(--ink); }
 
 @keyframes snk-pulse { from { transform: scale(0.86); } to { transform: scale(1.04); } }
 @keyframes snk-appear { from { transform: scale(0); } }
