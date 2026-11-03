@@ -46,6 +46,7 @@ export const ICONS = {
   code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
   pointer: '<path d="M5.5 3.5 19 10l-5.6 2.4L11 18z"/><path d="m14.5 14.5 4 4"/>',
   markdown: '<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M6 15V9l2.5 3L11 9v6M16 9v6m-2.2-2.2L16 15l2.2-2.2"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.5h18M9.5 9.5V20"/>',
   braces: '<path d="M9 4c-2 0-3 1-3 3v2.2c0 1.5-.6 2.4-2 2.8 1.4.4 2 1.3 2 2.8V17c0 2 1 3 3 3M15 4c2 0 3 1 3 3v2.2c0 1.5.6 2.4 2 2.8-1.4.4-2 1.3-2 2.8V17c0 2-1 3-3 3"/>',
   branch: '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 0 1-6 6H8"/>',
   bug: '<ellipse cx="12" cy="14" rx="4.5" ry="5.5"/><circle cx="12" cy="6.5" r="2.5"/><path d="M7.5 11 3 8.5M7.5 14H3M7.5 17 3 19.5M16.5 11l4.5-2.5M16.5 14H21M16.5 17l4.5 2.5M10.5 4.5 9 2.5M13.5 4.5l1.5-2"/>',
