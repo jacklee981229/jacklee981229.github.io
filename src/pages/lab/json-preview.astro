@@ -3,20 +3,10 @@ import PreviewTool from '../../components/PreviewTool.astro';
 import Switch from '../../components/Switch.astro';
 import ToolShell from '../../components/ToolShell.astro';
 
-// What the box starts with, the way JSON often arrives: everything on one line.
-const SAMPLE = JSON.stringify({
-  name: "Jack's Space",
-  live: true,
-  posts: 14,
-  lab: {
-    tools: ['Count Words', 'Markdown Preview', 'JSON Preview'],
-    games: [{ name: "Jack's 2048", best: 2048 }, { name: "Jack's Snake", best: 23 }],
-  },
-  visitors: null,
-});
+const ACCEPT = '.json,.txt,application/json,text/plain';
 ---
 <ToolShell slug="json-preview" stays="Your JSON stays in your browser.">
-  <PreviewTool label="JSON" sample={SAMPLE} hint="Your JSON shows here." view="json-view">
+  <PreviewTool label="JSON" hint="Your JSON shows here." view="json-view" files={{ accept: ACCEPT, icon: 'braces', name: 'a JSON file', note: 'JSON or plain text.' }}>
     <Switch slot="switch" name="shape" label="How the JSON is shown" choices={[{ value: 'tidy', label: 'Tidy' }, { value: 'compact', label: 'Compact' }]} />
     <button slot="actions" type="button" class="button" data-copy="json-out"><span data-label>Copy</span></button>
     <!-- The JSON as text, for the Copy button; out of sight, but selectable if the clipboard is blocked. -->

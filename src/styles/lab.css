@@ -6,6 +6,8 @@
 .field :is(textarea, input) { display: block; width: 100%; padding: var(--space-3) var(--space-4); border: 0; border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-card); color: var(--ink); font: inherit; }
 /* Inside a card, a field is set into it instead, a shade deeper, as the guestbook's are. */
 .panel .field :is(textarea, input) { background: var(--paper); box-shadow: none; }
+/* The rule above would show a hidden input, such as the file picker behind a Preview tool's Open file. */
+.field input[hidden] { display: none; }
 .field :is(textarea, input):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-md); }
 .field textarea { min-height: 18rem; line-height: 1.6; resize: vertical; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0 0; }
@@ -63,6 +65,21 @@
 .drop .pick { text-decoration: underline; text-underline-offset: 0.2em; }
 .drop-small { color: var(--muted); font-size: var(--text-sm); }
 
+/* The Preview tools that open files (PreviewTool.astro's `files`): on arrival only the drop box, big, and the first
+   thing on the page; once there's a file or text to read, the two sides under the bar. */
+.preview-start:not([hidden]) { display: grid; gap: var(--space-3); }
+.preview-start .actions { justify-content: center; margin: 0; }
+/* As tall as the window allows below the page's top, with Or paste text still on screen. */
+.preview-drop { min-height: clamp(12rem, calc(100svh - 28rem), 26rem); align-content: center; }
+.panes :is(.field textarea, .pane-view).is-over { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Both, the text alone or the preview alone: one side takes the whole width. */
+.preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0 0 var(--space-4); }
+.preview-bar .button { cursor: pointer; color: var(--ink); }
+.preview-work:not([data-mode='both']) .panes { grid-template-columns: minmax(0, 1fr); }
+.preview-work:not([data-mode='both']) .pane-split,
+.preview-work[data-mode='preview'] .panes > .field,
+.preview-work[data-mode='text'] .panes > :last-child { display: none; }
+
 /* Phones: one column, with shorter boxes so the result is close by. */
 @media (max-width: 719px) {
   .convert { grid-template-columns: minmax(0, 1fr); }
@@ -71,4 +88,9 @@
   .pane-split { display: none; }
   .panes .field textarea { height: 14rem; }
   .pane-view { height: auto; min-height: 8rem; }
+  /* A longer page top (Markdown's) still leaves Or paste text on screen, and Both | Markdown | Preview still shares
+     its row with Start over; a tool's own switch (Tidy | Compact) matches it. */
+  .preview-drop { min-height: clamp(12rem, calc(100svh - 30rem), 26rem); }
+  .preview-bar { gap: var(--space-2); }
+  .preview-work .switch label { padding-inline: var(--space-2); }
 }

@@ -3,38 +3,10 @@ import PreviewTool from '../../components/PreviewTool.astro';
 import ToolShell from '../../components/ToolShell.astro';
 import '../../styles/prose.css';
 
-// What the box starts with, so the preview has something to show: a taste of what Markdown can do.
-const SAMPLE = [
-  '# Hello, Markdown',
-  '',
-  'Type on this side, and the page shows up on the other.',
-  '',
-  '## What you can write',
-  '',
-  '- **Bold**, _italic_ and ~~crossed out~~',
-  '- A [link](https://jacklee981229.github.io/)',
-  '- `code` inside a line',
-  '',
-  '1. First',
-  '2. Second',
-  '',
-  '- [x] Try it',
-  '- [ ] Clear this and paste your own',
-  '',
-  '| Game | Keys |',
-  '| :-- | :-- |',
-  '| 2048 | Arrow keys |',
-  '| Snake | Arrow keys |',
-  '',
-  '> A quote sits in its own box.',
-  '',
-  '```js',
-  "const hello = 'world';",
-  '```',
-].join('\n');
+const ACCEPT = '.md,.markdown,.txt,text/markdown,text/plain';
 ---
 <ToolShell slug="markdown-preview" stays="Your text stays in your browser.">
-  <PreviewTool label="Markdown" sample={SAMPLE} hint="Your formatted page shows here." view="prose md-view">
+  <PreviewTool label="Markdown" hint="Your formatted page shows here." view="prose md-view" files={{ accept: ACCEPT, icon: 'markdown', name: 'a Markdown file', note: 'Markdown or plain text.' }}>
     <button slot="actions" type="button" class="button" data-copy="md-html"><span data-label>Copy HTML</span></button>
     <!-- The page's HTML, for the Copy button; out of sight, but selectable if the clipboard is blocked. -->
     <textarea class="visually-hidden" id="md-html" readonly tabindex="-1" aria-hidden="true"></textarea>
@@ -46,6 +18,8 @@ const SAMPLE = [
   import { setupPreview } from '../../lib/lab/page.ts';
 
   const html = document.querySelector<HTMLTextAreaElement>('#md-html')!;
+  // shortcut: the whole page is drawn at once, so a big file holds the page up (100 KB about 0.4 s, 1 MB about 3 s);
+  // draw it in parts, as JSON Preview does, if people bring files that big.
   setupPreview((text, view) => {
     html.value = toHtml(text).trim();
     view.innerHTML = html.value;
@@ -66,4 +40,7 @@ const SAMPLE = [
   .md-view li > input[type='checkbox'] { margin: 0 0.4em 0 0; accent-color: var(--ink); }
   .md-view :is(th, td)[align='right'] { text-align: right; }
   .md-view :is(th, td)[align='center'] { text-align: center; }
+  /* Lines no longer than a post's (and the draft editor's preview), however wide the box: Preview alone is the whole
+     card. */
+  .md-view > * { max-width: 40rem; }
 </style>

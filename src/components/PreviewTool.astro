@@ -1,36 +1,75 @@
 ---
 // The frame the Lab's Preview tools share: what you type on one side, what it makes on the other, level with each
 // other. setupPreview() in src/lib/lab/page.ts brings it to life with the page's own way of showing the text.
+import Icon from './Icon.astro';
+import Switch from './Switch.astro';
+
 interface Props {
   /** What's typed: "Markdown", "JSON". */
   label: string;
   /** What the box starts with, so the preview has something to show. */
-  sample: string;
+  sample?: string;
   /** What the empty preview says, such as "Your formatted page shows here." */
   hint: string;
   /** Classes for the preview box, such as "prose". */
   view?: string;
+  /** A tool that opens files starts on a big drop box, with Or paste text under it; then the two sides show under
+      Both | the text alone | the preview alone, and Start over. Left out (QR Code), the two sides show at once. */
+  files?: {
+    /** What the file pickers offer, such as ".md,.txt,text/markdown,text/plain". */
+    accept: string;
+    /** The drop box's icon: the tool's own, from the Lab's list. */
+    icon: string;
+    /** What to drop: "a CSV" reads "Drop a CSV here, or choose one". */
+    name: string;
+    /** The line under it, such as "Markdown or plain text." */
+    note: string;
+  };
 }
 
-const { label, sample, hint, view } = Astro.props;
+const { label, sample = '', hint, view, files } = Astro.props;
 ---
-<div class="panes">
-  <div class="field">
-    <label for="pane-in">{label}</label>
-    <textarea id="pane-in" spellcheck="false" autocapitalize="off" autocomplete="off" data-in>{sample}</textarea>
-    <p class="actions"><button type="button" class="button" data-clear>Clear</button><slot name="input-actions" /></p>
+{files && (
+  <div class="preview-start" data-start>
+    <label class="drop preview-drop" data-drop>
+      <input class="visually-hidden" type="file" accept={files.accept} data-drop-file />
+      <Icon name={files.icon} />
+      <span class="drop-big">Drop {files.name} here, or <span class="pick">choose one</span></span>
+      <span class="drop-small">{files.note}</span>
+    </label>
+    <p class="actions"><button type="button" class="button" data-paste>Or paste text</button></p>
   </div>
-  <!-- The line between the two sides: drag it, or Tab to it and use the arrow keys, to make one side wider. -->
-  <div class="pane-split" role="separator" aria-orientation="vertical" aria-label="Resize the two sides" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0" data-split><i></i></div>
-  <div>
-    <div class="pane-head">
-      <p class="pane-label" id="pane-label">Preview</p>
-      <!-- A tool's own choice of how the preview shows, at the box's top right. -->
-      <slot name="switch" />
+)}
+<div class="preview-work" data-work={files ? '' : undefined} data-mode="both" hidden={!!files}>
+  {files && (
+    <div class="preview-bar" data-bar>
+      <Switch name="preview-mode" label="What's shown" choices={[{ value: 'both', label: 'Both' }, { value: 'text', label }, { value: 'preview', label: 'Preview' }]} />
+      <button type="button" class="button" data-restart>Start over</button>
     </div>
-    <!-- A box that scrolls must take the keyboard's focus, or its lower part can't be reached without a mouse. -->
-    <div class:list={['panel', 'pane-view', view]} role="region" aria-labelledby="pane-label" tabindex="0" data-hint={hint} data-view></div>
-    <p class="actions"><slot name="actions" /></p>
-    <slot />
+  )}
+  <div class="panes">
+    <div class="field">
+      <label for="pane-in">{label}</label>
+      <textarea id="pane-in" spellcheck="false" autocapitalize="off" autocomplete="off" data-in>{sample}</textarea>
+      <p class="actions">
+        <button type="button" class="button" data-clear>Clear</button>
+        {files && <button type="button" class="button" data-open>Open file</button>}
+        {files && <input type="file" accept={files.accept} hidden data-file />}
+        <slot name="input-actions" />
+      </p>
+    </div>
+    <!-- The line between the two sides: drag it, or Tab to it and use the arrow keys, to make one side wider. -->
+    <div class="pane-split" role="separator" aria-orientation="vertical" aria-label="Resize the two sides" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" tabindex="0" data-split><i></i></div>
+    <div>
+      <div class="pane-head">
+        <p class="pane-label" id="pane-label">Preview</p>
+        <!-- A tool's own choice of how the preview shows, at the box's top right. -->
+        <slot name="switch" />
+      </div>
+      <!-- A box that scrolls must take the keyboard's focus, or its lower part can't be reached without a mouse. -->
+      <div class:list={['panel', 'pane-view', view]} role="region" aria-labelledby="pane-label" tabindex="0" data-hint={hint} data-view></div>
+      <p class="actions"><slot name="actions" /></p>
+      <slot />
+    </div>
   </div>
 </div>

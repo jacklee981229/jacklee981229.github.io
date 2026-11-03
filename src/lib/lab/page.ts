@@ -62,9 +62,11 @@ const LONG_TEXT = 200_000;
 /**
  * Brings the Preview tools' frame (PreviewTool.astro) to life. `show` draws what the text makes into the preview
  * box; it runs as you type, at most once a frame (a very long text waits until typing pauses). Also wires Clear,
- * the Copy buttons, and the glide that shows the tall boxes whole when you go to type.
+ * the Copy buttons, the glide that shows the tall boxes whole when you go to type, and a tool's files. `reset`
+ * forgets the page's own choices (CSV's search and sort) when a file opens or you start over, before the new text
+ * is shown.
  */
-export function setupPreview(show: (text: string, view: HTMLElement) => void) {
+export function setupPreview(show: (text: string, view: HTMLElement) => void, { reset = () => {} } = {}) {
   const input = document.querySelector<HTMLTextAreaElement>('[data-in]')!;
   const view = document.querySelector<HTMLElement>('[data-view]')!;
   const clear = document.querySelector<HTMLElement>('[data-clear]')!;
@@ -94,7 +96,106 @@ export function setupPreview(show: (text: string, view: HTMLElement) => void) {
   wireSplit();
   // The browser may restore text typed before a reload.
   run();
+  wireFiles(input, view, run, reset);
   return { input, view, run };
+}
+
+/**
+ * A Preview tool that opens files (PreviewTool.astro's `files`): the drop box on arrival, Or paste text, Open file,
+ * a file dropped on the box or the text, the three modes and Start over.
+ */
+function wireFiles(input: HTMLTextAreaElement, view: HTMLElement, run: () => void, reset: () => void) {
+  const start = document.querySelector<HTMLElement>('[data-start]');
+  const work = document.querySelector<HTMLElement>('[data-work]');
+  if (!start || !work) return;
+  const file = document.querySelector<HTMLInputElement>('[data-file]')!;
+  const dropFile = document.querySelector<HTMLInputElement>('[data-drop-file]')!;
+  const modes = [...document.querySelectorAll<HTMLInputElement>('input[name="preview-mode"]')];
+
+  // shortcut: a file is read as UTF-8 only, so one saved in another encoding (Excel's plain "CSV", not "CSV UTF-8";
+  // PowerShell 5.1's `>`, which writes UTF-16) shows garbled; read the encoding from the bytes if people bring such
+  // files.
+  async function open(picked: File | undefined) {
+    if (!picked) return;
+    input.value = await picked.text();
+    reset();
+    run();
+    // A file opens on its preview alone, as big as it gets.
+    setMode('preview');
+    showWork();
+    view.scrollTop = 0;
+    announce(`Opened ${picked.name}`);
+  }
+  function setMode(mode: 'both' | 'text' | 'preview') {
+    modes.find((choice) => choice.value === mode)!.checked = true;
+    work!.dataset.mode = mode;
+  }
+  for (const choice of modes) {
+    choice.addEventListener('change', () => { work.dataset.mode = choice.value; });
+  }
+  /** The drop box makes way for the work, and the page glides to show it whole. */
+  function showWork() {
+    if (!work!.hidden) return;
+    start!.hidden = true;
+    work!.hidden = false;
+    bringIntoView(document.querySelector<HTMLElement>('[data-bar]')!, document.querySelector<HTMLElement>('.panes')!);
+  }
+  // Start over: the box emptied and the drop box back, from any mode.
+  document.querySelector('[data-restart]')!.addEventListener('click', () => {
+    input.value = '';
+    reset();
+    run();
+    work.hidden = true;
+    start.hidden = false;
+    dropFile.focus();
+  });
+  // The browser may restore text typed before a reload: then the two sides show at once.
+  if (input.value.trim()) {
+    start.hidden = true;
+    work.hidden = false;
+    // The mode switch may come back restored too, without a change event.
+    work.dataset.mode = modes.find((choice) => choice.checked)?.value ?? 'both';
+  }
+
+  document.querySelector('[data-paste]')!.addEventListener('click', () => {
+    // Typing wants to see its preview at the same time.
+    setMode('both');
+    showWork();
+    input.focus();
+  });
+  document.querySelector('[data-open]')!.addEventListener('click', () => file.click());
+  for (const picker of [file, dropFile]) {
+    picker.addEventListener('change', () => {
+      open(picker.files?.[0]);
+      picker.value = '';
+    });
+  }
+  // Dragged over: the drop box lights up, and a drop opens the file instead of the browser showing it in the tab.
+  const drop = document.querySelector<HTMLElement>('[data-drop]')!;
+  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('is-over');
+  });
+  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    open(e.dataTransfer?.files[0]);
+  });
+  // A file dropped on either side opens there, instead of the browser showing it in the tab and losing the page;
+  // dropped text still drops into the text.
+  for (const box of [input, view]) {
+    for (const type of ['dragenter', 'dragover']) box.addEventListener(type, (e) => {
+      if (!(e as DragEvent).dataTransfer?.types.includes('Files')) return;
+      e.preventDefault();
+      box.classList.add('is-over');
+    });
+    for (const type of ['dragleave', 'drop']) box.addEventListener(type, () => box.classList.remove('is-over'));
+    box.addEventListener('drop', (e) => {
+      if (!e.dataTransfer?.files.length) return;
+      e.preventDefault();
+      open(e.dataTransfer.files[0]);
+    });
+  }
 }
 
 /**

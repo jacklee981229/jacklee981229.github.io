@@ -1,41 +1,21 @@
 ---
 import Icon from '../../components/Icon.astro';
 import PreviewTool from '../../components/PreviewTool.astro';
-import Switch from '../../components/Switch.astro';
 import ToolShell from '../../components/ToolShell.astro';
 
 const ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
 ---
 <ToolShell slug="csv-preview" stays="Your file stays in your browser.">
-  <!-- On arrival, only the drop box: the two sides show once there's a file or text to read. -->
-  <div class="csv-start" data-start>
-    <label class="drop csv-drop" data-drop>
-      <input class="visually-hidden" type="file" accept={ACCEPT} data-drop-file />
-      <Icon name="table" />
-      <span class="drop-big">Drop a CSV here, or <span class="pick">choose one</span></span>
-      <span class="drop-small">CSV, TSV or text, with commas, semicolons or tabs.</span>
-    </label>
-    <p class="actions"><button type="button" class="button" data-paste>Or paste text</button></p>
-  </div>
-  <div class="csv-work" data-work data-mode="both" hidden>
-  <div class="csv-bar" data-bar>
-    <Switch name="csv-mode" label="What's shown" choices={[{ value: 'both', label: 'Both' }, { value: 'csv', label: 'CSV' }, { value: 'preview', label: 'Preview' }]} />
-    <button type="button" class="button" data-restart>Start over</button>
-  </div>
-  <PreviewTool label="CSV" sample="" hint="Your table shows here." view="csv-view">
-    <button slot="input-actions" type="button" class="button" data-open>Open file</button>
-    <input slot="input-actions" type="file" accept={ACCEPT} hidden data-file />
+  <PreviewTool label="CSV" hint="Your table shows here." view="csv-view" files={{ accept: ACCEPT, icon: 'table', name: 'a CSV', note: 'CSV, TSV or text, with commas, semicolons or tabs.' }}>
     <label slot="switch" class="csv-find">
       <Icon name="search" />
       <span class="visually-hidden">Search the rows</span>
       <input type="search" placeholder="Search" autocomplete="off" spellcheck="false" data-find />
     </label>
   </PreviewTool>
-  </div>
 </ToolShell>
 
 <script>
-  import { bringIntoView } from '../../games/controls.js';
   import { filterRows, readCsv, sortRows } from '../../lib/lab/csv.js';
   import { ICONS } from '../../lib/icons.js';
   import { announce, setupPreview } from '../../lib/lab/page.ts';
@@ -55,9 +35,6 @@ const ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
   const input = document.querySelector<HTMLTextAreaElement>('[data-in]')!;
   const view = document.querySelector<HTMLElement>('[data-view]')!;
   const find = document.querySelector<HTMLInputElement>('[data-find]')!;
-  const file = document.querySelector<HTMLInputElement>('[data-file]')!;
-  const start = document.querySelector<HTMLElement>('[data-start]')!;
-  const work = document.querySelector<HTMLElement>('[data-work]')!;
   let table: { notes: string[]; header: string[]; rows: string[][] } | null = null;
   // The column sorted by and which way; null keeps the file's order.
   let sort: { column: number; direction: 'up' | 'down' } | null = null;
@@ -133,7 +110,7 @@ const ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
     view.replaceChildren(...parts);
   }
 
-  const { run } = setupPreview((text) => {
+  setupPreview((text) => {
     clearTimeout(said);
     table = null;
     input.removeAttribute('aria-invalid');
@@ -151,95 +128,17 @@ const ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
     view.replaceChildren(problem);
     // A quote is open for a moment while typing, so a screen reader hears of it only once typing pauses.
     said = window.setTimeout(() => announce(`Not valid CSV. ${where}. ${result.message}`), 1200);
+  }, {
+    // A new file, or starting over: the file's own order, every row.
+    reset: () => {
+      sort = null;
+      find.value = '';
+    },
   });
 
   find.addEventListener('input', () => {
     draw();
     view.scrollTop = 0;
-  });
-
-  // shortcut: a file is read as UTF-8 only, so Excel's plain "CSV" (not "CSV UTF-8") shows its accents and Chinese
-  // garbled; read the encoding from the bytes if people bring such files.
-  async function open(picked: File | undefined) {
-    if (!picked) return;
-    input.value = await picked.text();
-    sort = null;
-    find.value = '';
-    run();
-    // A file opens on its table alone, as big as it gets.
-    setMode('preview');
-    showWork();
-    view.scrollTop = 0;
-    announce(`Opened ${picked.name}`);
-  }
-  type Mode = 'both' | 'csv' | 'preview';
-  function setMode(mode: Mode) {
-    document.querySelector<HTMLInputElement>(`input[name="csv-mode"][value="${mode}"]`)!.checked = true;
-    work.dataset.mode = mode;
-  }
-  for (const choice of document.querySelectorAll<HTMLInputElement>('input[name="csv-mode"]')) {
-    choice.addEventListener('change', () => { work.dataset.mode = choice.value; });
-  }
-  /** The drop box makes way for the work, and the page glides to show it whole. */
-  function showWork() {
-    if (!work.hidden) return;
-    start.hidden = true;
-    work.hidden = false;
-    bringIntoView(document.querySelector<HTMLElement>('[data-bar]')!, document.querySelector<HTMLElement>('.panes')!);
-  }
-  // Start over: the box emptied and the drop box back, from any mode.
-  document.querySelector('[data-restart]')!.addEventListener('click', () => {
-    input.value = '';
-    find.value = '';
-    sort = null;
-    run();
-    work.hidden = true;
-    start.hidden = false;
-    document.querySelector<HTMLInputElement>('[data-drop-file]')!.focus();
-  });
-  // The browser may restore text typed before a reload: then the two sides show at once.
-  if (input.value.trim()) {
-    start.hidden = true;
-    work.hidden = false;
-    // The mode switch may come back restored too, without a change event.
-    work.dataset.mode = document.querySelector<HTMLInputElement>('input[name="csv-mode"]:checked')?.value ?? 'both';
-  }
-
-  document.querySelector('[data-paste]')!.addEventListener('click', () => {
-    // Typing wants to see its table at the same time.
-    setMode('both');
-    showWork();
-    input.focus();
-  });
-  document.querySelector('[data-open]')!.addEventListener('click', () => file.click());
-  for (const picker of [file, document.querySelector<HTMLInputElement>('[data-drop-file]')!]) {
-    picker.addEventListener('change', () => {
-      open(picker.files?.[0]);
-      picker.value = '';
-    });
-  }
-  // Dragged over: the drop box lights up, and a drop opens the file instead of the browser showing it in the tab.
-  const drop = document.querySelector<HTMLElement>('[data-drop]')!;
-  for (const type of ['dragenter', 'dragover']) drop.addEventListener(type, (e) => {
-    e.preventDefault();
-    drop.classList.add('is-over');
-  });
-  for (const type of ['dragleave', 'drop']) drop.addEventListener(type, () => drop.classList.remove('is-over'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    open(e.dataTransfer?.files[0]);
-  });
-  // A file dropped on the box opens in it, instead of the browser showing it in the tab; dropped text still drops in.
-  for (const type of ['dragenter', 'dragover']) input.addEventListener(type, (e) => {
-    if (!(e as DragEvent).dataTransfer?.types.includes('Files')) return;
-    e.preventDefault();
-    input.classList.add('is-over');
-  });
-  for (const type of ['dragleave', 'drop']) input.addEventListener(type, () => input.classList.remove('is-over'));
-  input.addEventListener('drop', (e) => {
-    if (!e.dataTransfer?.files.length) return;
-    e.preventDefault();
-    open(e.dataTransfer.files[0]);
   });
 </script>
 
@@ -249,23 +148,8 @@ const ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
   .csv-find .icon { flex: none; width: 1rem; height: 1rem; color: var(--muted); }
   .csv-find input { flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: var(--ink); font-size: var(--text-sm); outline: none; }
   .csv-find:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .panes .field textarea.is-over { outline: 2px solid var(--focus); outline-offset: 2px; }
   /* One line of the file is one line in the box, scrolling sideways, so the rows stay easy to tell apart. */
   .panes .field textarea[data-in] { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
-
-  /* The drop box: big, and the first thing on the page. */
-  .csv-start:not([hidden]) { display: grid; gap: var(--space-3); }
-  .csv-start .actions { justify-content: center; margin: 0; }
-  /* As tall as the window allows below the page's top, with Or paste text still on screen. */
-  .csv-drop { min-height: clamp(12rem, calc(100svh - 28rem), 26rem); align-content: center; }
-
-  /* Both, the CSV alone or the table alone: one side takes the whole width. */
-  .csv-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0 0 var(--space-4); }
-  .csv-bar .button { cursor: pointer; color: var(--ink); }
-  .csv-work:not([data-mode='both']) .panes { grid-template-columns: minmax(0, 1fr); }
-  .csv-work:not([data-mode='both']) .pane-split,
-  .csv-work[data-mode='preview'] .panes > .field,
-  .csv-work[data-mode='csv'] .panes > :last-child { display: none; }
 
   /* The table: as wide as its words, scrolling sideways; the header stays in sight while the rows scroll under it. */
   .csv-view .c-note { margin: 0 0 var(--space-2); color: var(--muted); font-size: var(--text-sm); }
