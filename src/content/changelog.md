@@ -147,3 +147,4 @@
 - 2026-11-03 new: Added CSV Preview to the Lab, with tables you can sort and search
 - 2026-11-03 improved: Let Markdown and JSON Preview open a file you drop on them
 - 2026-11-03 fix: Hid a stray file box under CSV Preview's buttons
+- 2026-11-03 new: Added SumatraPDF to the Toolbox

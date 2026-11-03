@@ -86,6 +86,10 @@ groups:
 
   - name: PDFs & files
     tools:
+      - name: SumatraPDF
+        where: windows
+        link: https://www.sumatrapdfreader.org/
+        note: If you ever want a light/fast-speed PDF reader
       - name: PDFgear
         where: windows
         link: https://www.pdfgear.com/
