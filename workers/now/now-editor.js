@@ -1,6 +1,6 @@
 // The Now editor's rules, apart from the Worker (index.js) so they can be tested: the login pass, which pages may call
 // the Worker, how now.md is split and put back together, and the words Claude is asked to tidy and gives back.
-import { readNow } from '../../src/lib/now.js';
+import { plainText, readNow } from '../../src/lib/now.js';
 
 /** How long a login lasts, in seconds. */
 export const SESSION_SECONDS = 30 * 24 * 60 * 60;
@@ -83,9 +83,12 @@ export function splitNow(file) {
 export const joinNow = (head, body) => `${head}${body.replace(/\r\n?/g, '\n').trim()}\n`;
 
 /** UTF-8 text as base64, the way GitHub's API takes a file. @param {string} text */
-export function toBase64(text) {
+export const toBase64 = (text) => bytesToBase64(encoder.encode(text));
+
+/** Bytes as base64, the way GitHub's API takes a picture. @param {Uint8Array} bytes */
+export function bytesToBase64(bytes) {
   let binary = '';
-  for (const byte of encoder.encode(text)) binary += String.fromCharCode(byte);
+  for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
@@ -115,26 +118,43 @@ English doesn't always come out the way Jack means it, so don't just fix his gra
 
 A new item starts where Jack starts another thing he is doing, usually with a doing word (Building, Writing, Playing), not at every full stop: a full stop may sit inside a detail.
 
-Keep every name of a thing exactly as he wrote it, and keep Markdown links as they are; in the thing itself fix only capitals, spelling and punctuation. Drop nothing he said. Keep his order. One thing per item: split a line that holds two. No full stop at the end of an item. If something can't take a doing word, keep it as a plain line without a colon, still starting with an emoji.`;
+Keep every name of a thing exactly as he wrote it, and keep Markdown links as they are; in the thing itself fix only capitals, spelling and punctuation. Drop nothing he said. Keep his order. One thing per item: split a line that holds two. No full stop at the end of an item. If something can't take a doing word, keep it as a plain line without a colon, still starting with an emoji.
 
-/** The shape Claude's answer must take: the items, one per entry. */
+Each item is the line and, as game, the video game it is about, so its pictures can be found on Steam: the game's official title as its store page writes it ("phantom blade zero" is "Phantom Blade Zero"). For anything that isn't a video game, game is an empty string.`;
+
+/** The shape Claude's answer must take: the items, one per entry, each with the game it names, if any. */
 export const TIDY_SCHEMA = {
   type: 'object',
-  properties: { items: { type: 'array', items: { type: 'string' } } },
+  properties: {
+    items: {
+      type: 'array',
+      items: { type: 'object', properties: { line: { type: 'string' }, game: { type: 'string' } }, required: ['line', 'game'], additionalProperties: false },
+    },
+  },
   required: ['items'],
   additionalProperties: false,
 };
 
 /**
- * Claude's answer as the editor's text, one "- " line per item, or nothing when there's nothing usable in it.
- * Every item must read as one of Now's lines, the way the site reads them (src/lib/now.js).
- * @param {unknown} answer the parsed JSON @returns {string | null}
+ * Claude's answer as the editor's text, one "- " line per item, and the first item that names a game: its place in
+ * the list, the game's title to search for and the item's thing as now.md has it (whose name the picture takes). Nothing
+ * when there's nothing usable in it. Every item must read as one of Now's lines, the way the site reads them
+ * (src/lib/now.js).
+ * shortcut: only the first game gets a picture, as the home page shows one; offer one per game if Now ever lists two.
+ * @param {unknown} answer the parsed JSON
+ * @returns {{ text: string, game: { line: number, name: string, value: string } | null } | null}
  */
-export function tidiedText(answer) {
+export function tidied(answer) {
   const items = /** @type {any} */ (answer)?.items;
   if (!Array.isArray(items)) return null;
-  const lines = items.filter((item) => typeof item === 'string').map((item) => item.replace(/\s+/g, ' ').replace(/^[-*]\s+/, '').trim()).filter(Boolean);
-  if (!lines.length) return null;
-  const text = lines.map((line) => `- ${line}`).join('\n');
-  return readNow(text).items.length === lines.length ? text : null;
+  const kept = items
+    .filter((item) => typeof item?.line === 'string')
+    .map((item) => ({ line: item.line.replace(/\s+/g, ' ').replace(/^[-*]\s+/, '').trim(), game: typeof item.game === 'string' ? item.game.replace(/\s+/g, ' ').trim() : '' }))
+    .filter((item) => item.line);
+  if (!kept.length) return null;
+  const text = kept.map((item) => `- ${item.line}`).join('\n');
+  const read = readNow(text).items;
+  if (read.length !== kept.length) return null;
+  const line = kept.findIndex((item) => item.game);
+  return { text, game: line < 0 ? null : { line, name: kept[line].game, value: plainText(read[line].value) } };
 }

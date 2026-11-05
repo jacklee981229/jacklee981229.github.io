@@ -7,7 +7,12 @@ import { draftRoute } from './drafts.js';
 import { page } from './page.js';
 import { LIMITS } from '../../src/lib/drafts.js';
 import { MOST_SCORES, readScore } from './scores.js';
-import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidiedText, toBase64 } from './now-editor.js';
+import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, bytesToBase64, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidied, toBase64 } from './now-editor.js';
+import { pictureBytes, steamPictures } from './pictures.js';
+import { pictureFile, readNow } from '../../src/lib/now.js';
+
+/** Where the pictures Jack picks for Now go (src/lib/now-pictures.ts reads them). */
+const PICTURES = 'src/assets/now';
 
 const PRIVATE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow' };
 
@@ -23,14 +28,22 @@ function shared(response, origin) {
 }
 const PREFLIGHT = { 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Max-Age': '86400' };
 
-/** A request to GitHub's API for now.md. @param {any} env @param {string} method @param {unknown} [body] */
-function github(env, method, body) {
-  const url = `https://api.github.com/repos/${env.REPO}/contents/${env.FILE}${method === 'GET' ? `?ref=${env.BRANCH}` : ''}`;
-  return fetch(url, {
+/** A request to GitHub's API for this repo. @param {any} env @param {string} method @param {string} path @param {unknown} [body] */
+function githubApi(env, method, path, body) {
+  return fetch(`https://api.github.com/repos/${env.REPO}/${path}`, {
     method,
     headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'jacks-space-now-editor', ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
+}
+
+/** A request to GitHub's API for now.md. @param {any} env @param {string} method @param {unknown} [body] */
+const github = (env, method, body) => githubApi(env, method, `contents/${env.FILE}${method === 'GET' ? `?ref=${env.BRANCH}` : ''}`, body);
+
+/** A GitHub answer's JSON, or an error naming what was asked. @param {Response} answer @param {string} what */
+async function githubJson(answer, what) {
+  if (!answer.ok) throw new Error(`GitHub answered ${answer.status} to ${what}`);
+  return answer.json();
 }
 
 /** now.md as it is on GitHub: its text and the version GitHub knows it by. @param {any} env */
@@ -56,12 +69,61 @@ async function save(request, env) {
   const current = await readFile(env);
   if (current.sha !== body.sha) return json({ error: 'Now changed somewhere else since this page opened. Reload to see it, then make your change again.' }, 409);
   const text = joinNow(splitNow(current.text).head, body.text);
+  if (body.picture) return await saveWithPicture(env, text, body.sha, body.picture);
   if (text === current.text) return json({ error: 'Nothing has changed.' }, 400);
   const answer = await github(env, 'PUT', { message: COMMIT_MESSAGE, content: toBase64(text), sha: body.sha, branch: env.BRANCH });
   if (answer.status === 409 || answer.status === 422) return json({ error: 'Now changed somewhere else since this page opened. Reload to see it, then make your change again.' }, 409);
   if (!answer.ok) throw new Error(`GitHub answered ${answer.status} to saving now.md`);
   const data = await answer.json();
   return json({ sha: String(data.content.sha), commit: String(data.commit.html_url) });
+}
+
+/**
+ * now.md and the picture Jack picked for one of its items, saved as one commit: the contents call takes one file at a
+ * time, so this builds the commit from GitHub's blobs and trees. The picture is named after the item's thing
+ * (pictureFile), so an older picture of the same thing is replaced. Another commit landing in between makes the
+ * branch move refuse, and Jack tries again.
+ * @param {any} env @param {string} text the whole new now.md @param {string} sha now.md's version the palette read
+ * @param {any} picture { line, url }: which item, and one of the Steam pictures it was offered
+ */
+async function saveWithPicture(env, text, sha, picture) {
+  const item = Number.isInteger(picture?.line) ? readNow(text).items[picture.line] : undefined;
+  const name = item ? pictureFile(item.value) : '';
+  const bytes = name ? await pictureBytes(picture.url) : null;
+  if (!bytes) return json({ error: "That picture couldn't be fetched. Pick another, or save without one." }, 400);
+  const head = (await githubJson(await githubApi(env, 'GET', `git/ref/heads/${env.BRANCH}`), 'reading the branch')).object.sha;
+  const commit = await githubJson(await githubApi(env, 'GET', `git/commits/${head}`), 'reading the last commit');
+  // now.md as of that very commit, so a change made since the palette read it isn't overwritten.
+  const file = await githubJson(await githubApi(env, 'GET', `contents/${env.FILE}?ref=${head}`), 'reading now.md');
+  if (String(file.sha) !== sha) return json({ error: 'Now changed somewhere else since this page opened. Reload to see it, then make your change again.' }, 409);
+  const blob = await githubJson(await githubApi(env, 'POST', 'git/blobs', { content: bytesToBase64(bytes), encoding: 'base64' }), 'storing the picture');
+  const tree = await githubJson(
+    await githubApi(env, 'POST', 'git/trees', {
+      base_tree: commit.tree.sha,
+      tree: [
+        { path: env.FILE, mode: '100644', type: 'blob', content: text },
+        { path: `${PICTURES}/${name}`, mode: '100644', type: 'blob', sha: blob.sha },
+      ],
+    }),
+    'making the tree',
+  );
+  const made = await githubJson(await githubApi(env, 'POST', 'git/commits', { message: COMMIT_MESSAGE, tree: tree.sha, parents: [head] }), 'making the commit');
+  const moved = await githubApi(env, 'PATCH', `git/refs/heads/${env.BRANCH}`, { sha: made.sha, force: false });
+  if (moved.status === 409 || moved.status === 422) return json({ error: 'Now changed somewhere else since this page opened. Reload to see it, then make your change again.' }, 409);
+  await githubJson(moved, 'moving the branch');
+  return json({ commit: String(made.html_url) });
+}
+
+/** A game's pictures on Steam for the palette to offer. @param {URL} url */
+async function pictures(url) {
+  const name = (url.searchParams.get('name') ?? '').trim();
+  if (!name || name.length > 200) return json({ error: 'Which game?' }, 400);
+  try {
+    return json(await steamPictures(name));
+  } catch (error) {
+    console.error(error);
+    return json({ error: "Couldn't reach Steam for pictures just now." }, 502);
+  }
 }
 
 /** @param {Request} request @param {any} env */
@@ -83,8 +145,8 @@ async function tidy(request, env) {
     const block = response.content.find((b) => b.type === 'text');
     let answer = null;
     try { answer = block ? JSON.parse(block.text) : null; } catch { /* answered below */ }
-    const text = response.stop_reason === 'end_turn' ? tidiedText(answer) : null;
-    return text ? json({ text }) : json({ error: "Claude's answer didn't come out as a list. Try again." }, 502);
+    const made = response.stop_reason === 'end_turn' ? tidied(answer) : null;
+    return made ? json(made) : json({ error: "Claude's answer didn't come out as a list. Try again." }, 502);
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) return json({ error: "Claude didn't accept the API key. Check ANTHROPIC_API_KEY." }, 502);
     if (error instanceof Anthropic.RateLimitError) return json({ error: 'Claude is busy, or the API credits ran out. Try again later.' }, 503);
@@ -156,6 +218,7 @@ async function answer(request, env, method, pathname, origin) {
     if (method === 'POST' && pathname === '/api/brief/score') return await scoreSave(request, env);
     if (method === 'GET' && pathname === '/api/now') return await load(env);
     if (method === 'POST' && pathname === '/api/tidy') return await tidy(request, env);
+    if (method === 'GET' && pathname === '/api/pictures') return await pictures(new URL(request.url));
     if (method === 'POST' && pathname === '/api/save') return await save(request, env);
     if (pathname.startsWith('/api/drafts')) {
       const drafted = await draftRoute(request, env, method, pathname, PRIVATE, (r) => readBody(r, LIMITS.body * 6 + 2000));

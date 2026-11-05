@@ -1,7 +1,9 @@
 // The Now editor Worker's rules (workers/now/now-editor.js) and the palette's /now (src/lib/now-command.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SESSION_SECONDS, allowedOrigin, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidiedText, toBase64 } from '../workers/now/now-editor.js';
+import { SESSION_SECONDS, allowedOrigin, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidied, toBase64 } from '../workers/now/now-editor.js';
+import { bestMatch, isSteamPicture, picturesOf } from '../workers/now/pictures.js';
+import { pictureFile } from '../src/lib/now.js';
 import { oneLine, readNowCommand } from '../src/lib/now-command.js';
 
 const SECRET = 'a-test-secret-only';
@@ -62,13 +64,67 @@ test('emoji and accents survive the trip through base64 both ways', () => {
 });
 
 test("Claude's answer becomes the editor's lines, and anything else is turned away", () => {
-  assert.equal(tidiedText({ items: ['🎮 Playing: Shape of Dreams', '- ✈️ Visiting: Yunnan'] }), '- 🎮 Playing: Shape of Dreams\n- ✈️ Visiting: Yunnan');
-  assert.equal(tidiedText({ items: ['  🛠️ Building:   a  tool '] }), '- 🛠️ Building: a tool');
-  assert.equal(tidiedText({ items: ['🛠️ Building: Media Studio — An app for my photos. Videos too'] }), '- 🛠️ Building: Media Studio — An app for my photos. Videos too');
-  assert.equal(tidiedText({ items: [] }), null);
-  assert.equal(tidiedText({ items: ['', '  '] }), null);
-  assert.equal(tidiedText({ lines: ['🎮 Playing: Chess'] }), null);
-  assert.equal(tidiedText(null), null);
+  const lines = (...items) => ({ items: items.map((line) => ({ line, game: '' })) });
+  const text = (answer) => tidied(answer)?.text ?? null;
+  assert.equal(text(lines('🎮 Playing: Shape of Dreams', '- ✈️ Visiting: Yunnan')), '- 🎮 Playing: Shape of Dreams\n- ✈️ Visiting: Yunnan');
+  assert.equal(text(lines('  🛠️ Building:   a  tool ')), '- 🛠️ Building: a tool');
+  assert.equal(text(lines('🛠️ Building: Media Studio — An app for my photos. Videos too')), '- 🛠️ Building: Media Studio — An app for my photos. Videos too');
+  assert.equal(text({ items: [] }), null);
+  assert.equal(text(lines('', '  ')), null);
+  assert.equal(text({ items: ['🎮 Playing: Chess'] }), null);
+  assert.equal(text({ lines: ['🎮 Playing: Chess'] }), null);
+  assert.equal(text(null), null);
+});
+
+test('the first item that names a game is the one offered pictures, counted after empty lines are dropped', () => {
+  const answer = { items: [{ line: '', game: '' }, { line: '😌 Chilling and resting', game: '' }, { line: '🎮 Playing: [Phantom Blade Zero](https://example.com) — Slow going', game: ' Phantom  Blade Zero ' }, { line: '🎮 Playing: Dota 2', game: 'Dota 2' }] };
+  assert.deepEqual(tidied(answer), {
+    text: '- 😌 Chilling and resting\n- 🎮 Playing: [Phantom Blade Zero](https://example.com) — Slow going\n- 🎮 Playing: Dota 2',
+    game: { line: 1, name: 'Phantom Blade Zero', value: 'Phantom Blade Zero' },
+  });
+  assert.equal(tidied({ items: [{ line: '😌 Chilling', game: '' }] })?.game, null);
+  assert.equal(tidied({ items: [{ line: '😌 Chilling' }] })?.game, null);
+});
+
+test("a picture is named after the thing it's for, the same however it's written", () => {
+  assert.equal(pictureFile('Phantom Blade Zero'), 'phantom-blade-zero.jpg');
+  assert.equal(pictureFile('[Black Myth: Wukong](https://example.com)'), 'black-myth-wukong.jpg');
+  assert.equal(pictureFile('  ELDEN RING™ '), 'elden-ring.jpg');
+  assert.equal(pictureFile('黑神话：悟空'), '黑神话-悟空.jpg');
+  assert.equal(pictureFile('!!'), '');
+});
+
+test("Steam's search answer gives the game itself, before its soundtrack and add-ons", () => {
+  const items = [
+    { type: 'app', name: 'Phantom Blade Zero Deluxe Edition Upgrade', id: 5041150 },
+    { type: 'app', name: 'Phantom Blade Zero', id: 4115450 },
+  ];
+  assert.equal(bestMatch(items, 'phantom blade zero')?.id, 4115450);
+  assert.equal(bestMatch(items, 'Phantom Blade')?.id, 5041150);
+  assert.equal(bestMatch([{ type: 'sub', name: 'A', id: 1 }], 'A'), null);
+  assert.equal(bestMatch(undefined, 'A'), null);
+});
+
+test("a store item's pictures are its poster, its tall art and a small copy of its first screenshot", () => {
+  const item = {
+    assets: { asset_url_format: 'steam/apps/1/${FILENAME}?t=9', library_capsule: 'ab/library_capsule.jpg', hero_capsule: 'cd/hero_capsule.jpg' },
+    screenshots: { all_ages_screenshots: [{ filename: 'steam/apps/1/ef/ss_ef.jpg?t=9' }] },
+  };
+  const base = 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1/';
+  assert.deepEqual(picturesOf(item), [`${base}ab/library_capsule.jpg?t=9`, `${base}cd/hero_capsule.jpg?t=9`, `${base}ef/ss_ef.600x338.jpg?t=9`]);
+  assert.deepEqual(picturesOf({ assets: { asset_url_format: 'steam/apps/1/${FILENAME}', hero_capsule: 'h.jpg' } }), [`${base}h.jpg`]);
+  assert.deepEqual(picturesOf({}), []);
+  for (const address of picturesOf(item)) assert.ok(isSteamPicture(address));
+});
+
+test('a save takes pictures only from Steam', () => {
+  assert.ok(isSteamPicture('https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/library_capsule.jpg?t=1'));
+  assert.equal(isSteamPicture('http://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/library_capsule.jpg'), false);
+  assert.equal(isSteamPicture('https://example.com/store_item_assets/steam/apps/570/a.jpg'), false);
+  assert.equal(isSteamPicture('https://shared.akamai.steamstatic.com/other/a.jpg'), false);
+  assert.equal(isSteamPicture('https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/570/a.png'), false);
+  assert.equal(isSteamPicture('not an address'), false);
+  assert.equal(isSteamPicture(undefined), false);
 });
 
 test('the palette reads /now, /now login and nothing else as the command', () => {

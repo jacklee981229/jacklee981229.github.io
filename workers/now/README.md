@@ -16,7 +16,9 @@ credits. Run every command in `C:\repos\Jack\jacks-space`.
 
 - On a phone or anywhere: open the Worker's address, log in, change the lines, press Tidy if you like, then Save.
 - On the site: open the command palette, type `/now login` once in each browser, then `/now Playing chess` and press
-  Enter twice: once to see Claude's line, once to save it as the whole of Now.
+  Enter twice: once to see Claude's line, once to save it as the whole of Now. When the line names a game that isn't
+  in the Collection, Steam's pictures of it show under the line: ← → picks one (or "No picture"), and Enter saves the
+  picture with the line, as `src/assets/now/<its name>.jpg`, in the same commit.
 - Each save is a commit, "Now - update", made on GitHub: pull before your next commit on the laptop.
 - A login lasts 30 days. To log every device out, set a new `SESSION_SECRET`.
 

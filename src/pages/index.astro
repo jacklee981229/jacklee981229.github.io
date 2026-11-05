@@ -21,6 +21,7 @@ import { nowFile } from '../lib/now-file.js';
 import { briefDays } from '../lib/brief-file.js';
 import { inlineHtml, plainText } from '../lib/now.js';
 import { shelfItemNamed, pictures } from '../lib/shelf-pictures';
+import { nowPicture } from '../lib/now-pictures';
 import { pictureOf } from '../lib/shelves.js';
 import { changelogFile } from '../lib/changelog-file.js';
 import { interleave, joiner, lately, lowerFirst, writingPicks } from '../lib/home.js';
@@ -41,16 +42,21 @@ const github = links.find((link) => link.icon === 'github');
 const tiles = links.filter((link) => link !== github);
 
 // Now: up to three lines, each "label value", the label's emoji included; the first item that names
-// something in the Collection lends its cover. Then when it changed, and the newest change to the site.
+// something in the Collection lends its cover, or the picture Jack picked for it with /now. Then when it changed,
+// and the newest change to the site.
 const now = nowFile();
 // The Morning Brief's door names the newest day's first lead.
 const briefLead = briefDays().at(-1)?.items[0]?.title;
 const nowItems = await Promise.all(
-  now.items.slice(0, 3).map(async (item) => ({
-    label: item.label ?? '',
-    html: inlineHtml(item.value, site),
-    found: await shelfItemNamed(plainText(item.value)),
-  })),
+  now.items.slice(0, 3).map(async (item) => {
+    const shelf = await shelfItemNamed(plainText(item.value));
+    return {
+      label: item.label ?? '',
+      html: inlineHtml(item.value, site),
+      // A Collection thing without a cover can still have a picture Jack picked.
+      found: shelf?.picture ? shelf : { shelf: undefined, picture: nowPicture(item.value) },
+    };
+  }),
 );
 const snapshot = nowItems.find((item) => item.found?.picture)?.found;
 const change = lately(changelogFile());
@@ -115,7 +121,7 @@ const list = (names: string[]) => names.map((name, i) => joiner(i, names.length)
         {changed && <p class="line lately">Lately I <a href="/changelog/">{changed}</a>{stop}</p>}
         {now.updated && <Updated date={now.updated} />}
         {snapshot?.picture && (
-          <a class="snapshot" href={`/collections/#${snapshot.shelf}`} tabindex="-1" aria-hidden="true">
+          <a class="snapshot" href={snapshot.shelf ? `/collections/#${snapshot.shelf}` : '/now/'} tabindex="-1" aria-hidden="true">
             <Image src={snapshot.picture} alt="" width={208} height={278} fit="cover" />
           </a>
         )}

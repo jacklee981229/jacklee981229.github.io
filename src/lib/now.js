@@ -141,5 +141,16 @@ export const inlineHtml = (text, site) => markExternal(micromark(text).trim().re
 /** A note's Markdown as HTML, its paragraphs kept. @param {string} text @param {string} site */
 export const blockHtml = (text, site) => markExternal(micromark(text), site);
 
+/**
+ * The file name of the picture Jack picked for a thing on Now (src/assets/now/), from its name, so now.md needs no
+ * mark of its own: "Phantom Blade Zero" is "phantom-blade-zero.jpg". Nothing for a name with no letters or digits.
+ * @param {string} value an item's thing, as now.md has it
+ */
+export function pictureFile(value) {
+  // Symbols (™, ®) go first: NFKC would turn ™ into letters.
+  const stem = plainText(value).replace(/\p{S}/gu, '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+  return stem ? `${stem}.jpg` : '';
+}
+
 /** The text a line of Markdown shows, without its links' addresses: "[Jack's Space](/)" is "Jack's Space". */
 export const plainText = (text) => text.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim();

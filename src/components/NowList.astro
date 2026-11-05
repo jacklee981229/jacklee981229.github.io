@@ -2,12 +2,13 @@
 // Now's items (src/content/now.md, read by src/lib/now.js), each a card: its label and name read as one line, as on
 // the home page ("🛠️ Building Media Studio"), a line about it and since when it's been on Now. An item that names a project or a post shows its picture across the card's top, lends
 // its line when Jack wrote none, and leads to it; one that names something in a collection shows its cover beside the
-// name and leads to that collection's tab. An item that is only a mood (none of those, and no line) is a card in
+// name and leads to that collection's tab, and one Jack picked a picture for with /now shows that the same way. An item that is only a mood (none of those, and no line) is a card in
 // Now's colours. The cards sit by nowLayout's rules, so none stretches into an empty block beside a picture.
 import { Image } from 'astro:assets';
 import { namesTitle, plainText } from '../lib/now.js';
 import { howLong, nowLayout, splitEmoji } from '../lib/now-layout.js';
 import { shelfItemNamed } from '../lib/shelf-pictures';
+import { nowPicture } from '../lib/now-pictures';
 import { PROJECTS } from '../lib/projects';
 import { coverOf, pagePosts, postUrl } from '../lib/collections';
 import { getCollection } from 'astro:content';
@@ -44,7 +45,9 @@ const rows = await Promise.all(
     const picture = project?.picture ?? (post && coverOf(post));
     const detail = item.detail ? plainText(item.detail) : (project?.line ?? post?.data.description);
     const words = splitEmoji(`${item.label ?? ''} ${name}`);
-    const mood = !picture && !shelf?.picture && !detail && !href && words[1] ? words : undefined;
+    // A thing outside the Collection may have a picture Jack picked for it with /now, shown the same way.
+    const thumb = shelf?.picture ?? (project || post ? undefined : nowPicture(item.value));
+    const mood = !picture && !thumb && !detail && !href && words[1] ? words : undefined;
     return {
       label: item.label,
       name,
@@ -54,7 +57,7 @@ const rows = await Promise.all(
       mood,
       // A project's picture is its window on a clear background, so it sits on its kind's colours, as on Projects.
       kind: project?.kind,
-      thumb: shelf?.picture,
+      thumb,
       href,
       external: href ? isExternal(href, site) : false,
       go,
@@ -106,7 +109,7 @@ for (const block of nowLayout(rows.map((row) => Boolean(row.picture)))) {
               <span class="words">
                 <span class="name">{row.mood ? row.mood[1] : <>{row.label && `${row.label} `}{row.name}</>}</span>
               </span>
-              {row.thumb && <span class="thumb"><Image src={row.thumb} alt="" width={THUMB * 2} style={`width: ${THUMB}px`} /></span>}
+              {row.thumb && <span class="thumb"><Image src={row.thumb} alt="" width={THUMB * 2} height={THUMB * 3} fit="cover" style={`width: ${THUMB}px`} /></span>}
             </span>
             {row.detail && <span class="detail">{row.detail}</span>}
             {tall && row.since && (
