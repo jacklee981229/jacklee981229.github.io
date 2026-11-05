@@ -15,16 +15,17 @@ credits. Run every command in `C:\repos\Jack\jacks-space`.
 ## Using it
 
 - On a phone or anywhere: open the Worker's address, log in, change the lines, press Tidy if you like, then Save.
-- On the site: open the command palette, type `/now login` once in each browser, then `/now Playing chess` and press
+- On the site: open the command palette, type `/login` once in each browser, then `/now Playing chess` and press
   Enter twice: once to see Claude's line, once to save it as the whole of Now. When the line names a game that isn't
   in the Collection, Steam's pictures of it show under the line: ← → picks one (or "No picture"), and Enter saves the
   picture with the line, as `src/assets/now/<its name>.jpg`, in the same commit.
 - Each save is a commit, "Now - update", made on GitHub: pull before your next commit on the laptop.
-- A login lasts 30 days. To log every device out, set a new `SESSION_SECRET`.
+- A login lasts 30 days. `/logout` forgets it in that browser only; to log every device out, set a new
+  `SESSION_SECRET`.
 
 ## Drafts
 
-Writing (`/writing/`) shows Drafts and `+ Draft` only in a browser that did `/now login`. A draft (text and pictures)
+Writing (`/writing/`) shows Drafts and `+ Draft` only in a browser that did `/login`. A draft (text and pictures)
 stays in the D1 database, private, until Publish commits `src/content/posts/<first free number>/` to `main` as
 "Post - publish /N/" and removes it; the post is live about two minutes later. The editor is `/writing/draft/?id=…`.
 Once, before first use: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`.

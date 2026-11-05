@@ -15,7 +15,7 @@ const meta = (p: Post) => ({ topic: topicOf(p.data.topic).name, date: formatDate
 <Base title="Writing" description="Everything I've written, newest first.">
   <div class="wrap page">
     <PageTop tone="writing" icon="pen" title="Writing" lead="Everything I've written, newest first." />
-    <!-- Jack's drafts (src/lib/drafts-api.ts): shown only in a browser logged in with the palette's /now login. -->
+    <!-- Jack's drafts (src/lib/drafts-api.ts): shown only in a browser logged in with the palette's /login. -->
     <section class="drafts" aria-labelledby="drafts-title" data-drafts hidden>
       <div class="drafts-head">
         <h2 id="drafts-title">Drafts</h2>

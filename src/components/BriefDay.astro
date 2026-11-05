@@ -1,7 +1,7 @@
 ---
 // One day of the Morning Brief (src/lib/brief.js): the day, a way to the days on either side, its three 今日重点 as
 // cards in their kinds' colours, and the rest as rows. Any of them opens where it is to its description, why it's
-// worth a look and its links. Logged in to the Now editor (the palette's /now login), Jack also sees 1 to 5 to score
+// worth a look and its links. Logged in to the Now editor (the palette's /login), Jack also sees 1 to 5 to score
 // each item; the brief's maker reads those scores to learn his taste.
 import Go from './Go.astro';
 import Icon from './Icon.astro';
@@ -181,7 +181,7 @@ const sourceLine = (i: (typeof day.items)[number]) => [SOURCES[i.source], signal
         if (status === 200) return void (note.textContent = HINT);
         score = was;
         show(card, score);
-        note.textContent = status === 401 ? '登录过期了：在命令面板输入 /now login 再登录一次。' : (data.error ?? '没存上，等一下再试。');
+        note.textContent = status === 401 ? '登录过期了：在命令面板输入 /login 再登录一次。' : (data.error ?? '没存上，等一下再试。');
       });
       row.append(b);
     }

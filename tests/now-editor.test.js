@@ -127,13 +127,17 @@ test('a save takes pictures only from Steam', () => {
   assert.equal(isSteamPicture(undefined), false);
 });
 
-test('the palette reads /now, /now login and nothing else as the command', () => {
+test('the palette reads /now, /login, /logout and nothing else as a command', () => {
   assert.deepEqual(readNowCommand('/now Visiting Yunnan ✈'), { words: 'Visiting Yunnan ✈' });
   assert.deepEqual(readNowCommand('  /NOW   Playing chess  '), { words: 'Playing chess' });
   assert.deepEqual(readNowCommand('/now'), { words: '' });
-  assert.deepEqual(readNowCommand('/now login'), { login: true });
-  assert.deepEqual(readNowCommand('/now Login'), { login: true });
-  assert.deepEqual(readNowCommand('/now login to the castle'), { words: 'login to the castle' });
+  assert.deepEqual(readNowCommand('/login'), { login: true });
+  assert.deepEqual(readNowCommand('  /Login '), { login: true });
+  assert.deepEqual(readNowCommand('/logout'), { logout: true });
+  assert.deepEqual(readNowCommand('/LOGOUT'), { logout: true });
+  assert.deepEqual(readNowCommand('/now login'), { words: 'login' });
+  assert.equal(readNowCommand('/log'), null);
+  assert.equal(readNowCommand('/login now'), null);
   assert.equal(readNowCommand('/nowhere'), null);
   assert.equal(readNowCommand('now playing'), null);
 });

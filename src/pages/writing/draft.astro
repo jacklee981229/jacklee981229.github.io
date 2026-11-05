@@ -1,6 +1,6 @@
 ---
 // Jack's draft editor: one draft from his Now editor Worker (workers/now/drafts.js), opened from Writing's Drafts.
-// Everything here comes from the Worker after the page loads, with the pass the palette's "/now login" keeps, so the
+// Everything here comes from the Worker after the page loads, with the pass the palette's "/login" keeps, so the
 // built page holds nothing private. Kept out of search engines and the sitemap.
 import Base from '../../layouts/Base.astro';
 import PageTop from '../../components/PageTop.astro';
@@ -255,7 +255,7 @@ import '../../styles/prose.css';
   addEventListener('beforeunload', (event) => { if (!editor.hidden && changed()) event.preventDefault(); });
 
   async function open() {
-    if (!draftPass()) { gate.textContent = 'Log in first: open the palette and type /now login.'; return; }
+    if (!draftPass()) { gate.textContent = 'Log in first: open the palette and type /login.'; return; }
     if (!/^[0-9a-f-]{36}$/.test(id)) { gate.textContent = 'This draft address is missing its draft. Open one from Writing.'; return; }
     try {
       const { draft, images } = await draftCall<{ draft: Draft; images: DraftImage[] }>(`/api/drafts/${id}`);
@@ -266,7 +266,7 @@ import '../../styles/prose.css';
       editor.hidden = false;
       slidePills();
     } catch (error) {
-      gate.textContent = (error as { status?: number }).status === 401 ? 'The login ran out: open the palette and type /now login again.' : (error as Error).message;
+      gate.textContent = (error as { status?: number }).status === 401 ? 'The login ran out: open the palette and type /login again.' : (error as Error).message;
     }
   }
 

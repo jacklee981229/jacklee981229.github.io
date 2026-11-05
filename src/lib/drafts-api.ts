@@ -1,5 +1,5 @@
 // The drafts' calls to Jack's Now editor Worker (workers/now/drafts.js), with the login pass the palette's
-// "/now login" keeps in this browser. Without a pass there are no drafts to show, and the pages stay as everyone
+// "/login" keeps in this browser. Without a pass there are no drafts to show, and the pages stay as everyone
 // sees them.
 import { SITE } from '../site';
 import { PASS_KEY } from './now-command.js';

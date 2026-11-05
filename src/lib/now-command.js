@@ -1,19 +1,21 @@
-// The palette's /now: Jack changes Now from the site's command palette through his Now editor Worker (workers/now).
-// "/now login" asks for the password once per browser; "/now <words>" has Claude tidy the words, shows the line, and
-// saves it as the whole of Now. Only a browser that has logged in shows the command at all.
+// Jack's commands in the site's command palette, answered by his Now editor Worker (workers/now). "/login" asks for
+// the password once per browser, and that login also opens his Morning Brief scores and Writing's drafts; "/logout"
+// forgets it in this browser. "/now <words>" has Claude tidy the words, shows the line, and saves it as the whole of
+// Now. Only a browser that has logged in shows /now and /logout at all.
 
-/** Where the browser keeps the login pass. */
+/** Where the browser keeps the login pass (named before the login covered more than Now; renaming it logs Jack out). */
 export const PASS_KEY = 'now-pass';
 
 /**
- * What a typed /now asks for, or nothing when it isn't /now.
- * @param {string} query @returns {{ login: true } | { words: string } | null}
+ * What a typed command asks for, or nothing when it isn't one of these.
+ * @param {string} query @returns {{ login: true } | { logout: true } | { words: string } | null}
  */
 export function readNowCommand(query) {
-  const match = query.trimStart().match(/^\/now(?:\s+([\s\S]*))?$/i);
-  if (!match) return null;
-  const words = (match[1] ?? '').trim();
-  return /^login$/i.test(words) ? { login: true } : { words };
+  const typed = query.trim();
+  if (/^\/login$/i.test(typed)) return { login: true };
+  if (/^\/logout$/i.test(typed)) return { logout: true };
+  const match = typed.match(/^\/now(?:\s+([\s\S]*))?$/i);
+  return match ? { words: (match[1] ?? '').trim() } : null;
 }
 
 /** The editor's text ("- a\n- b") as one line for the palette: "a · b". @param {string} text */

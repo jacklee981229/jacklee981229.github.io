@@ -3,7 +3,8 @@
 // matched as you type (src/lib/palette.js), then posts from the Pagefind index that `npm run build` makes. The
 // pages and the Lab come from lists the site already keeps (src/lib/palette-items.ts), so new ones show up by
 // themselves. The list is drawn in the browser, with the site's own icons (src/lib/icons.js) as a hidden sprite.
-// Jack's /now (src/lib/now-command.js) changes Now from here, in a browser that has logged in to his Now editor.
+// Jack's /login and /logout (src/lib/now-command.js) log this browser in to his Now editor, and /now changes Now from
+// here once it has.
 import Icon from './Icon.astro';
 import { ICONS } from '../lib/icons.js';
 import { openables, paletteItems } from '../lib/palette-items';
@@ -14,7 +15,7 @@ const things = (await openables()).map(({ title, href }) => ({ title, href }));
 // The Collection's things that have a cover: /now finds no pictures for those, as Now shows their cover.
 const covered = (await getCollection('shelves')).flatMap((shelf) => shelf.data.items.filter((i) => i.image).map((i) => i.name.trim().toLowerCase()));
 /** Every icon the list can show: the items' own and the actions'. */
-const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock'])];
+const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock', 'user'])];
 ---
 <dialog class="search" aria-label="Search or run a command" data-search>
   <div class="box">
@@ -109,7 +110,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     document.dispatchEvent(new CustomEvent('nightnote', { detail: note }));
   }
 
-  // /now: the login pass this browser keeps (none for visitors), whether the box is asking for the password, a
+  // /login and /now: the login pass this browser keeps (none for visitors), whether the box is asking for the password, a
   // request on its way, and Claude's tidied line waiting for a second Enter, with the game it names (which item, the
   // title to search, the item's thing), Steam's pictures of it and the one picked (pictures.length is "No picture").
   const pass = {
@@ -131,9 +132,10 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     }
   }
 
-  /** The /now row for what's typed: log in, tidy the words, or save Claude's line for them. */
-  function nowRows(command: { login: true } | { words: string }): Option[] {
-    if ('login' in command) return [{ title: 'Log in to change Now', group: 'Actions', icon: 'clock', description: 'Asks for the Now editor password', run: askPassword, keep: true }];
+  /** The row for what's typed: log in or out, tidy the words, or save Claude's line for them. */
+  function nowRows(command: { login: true } | { logout: true } | { words: string }): Option[] {
+    if ('login' in command) return [{ title: 'Log in', group: 'Actions', icon: 'user', description: 'Asks for the editor password', run: askPassword, keep: true }];
+    if ('logout' in command) return [{ title: 'Log out', group: 'Actions', icon: 'user', description: 'Forgets the login in this browser', run: logOut, keep: true }];
     const { words } = command;
     if (!words) return [];
     if (tidied?.words === words) {
@@ -149,10 +151,10 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     asking = true;
     input.value = '';
     input.type = 'password';
-    input.placeholder = 'Now password';
+    input.placeholder = 'Password';
     options = [];
     draw();
-    say('Type the Now password, then press Enter.');
+    say('Type the password, then press Enter.');
   }
 
   function stopAsking() {
@@ -177,11 +179,17 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     say('Logged in. Type what you’re up to after /now.');
   }
 
+  /** The reload hides what the login showed on this page (scores, drafts). */
+  function logOut() {
+    pass.set('');
+    location.reload();
+  }
+
   /** Anything but a login that ran out keeps its message; that one forgets the pass. */
   function nowFailed(status: number, error: string) {
     if (status === 401) {
       pass.set('');
-      say('Your Now login ran out. Type /now login to log in again.');
+      say('Your login ran out. Type /login to log in again.');
     } else say(error);
   }
 
