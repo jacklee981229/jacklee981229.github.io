@@ -135,6 +135,10 @@ test('the palette reads /now, /login, /logout and nothing else as a command', ()
   assert.deepEqual(readNowCommand('  /Login '), { login: true });
   assert.deepEqual(readNowCommand('/logout'), { logout: true });
   assert.deepEqual(readNowCommand('/LOGOUT'), { logout: true });
+  assert.deepEqual(readNowCommand(' /todo '), { todo: true });
+  assert.deepEqual(readNowCommand('/TODO'), { todo: true });
+  assert.equal(readNowCommand('/todos'), null);
+  assert.equal(readNowCommand('/todo today'), null);
   assert.deepEqual(readNowCommand('/now login'), { words: 'login' });
   assert.equal(readNowCommand('/log'), null);
   assert.equal(readNowCommand('/login now'), null);

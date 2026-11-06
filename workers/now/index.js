@@ -7,6 +7,7 @@ import { draftRoute } from './drafts.js';
 import { page } from './page.js';
 import { LIMITS } from '../../src/lib/drafts.js';
 import { MOST_SCORES, readScore } from './scores.js';
+import { readTodos } from './todos.js';
 import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, bytesToBase64, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidied, toBase64 } from './now-editor.js';
 import { pictureBytes, steamPictures } from './pictures.js';
 import { pictureFile, readNow } from '../../src/lib/now.js';
@@ -183,6 +184,30 @@ async function scoreSave(request, env) {
   return json({ id, score });
 }
 
+/**
+ * The laptop's push of Jack's open to-dos (todos.js), with its own token. A browser never gets this far: any request
+ * with an Origin is turned away, and PUT isn't in the preflight's methods.
+ * @param {Request} request @param {any} env
+ */
+async function todosPush(request, env) {
+  if (request.headers.get('Origin')) return json({ error: 'Not allowed.' }, 403);
+  if (!(await rightPassword(request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''), env.TODO_PUSH_TOKEN))) return json({ error: 'Wrong token.' }, 401);
+  const read = readTodos(await readBody(request, 1_000_000));
+  if ('error' in read) return json({ error: read.error }, 400);
+  const { pushedAt, projects, items } = read.list;
+  // Only a newer push replaces the list, so two pushes arriving out of order never bring back the older one.
+  const { meta } = await env.DB.prepare('INSERT INTO todo_list (id, list, pushed_at) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET list = excluded.list, pushed_at = excluded.pushed_at WHERE excluded.pushed_at > todo_list.pushed_at')
+    .bind(JSON.stringify({ projects, items }), pushedAt)
+    .run();
+  return json({ kept: meta.changes > 0, count: items.length });
+}
+
+/** Jack's open to-dos as last pushed: none before the first push. @param {any} env */
+async function todosList(env) {
+  const row = await env.DB.prepare('SELECT list, pushed_at FROM todo_list WHERE id = 1').first();
+  return json(row ? { pushedAt: row.pushed_at, ...JSON.parse(String(row.list)) } : { pushedAt: null, projects: [], items: [] });
+}
+
 /** @param {Request} request @param {number} [longest] the most characters taken */
 async function readBody(request, longest = LONGEST * 4) {
   const raw = await request.text();
@@ -213,7 +238,9 @@ async function answer(request, env, method, pathname, origin) {
     if (method === 'POST' && pathname === '/api/login') return await login(request, env);
     // The brief's maker reads the scores with its own read-only token; the page reads them with Jack's pass.
     if (method === 'GET' && pathname === '/api/brief/scores' && (await rightPassword(request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''), env.BRIEF_READ_TOKEN))) return await scoresList(env);
+    if (method === 'PUT' && pathname === '/api/todos') return await todosPush(request, env);
     if (!(await signedIn(request.headers.get('Authorization'), env.SESSION_SECRET))) return json({ error: 'Please log in.' }, 401);
+    if (method === 'GET' && pathname === '/api/todos') return await todosList(env);
     if (method === 'GET' && pathname === '/api/brief/scores') return await scoresList(env);
     if (method === 'POST' && pathname === '/api/brief/score') return await scoreSave(request, env);
     if (method === 'GET' && pathname === '/api/now') return await load(env);

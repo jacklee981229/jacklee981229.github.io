@@ -15,7 +15,7 @@ const things = (await openables()).map(({ title, href }) => ({ title, href }));
 // The Collection's things that have a cover: /now finds no pictures for those, as Now shows their cover.
 const covered = (await getCollection('shelves')).flatMap((shelf) => shelf.data.items.filter((i) => i.image).map((i) => i.name.trim().toLowerCase()));
 /** Every icon the list can show: the items' own and the actions'. */
-const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock', 'user'])];
+const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock', 'user', 'check'])];
 ---
 <dialog class="search" aria-label="Search or run a command" data-search>
   <div class="box">
@@ -130,6 +130,41 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     } catch {
       return { status: 0, data: { error: "Couldn't reach the Now editor. Check the connection and try again." } };
     }
+  }
+
+  // /todo: Jack's open to-dos as his laptop last pushed them (workers/now/todos.js), asked for once each time the
+  // palette opens. The laptop has already put them in order; they're only read here.
+  type TodoList = { pushedAt: number | null; projects: string[]; items: { id: string; project: string; text: string; notes: string }[] };
+  let todoList: Promise<{ status: number; data: any }> | null = null;
+  const NOTES_SHOWN = 160;
+
+  /** "Synced 10:42", with the day when it wasn't today. @param {number} at */
+  function synced(at: number) {
+    const when = new Date(at);
+    const time = when.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return when.toDateString() === new Date().toDateString() ? `Synced ${time}` : `Synced ${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${time}`;
+  }
+
+  async function showTodos(ticket: number) {
+    options = [];
+    draw();
+    say('Getting your to-dos', true);
+    todoList ??= callNow('/api/todos');
+    const { status, data: list } = await todoList;
+    if (ticket !== latest) return;
+    if (list.error) {
+      todoList = null;
+      return nowFailed(status, list.error);
+    }
+    const { pushedAt, projects, items } = list as TodoList;
+    options = projects.flatMap((project) =>
+      items
+        .filter((i) => i.project === project)
+        .map((i) => ({ title: i.text, group: project, icon: 'check', description: i.notes.length > NOTES_SHOWN ? `${i.notes.slice(0, NOTES_SHOWN)}…` : i.notes || undefined, keep: true })),
+    );
+    draw();
+    if (!pushedAt) return say('No to-dos have come from the laptop yet.');
+    say(options.length ? synced(pushedAt) : `Nothing to do. ${synced(pushedAt)}`);
   }
 
   /** The row for what's typed: log in or out, tidy the words, or save Claude's line for them. */
@@ -389,8 +424,10 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       return;
     }
     const command = readNowCommand(query);
-    // Visitors' /now is just a search; a browser that has logged in gets the command.
-    if (command && ('login' in command || pass.get())) {
+    // Visitors' /now and /todo are just searches; a browser that has logged in gets the commands.
+    if (command && 'todo' in command) {
+      if (pass.get()) return showTodos(ticket);
+    } else if (command && ('login' in command || pass.get())) {
       options = nowRows(command);
       draw();
       return say(options.length ? '' : 'Type what you’re up to after /now, like “/now Playing chess”.');
@@ -457,6 +494,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     input.value = '';
     update('');
+    todoList = null;
     dialog.showModal();
     input.focus();
     loadIndex();

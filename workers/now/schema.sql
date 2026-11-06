@@ -31,3 +31,11 @@ CREATE TABLE IF NOT EXISTS draft_images (
   created_at TEXT NOT NULL,
   PRIMARY KEY (draft_id, name)
 );
+
+-- Jack's open to-dos (todos.js), pushed whole from his laptop's to-do widget: one row, the list as JSON (its projects
+-- in order and the to-dos oldest first) and when the laptop read it, in milliseconds. Only a newer push replaces it.
+CREATE TABLE IF NOT EXISTS todo_list (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  list TEXT NOT NULL,
+  pushed_at INTEGER NOT NULL
+);

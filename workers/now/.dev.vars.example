@@ -9,3 +9,7 @@ SESSION_SECRET=
 GITHUB_TOKEN=
 # An Anthropic API key from the Console organization that gets the Max plan's API credits.
 ANTHROPIC_API_KEY=
+# A long random string the Morning Brief's maker reads the scores with (the repo secret of the same name).
+BRIEF_READ_TOKEN=
+# A long random string the to-do widget on Jack's laptop pushes his to-dos with (TODO_PUSH_TOKEN in its .env).
+TODO_PUSH_TOKEN=

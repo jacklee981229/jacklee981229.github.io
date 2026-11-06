@@ -9,7 +9,7 @@ credits. Run every command in `C:\repos\Jack\jacks-space`.
 
 1. `npx wrangler deploy --config workers/now/wrangler.toml`; it prints the Worker's address, which `nowEditor` in
    `src/site.ts` must match.
-2. Set the four secrets that `.dev.vars.example` lists, each with
+2. Set the secrets that `.dev.vars.example` lists, each with
    `npx wrangler secret put <NAME> --config workers/now/wrangler.toml` (it asks for the value).
 
 ## Using it
@@ -29,6 +29,17 @@ Writing (`/writing/`) shows Drafts and `+ Draft` only in a browser that did `/lo
 stays in the D1 database, private, until Publish commits `src/content/posts/<first free number>/` to `main` as
 "Post - publish /N/" and removes it; the post is live about two minutes later. The editor is `/writing/draft/?id=…`.
 Once, before first use: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`.
+
+## To-dos
+
+The to-do widget on the laptop (`C:\repos\Jack\todo-widget`, its `sync.py`) pushes Jack's open to-dos here, leaving
+out work projects, a few seconds after each change and every 15 minutes. A browser that did `/login` sees them with the
+palette's `/todo` and at the top of `/brief/`; nothing else can read them. Once, before first use:
+
+1. Make the table: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`
+   (safe to run again).
+2. Make a long random token and set it here with `npx wrangler secret put TODO_PUSH_TOKEN --config workers/now/wrangler.toml`,
+   and in the widget's `.env` with the Worker's address (its `.env.example` says how).
 
 ## Trying it on the laptop
 
