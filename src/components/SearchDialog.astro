@@ -612,14 +612,18 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   input { flex: 1; min-width: 0; padding: var(--space-2) 0; border: 0; background: transparent; color: inherit; font-size: var(--text-md); font-weight: 500; }
   input:focus { outline: none; }
   .esc { padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--radius-sm); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 600; cursor: pointer; }
-  .results { position: relative; max-height: calc(min(34rem, 80dvh) - 4rem); padding: var(--space-2); overflow-y: auto; }
+  /* A column while open, the list taking what's left, so a long list never pushes the status line (/todo's "Synced …")
+     out of the dialog. Only while open: a closed dialog keeps the browser's display: none. */
+  .search[open] { display: flex; flex-direction: column; }
+  .results { position: relative; flex: 1 1 auto; min-height: 0; padding: var(--space-2); overflow-y: auto; }
   .results :global(.highlight) { position: absolute; top: 0; left: var(--space-2); right: var(--space-2); border-radius: var(--radius-image); background: var(--wash); box-shadow: inset 2px 0 var(--focus); pointer-events: none; transition: transform var(--motion-quick) var(--ease-out), height var(--motion-quick) var(--ease-out); }
   .results:empty { display: none; }
   .results :global(.group-title) { padding: var(--space-2) var(--space-3) var(--space-1); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
   .results :global(.option) { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: var(--space-3); padding: 0.625rem var(--space-3); border-radius: var(--radius-image); cursor: pointer; }
   .results :global(.option .icon) { margin-top: 0.1rem; color: var(--muted); }
   .results :global(.option[aria-selected='true'] .icon) { color: var(--ink); }
-  .results :global(.text) { display: grid; gap: var(--space-1); min-width: 0; }
+  /* A to-do or title with a long address and no spaces breaks anywhere instead of running out of the box. */
+  .results :global(.text) { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
   .results :global(.title) { font-weight: 650; }
   .results :global(.excerpt) { color: var(--muted); font-size: var(--text-sm); line-height: 1.5; }
   /* The /now line's pictures: the picked one stands out, the rest step back. */
