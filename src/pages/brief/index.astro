@@ -1,8 +1,9 @@
 ---
 // Morning Brief: the newest day's brief (src/content/brief/, made each morning by scripts/brief/). The days before
 // are at /brief/YYYY-MM-DD/ ([day].astro). In the sitemap, the palette and a door on the home page, not the menu.
-// Logged in to the Now editor (the palette's /login), Jack also sees his oldest open to-dos at the top, pushed from his
-// laptop (workers/now/todos.js); the built page holds only an empty spot for them, never a to-do.
+// Logged in to the Now editor (the palette's /login), Jack also sees at the top his open to-dos whose day has come
+// (today or passed, src/lib/todo-days.js), pushed from his laptop (workers/now/todos.js); the built page holds only an
+// empty spot for them, never a to-do.
 import Base from '../../layouts/Base.astro';
 import PageTop from '../../components/PageTop.astro';
 import BriefDay from '../../components/BriefDay.astro';
@@ -24,6 +25,7 @@ const before = days.at(-2);
 <script>
   import { PASS_KEY } from '../../lib/now-command.js';
   import { SITE } from '../../site';
+  import { dueFirst, lateWords, malaysiaToday } from '../../lib/todo-days.js';
 
   /** The most to-dos shown here; /todo in the palette lists them all. */
   const SHOWN = 5;
@@ -32,12 +34,14 @@ const before = days.at(-2);
   let pass = '';
   try { pass = localStorage.getItem(PASS_KEY) ?? ''; } catch { /* blocked: nothing here */ }
 
-  /** The oldest open to-dos, drawn only once they come; anything else (no login, offline, none left) shows nothing. */
+  /** The to-dos whose day has come, the earliest first, drawn only once they arrive; anything else (no login, offline,
+   * none due) shows nothing. Today's need no day beside them, the title says it; passed ones say how long ago. */
   async function showToday(spot: HTMLElement) {
     const answer = await fetch(`${SITE.nowEditor}/api/todos`, { headers: { Authorization: `Bearer ${pass}` } });
     if (!answer.ok) return;
-    const { items } = (await answer.json()) as { items: { text: string; project: string }[] };
-    if (!items?.length) return;
+    const today = malaysiaToday();
+    const items = dueFirst(((await answer.json()) as { items?: { text: string; project: string; on?: string }[] }).items ?? [], today);
+    if (!items.length) return;
     const title = document.createElement('h2');
     title.id = 'today-title';
     title.textContent = '今天要做的';
@@ -51,7 +55,15 @@ const before = days.at(-2);
         const project = document.createElement('span');
         project.className = 'project';
         project.textContent = item.project;
-        row.append(text, project);
+        row.append(text);
+        const late = lateWords(item.on ?? today, today);
+        if (late) {
+          const when = document.createElement('span');
+          when.className = 'late';
+          when.textContent = late;
+          row.append(when);
+        }
+        row.append(project);
         return row;
       }),
     );
@@ -81,6 +93,7 @@ const before = days.at(-2);
   .today :global(li:last-child) { border-bottom: 0; padding-bottom: 0; }
   .today :global(.text) { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
   .today :global(.project) { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
+  .today :global(.late) { flex: none; color: var(--todo-late); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
   .today :global(.more) { margin: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); }
 
   @media (max-width: 599px) {

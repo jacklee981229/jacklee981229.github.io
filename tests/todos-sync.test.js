@@ -10,7 +10,7 @@ const good = {
   projects: ['alpha', 'General'],
   items: [
     { id: id(1), project: 'General', text: ' Test: water the plants ', notes: '' },
-    { id: id(2), project: 'alpha', text: 'Test: 写测试', notes: 'Test note' },
+    { id: id(2), project: 'alpha', text: 'Test: 写测试', notes: 'Test note', on: '2026-11-07' },
   ],
 };
 
@@ -19,6 +19,15 @@ test('a good push is kept in its order, its words trimmed', () => {
   assert.deepEqual(list.projects, ['alpha', 'General']);
   assert.deepEqual(list.items.map((i) => i.text), ['Test: water the plants', 'Test: 写测试']);
   assert.equal(list.pushedAt, good.pushedAt);
+  // A to-do sent without a day, as from a laptop before days, gets none.
+  assert.deepEqual(list.items.map((i) => i.on), ['', '2026-11-07']);
+});
+
+test('a day must be a real YYYY-MM-DD or nothing', () => {
+  for (const on of ['2026-02-29', '20261107', '2026-W45-5', 'tomorrow', 5, null]) {
+    assert.ok('error' in readTodos({ ...good, items: [good.items[0], { ...good.items[1], on }] }, NOW), String(on));
+  }
+  assert.equal(readTodos({ ...good, items: [good.items[0], { ...good.items[1], on: '' }] }, NOW).list.items[1].on, '');
 });
 
 test('an empty list is a good push: everything is done', () => {
@@ -55,7 +64,7 @@ test('a push that does not look like the list is refused', () => {
 });
 
 test('too many to-dos are refused; the most, all at full length in Chinese, stay under 1 MB', () => {
-  const many = (count, text, notes) => Array.from({ length: count }, (_, n) => ({ id: id(n + 1), project: 'General', text, notes }));
+  const many = (count, text, notes) => Array.from({ length: count }, (_, n) => ({ id: id(n + 1), project: 'General', text, notes, on: '2026-11-07' }));
   assert.ok('error' in readTodos({ pushedAt: NOW, projects: ['General'], items: many(MOST_TODOS + 1, 'Test', '') }, NOW));
   const { list } = readTodos({ pushedAt: NOW, projects: ['General'], items: many(MOST_TODOS, '字'.repeat(LONGEST_TEXT), '字'.repeat(LONGEST_NOTES)) }, NOW);
   assert.ok(new TextEncoder().encode(JSON.stringify(list)).length < 1_000_000);

@@ -34,7 +34,8 @@ Once, before first use: `npx wrangler d1 execute jacks-space-now --remote --file
 
 The to-do widget on the laptop (`C:\repos\Jack\todo-widget`, its `sync.py`) pushes Jack's open to-dos here, leaving
 out work projects, a few seconds after each change and every 15 minutes. A browser that did `/login` sees them with the
-palette's `/todo` and at the top of `/brief/`; nothing else can read them. Once, before first use:
+palette's `/todo` and at the top of `/brief/`; nothing else can read them. A to-do may carry the day Jack plans to do
+it on: `/todo` puts those whose day has come under Today, and `/brief/` lists only those. Once, before first use:
 
 1. Make the table: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`
    (safe to run again).

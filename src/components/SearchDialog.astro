@@ -39,10 +39,12 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   import { announce } from '../lib/lab/page';
   import { PASS_KEY, oneLine, readNowCommand } from '../lib/now-command.js';
   import { sayWaiting } from '../lib/waiting.js';
+  import { dayWords, malaysiaToday, todoGroups } from '../lib/todo-days.js';
 
   // keep: running it leaves the palette open (the /now steps).
   // pictures: the /now line's pictures to pick from.
-  type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void; keep?: boolean; pictures?: string[] };
+  // day: a /todo row's day at its right end, red once passed. project: its project's tag, under Today.
+  type Option = { title: string; group: string; icon: string; description?: string; excerpt?: string; words?: string[]; href?: string; run?: () => void; keep?: boolean; pictures?: string[]; day?: { text: string; kind: 'late' | 'today' | 'later' }; project?: string };
   type Result = { url: string; meta: { title?: string }; excerpt: string };
   type Pagefind = { search: (query: string) => Promise<{ results: { data: () => Promise<Result> }[] }> };
 
@@ -133,8 +135,8 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   }
 
   // /todo: Jack's open to-dos as his laptop last pushed them (workers/now/todos.js), asked for once each time the
-  // palette opens. The laptop has already put them in order; they're only read here.
-  type TodoList = { pushedAt: number | null; projects: string[]; items: { id: string; project: string; text: string; notes: string }[] };
+  // palette opens: the ones whose day has come under Today, then each project's (src/lib/todo-days.js).
+  type TodoList = { pushedAt: number | null; projects: string[]; items: { id: string; project: string; text: string; notes: string; on?: string }[] };
   let todoList: Promise<{ status: number; data: any }> | null = null;
   const NOTES_SHOWN = 160;
 
@@ -157,10 +159,19 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       return nowFailed(status, list.error);
     }
     const { pushedAt, projects, items } = list as TodoList;
-    options = projects.flatMap((project) =>
-      items
-        .filter((i) => i.project === project)
-        .map((i) => ({ title: i.text, group: project, icon: 'check', description: i.notes.length > NOTES_SHOWN ? `${i.notes.slice(0, NOTES_SHOWN)}…` : i.notes || undefined, keep: true })),
+    const today = malaysiaToday();
+    const short = (notes: string) => (notes.length > NOTES_SHOWN ? `${notes.slice(0, NOTES_SHOWN)}…` : notes);
+    options = todoGroups(projects, items, today).flatMap((group) =>
+      group.items.map((i) => ({
+        title: i.text,
+        group: group.name,
+        icon: 'check',
+        // Today mixes projects, so its rows carry theirs as a tag; there the group's name already says "Today".
+        project: group.today ? i.project : undefined,
+        description: short(i.notes) || undefined,
+        day: i.on && i.on !== today ? dayWords(i.on, today) : undefined,
+        keep: true,
+      })),
     );
     draw();
     if (!pushedAt) return say('No to-dos have come from the laptop yet.');
@@ -371,6 +382,12 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     title.className = 'title';
     title.textContent = option.title;
     text.append(title);
+    if (option.project) {
+      const project = document.createElement('span');
+      project.className = 'project';
+      project.textContent = option.project;
+      text.append(project);
+    }
     if (option.excerpt) {
       const excerpt = document.createElement('span');
       excerpt.className = 'excerpt';
@@ -385,6 +402,12 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
     }
     if (option.pictures) text.append(pictureStrip(option.pictures));
     el.append(icon, text);
+    if (option.day) {
+      const day = document.createElement('span');
+      day.className = `day ${option.day.kind}`;
+      day.textContent = option.day.text;
+      el.append(day);
+    }
     return el;
   }
 
@@ -626,6 +649,11 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   .results :global(.text) { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
   .results :global(.title) { font-weight: 650; }
   .results :global(.excerpt) { color: var(--muted); font-size: var(--text-sm); line-height: 1.5; }
+  /* A to-do's day, at the row's right end on the title's line. */
+  .results :global(.day) { flex: none; margin-left: auto; padding-top: 0.15rem; color: var(--muted); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
+  .results :global(.day.late) { color: var(--todo-late); }
+  /* The project's tag under Today, as /brief/'s rows have it. */
+  .results :global(.project) { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; }
   /* The /now line's pictures: the picked one stands out, the rest step back. */
   /* The tiles stay in one row, shrinking on a phone. */
   .results :global(.picks) { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
