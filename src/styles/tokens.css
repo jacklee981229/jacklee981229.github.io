@@ -105,6 +105,11 @@
   --accent-travel: #0A84FF;
   --accent-about: #BF5AF2;
   --accent-projects: #5E5CE6;
+  /* Jack's Dashboard in the menu (logged in only), as bright as the parts' colours: its most urgent state, something
+     to do now, soon, or all well. The page's own state colours are deeper, for words; on an icon they read as grey. */
+  --dash-nav-act: #FF453A;
+  --dash-nav-soon: #FFB800;
+  --dash-nav-ok: #40C8E0;
   /* The home page's colour cards, the same in both themes: each fades between two colours and sets white text on
      them; a door card's words sit on its third, deeper colour. */
   --on-colour: #FFFFFF;

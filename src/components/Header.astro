@@ -120,9 +120,9 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
      (data-dash), plain like Home's until that's known. */
   .nav .dash-link { display: none; }
   :global([data-signed-in]) .nav .dash-link { display: inline-flex; }
-  :global([data-dash='act']) .nav .dash-link { --accent: var(--dash-bad); }
-  :global([data-dash='soon']) .nav .dash-link { --accent: var(--dash-soon); }
-  :global([data-dash='fyi']) .nav .dash-link, :global([data-dash='calm']) .nav .dash-link { --accent: var(--focus); }
+  :global([data-dash='act']) .nav .dash-link { --accent: var(--dash-nav-act); }
+  :global([data-dash='soon']) .nav .dash-link { --accent: var(--dash-nav-soon); }
+  :global([data-dash='fyi']) .nav .dash-link, :global([data-dash='calm']) .nav .dash-link { --accent: var(--dash-nav-ok); }
   /* The line under the current page is a background: drawn as an inset shadow, it left a faint line down the
      link's right edge on 150% screens. */
   .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--focus), var(--focus)) bottom / 100% 2px no-repeat; }

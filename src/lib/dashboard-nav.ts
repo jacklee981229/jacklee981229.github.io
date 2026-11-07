@@ -1,5 +1,5 @@
 // The menu's Dashboard link (Header.astro), only in a browser logged in to the Now editor: its icon takes the colour of
-// the dashboard's most urgent state, red for something to do now, amber for soon, the site's teal when all is well.
+// the dashboard's most urgent state, red for something to do now, amber for soon, cyan when all is well.
 // Base.astro's head shows the link and the last state before the page paints; this reads the latest from the Worker.
 import { draftCall, draftPass } from './drafts-api';
 import { attention, worst, type Todo } from './dashboard.js';
