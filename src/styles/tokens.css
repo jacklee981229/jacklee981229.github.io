@@ -105,11 +105,20 @@
   --accent-travel: #0A84FF;
   --accent-about: #BF5AF2;
   --accent-projects: #5E5CE6;
-  /* Jack's Dashboard in the menu (logged in only), as bright as the parts' colours: its most urgent state, something
-     to do now, soon, or all well. The page's own state colours are deeper, for words; on an icon they read as grey. */
+  /* Jack's Dashboard in the menu (logged in only): a glass pill in its most urgent state's colour (something to do
+     now, soon, or all well), the same in every theme. Each fades from a colour white words keep 4.5:1 on to a deeper
+     one, and glows in the bright one. */
   --dash-nav-act: #FF453A;
+  --dash-nav-act-from: #D83C34;
+  --dash-nav-act-to: #8F2420;
   --dash-nav-soon: #FFB800;
+  --dash-nav-soon-from: #C2570A;
+  --dash-nav-soon-to: #7C3A06;
   --dash-nav-ok: #40C8E0;
+  --dash-nav-ok-from: #0A8299;
+  --dash-nav-ok-to: #0B4A59;
+  --dash-nav-ink: #FFFFFF;
+  --dash-nav-shine: rgb(255 255 255 / 0.45);
   /* The home page's colour cards, the same in both themes: each fades between two colours and sets white text on
      them; a door card's words sit on its third, deeper colour. */
   --on-colour: #FFFFFF;

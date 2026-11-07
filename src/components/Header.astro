@@ -116,13 +116,19 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   /* Each part's icon in its own colour (--accent, from the menu in site.ts); Home's follows the words. */
   .nav a :global(.icon) { flex: none; width: 18px; height: 18px; color: var(--accent, currentColor); stroke-width: 2.2; }
   .nav a:hover { color: var(--ink); }
-  /* Logged in only (data-signed-in, set in Base.astro's head); its icon in the dashboard's most urgent state's colour
-     (data-dash), plain like Home's until that's known. */
+  /* Logged in only (data-signed-in, set in Base.astro's head). Unlike the others it stands out on purpose (Jack, only
+     he sees it): a glass pill in the dashboard's most urgent state's colour (data-dash), a gradient with a light top
+     edge and a glow, white words; plain like Home until the state is known. The pill sits behind the words, so the
+     link keeps its place in the menu. */
   .nav .dash-link { display: none; }
-  :global([data-signed-in]) .nav .dash-link { display: inline-flex; }
-  :global([data-dash='act']) .nav .dash-link { --accent: var(--dash-nav-act); }
-  :global([data-dash='soon']) .nav .dash-link { --accent: var(--dash-nav-soon); }
-  :global([data-dash='fyi']) .nav .dash-link, :global([data-dash='calm']) .nav .dash-link { --accent: var(--dash-nav-ok); }
+  :global([data-signed-in]) .nav .dash-link { display: inline-flex; margin-inline: var(--space-2); }
+  :global([data-dash]) .nav a.dash-link, :global([data-dash]) .nav a.dash-link[aria-current='page'] { isolation: isolate; color: var(--dash-nav-ink); font-weight: 750; }
+  :global([data-dash]) .nav .dash-link :global(.icon) { color: var(--dash-nav-ink); }
+  :global([data-dash]) .nav .dash-link::before { content: ''; position: absolute; z-index: -1; inset: 50% -14px auto; height: 2.375rem; translate: 0 -50%; border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, var(--from), var(--to)); box-shadow: inset 0 1px 0 var(--dash-nav-shine), 0 4px 18px color-mix(in srgb, var(--glow) 45%, transparent); }
+  :global([data-dash='act']) .nav .dash-link { --from: var(--dash-nav-act-from); --to: var(--dash-nav-act-to); --glow: var(--dash-nav-act); }
+  :global([data-dash='soon']) .nav .dash-link { --from: var(--dash-nav-soon-from); --to: var(--dash-nav-soon-to); --glow: var(--dash-nav-soon); }
+  :global([data-dash='fyi']) .nav .dash-link, :global([data-dash='calm']) .nav .dash-link { --from: var(--dash-nav-ok-from); --to: var(--dash-nav-ok-to); --glow: var(--dash-nav-ok); }
   /* The line under the current page is a background: drawn as an inset shadow, it left a faint line down the
      link's right edge on 150% screens. */
   .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--focus), var(--focus)) bottom / 100% 2px no-repeat; }
