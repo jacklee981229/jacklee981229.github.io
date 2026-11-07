@@ -273,10 +273,22 @@ export function laneOrder(order, shown, project, to) {
   return full;
 }
 
-/** Each project's colour number (1 to 8, then round again), in name order so a project keeps its colour. @param {DoneItem[]} items */
-export function projectColours(items) {
-  const names = [...new Set(items.map((i) => i.project))].sort((a, b) => a.localeCompare(b));
-  return new Map(names.map((name, i) => [name, (i % 8) + 1]));
+/**
+ * Each project's colour number (1 to 8) in Done, the same in both weeks (Jack: a project's colour must tally), and no
+ * two lanes of one week alike. This week's lanes take theirs in name order; last week's keep the one they have this
+ * week, and the rest take, in name order, the colours left in that week, the ones this week doesn't use first. A week
+ * has seven lanes at most, so eight colours always go round.
+ * @param {string[]} thisWeek @param {string[]} lastWeek The projects with a lane of their own in each week.
+ * @returns {Map<string, number>}
+ */
+export function weekColours(thisWeek, lastWeek) {
+  const byName = (/** @type {string[]} */ list) => [...list].sort((a, b) => a.localeCompare(b));
+  const colours = new Map(byName(thisWeek).map((name, i) => [name, (i % 8) + 1]));
+  const taken = new Set(lastWeek.filter((p) => colours.has(p)).map((p) => colours.get(p)));
+  const used = new Set(colours.values());
+  const left = [1, 2, 3, 4, 5, 6, 7, 8].filter((c) => !taken.has(c)).sort((a, b) => Number(used.has(a)) - Number(used.has(b)));
+  for (const name of byName(lastWeek.filter((p) => !colours.has(p)))) colours.set(name, left.shift() ?? 1);
+  return colours;
 }
 
 // A module is the few words before " - " (Jack's commits, "Scan - learn retyped kinds") or ": " (his plan to-dos,

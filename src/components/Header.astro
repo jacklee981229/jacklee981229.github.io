@@ -151,14 +151,14 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   :global([data-sky='night']) .theme-btn .star { display: block; }
 
   /* Phones and narrow windows, where the name, the menu and the buttons no longer fit side by side: the menu gets its
-     own row under the name. */
-  @media (max-width: 929px) {
+     own row under the name. They need about 1030px side by side (measured); 1050 leaves a little to spare. */
+  @media (max-width: 1049px) {
     .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
     .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: var(--hairline) solid var(--rule); scrollbar-width: none; }
     .nav a { padding-block: 0.875rem; white-space: nowrap; }
   }
   /* The same, sooner, with Jack's Dashboard in the menu: below 1150px it pushed the buttons off the window. */
-  @media (min-width: 930px) and (max-width: 1149px) {
+  @media (min-width: 1050px) and (max-width: 1149px) {
     :global([data-signed-in]) .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
     :global([data-signed-in]) .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: var(--hairline) solid var(--rule); scrollbar-width: none; }
     :global([data-signed-in]) .nav a { padding-block: 0.875rem; white-space: nowrap; }

@@ -2,7 +2,7 @@
 // needs him and what's fine. Test snapshots only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attention, backupDue, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextBackup, nextUp, projectColours, todoRows, whenWords, worst } from '../src/lib/dashboard.js';
+import { attention, backupDue, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextBackup, nextUp, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
 
 const at = (iso) => Date.parse(iso);
 const HOUR = 3600_000;
@@ -163,7 +163,23 @@ test('Done’s weeks run Monday to Sunday in Malaysia', () => {
   assert.deepEqual([last[0].day, last[6].day, last[6].items[0].text], ['2026-10-26', '2026-11-01', 'Test - last Sunday']);
   // Sunday night, 23:30 in Malaysia, is still the same week.
   assert.equal(doneWeek(items, 'this', at('2026-11-08T23:30:00+08:00'))[6].label, 'Today');
-  assert.deepEqual([...projectColours(items)], [['a', 1], ['b', 2]]);
+});
+
+test('Done’s colours: a project keeps its colour in both weeks, and no two lanes of a week share one', () => {
+  const colours = weekColours(['jacks-space', 'expenses', 'kb'], ['kb', 'widget', 'jacks-space', 'agent']);
+  // This week by name: expenses 1, jacks-space 2, kb 3; last week keeps those and gives the rest the unused ones.
+  assert.deepEqual(Object.fromEntries(colours), { expenses: 1, 'jacks-space': 2, kb: 3, agent: 4, widget: 5 });
+  // Full weeks: last week's new projects first take colours this week doesn't use, then this week's leftovers.
+  const now = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  const last = ['g', 'p', 'q', 'r', 's', 't', 'u'];
+  const full = weekColours(now, last);
+  assert.deepEqual(now.map((p) => full.get(p)), [1, 2, 3, 4, 5, 6, 7]);
+  const lastColours = last.map((p) => full.get(p));
+  assert.equal(new Set(lastColours).size, 7);
+  assert.deepEqual(lastColours, [7, 8, 1, 2, 3, 4, 5]);
+  // Either week alone: name order, as before.
+  assert.deepEqual(Object.fromEntries(weekColours(['b', 'a'], [])), { a: 1, b: 2 });
+  assert.deepEqual(Object.fromEntries(weekColours([], ['b', 'a'])), { a: 1, b: 2 });
 });
 
 test('Done’s lanes: a project each, the busiest first; past seven, the rest share one', () => {

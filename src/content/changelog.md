@@ -149,3 +149,4 @@
 - 2026-11-03 fix: Hid a stray file box under CSV Preview's buttons
 - 2026-11-03 new: Added SumatraPDF to the Toolbox
 - 2026-11-05 improved: Gave Now a picture of the game I'm playing
+- 2026-11-07 fix: Kept the menu's buttons on screen in mid-size windows

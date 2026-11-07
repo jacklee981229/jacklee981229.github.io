@@ -3,34 +3,41 @@
 // projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
 // (the snapshot his laptop pushes, workers/now/dashboard.js, and the to-dos, workers/now/todos.js), so the built page
 // holds nothing private. The rules are src/lib/dashboard.js. Kept out of search engines and the sitemap.
+// Its look is its own, apart from the site's (T8, Jack: "脱离jackspace的框架…直接全部做成渐变玻璃样式"): dark frosted
+// glass over drifting colour clouds, the same in every theme (Base's `look`, tokens.css's --dg-*), with only the
+// site's menu bar kept, in glass too; so its top is its own, not PageTop.
 import Base from '../layouts/Base.astro';
-import PageTop from '../components/PageTop.astro';
 import Switch from '../components/Switch.astro';
 import { ICONS } from '../lib/icons.js';
+import { flowStyle } from '../lib/flow.js';
 
 const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip'] as const;
 ---
-<Base title="Dashboard" description="Jack's dashboard." noindex>
+<Base title="Dashboard" description="Jack's dashboard." noindex look="dashboard">
+  <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <div class="wrap page">
-    <PageTop tone="dashboard" icon="sliders" title="Dashboard" lead="Loading" />
-    <p class="gate" data-gate>Loading<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+    <header class="glass top" style={flowStyle(Astro.url.pathname)}>
+      <h1 class="title">Dashboard</h1>
+      <p class="lede" data-lede>Loading</p>
+    </header>
+    <p class="glass gate" data-gate>Loading<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
 
     <div class="board" data-board hidden>
       <div class="lanes">
         <div class="side" data-side="left">
-          <section class="frame needs" data-needs aria-labelledby="needs-h">
+          <section class="glass frame needs" data-needs aria-labelledby="needs-h">
             <h2 class="sec-h" id="needs-h">Needs you <span class="count" data-count></span></h2>
             <div data-list></div>
           </section>
         </div>
         <div class="side" data-side="right">
-          <section class="frame good" data-good aria-labelledby="good-h">
+          <section class="glass frame good" data-good aria-labelledby="good-h">
             <h2 class="sec-h" id="good-h">All good <span class="count" data-count></span></h2>
             <ul class="rows" data-list></ul>
           </section>
         </div>
       </div>
-      <section class="frame todo" data-todo aria-labelledby="todo-h">
+      <section class="glass frame todo" data-todo aria-labelledby="todo-h">
         <div class="todo-top">
           <h2 class="sec-h" id="todo-h">To-do <span class="count" data-count></span></h2>
           <span class="pick" data-pick hidden>
@@ -40,7 +47,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
         </div>
         <div class="todo-scroll" data-edge-fade="y"><ul class="rows" data-list></ul></div>
       </section>
-      <section class="frame done" aria-labelledby="done-h">
+      <section class="glass frame done" aria-labelledby="done-h">
         <div class="done-top">
           <h2 class="sec-h" id="done-h">Done</h2>
           <Switch name="week" label="Which week" choices={[{ value: 'this', label: 'This week' }, { value: 'last', label: 'Last week' }]} />
@@ -60,7 +67,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 
 <script>
   import { draftCall, draftPass } from '../lib/drafts-api';
-  import { attention, dayOf, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextUp, projectColours, todoRows, worst, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
+  import { attention, dayOf, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextUp, todoRows, weekColours, worst, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
   import { sayWaiting } from '../lib/waiting.js';
   import { showLevel } from '../lib/dashboard-nav';
   import { newTab } from '../lib/links.js';
@@ -68,7 +75,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   const $ = <T extends Element>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
   const gate = $<HTMLElement>('[data-gate]');
   const board = $<HTMLElement>('[data-board]');
-  const top = $<HTMLElement>('.page-top .lede');
+  const top = $<HTMLElement>('[data-lede]');
   const needs = $<HTMLElement>('[data-needs]');
   const good = $<HTMLElement>('[data-good]');
   const todo = $<HTMLElement>('[data-todo]');
@@ -133,15 +140,15 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     const fig = el('div', 'fig-col');
     if (n.fig !== undefined) {
       fig.append(el('p', 'fig', String(n.fig)), el('p', 'unit', n.unit));
-      if (n.cells !== undefined) {
-        const cells = el('span', 'cells');
-        // The seven days of a signing; the ones left are lit, at the right end.
-        for (let i = 0; i < 7; i++) cells.append(el('i', i >= 7 - (n.cells ?? 0) ? 'on' : ''));
-        fig.append(cells);
-      }
     } else fig.append(icon(n.icon ?? 'close'));
     const body = el('div', 'body');
     body.append(el('h3', 't', n.title), ...n.lines.map((line) => el('p', 'sub', line)));
+    if (n.cells !== undefined) {
+      const cells = el('span', 'cells');
+      // The seven days of a signing; the ones left are lit, at the right end.
+      for (let i = 0; i < 7; i++) cells.append(el('i', i >= 7 - (n.cells ?? 0) ? 'on' : ''));
+      body.append(cells);
+    }
     if (n.err) body.append(el('p', 'err', `Error: ${n.err}`));
     if (n.rows) {
       const mini = el('ul', 'mini');
@@ -167,7 +174,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 
   function drawNeeds(now: number) {
     const list = attention(snapshot, todos, now);
-    needs.className = `frame needs lv-${worst(list)}`;
+    needs.className = `glass frame needs lv-${worst(list)}`;
     // The menu's Dashboard link shows what this shows.
     showLevel(worst(list));
     if (list.length) return fill(needs, list.length, ...list.map(needRow));
@@ -222,10 +229,13 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     }));
   }
 
-  /** To-do goes under the shorter lane, so the two lanes end near each other; in one column, after All good. Moved
-   *  only when its place changes, as a move scrolls its list back to the top. */
+  /** To-do goes under the shorter lane, and its list then takes the height that ends both lanes level, so no blank
+   *  is left under either (Jack: no white space under All good; the CSS stretches it); in one column, after All good.
+   *  The two are compared by what they hold, as the one To-do isn't under is stretched to the lane's end. Moved only
+   *  when its place changes, as a move scrolls its list back to the top. */
   function placeTodos() {
-    const place = matchMedia('(max-width: 899px)').matches || needs.offsetHeight >= good.offsetHeight ? right : left;
+    const held = (frame: HTMLElement) => [...frame.children].reduce((sum, child) => sum + (child as HTMLElement).offsetHeight, 0);
+    const place = matchMedia('(max-width: 899px)').matches || held(needs) >= held(good) ? right : left;
     if (todo.parentElement !== place) place.append(todo);
   }
 
@@ -265,9 +275,9 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     const days = doneWeek(items, which, now);
     const lanes = doneLanes(days, order);
     shown = lanes.filter((l) => l.key !== 'more').map((l) => l.projects[0]);
-    // Colours go to the lanes on show, so no two share one (seven lanes at most, eight colours); a project can have
-    // another colour in the other week.
-    const colours = projectColours(lanes.filter((l) => l.projects.length === 1).flatMap((l) => l.days.flat()));
+    // Colours go to the lanes on show, so no two share one, and a project has the same one in both weeks.
+    const own = (week: 'this' | 'last') => doneLanes(doneWeek(items, week, now)).filter((l) => l.key !== 'more').map((l) => l.projects[0]);
+    const colours = weekColours(own('this'), own('last'));
     const opened = lanes.find((l) => l.key === openLane);
     const at = days.findIndex((d) => d.day === openDay);
     // A newer snapshot can take away what was open.
@@ -533,27 +543,55 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 </script>
 
 <style>
-  .gate { margin: 0; padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); font-weight: 650; }
+  /* Look A of T8's prototypes ("Aurora", Jack's pick): four colour clouds drifting slowly behind (only decoration; the
+     states are in the sections), every section a pane of frosted glass, the ones with a state lit from their top. The
+     drift is this page's own slow movement, like the night sky's; with less motion asked for, it holds still. */
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .sky i { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, var(--cloud) 30%, transparent); animation: dash-drift 26s ease-in-out infinite alternate; }
+  .sky i:nth-child(1) { --cloud: var(--dg-cloud-1); left: -26vw; top: -40vw; width: 84vw; height: 84vw; opacity: 0.6; }
+  .sky i:nth-child(2) { --cloud: var(--dg-cloud-2); right: -22vw; top: -6vh; width: 66vw; height: 66vw; opacity: 0.48; animation-duration: 31s; animation-direction: alternate-reverse; }
+  .sky i:nth-child(3) { --cloud: var(--dg-cloud-3); left: -16vw; top: 50vh; width: 64vw; height: 64vw; opacity: 0.4; animation-duration: 37s; }
+  .sky i:nth-child(4) { --cloud: var(--dg-cloud-4); right: -18vw; top: 58vh; width: 70vw; height: 70vw; opacity: 0.44; animation-duration: 29s; animation-direction: alternate-reverse; }
+  @keyframes dash-drift { to { transform: translate(6vw, 4vh) scale(1.12); } }
+  @media (prefers-reduced-motion: reduce) { .sky i { animation: none; } }
+
+  /* The site's menu bar, the one part of the site kept (D12), as a darker glass bar. Its theme button goes: the page
+     looks the same in every theme. */
+  :global(html[data-look='dashboard'] .site-header) { background: var(--dg-bar); backdrop-filter: blur(var(--dg-bar-blur)) saturate(150%); -webkit-backdrop-filter: blur(var(--dg-bar-blur)) saturate(150%); }
+  :global(html[data-look='dashboard'] .site-header .theme-btn) { display: none; }
+
+  /* A pane of glass: a faint white over the clouds, frosted, a fine edge and a bright top line. */
+  .glass { border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-xl); background: linear-gradient(var(--dg-glass), var(--dg-glass)) var(--dg-veil);
+    box-shadow: inset 0 1px 0 var(--dg-glass-top), var(--dg-glass-shadow);
+    backdrop-filter: blur(var(--dg-glass-blur)) saturate(160%); -webkit-backdrop-filter: blur(var(--dg-glass-blur)) saturate(160%); }
+
+  .top { margin-bottom: var(--space-5); padding: var(--space-6) var(--space-7); }
+  .title { margin: 0; font-size: var(--dg-title); font-weight: 900; line-height: 1; letter-spacing: -0.03em; }
+  .lede { margin: var(--space-3) 0 0; color: var(--muted); font-size: var(--text-md); }
+  .lede[hidden] { display: none; }
+  /* Global: the script writes it. */
+  .lede :global(.offline) { margin-right: var(--space-3); padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+  .gate { margin: 0; padding: var(--space-6); font-weight: 650; }
   .gate[hidden], .board[hidden] { display: none; }
   .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
-  /* The top is PageTop's, so these reach into it. */
-  :global(.page-top .lede[hidden]) { display: none; }
-  :global(.page-top .lede .offline) { margin-right: var(--space-3); padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
 
-  /* Needs you on the left and wider, All good on the right; To-do goes under the shorter one, Done runs full width. */
-  .lanes { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
-  .side { display: grid; gap: var(--space-5); align-content: start; min-width: 0; }
+  /* Needs you on the left and wider, All good on the right; To-do goes under the shorter one, Done runs full width.
+     The two lanes end level: each lane's last section stretches to the lane's end, To-do's list taking the height. */
+  .lanes { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-5); }
+  .side { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+  .side > :global(.frame:last-child) { flex: 1 0 auto; }
   .done { margin-top: var(--space-5); }
 
-  /* Each section in a quiet frame, lighter than the page with a fine edge; one with a state is lit from its top in
-     that state's colour: Needs you in its most urgent one, All good in green. */
-  .frame { --lit: transparent; position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: var(--space-5) var(--space-5) var(--space-2); border-radius: var(--radius-xl);
-    background: var(--dash-frame); border: var(--hairline) solid color-mix(in srgb, var(--lit) 34%, var(--dash-frame-edge)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lit) 70%, var(--dash-frame-top)); }
-  .frame::before { content: ''; position: absolute; z-index: -2; inset: 0 0 auto; height: 220px; pointer-events: none;
-    background: radial-gradient(60% 100% at 50% 0, color-mix(in srgb, var(--lit) 20%, transparent), color-mix(in srgb, var(--lit) 6%, transparent) 55%, transparent); }
+  /* Each section a pane; one with a state is lit from its top in that state's colour: Needs you in its most urgent
+     one, All good in green. The light fades out by the first rows, so their words keep 4.5:1. To-do and Done stay
+     unlit. */
+  .frame { --lit: transparent; position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: var(--space-5) var(--space-5) var(--space-2); }
+  .frame.needs, .frame.good { border-top-color: color-mix(in srgb, var(--lit) 70%, transparent); }
+  .needs::before, .good::before { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--lit) 36%, transparent), color-mix(in srgb, var(--lit) 8%, transparent) 7rem, transparent 12rem); }
   .needs.lv-act { --lit: var(--dash-bad); }
   .needs.lv-soon { --lit: var(--dash-soon); }
-  .needs.lv-fyi { --lit: var(--muted); }
+  .needs.lv-fyi { --lit: var(--dg-fyi); }
   .needs.lv-calm, .good { --lit: var(--dash-ok); }
   .sec-h { display: flex; gap: var(--space-3); align-items: baseline; margin: 0; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.01em; }
   .needs > .sec-h, .good > .sec-h { color: color-mix(in srgb, var(--lit) 55%, var(--ink)); }
@@ -569,66 +607,65 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .rows :global(.sub) { grid-column: 1; color: var(--muted); font-size: var(--text-sm); }
   .rows :global(.when) { grid-column: 2; grid-row: 2; justify-self: end; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
   .rows :global(.state) { justify-self: end; color: var(--dash-ok); font-size: var(--text-sm); font-weight: 800; white-space: nowrap; }
-  .good :global(.what::before) { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 50%; background: var(--dash-ok); translate: 0 -2px; }
+  .good :global(.what::before) { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 50%; background: var(--dash-ok); box-shadow: 0 0 8px var(--dash-ok); translate: 0 -2px; }
   /* A deploy's name opens its run: in the row's ink until hovered, so the list stays calm. */
   .good :global(a.what) { color: var(--ink); transition: color var(--motion-quick) var(--ease-out), transform var(--motion-soft) var(--ease-release); }
   @media (hover: hover) { .good :global(a.what:hover) { color: var(--dash-ok); } }
   .good :global(.running .state) { color: var(--muted); }
-  .good :global(.running .what::before) { background: var(--muted); }
+  .good :global(.running .what::before) { background: var(--muted); box-shadow: none; }
   /* To-do rows as /todo's: the day at the right, red once passed, the project's tag under the words. */
   .todo :global(.day) { color: var(--muted); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
   .todo :global(.day.late) { color: var(--todo-late); }
   .todo :global(.tag) { justify-self: start; padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
   .todo :global(li.note) { display: block; }
-  /* The project filter at the header's right, as in the desktop widget; set into the frame like a field in a card. */
+  /* The project filter at the header's right, as in the desktop widget; set into the glass like a well. */
   .todo-top, .done-top { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
   .todo-top .sec-h, .done-top .sec-h { padding-bottom: 0; border-bottom: 0; }
   .pick { position: relative; display: inline-flex; min-width: 0; }
   .pick[hidden] { display: none; }
-  .pick select { appearance: none; min-width: 0; max-width: 14rem; padding: 0.3125rem 2.25rem 0.3125rem var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--paper); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 700; text-overflow: ellipsis; cursor: pointer; }
+  .pick select { appearance: none; min-width: 0; max-width: 14rem; padding: 0.3125rem 2.25rem 0.3125rem var(--space-4); border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 700; text-overflow: ellipsis; cursor: pointer; }
   .pick select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .pick .icon { position: absolute; top: 50%; right: var(--space-3); width: 14px; height: 14px; translate: 0 -50%; color: var(--muted); stroke-width: 2.5; pointer-events: none; }
-  /* A long list scrolls in its own box, so To-do no longer stretches the page; its edges fade (data-edge-fade). */
-  .todo-scroll { max-height: 27rem; overflow-y: auto; }
+  /* A long list scrolls in its own box, its edges fading (data-edge-fade). Its height is the room left in its lane,
+     at least about four rows: it adds no more than that to the lane, then grows into what the other lane leaves. */
+  .todo { display: flex; flex-direction: column; }
+  .todo-scroll { flex: 1 1 0; min-height: 15rem; overflow-y: auto; }
 
   /* Needs you: a big number (or an icon) in the state's colour with a soft light behind it, then the words. */
-  .needs :global(.need) { --c: var(--dash-bad); display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: var(--space-1) var(--space-5); align-items: center; min-width: 0; padding: 22px 0; border-top: var(--hairline) solid var(--rule); isolation: isolate; }
+  .needs :global(.need) { --c: var(--dash-bad); display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-1) var(--space-5); align-items: center; min-width: 0; padding: 18px 0; border-top: var(--hairline) solid var(--rule); isolation: isolate; }
   .needs :global(.need:first-child) { border-top: 0; }
   .needs :global(.need.soon) { --c: var(--dash-soon); }
-  .needs :global(.need.fyi) { --c: var(--muted); padding: var(--space-4) 0; }
+  .needs :global(.need.fyi) { --c: var(--dg-fyi); }
   .needs :global(.need.calm) { --c: var(--dash-ok); position: relative; grid-template-columns: minmax(0, 1fr); }
-  .needs :global(.fig-col) { position: relative; min-width: 0; }
-  .needs :global(.fig-col::before) { content: ''; position: absolute; z-index: -1; left: 3rem; top: 50%; width: 11rem; height: 9rem; translate: -50% -50%;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 20%, transparent), color-mix(in srgb, var(--c) 9%, transparent) 45%, color-mix(in srgb, var(--c) 3%, transparent) 75%, transparent); }
-  .needs :global(.need.fyi .fig-col::before) { display: none; }
-  .needs :global(.fig) { margin: 0; color: var(--c); font-size: var(--text-2xl); font-weight: 900; letter-spacing: -0.04em; line-height: 0.95; font-variant-numeric: tabular-nums; text-shadow: 0 0 22px color-mix(in srgb, var(--c) 40%, transparent); }
-  .needs :global(.unit) { margin: 6px 0 0; color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
-  .needs :global(.fig-col .icon) { display: block; width: 52px; height: 52px; color: var(--c); stroke-width: 2.25; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c) 50%, transparent)); }
-  .needs :global(.need.fyi .fig-col .icon) { width: 36px; height: 36px; stroke-width: 1.75; filter: none; }
-  .needs :global(.cells) { display: flex; gap: 5px; margin: 10px 0 0; }
-  .needs :global(.cells i) { flex: 1; height: 10px; border-radius: var(--radius-2xs); background: var(--dash-cell-off); }
-  .needs :global(.cells i.on) { background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent); }
-  .needs :global(.body) { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-  .needs :global(.t) { margin: 0; font-size: var(--text-md); font-weight: 850; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-  .needs :global(.need.fyi .t) { font-size: var(--text-base); }
+  .needs :global(.fig-col) { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; color: var(--c); text-align: center; }
+  .needs :global(.fig-col::before) { content: ''; position: absolute; z-index: -1; left: 50%; top: 50%; width: 6rem; height: 6rem; translate: -50% -50%; border-radius: 50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 34%, transparent), transparent); }
+  .needs :global(.fig) { margin: 0; font-size: 3.25rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .needs :global(.unit) { margin: 4px 0 0; font-size: var(--text-xs); font-weight: 650; }
+  .needs :global(.fig-col .icon) { display: block; width: 34px; height: 34px; stroke-width: 2; }
+  .needs :global(.cells) { display: flex; gap: 6px; margin: var(--space-2) 0 0; }
+  .needs :global(.cells i) { width: 26px; height: 10px; border-radius: var(--radius-2xs); background: var(--dg-cell-off); }
+  .needs :global(.cells i.on) { background: var(--c); box-shadow: 0 0 12px -2px var(--c); }
+  .needs :global(.body) { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .needs :global(.t) { margin: 0; font-size: var(--text-md); font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
   .needs :global(.need .sub) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
-  .needs :global(.err) { align-self: flex-start; margin: 6px 0 0; padding: 3px 10px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--dash-bad) 10%, transparent); color: var(--dash-bad); font-size: var(--text-sm); font-weight: 700; overflow-wrap: anywhere; }
+  .needs :global(.err) { margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); border: var(--hairline) solid color-mix(in srgb, var(--c) 26%, transparent); border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--c) 12%, var(--dg-well)); color: var(--ink); font-size: var(--text-sm); overflow-wrap: anywhere; }
   .needs :global(.mini) { display: grid; gap: var(--space-1); margin: var(--space-1) 0 0; padding: 0; list-style: none; }
   .needs :global(.mini li) { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); }
-  .needs :global(.mini b) { font-weight: 800; overflow-wrap: anywhere; }
-  .needs :global(.mini .facts) { display: grid; justify-items: end; color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
+  .needs :global(.mini b) { font-weight: 700; overflow-wrap: anywhere; }
+  .needs :global(.mini .facts) { display: grid; justify-items: end; color: var(--muted); font-size: var(--text-sm); font-weight: 600; }
   /* A link in its row's colour, as Now's cards colour theirs, so it reads apart from the words. */
   .needs :global(.run-link) { align-self: flex-start; margin-top: var(--space-1); color: var(--c); font-weight: 750; }
-  .needs :global(.need.calm::before) { content: ''; position: absolute; z-index: -1; left: 12rem; top: 45%; width: 30rem; height: 12rem; translate: -50% -50%;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 16%, transparent), color-mix(in srgb, var(--c) 7%, transparent) 45%, color-mix(in srgb, var(--c) 2%, transparent) 75%, transparent); }
-  .needs :global(.all-clear) { margin: 0; color: var(--c); font-size: var(--text-2xl); font-weight: 900; letter-spacing: -0.04em; line-height: 1; text-shadow: 0 0 26px color-mix(in srgb, var(--c) 35%, transparent); }
-  .needs :global(.need.calm .sub) { margin-top: var(--space-2); color: var(--ink); font-weight: 600; }
+  .needs :global(.all-clear) { margin: 0; color: var(--c); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
+  .needs :global(.need.calm .sub) { margin-top: var(--space-1); }
 
   /* Done (D10, the "project lanes"): This week | Last week at the header's right, as To-do's filter, then the week
      across and a lane a project down, in the order Jack dragged them to. A day's things in a lane are one pill in the
      project's colour, glowing as Needs you's cells do, longer the more it holds; today's column is faintly lit. No
      key: each lane is named. */
   .done-body { padding: var(--space-4) 0 var(--space-4); }
+  .done-top :global(.switch) { border-color: var(--dg-glass-edge); background: var(--dg-well); }
   .done-top :global(.switch[hidden]) { display: none; }
   /* The names' column fits the grip, "claude-usage-widget" and its count; longer names end in "…". Each lane is a row
      of its own on the same columns, so it can be lifted and moved whole, what's open under it included. */
@@ -653,7 +690,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     .week-lanes.dragging :global(.lane:not(.lifted)), .week-lanes :global(.lane.settling) { transition: translate var(--motion-soft) var(--ease-out); }
   }
   .week-lanes :global(.day-h) { display: grid; justify-items: center; gap: var(--space-1); padding-bottom: var(--space-2); }
-  .week-lanes :global(.day-h .d) { padding: 1px 10px; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+  .week-lanes :global(.day-h .d) { padding: 1px 10px; border-radius: var(--radius-pill); color: var(--muted); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
   .week-lanes :global(.day-h.today .d) { background: var(--ink); color: var(--paper); }
   .week-lanes :global(.day-h.future) { color: var(--muted); }
   .week-lanes :global(.day-h .n) { font-size: var(--text-lg); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -667,7 +704,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .week-lanes :global(.lane-name[aria-expanded='true'] .label) { color: var(--label, var(--c)); }
   @media (hover: hover) { .week-lanes :global(.lane-name:hover .label) { color: var(--label, var(--c)); } }
   .week-lanes :global(.cell) { display: flex; align-items: center; padding: var(--space-2) 2px; border-top: var(--hairline) solid var(--rule); }
-  .week-lanes :global(.cell.today) { background: color-mix(in srgb, var(--wash) 50%, transparent); }
+  .week-lanes :global(.cell.today) { background: var(--dg-today); }
   .week-lanes :global(.pill) { --f: 0; width: calc(30px + (100% - 30px) * var(--f)); min-width: 30px; height: 30px; padding: 0 9px; border: 0; border-radius: var(--radius-pill); cursor: pointer; -webkit-tap-highlight-color: transparent;
     background: var(--c); color: var(--dash-pill-ink); font: inherit; font-size: var(--text-sm); font-weight: 900; text-align: left; font-variant-numeric: tabular-nums;
     box-shadow: 0 0 14px color-mix(in srgb, var(--c) 45%, transparent);
@@ -680,7 +717,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   }
   /* What a lane did, opened under it: a day, or each day of its week. */
   /* A lone day takes the whole width and its list runs on in columns, so a busy day stays short. */
-  .week-lanes :global(.lane-open) { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 18px var(--space-6); padding: var(--space-2) 0 var(--space-5) var(--space-5); }
+  .week-lanes :global(.lane-open) { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 18px var(--space-6); padding: var(--space-3) 0 var(--space-5) var(--space-5); border-radius: var(--radius-md); background: var(--dg-well); }
   /* Opened by a click, it fades in and settles from just above; it closes at once. */
   @media (prefers-reduced-motion: no-preference) {
     .week-lanes :global(.lane-open.opening) { animation: dash-lane-open var(--motion-soft) var(--ease-out); }
@@ -700,8 +737,12 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 
   @media (max-width: 899px) {
     .lanes { grid-template-columns: minmax(0, 1fr); }
+    /* One lane: nothing to end level with, so To-do's list keeps a height of its own. */
+    .todo-scroll { flex: none; max-height: 27rem; min-height: 0; }
   }
   @media (max-width: 719px) {
+    .top { padding: var(--space-5); }
+    .title { font-size: var(--text-2xl); }
     .gate { padding: var(--space-5); }
     .week-lanes { grid-template-columns: 6.5rem repeat(7, minmax(0, 1fr)); column-gap: 3px; }
     .week-lanes :global(.day-h .d) { padding: 1px 2px; font-size: var(--text-xs); line-height: 1.15; text-align: center; white-space: normal; }

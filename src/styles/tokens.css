@@ -202,20 +202,12 @@
   --brief-open-ink: #166534;
   --brief-dev-ink: var(--brief-dev);
   --brief-fun-ink: #9A3412;
-  /* Jack's dashboard (/dashboard/, only he sees it): its page's top in slate with a soft light from above; its states
-     as words on its frames (fine, soon, now), each 4.5:1 or more on --surface; the frames, lighter than the page, with
-     a fine edge and a lit top line; the seven days' empty cells; each project's colour in Done's lanes, PDF Pages'
-     file colours and two more; and the ink of the count on Done's pills, on a project's colour. */
-  --dash-top-from: #334155;
-  --dash-top-to: #0F172A;
-  --dash-top-light: rgb(148 163 255 / 0.32);
+  /* Jack's dashboard (/dashboard/, only he sees it) has a look of its own (data-look, Base.astro), always on the dark
+     theme's colours below, whatever the theme. Its states as words (fine, soon, now); each project's colour in Done's
+     lanes, PDF Pages' file colours and two more; and the ink of the count on Done's pills, on a project's colour. */
   --dash-ok: #166534;
   --dash-soon: #B45309;
   --dash-bad: var(--todo-late);
-  --dash-frame: rgb(255 255 255 / 0.72);
-  --dash-frame-edge: var(--rule);
-  --dash-frame-top: rgb(255 255 255 / 0.9);
-  --dash-cell-off: rgb(23 32 48 / 0.12);
   --dash-project-1: var(--pdf-file-1);
   --dash-project-2: var(--pdf-file-3);
   --dash-project-3: var(--pdf-file-4);
@@ -540,8 +532,9 @@
   --ease-release: linear(0, 0.145 6.2%, 0.449 12.5%, 0.76 18.8%, 0.994 25%, 1.124 31.2%, 1.163 37.5%, 1.141 43.8%, 1.092 50%, 1.041 56.2%, 1.002 62.5%, 0.98 68.8%, 0.973 75%, 0.977 81.2%, 0.985 87.5%, 0.993 93.8%, 1);
 }
 
-/* The dark theme. */
-:root[data-theme="dark"] {
+/* The dark theme, and a page with a look of its own (data-look) in every theme: its look is built on these. */
+:root[data-theme="dark"],
+:root[data-look] {
   color-scheme: dark;
 
   /* A near-black grey page with dark grey cards, every part of the site alike. */
@@ -571,14 +564,9 @@
   --pdf-file-6: #FBBF24;
   --pdf-sheet: #F4F4F4;
   --pdf-sheet-ink: #3F3F46;
-  /* The dashboard in the dark: the states in their bright ends, frames a faint white over the black. */
+  /* The dashboard (always on these): the states in their bright ends. */
   --dash-ok: #4ADE80;
   --dash-soon: #FBBF24;
-  --dash-frame: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
-  --dash-frame-edge: rgb(255 255 255 / 0.1);
-  --dash-frame-top: rgb(255 255 255 / 0.1);
-  --dash-cell-off: rgb(255 255 255 / 0.14);
-  --dash-top-light: rgb(148 163 255 / 0.2);
   --dash-project-7: #22D3EE;
   --dash-project-8: #A3E635;
   --dash-pill-ink: #0B0D12;
@@ -766,3 +754,35 @@
 @media (min-resolution: 1.5dppx) { :root { --hairline: 0.67px; } }
 @media (min-resolution: 2dppx) { :root { --hairline: 0.5px; } }
 @media (min-resolution: 3dppx) { :root { --hairline: 0.34px; } }
+
+/* Jack's dashboard (data-look="dashboard", T8): dark glass of its own, apart from the site's themes. A near-black
+   ground with four soft colour clouds drifting slowly behind; each section a pane of frosted glass with a fine edge
+   and a bright top line; a section with a state lit from its top in that state's colour; the menu bar a darker glass.
+   Last in the file, so it wins over the theme blocks above at the same strength; the night sky stays off this page
+   (Base.astro, theme.ts). */
+:root[data-look="dashboard"] {
+  --dg-ground: #07080F;
+  --dg-cloud-1: #5B4BFF;
+  --dg-cloud-2: #0FB5C9;
+  --dg-cloud-3: #C445A8;
+  --dg-cloud-4: #2F5BFF;
+  --dg-glass: rgb(255 255 255 / 0.07);
+  --dg-glass-edge: rgb(255 255 255 / 0.14);
+  --dg-glass-top: rgb(255 255 255 / 0.34);
+  --dg-glass-blur: 24px;
+  /* A thin dark veil under the glass, so words on it keep 4.5:1 where a bright cloud sits behind. */
+  --dg-veil: rgb(7 8 15 / 0.3);
+  --dg-glass-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.6);
+  --dg-bar: rgb(9 11 20 / 0.42);
+  --dg-bar-blur: 20px;
+  --dg-rule: rgb(255 255 255 / 0.09);
+  --dg-well: rgb(0 0 0 / 0.28);
+  --dg-cell-off: rgb(255 255 255 / 0.12);
+  --dg-today: rgb(255 255 255 / 0.04);
+  --dg-fyi: #A9B4C8;
+  --dg-title: 4rem;
+  --paper: var(--dg-ground);
+  /* Quiet words a step lighter than the dark theme's grey: they sit on lit glass, not on black. */
+  --muted: #C2C8D4;
+  --rule: var(--dg-rule);
+}

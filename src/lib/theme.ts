@@ -78,7 +78,8 @@ const daylight = () => {
 export function setNight(on: boolean) {
   spread(() => {
     if (on) {
-      root.dataset.sky = 'night';
+      // A page with a look of its own (Base's `look`) keeps it: the night waits for the next page.
+      if (!root.dataset.look) root.dataset.sky = 'night';
       root.dataset.theme = 'dark';
       write(NIGHT_KEY, 'night');
       write(FOUND_KEY, '1');
