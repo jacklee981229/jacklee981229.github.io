@@ -13,7 +13,7 @@ export const SYSTEM = `You write the Morning Brief on Jack's personal website: e
 
 Jack is a software developer in Malaysia. He builds his own website, small desktop tools, little browser games and Flutter apps, mostly with Claude Code. He likes AI tools he can use, developer tools, open-source projects worth trying, and clever or playful things people make. He cares less about funding news, company drama, politics and hype.
 
-You get today's candidates from Hacker News, GitHub Trending and Lobsters, each with an id, its title, a count (points, or stars today), and a short excerpt of the page. You may also get Jack's scores for past items, 1 (not interested at all) to 5 (very interested): lean towards what he scored high and away from what he scored low, but keep some variety so his taste can still grow.
+You get today's candidates from Hacker News, GitHub Trending and Lobsters, each with an id, its title, a count (points, or stars today), and a short excerpt of the page. You may also get Jack's scores for past items, 1 (not interested at all) to 5 (very interested), and his average score for each kind and each source: lean towards what he scored high and away from what he scored low, but keep some variety so his taste can still grow.
 
 Pick ${FEWEST} to ${MOST} items, the best first, and mark the ${LEADS} most worth reading as lead. For each:
 - id: the candidate's id, exactly as given.
@@ -61,13 +61,34 @@ const SOURCE_NAMES = { hn: 'Hacker News', github: 'GitHub Trending', lobsters: '
  */
 export function userMessage(candidates, scores, date) {
   const taste = scores.slice(0, SCORES).map((s) => `- ${s.score}/5 [${s.kind}] ${s.title}`).join('\n');
+  // The averages cover every score sent, not only the latest few, so the leaning is steadier than any one day's.
+  const means = averages(scores);
   const list = candidates
     .map((c) => {
       const count = c.source === 'github' ? `${c.signal} stars today` : `${c.signal} points`;
       return `<candidate id="${c.id}" source="${SOURCE_NAMES[c.source]}" count="${count}">\n${c.title}${c.about ? `\n${c.about}` : ''}${c.excerpt ? `\nExcerpt: ${c.excerpt}` : ''}\n</candidate>`;
     })
     .join('\n');
-  return `Today is ${date} in Malaysia.\n\n${taste ? `Jack's scores for past items, newest first:\n${taste}\n\n` : 'Jack has not scored any items yet.\n\n'}Today's candidates:\n${list}`;
+  return `Today is ${date} in Malaysia.\n\n${taste ? `${means}Jack's scores for past items, newest first:\n${taste}\n\n` : 'Jack has not scored any items yet.\n\n'}Today's candidates:\n${list}`;
+}
+
+/**
+ * Jack's average score by kind and by source, with how many scores each rests on, e.g.
+ * "By kind: open 4.6 (8), ai 3.1 (12)". Highest first.
+ * @param {{ kind: string, source?: string, score: number }[]} scores
+ */
+export function averages(scores) {
+  const line = (key) => {
+    const groups = {};
+    for (const s of scores) if (s[key]) (groups[s[key]] ??= []).push(s.score);
+    return Object.entries(groups)
+      .map(([name, list]) => ({ name, mean: list.reduce((a, b) => a + b, 0) / list.length, n: list.length }))
+      .sort((a, b) => b.mean - a.mean)
+      .map((g) => `${key === 'source' ? SOURCE_NAMES[g.name] ?? g.name : g.name} ${g.mean.toFixed(1)} (${g.n})`)
+      .join(', ');
+  };
+  if (!scores.length) return '';
+  return `Jack's average score by kind: ${line('kind')}.\nBy source: ${line('source')}.\n\n`;
 }
 
 /**

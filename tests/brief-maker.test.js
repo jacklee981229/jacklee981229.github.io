@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EXCERPT, excerptOf, mergeCandidates, postedSince, readHn, readLobsters, readTrending } from '../scripts/brief/sources.js';
-import { FEWEST, briefFile, userMessage } from '../scripts/brief/prompt.js';
+import { FEWEST, averages, briefFile, userMessage } from '../scripts/brief/prompt.js';
 import { itemId } from '../src/lib/brief.js';
 
 test('Hacker News: stories keep their link and count; one without a link points at its discussion', () => {
@@ -101,4 +101,14 @@ test("the message carries Jack's latest scores, newest first, and every candidat
   assert.ok(!text.includes('旧 60'));
   assert.match(text, /<candidate id="b" source="GitHub Trending" count="10 stars today">/);
   assert.match(userMessage(candidates, [], '2026-10-26'), /has not scored any items yet/);
+});
+
+test("his average score per kind and per source, highest first, over every score sent", () => {
+  const scores = [
+    { kind: 'open', source: 'github', score: 5 }, { kind: 'open', source: 'hn', score: 4 },
+    { kind: 'ai', source: 'hn', score: 2 }, { kind: 'ai', source: 'hn', score: 3 }, { kind: 'fun', source: 'lobsters', score: 3 },
+  ];
+  assert.equal(averages(scores), "Jack's average score by kind: open 4.5 (2), fun 3.0 (1), ai 2.5 (2).\nBy source: GitHub Trending 5.0 (1), Hacker News 3.0 (3), Lobsters 3.0 (1).\n\n");
+  assert.equal(averages([]), '');
+  assert.match(userMessage(candidates, scores, '2026-10-28'), /average score by kind: open 4\.5/);
 });
