@@ -15,7 +15,7 @@ const things = (await openables()).map(({ title, href }) => ({ title, href }));
 // The Collection's things that have a cover: /now finds no pictures for those, as Now shows their cover.
 const covered = (await getCollection('shelves')).flatMap((shelf) => shelf.data.items.filter((i) => i.image).map((i) => i.name.trim().toLowerCase()));
 /** Every icon the list can show: the items' own and the actions'. */
-const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock', 'user', 'check'])];
+const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'dice', 'expand', 'shrink', 'sparkles', 'file', 'clock', 'user', 'check', 'sliders'])];
 ---
 <dialog class="search" aria-label="Search or run a command" data-search>
   <div class="box">
@@ -37,7 +37,7 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   import { isNight, nightFound, setNight, switchTheme, themeLabel } from '../lib/theme';
   import { SITE } from '../site';
   import { announce } from '../lib/lab/page';
-  import { PASS_KEY, oneLine, readNowCommand } from '../lib/now-command.js';
+  import { LEVEL_KEY, PASS_KEY, oneLine, readNowCommand } from '../lib/now-command.js';
   import { sayWaiting } from '../lib/waiting.js';
   import { dayWords, malaysiaToday, todoGroups } from '../lib/todo-days.js';
 
@@ -117,7 +117,14 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
   // title to search, the item's thing), Steam's pictures of it and the one picked (pictures.length is "No picture").
   const pass = {
     get: () => { try { return localStorage.getItem(PASS_KEY) ?? ''; } catch { return ''; } },
-    set: (value: string) => { try { if (value) localStorage.setItem(PASS_KEY, value); else localStorage.removeItem(PASS_KEY); } catch { /* blocked: logs in again next time */ } },
+    set: (value: string) => {
+      try { if (value) localStorage.setItem(PASS_KEY, value); else localStorage.removeItem(PASS_KEY); } catch { /* blocked: logs in again next time */ }
+      // The menu's Dashboard link comes and goes with the login at once (Header.astro); its colour is read again.
+      document.documentElement.toggleAttribute('data-signed-in', !!value);
+      delete document.documentElement.dataset.dash;
+      try { localStorage.removeItem(LEVEL_KEY); } catch { /* nothing kept */ }
+      if (value) import('../lib/dashboard-nav').then((m) => m.refreshLevel());
+    },
   };
   let asking = false;
   let nowBusy = false;
@@ -447,9 +454,15 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       return;
     }
     const command = readNowCommand(query);
-    // Visitors' /now and /todo are just searches; a browser that has logged in gets the commands.
+    // Visitors' /now, /todo and /dashboard are just searches; a browser that has logged in gets the commands.
     if (command && 'todo' in command) {
       if (pass.get()) return showTodos(ticket);
+    } else if (command && 'dashboard' in command) {
+      if (pass.get()) {
+        options = [{ title: 'Dashboard', group: 'Actions', icon: 'sliders', description: 'What needs you, and what you did', href: '/dashboard/' }];
+        draw();
+        return say('');
+      }
     } else if (command && ('login' in command || pass.get())) {
       options = nowRows(command);
       draw();

@@ -1,0 +1,718 @@
+---
+// Jack's dashboard: what needs him, what's fine, his open to-dos and what he did these two weeks, for his personal
+// projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
+// (the snapshot his laptop pushes, workers/now/dashboard.js, and the to-dos, workers/now/todos.js), so the built page
+// holds nothing private. The rules are src/lib/dashboard.js. Kept out of search engines and the sitemap.
+import Base from '../layouts/Base.astro';
+import PageTop from '../components/PageTop.astro';
+import Switch from '../components/Switch.astro';
+import { ICONS } from '../lib/icons.js';
+
+const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip'] as const;
+---
+<Base title="Dashboard" description="Jack's dashboard." noindex>
+  <div class="wrap page">
+    <PageTop tone="dashboard" icon="sliders" title="Dashboard" lead="Loading" />
+    <p class="gate" data-gate>Loading<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+
+    <div class="board" data-board hidden>
+      <div class="lanes">
+        <div class="side" data-side="left">
+          <section class="frame needs" data-needs aria-labelledby="needs-h">
+            <h2 class="sec-h" id="needs-h">Needs you <span class="count" data-count></span></h2>
+            <div data-list></div>
+          </section>
+        </div>
+        <div class="side" data-side="right">
+          <section class="frame good" data-good aria-labelledby="good-h">
+            <h2 class="sec-h" id="good-h">All good <span class="count" data-count></span></h2>
+            <ul class="rows" data-list></ul>
+          </section>
+        </div>
+      </div>
+      <section class="frame todo" data-todo aria-labelledby="todo-h">
+        <div class="todo-top">
+          <h2 class="sec-h" id="todo-h">To-do <span class="count" data-count></span></h2>
+          <span class="pick" data-pick hidden>
+            <select data-filter aria-label="Project"></select>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-chevron-down" /></svg>
+          </span>
+        </div>
+        <div class="todo-scroll" data-edge-fade="y"><ul class="rows" data-list></ul></div>
+      </section>
+      <section class="frame done" aria-labelledby="done-h">
+        <div class="done-top">
+          <h2 class="sec-h" id="done-h">Done</h2>
+          <Switch name="week" label="Which week" choices={[{ value: 'this', label: 'This week' }, { value: 'last', label: 'Last week' }]} />
+        </div>
+        <div class="done-body">
+          <div class="week-lanes" data-lanes></div>
+          <p class="visually-hidden" id="grip-hint">Up and down arrows move it.</p>
+          <p class="visually-hidden" aria-live="polite" data-said></p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    {icons.map((name) => <symbol id={`di-${name}`} viewBox="0 0 24 24" set:html={ICONS[name]} />)}
+  </svg>
+</Base>
+
+<script>
+  import { draftCall, draftPass } from '../lib/drafts-api';
+  import { attention, dayOf, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextUp, projectColours, todoRows, worst, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
+  import { sayWaiting } from '../lib/waiting.js';
+  import { showLevel } from '../lib/dashboard-nav';
+  import { newTab } from '../lib/links.js';
+
+  const $ = <T extends Element>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
+  const gate = $<HTMLElement>('[data-gate]');
+  const board = $<HTMLElement>('[data-board]');
+  const top = $<HTMLElement>('.page-top .lede');
+  const needs = $<HTMLElement>('[data-needs]');
+  const good = $<HTMLElement>('[data-good]');
+  const todo = $<HTMLElement>('[data-todo]');
+  const left = $<HTMLElement>('[data-side="left"]');
+  const right = $<HTMLElement>('[data-side="right"]');
+  const lanesBox = $<HTMLElement>('[data-lanes]');
+  const weekSwitch = $<HTMLElement>('.done-top .switch');
+  const said = $<HTMLElement>('[data-said]');
+  const pickBox = $<HTMLElement>('[data-pick]');
+  const filter = $<HTMLSelectElement>('[data-filter]');
+  const todoScroll = $<HTMLElement>('.todo-scroll');
+
+  let snapshot: any = null;
+  let todos: Todo[] | null = null;
+  let todoProjects: string[] = [];
+  let todoError = '';
+  let loadedAt = 0;
+  let which: 'this' | 'last' = 'this';
+  // The Done lane that's open (its key), and the day open in it, or '' for its whole week.
+  let openLane = '';
+  let openDay = '';
+
+  // The order Jack dragged Done's lanes to, by project, for both weeks (laneOrder).
+  // shortcut: kept in this browser only, as Jack reads the dashboard on this laptop (D11); keep it in the Worker if
+  // another device should share it.
+  const ORDER_KEY = 'dashboard-lane-order';
+  let order: string[] = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ORDER_KEY) ?? '[]');
+      return Array.isArray(saved) ? saved.filter((p): p is string => typeof p === 'string') : [];
+    } catch { return []; }
+  })();
+  // The projects with a lane of their own, as drawn: the ones a grip can move.
+  let shown: string[] = [];
+  // A lane being dragged by its grip, and where the lanes' middles were when it was picked up.
+  let drag: { pointer: number, lane: HTMLElement, lanes: HTMLElement[], from: number, to: number, startY: number, mids: number[] } | null = null;
+
+  /** An element with a class and its words, never HTML: every word here came from the laptop. */
+  function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text?: string) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+  function icon(name: string) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.classList.add('icon');
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttribute('href', `#di-${name}`);
+    svg.append(use);
+    return svg;
+  }
+  const fill = (section: HTMLElement, count: number | null, ...nodes: Node[]) => {
+    $<HTMLElement>('[data-count]', section).textContent = count === null ? '' : String(count);
+    $<HTMLElement>('[data-list]', section).replaceChildren(...nodes);
+  };
+
+  function needRow(n: Need) {
+    const row = el('article', `need ${n.level}`);
+    const fig = el('div', 'fig-col');
+    if (n.fig !== undefined) {
+      fig.append(el('p', 'fig', String(n.fig)), el('p', 'unit', n.unit));
+      if (n.cells !== undefined) {
+        const cells = el('span', 'cells');
+        // The seven days of a signing; the ones left are lit, at the right end.
+        for (let i = 0; i < 7; i++) cells.append(el('i', i >= 7 - (n.cells ?? 0) ? 'on' : ''));
+        fig.append(cells);
+      }
+    } else fig.append(icon(n.icon ?? 'close'));
+    const body = el('div', 'body');
+    body.append(el('h3', 't', n.title), ...n.lines.map((line) => el('p', 'sub', line)));
+    if (n.err) body.append(el('p', 'err', `Error: ${n.err}`));
+    if (n.rows) {
+      const mini = el('ul', 'mini');
+      for (const r of n.rows) {
+        const li = el('li');
+        const facts = el('span', 'facts');
+        facts.append(...r.facts.map((f) => el('span', '', f)));
+        li.append(el('b', '', r.name), facts);
+        mini.append(li);
+      }
+      body.append(mini);
+    }
+    if (n.link) {
+      const a = el('a', 'go run-link', n.link.text);
+      a.href = n.link.href;
+      Object.assign(a, { target: newTab().target, rel: newTab().rel });
+      a.setAttribute('aria-describedby', 'new-tab');
+      body.append(a);
+    }
+    row.append(fig, body);
+    return row;
+  }
+
+  function drawNeeds(now: number) {
+    const list = attention(snapshot, todos, now);
+    needs.className = `frame needs lv-${worst(list)}`;
+    // The menu's Dashboard link shows what this shows.
+    showLevel(worst(list));
+    if (list.length) return fill(needs, list.length, ...list.map(needRow));
+    const calm = el('article', 'need calm');
+    calm.append(el('p', 'all-clear', 'All clear'), el('p', 'sub', nextUp(snapshot, now)));
+    fill(needs, null, calm);
+  }
+
+  function drawGood(now: number) {
+    const rows = goodRows(snapshot, todos, now);
+    fill(good, rows.length, ...rows.map((r) => {
+      const li = el('li', r.running ? 'running' : '');
+      const what = el(r.href ? 'a' : 'span', r.href ? 'what go' : 'what', r.name);
+      if (r.href) {
+        Object.assign(what, { href: r.href, target: newTab().target, rel: newTab().rel });
+        what.setAttribute('aria-describedby', 'new-tab');
+      }
+      li.append(what, el('span', 'state', r.state));
+      if (r.sub || r.when) li.append(el('span', 'sub', r.sub), el('span', 'when', r.when));
+      return li;
+    }));
+  }
+
+  /** The project filter, as the desktop widget's: All projects, then each project with an open to-do in the widget's
+   *  order (A-Z, General last), as the laptop sent them. */
+  function drawFilter(projects: string[]) {
+    if (!projects.includes(filter.value)) filter.value = '';
+    pickBox.hidden = !projects.length;
+    // Built again only when the projects change, so the minute's redraw can't shut a list that's open.
+    if (filter.dataset.projects === projects.join('\n')) return;
+    const keep = filter.value;
+    filter.replaceChildren(new Option('All projects', ''), ...projects.map((p) => new Option(p, p)));
+    filter.value = keep;
+    filter.dataset.projects = projects.join('\n');
+  }
+
+  function drawTodos(now: number) {
+    if (!todos) {
+      pickBox.hidden = true;
+      return fill(todo, null, el('li', 'note', todoError || "Couldn't get the to-dos."));
+    }
+    drawFilter(todoProjects);
+    const shown = filter.value ? todos.filter((t) => t.project === filter.value) : todos;
+    const rows = todoRows(shown, dayOf(now));
+    if (!rows.length) return fill(todo, 0, el('li', 'note', 'Nothing to do.'));
+    fill(todo, rows.length, ...rows.map((r) => {
+      const li = el('li');
+      li.append(el('span', 'what', r.text), el('span', `day ${r.day?.kind === 'late' ? 'late' : ''}`, r.day?.text ?? ''));
+      // One project's list needs no tag on every row, as in the widget.
+      if (!filter.value) li.append(el('span', 'tag', r.project));
+      return li;
+    }));
+  }
+
+  /** To-do goes under the shorter lane, so the two lanes end near each other; in one column, after All good. Moved
+   *  only when its place changes, as a move scrolls its list back to the top. */
+  function placeTodos() {
+    const place = matchMedia('(max-width: 899px)').matches || needs.offsetHeight >= good.offsetHeight ? right : left;
+    if (todo.parentElement !== place) place.append(todo);
+  }
+
+  /** Some done things under a heading with what they hold, by module (doneModules): each module's name over its
+   *  ticked to-dos, then commits; each with its project where they come from several. */
+  function doneGroup(title: string, items: DoneItem[], withProject: boolean) {
+    const section = el('section', 'group');
+    const h = el('h3', '', title);
+    h.append(...doneCounts(items).map((c) => el('span', '', c)));
+    const modules = el('div', 'modules');
+    const groups = doneModules(items);
+    for (const module of groups) {
+      const box = el('div', 'module');
+      const list = el('ul', 'done-list');
+      for (const item of module.items) {
+        const li = el('li');
+        const words = el('span', item.kind === 'todo' ? 'todo-done' : '', item.text);
+        if (withProject) words.append(' ', el('span', 'from', item.project));
+        li.append(icon(item.kind === 'todo' ? 'check' : 'commit'), words);
+        list.append(li);
+      }
+      // The things without a module are "Other" after the modules; on their own they need no heading.
+      if (groups.length > 1 || module.name) box.append(el('h4', '', module.name || 'Other'));
+      box.append(list);
+      modules.append(box);
+    }
+    section.append(h, modules);
+    return section;
+  }
+
+  /** Done: the week across, a lane a project down, a glowing pill a day that grows with what was done. A pill opens
+   *  that day's things under its lane, a lane's name its whole week; the same again closes it. */
+  function drawDone(now: number) {
+    const items: DoneItem[] = snapshot.done?.items ?? [];
+    weekSwitch.hidden = !!snapshot.done?.error;
+    if (snapshot.done?.error) return lanesBox.replaceChildren(el('p', 'note', snapshot.done.error));
+    const days = doneWeek(items, which, now);
+    const lanes = doneLanes(days, order);
+    shown = lanes.filter((l) => l.key !== 'more').map((l) => l.projects[0]);
+    // Colours go to the lanes on show, so no two share one (seven lanes at most, eight colours); a project can have
+    // another colour in the other week.
+    const colours = projectColours(lanes.filter((l) => l.projects.length === 1).flatMap((l) => l.days.flat()));
+    const opened = lanes.find((l) => l.key === openLane);
+    const at = days.findIndex((d) => d.day === openDay);
+    // A newer snapshot can take away what was open.
+    if (!opened || (openDay && !opened.days[at]?.length)) openLane = openDay = '';
+    // A lane's colour is its project's; the lane the smaller projects share is a quiet grey, the least of the lanes.
+    const tint = (node: HTMLElement, projects: string[]) => {
+      if (projects.length === 1) node.style.setProperty('--c', `var(--dash-project-${colours.get(projects[0])})`);
+      else node.classList.add('shared');
+    };
+    // One thing is a round pill; the week's fullest day in any lane fills its day.
+    const most = Math.max(1, ...lanes.flatMap((l) => l.days.map((list) => list.length)));
+
+    const nodes: Node[] = [el('span', 'corner')];
+    for (const d of days) {
+      const head = el('div', `day-h${d.today ? ' today' : ''}${d.future ? ' future' : ''}`);
+      head.append(el('span', 'd', d.label), el('span', 'n', d.future ? '' : String(d.items.length)));
+      nodes.push(head);
+    }
+    if (!lanes.length) nodes.push(el('p', 'note none', 'Nothing that week.'));
+    for (const lane of lanes) {
+      const row = el('div', 'lane');
+      row.dataset.key = lane.key;
+      const head = el('div', 'lane-head');
+      // A grip on each project's lane; the shared lane has none and stays last.
+      if (lane.key === 'more') head.append(el('span', 'grip'));
+      else {
+        const grip = el('button', 'grip');
+        grip.type = 'button';
+        grip.dataset.grip = lane.projects[0];
+        grip.setAttribute('aria-label', `Move ${lane.name}`);
+        grip.setAttribute('aria-describedby', 'grip-hint');
+        grip.append(icon('grip'));
+        head.append(grip);
+      }
+      const name = el('button', 'lane-name');
+      name.type = 'button';
+      name.dataset.lane = lane.key;
+      name.setAttribute('aria-expanded', String(openLane === lane.key && !openDay));
+      tint(name, lane.projects);
+      name.append(el('i', 'dot'), el('span', 'label', lane.name), el('span', 'n', String(lane.total)));
+      head.append(name);
+      row.append(head);
+      lane.days.forEach((list, i) => {
+        const cell = el('div', `cell${days[i].today ? ' today' : ''}`);
+        if (list.length) {
+          const pill = el('button', 'pill', String(list.length));
+          pill.type = 'button';
+          pill.dataset.lane = lane.key;
+          pill.dataset.day = days[i].day;
+          pill.setAttribute('aria-expanded', String(openLane === lane.key && openDay === days[i].day));
+          pill.setAttribute('aria-label', `${lane.name}, ${days[i].label}: ${doneCounts(list).join(', ')}`);
+          pill.style.setProperty('--f', String((list.length - 1) / Math.max(1, most - 1)));
+          tint(pill, lane.projects);
+          cell.append(pill);
+        }
+        row.append(cell);
+      });
+      if (openLane === lane.key) {
+        const open = el('div', 'lane-open');
+        const several = lane.projects.length > 1;
+        open.append(...(openDay
+          ? [doneGroup(days[at].label, lane.days[at], several)]
+          : days.flatMap((d, i) => (lane.days[i].length ? [doneGroup(d.label, lane.days[i], several)] : []))));
+        row.append(open);
+      }
+      nodes.push(row);
+    }
+    lanesBox.replaceChildren(...nodes);
+  }
+
+  /** Done drawn again after a lane moved, each lane gliding from where it was on screen to its new place, so the one
+   *  let go settles into its slot and the others close up. `lifted` keeps that one raised until it lands. */
+  function redrawMoving(lifted = '') {
+    const before = new Map([...lanesBox.querySelectorAll<HTMLElement>('.lane')].map((l) => [l.dataset.key, l.getBoundingClientRect().top]));
+    drawDone(Date.now());
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const lane of lanesBox.querySelectorAll<HTMLElement>('.lane')) {
+      const was = before.get(lane.dataset.key);
+      const by = was === undefined ? 0 : was - lane.getBoundingClientRect().top;
+      if (!by) continue;
+      lane.style.translate = `0 ${by}px`;
+      lane.classList.toggle('lifted', lane.dataset.key === `p:${lifted}`);
+      void lane.offsetHeight;
+      lane.classList.add('settling');
+      lane.style.translate = '';
+      // Only its own glide: a grip's or a pill's hover ending inside it would drop the lane early.
+      const landed = (event: TransitionEvent) => {
+        if (event.target !== lane || event.propertyName !== 'translate') return;
+        lane.classList.remove('settling', 'lifted');
+        lane.removeEventListener('transitionend', landed);
+      };
+      lane.addEventListener('transitionend', landed);
+    }
+  }
+
+  /** Moves a project's lane to a place among the lanes with a grip, and keeps that order in this browser. */
+  function moveLane(project: string, to: number) {
+    order = laneOrder(order, shown, project, to);
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch {}
+  }
+
+  /** Back to the lane's grip, name or pill after Done is drawn again, so a keyboard keeps its place. */
+  function refocus(lane: string, day: string, grip = '') {
+    const match = [...lanesBox.querySelectorAll<HTMLButtonElement>('button[data-lane], button[data-grip]')]
+      .find((b) => (grip ? b.dataset.grip === grip : b.dataset.lane === lane && (b.dataset.day ?? '') === day));
+    match?.focus();
+  }
+
+  function draw() {
+    // The minute's redraw waits while a lane is held: Done redrawn would drop it from the hand, and the sections
+    // above changing height would move Done under it.
+    if (!snapshot || drag) return;
+    const now = Date.now();
+    const active = document.activeElement instanceof HTMLButtonElement && lanesBox.contains(document.activeElement) ? document.activeElement : null;
+    const focused = active ? [active.dataset.lane ?? '', active.dataset.day ?? '', active.dataset.grip ?? ''] as const : null;
+    const line = lede(Date.parse(snapshot.made_at), now);
+    top.hidden = false;
+    top.replaceChildren(...(line.offline ? [el('span', 'offline', 'Laptop offline')] : []), line.text);
+    drawNeeds(now);
+    drawGood(now);
+    drawTodos(now);
+    drawDone(now);
+    placeTodos();
+    if (focused) refocus(...focused);
+  }
+
+  /** Words in place of the board, and no line under the title. */
+  function showGate(words: string) {
+    snapshot = null;
+    top.hidden = true;
+    board.hidden = true;
+    gate.hidden = false;
+    gate.textContent = words;
+  }
+
+  async function load() {
+    if (!draftPass()) return showGate('Log in first: open the palette and type /login.');
+    // Asked again on coming back to the tab, the line keeps what it says until the answer comes.
+    if (!snapshot) sayWaiting(top, 'Loading');
+    const [dash, list] = await Promise.allSettled([draftCall<{ snapshot: any }>('/api/dashboard'), draftCall<{ items: Todo[], projects: string[] }>('/api/todos')]);
+    loadedAt = Date.now();
+    if (dash.status === 'rejected') return showGate((dash.reason as { status?: number }).status === 401 ? 'The login ran out: open the palette and type /login again.' : (dash.reason as Error).message);
+    if (!dash.value.snapshot) return showGate('Nothing has come from the laptop yet.');
+    snapshot = dash.value.snapshot;
+    todos = list.status === 'fulfilled' ? list.value.items : null;
+    todoProjects = list.status === 'fulfilled' ? list.value.projects ?? [] : [];
+    todoError = list.status === 'rejected' ? (list.reason as Error).message : '';
+    gate.hidden = true;
+    board.hidden = false;
+    draw();
+  }
+
+  lanesBox.addEventListener('click', (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>('button[data-lane]');
+    if (!button) return;
+    const lane = button.dataset.lane ?? '';
+    const day = button.dataset.day ?? '';
+    const open = openLane === lane && openDay === day;
+    openLane = open ? '' : lane;
+    openDay = open ? '' : day;
+    drawDone(Date.now());
+    // Only a click opens it gently; the minute's redraw leaves an open one still.
+    lanesBox.querySelector('.lane-open')?.classList.add('opening');
+    refocus(lane, day);
+  });
+  // Dragging a lane by its grip: it follows the pointer (or finger: the grip takes no scrolling), the lanes it passes
+  // step aside, and letting go settles it into the gap. Escape puts it back.
+  lanesBox.addEventListener('pointerdown', (event) => {
+    let grip = (event.target as Element).closest<HTMLButtonElement>('button[data-grip]');
+    if (!grip || drag || event.button !== 0) return;
+    event.preventDefault();
+    // An open list closes first, so every lane passed is one row high (Jack, testing T6c). The page scrolls by what
+    // closing moved the grip, keeping it under the pointer; what scrolling can't take back, the lane starts lowered by.
+    let shift = 0;
+    if (openLane) {
+      const project = grip.dataset.grip ?? '';
+      const before = grip.getBoundingClientRect().top;
+      openLane = openDay = '';
+      drawDone(Date.now());
+      grip = [...lanesBox.querySelectorAll<HTMLButtonElement>('button[data-grip]')].find((b) => b.dataset.grip === project)!;
+      scrollBy({ top: grip.getBoundingClientRect().top - before, behavior: 'instant' });
+      shift = before - grip.getBoundingClientRect().top;
+    }
+    const lanes = [...lanesBox.querySelectorAll<HTMLElement>('.lane:not([data-key="more"])')];
+    const lane = grip.closest<HTMLElement>('.lane')!;
+    grip.setPointerCapture(event.pointerId);
+    const from = lanes.indexOf(lane);
+    const mids = lanes.map((l) => { const r = l.getBoundingClientRect(); return r.top + r.height / 2; });
+    // Kept within the lanes, so the lane answers the first move even where the page, now shorter, couldn't scroll back.
+    shift = Math.max(mids[0] - mids[from], Math.min(mids[mids.length - 1] - mids[from], shift));
+    drag = { pointer: event.pointerId, lane, lanes, from, to: from, startY: event.clientY - shift, mids };
+    lane.classList.add('lifted');
+    lanesBox.classList.add('dragging');
+    if (shift) follow(event.clientY);
+  });
+  lanesBox.addEventListener('pointermove', (event) => {
+    if (drag && event.pointerId === drag.pointer) follow(event.clientY);
+  });
+  /** The lane in hand follows the pointer, and the lanes it passes step aside. */
+  function follow(y: number) {
+    if (!drag) return;
+    const { lane, lanes, from, mids } = drag;
+    // Held between the first lane and the last that has a grip.
+    const by = Math.max(mids[0] - mids[from], Math.min(mids[mids.length - 1] - mids[from], y - drag.startY));
+    lane.style.translate = `0 ${by}px`;
+    let to = from;
+    // Reaching a lane's middle takes its place: held at the ends, the lane sits exactly on the end lane's middle.
+    while (to < mids.length - 1 && mids[from] + by >= mids[to + 1]) to++;
+    while (to > 0 && mids[from] + by <= mids[to - 1]) to--;
+    drag.to = to;
+    const height = lane.offsetHeight;
+    lanes.forEach((other, i) => {
+      if (other === lane) return;
+      const step = i > from && i <= to ? -height : i < from && i >= to ? height : 0;
+      other.style.translate = step ? `0 ${step}px` : '';
+    });
+  }
+  function letGo(keep: boolean) {
+    if (!drag) return;
+    const { from, to } = drag;
+    const project = shown[from];
+    drag = null;
+    lanesBox.classList.remove('dragging');
+    if (keep && to !== from) moveLane(project, to);
+    redrawMoving(project);
+  }
+  lanesBox.addEventListener('pointerup', (event) => { if (drag?.pointer === event.pointerId) letGo(true); });
+  lanesBox.addEventListener('pointercancel', (event) => { if (drag?.pointer === event.pointerId) letGo(false); });
+  // Any other way the grip loses the pointer puts the lane back, so a drag can't stay stuck.
+  lanesBox.addEventListener('lostpointercapture', (event) => { if (drag?.pointer === event.pointerId) letGo(false); });
+  document.addEventListener('keydown', (event) => { if (drag && event.key === 'Escape') letGo(false); });
+  // A grip with the keyboard: the arrows move its lane a place at a time, and the grip keeps the focus.
+  lanesBox.addEventListener('keydown', (event) => {
+    const grip = (event.target as Element).closest<HTMLButtonElement>('button[data-grip]');
+    if (!grip || drag || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+    event.preventDefault();
+    const project = grip.dataset.grip ?? '';
+    const from = shown.indexOf(project);
+    const to = from + (event.key === 'ArrowUp' ? -1 : 1);
+    if (from < 0 || to < 0 || to >= shown.length) return;
+    moveLane(project, to);
+    redrawMoving();
+    refocus('', '', project);
+    said.textContent = `${project}: ${to + 1} of ${shown.length}`;
+  });
+  document.querySelectorAll<HTMLInputElement>('input[name="week"]').forEach((radio) => radio.addEventListener('change', () => {
+    which = radio.value === 'last' ? 'last' : 'this';
+    openLane = openDay = '';
+    drawDone(Date.now());
+  }));
+  filter.addEventListener('change', () => {
+    drawTodos(Date.now());
+    todoScroll.scrollTop = 0;
+  });
+  // "x minutes ago" and the days left move with the clock; coming back to the tab asks for the latest.
+  setInterval(draw, 60_000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && snapshot && Date.now() - loadedAt > 60_000) load();
+  });
+  addEventListener('resize', () => { if (snapshot) placeTodos(); });
+
+  load();
+</script>
+
+<style>
+  .gate { margin: 0; padding: var(--space-6); border-radius: var(--radius-2xl); background: var(--surface); box-shadow: var(--shadow-card); font-weight: 650; }
+  .gate[hidden], .board[hidden] { display: none; }
+  .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+  /* The top is PageTop's, so these reach into it. */
+  :global(.page-top .lede[hidden]) { display: none; }
+  :global(.page-top .lede .offline) { margin-right: var(--space-3); padding: 0.125rem var(--space-3); border-radius: var(--radius-pill); background: var(--on-colour-chip); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+
+  /* Needs you on the left and wider, All good on the right; To-do goes under the shorter one, Done runs full width. */
+  .lanes { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+  .side { display: grid; gap: var(--space-5); align-content: start; min-width: 0; }
+  .done { margin-top: var(--space-5); }
+
+  /* Each section in a quiet frame, lighter than the page with a fine edge; one with a state is lit from its top in
+     that state's colour: Needs you in its most urgent one, All good in green. */
+  .frame { --lit: transparent; position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: var(--space-5) var(--space-5) var(--space-2); border-radius: var(--radius-xl);
+    background: var(--dash-frame); border: var(--hairline) solid color-mix(in srgb, var(--lit) 34%, var(--dash-frame-edge)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lit) 70%, var(--dash-frame-top)); }
+  .frame::before { content: ''; position: absolute; z-index: -2; inset: 0 0 auto; height: 220px; pointer-events: none;
+    background: radial-gradient(60% 100% at 50% 0, color-mix(in srgb, var(--lit) 20%, transparent), color-mix(in srgb, var(--lit) 6%, transparent) 55%, transparent); }
+  .needs.lv-act { --lit: var(--dash-bad); }
+  .needs.lv-soon { --lit: var(--dash-soon); }
+  .needs.lv-fyi { --lit: var(--muted); }
+  .needs.lv-calm, .good { --lit: var(--dash-ok); }
+  .sec-h { display: flex; gap: var(--space-3); align-items: baseline; margin: 0; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.01em; }
+  .needs > .sec-h, .good > .sec-h { color: color-mix(in srgb, var(--lit) 55%, var(--ink)); }
+  .count { color: var(--muted); font-size: var(--text-ui); font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* Global: the notes are written by the script, which scoped styles don't reach. */
+  .board :global(.note) { margin: 0; padding: var(--space-4) 0; color: var(--muted); }
+
+  /* Rows: hairlines between, each figure in a place of its own. */
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .rows :global(li) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-4); align-items: baseline; padding: 14px 0; border-top: var(--hairline) solid var(--rule); }
+  .rows :global(li:first-child) { border-top: 0; }
+  .rows :global(.what) { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+  .rows :global(.sub) { grid-column: 1; color: var(--muted); font-size: var(--text-sm); }
+  .rows :global(.when) { grid-column: 2; grid-row: 2; justify-self: end; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
+  .rows :global(.state) { justify-self: end; color: var(--dash-ok); font-size: var(--text-sm); font-weight: 800; white-space: nowrap; }
+  .good :global(.what::before) { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 50%; background: var(--dash-ok); translate: 0 -2px; }
+  /* A deploy's name opens its run: in the row's ink until hovered, so the list stays calm. */
+  .good :global(a.what) { color: var(--ink); transition: color var(--motion-quick) var(--ease-out), transform var(--motion-soft) var(--ease-release); }
+  @media (hover: hover) { .good :global(a.what:hover) { color: var(--dash-ok); } }
+  .good :global(.running .state) { color: var(--muted); }
+  .good :global(.running .what::before) { background: var(--muted); }
+  /* To-do rows as /todo's: the day at the right, red once passed, the project's tag under the words. */
+  .todo :global(.day) { color: var(--muted); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
+  .todo :global(.day.late) { color: var(--todo-late); }
+  .todo :global(.tag) { justify-self: start; padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+  .todo :global(li.note) { display: block; }
+  /* The project filter at the header's right, as in the desktop widget; set into the frame like a field in a card. */
+  .todo-top, .done-top { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
+  .todo-top .sec-h, .done-top .sec-h { padding-bottom: 0; border-bottom: 0; }
+  .pick { position: relative; display: inline-flex; min-width: 0; }
+  .pick[hidden] { display: none; }
+  .pick select { appearance: none; min-width: 0; max-width: 14rem; padding: 0.3125rem 2.25rem 0.3125rem var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--paper); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 700; text-overflow: ellipsis; cursor: pointer; }
+  .pick select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .pick .icon { position: absolute; top: 50%; right: var(--space-3); width: 14px; height: 14px; translate: 0 -50%; color: var(--muted); stroke-width: 2.5; pointer-events: none; }
+  /* A long list scrolls in its own box, so To-do no longer stretches the page; its edges fade (data-edge-fade). */
+  .todo-scroll { max-height: 27rem; overflow-y: auto; }
+
+  /* Needs you: a big number (or an icon) in the state's colour with a soft light behind it, then the words. */
+  .needs :global(.need) { --c: var(--dash-bad); display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: var(--space-1) var(--space-5); align-items: center; min-width: 0; padding: 22px 0; border-top: var(--hairline) solid var(--rule); isolation: isolate; }
+  .needs :global(.need:first-child) { border-top: 0; }
+  .needs :global(.need.soon) { --c: var(--dash-soon); }
+  .needs :global(.need.fyi) { --c: var(--muted); padding: var(--space-4) 0; }
+  .needs :global(.need.calm) { --c: var(--dash-ok); position: relative; grid-template-columns: minmax(0, 1fr); }
+  .needs :global(.fig-col) { position: relative; min-width: 0; }
+  .needs :global(.fig-col::before) { content: ''; position: absolute; z-index: -1; left: 3rem; top: 50%; width: 11rem; height: 9rem; translate: -50% -50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 20%, transparent), color-mix(in srgb, var(--c) 9%, transparent) 45%, color-mix(in srgb, var(--c) 3%, transparent) 75%, transparent); }
+  .needs :global(.need.fyi .fig-col::before) { display: none; }
+  .needs :global(.fig) { margin: 0; color: var(--c); font-size: var(--text-2xl); font-weight: 900; letter-spacing: -0.04em; line-height: 0.95; font-variant-numeric: tabular-nums; text-shadow: 0 0 22px color-mix(in srgb, var(--c) 40%, transparent); }
+  .needs :global(.unit) { margin: 6px 0 0; color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
+  .needs :global(.fig-col .icon) { display: block; width: 52px; height: 52px; color: var(--c); stroke-width: 2.25; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--c) 50%, transparent)); }
+  .needs :global(.need.fyi .fig-col .icon) { width: 36px; height: 36px; stroke-width: 1.75; filter: none; }
+  .needs :global(.cells) { display: flex; gap: 5px; margin: 10px 0 0; }
+  .needs :global(.cells i) { flex: 1; height: 10px; border-radius: var(--radius-2xs); background: var(--dash-cell-off); }
+  .needs :global(.cells i.on) { background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent); }
+  .needs :global(.body) { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+  .needs :global(.t) { margin: 0; font-size: var(--text-md); font-weight: 850; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .needs :global(.need.fyi .t) { font-size: var(--text-base); }
+  .needs :global(.need .sub) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+  .needs :global(.err) { align-self: flex-start; margin: 6px 0 0; padding: 3px 10px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--dash-bad) 10%, transparent); color: var(--dash-bad); font-size: var(--text-sm); font-weight: 700; overflow-wrap: anywhere; }
+  .needs :global(.mini) { display: grid; gap: var(--space-1); margin: var(--space-1) 0 0; padding: 0; list-style: none; }
+  .needs :global(.mini li) { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); }
+  .needs :global(.mini b) { font-weight: 800; overflow-wrap: anywhere; }
+  .needs :global(.mini .facts) { display: grid; justify-items: end; color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
+  /* A link in its row's colour, as Now's cards colour theirs, so it reads apart from the words. */
+  .needs :global(.run-link) { align-self: flex-start; margin-top: var(--space-1); color: var(--c); font-weight: 750; }
+  .needs :global(.need.calm::before) { content: ''; position: absolute; z-index: -1; left: 12rem; top: 45%; width: 30rem; height: 12rem; translate: -50% -50%;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 16%, transparent), color-mix(in srgb, var(--c) 7%, transparent) 45%, color-mix(in srgb, var(--c) 2%, transparent) 75%, transparent); }
+  .needs :global(.all-clear) { margin: 0; color: var(--c); font-size: var(--text-2xl); font-weight: 900; letter-spacing: -0.04em; line-height: 1; text-shadow: 0 0 26px color-mix(in srgb, var(--c) 35%, transparent); }
+  .needs :global(.need.calm .sub) { margin-top: var(--space-2); color: var(--ink); font-weight: 600; }
+
+  /* Done (D10, the "project lanes"): This week | Last week at the header's right, as To-do's filter, then the week
+     across and a lane a project down, in the order Jack dragged them to. A day's things in a lane are one pill in the
+     project's colour, glowing as Needs you's cells do, longer the more it holds; today's column is faintly lit. No
+     key: each lane is named. */
+  .done-body { padding: var(--space-4) 0 var(--space-4); }
+  .done-top :global(.switch[hidden]) { display: none; }
+  /* The names' column fits the grip, "claude-usage-widget" and its count; longer names end in "…". Each lane is a row
+     of its own on the same columns, so it can be lifted and moved whole, what's open under it included. */
+  .week-lanes { display: grid; grid-template-columns: minmax(8.5rem, 15.5rem) repeat(7, minmax(0, 1fr)); column-gap: 6px; }
+  .week-lanes > :global(*), .week-lanes :global(.lane > *) { min-width: 0; }
+  .week-lanes :global(.lane) { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  .week-lanes :global(.lane-head) { display: flex; align-items: center; border-top: var(--hairline) solid var(--rule); }
+  /* The grip: six dots in two columns, quiet until pointed at; the shared lane keeps its room empty. */
+  .week-lanes :global(.grip) { flex: none; display: grid; place-items: center; width: 22px; height: 32px; margin-right: 6px; padding: 0; border: 0; border-radius: var(--radius-xs); background: none;
+    color: var(--muted); cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent; transition: color var(--motion-quick) var(--ease-out); }
+  .week-lanes :global(.grip .icon) { width: 16px; height: 16px; }
+  .week-lanes :global(button.grip:focus-visible) { color: var(--ink); outline: 2px solid var(--focus); outline-offset: -2px; }
+  @media (hover: hover) { .week-lanes :global(button.grip:hover) { color: var(--ink); } }
+  .week-lanes.dragging { cursor: grabbing; user-select: none; }
+  .week-lanes.dragging :global(button.grip) { cursor: grabbing; }
+  /* The lane in hand floats over the others, opaque, with the float shadow. */
+  .week-lanes :global(.lane.lifted) { position: relative; z-index: 1; border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-float); }
+  .week-lanes :global(.lane.lifted button.grip) { color: var(--ink); }
+  /* One clean rounded slab: its rows' top lines would run square past the round corners. */
+  .week-lanes :global(.lane.lifted > *) { border-top-color: transparent; }
+  @media (prefers-reduced-motion: no-preference) {
+    .week-lanes.dragging :global(.lane:not(.lifted)), .week-lanes :global(.lane.settling) { transition: translate var(--motion-soft) var(--ease-out); }
+  }
+  .week-lanes :global(.day-h) { display: grid; justify-items: center; gap: var(--space-1); padding-bottom: var(--space-2); }
+  .week-lanes :global(.day-h .d) { padding: 1px 10px; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+  .week-lanes :global(.day-h.today .d) { background: var(--ink); color: var(--paper); }
+  .week-lanes :global(.day-h.future) { color: var(--muted); }
+  .week-lanes :global(.day-h .n) { font-size: var(--text-lg); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .week-lanes :global(.note.none) { grid-column: 1 / -1; border-top: var(--hairline) solid var(--rule); }
+  .week-lanes :global(.lane-name) { display: flex; flex: 1; gap: 10px; align-items: center; min-width: 0; padding: var(--space-3) 6px var(--space-3) 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  /* The lane the smaller projects share: grey, and its name stays in ink when open. */
+  .week-lanes :global(.shared) { --c: var(--muted); --label: var(--ink); }
+  .week-lanes :global(.lane-name .dot) { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 70%, transparent); }
+  .week-lanes :global(.lane-name .label) { min-width: 0; overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; transition: color var(--motion-quick) var(--ease-out); }
+  .week-lanes :global(.lane-name .n) { margin-left: auto; color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .week-lanes :global(.lane-name[aria-expanded='true'] .label) { color: var(--label, var(--c)); }
+  @media (hover: hover) { .week-lanes :global(.lane-name:hover .label) { color: var(--label, var(--c)); } }
+  .week-lanes :global(.cell) { display: flex; align-items: center; padding: var(--space-2) 2px; border-top: var(--hairline) solid var(--rule); }
+  .week-lanes :global(.cell.today) { background: color-mix(in srgb, var(--wash) 50%, transparent); }
+  .week-lanes :global(.pill) { --f: 0; width: calc(30px + (100% - 30px) * var(--f)); min-width: 30px; height: 30px; padding: 0 9px; border: 0; border-radius: var(--radius-pill); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    background: var(--c); color: var(--dash-pill-ink); font: inherit; font-size: var(--text-sm); font-weight: 900; text-align: left; font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--c) 45%, transparent);
+    transition: box-shadow var(--motion-quick) var(--ease-out), transform var(--motion-soft) var(--ease-release); }
+  .week-lanes :global(.pill[aria-expanded='true']) { box-shadow: 0 0 22px color-mix(in srgb, var(--c) 70%, transparent), 0 0 0 2px var(--ink); }
+  .week-lanes :global(.pill:active) { transform: scale(0.96); transition-duration: var(--motion-press); }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .week-lanes :global(.pill:hover) { transform: translateY(-1px); box-shadow: 0 0 20px color-mix(in srgb, var(--c) 60%, transparent); }
+    .week-lanes :global(.pill[aria-expanded='true']:hover) { box-shadow: 0 0 22px color-mix(in srgb, var(--c) 70%, transparent), 0 0 0 2px var(--ink); }
+  }
+  /* What a lane did, opened under it: a day, or each day of its week. */
+  /* A lone day takes the whole width and its list runs on in columns, so a busy day stays short. */
+  .week-lanes :global(.lane-open) { display: grid; grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 18px var(--space-6); padding: var(--space-2) 0 var(--space-5) var(--space-5); }
+  /* Opened by a click, it fades in and settles from just above; it closes at once. */
+  @media (prefers-reduced-motion: no-preference) {
+    .week-lanes :global(.lane-open.opening) { animation: dash-lane-open var(--motion-soft) var(--ease-out); }
+  }
+  @keyframes dash-lane-open { from { opacity: 0; translate: 0 -4px; } }
+  .week-lanes :global(.group h3) { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); align-items: baseline; margin: 0 0 6px; font-size: var(--text-base); font-weight: 800; }
+  .week-lanes :global(.group h3 span) { color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  /* A day's modules run on in columns, each kept whole: its name over its lines. */
+  .week-lanes :global(.modules) { columns: 22rem; column-gap: var(--space-6); }
+  .week-lanes :global(.module) { padding-bottom: var(--space-3); break-inside: avoid; }
+  .week-lanes :global(.module h4) { margin: 0 0 var(--space-1); font-size: var(--text-sm); font-weight: 800; }
+  .week-lanes :global(.done-list) { margin: 0; padding: 0; list-style: none; }
+  .week-lanes :global(.done-list li) { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .week-lanes :global(.done-list .icon) { width: 16px; height: 16px; margin-top: 4px; color: var(--muted); stroke-width: 2; }
+  .week-lanes :global(.todo-done) { font-weight: 650; }
+  .week-lanes :global(.from) { color: var(--muted); font-size: var(--text-sm); font-weight: 700; }
+
+  @media (max-width: 899px) {
+    .lanes { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 719px) {
+    .gate { padding: var(--space-5); }
+    .week-lanes { grid-template-columns: 6.5rem repeat(7, minmax(0, 1fr)); column-gap: 3px; }
+    .week-lanes :global(.day-h .d) { padding: 1px 2px; font-size: var(--text-xs); line-height: 1.15; text-align: center; white-space: normal; }
+    .week-lanes :global(.day-h .n) { font-size: var(--text-base); }
+    .week-lanes :global(.pill) { width: calc(26px + (100% - 26px) * var(--f)); min-width: 26px; height: 26px; padding: 0 6px; font-size: var(--text-xs); }
+    .week-lanes :global(.lane-open) { padding-left: var(--space-2); }
+  }
+  @media (max-width: 560px) {
+    .needs :global(.need) { grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--space-1) var(--space-4); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .week-lanes :global(.pill), .week-lanes :global(.lane-name .label), .week-lanes :global(.grip) { transition: none; }
+  }
+</style>

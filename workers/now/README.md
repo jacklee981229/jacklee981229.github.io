@@ -42,8 +42,20 @@ it on: `/todo` puts those whose day has come under Today, and `/brief/` lists on
 2. Make a long random token and set it here with `npx wrangler secret put TODO_PUSH_TOKEN --config workers/now/wrangler.toml`,
    and in the widget's `.env` with the Worker's address (its `.env.example` says how).
 
+## Dashboard
+
+The dashboard's collector on the laptop (`C:\repos\Jack\dashboard`, its `collect.py`) pushes a snapshot of Jack's
+personal projects here every 15 minutes, which the page `/dashboard/` shows to a browser that did `/login`; the
+palette's `/dashboard` opens it. Once, before first use:
+
+1. Make the table: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`
+   (safe to run again).
+2. Make a long random token and set it here with `npx wrangler secret put DASHBOARD_PUSH_TOKEN --config workers/now/wrangler.toml`,
+   and in the collector's `.env` with the Worker's address (its `.env.example` says how).
+
 ## Trying it on the laptop
 
 Copy `.dev.vars.example` to `.dev.vars`, fill it in, and run
 `npx wrangler dev --config workers/now/wrangler.toml --port 8792`. With a real `GITHUB_TOKEN`, Save commits to the
-real `main`.
+real `main`. A site built with `PUBLIC_NOW_EDITOR=http://127.0.0.1:8792` talks to that copy instead of the live
+Worker; give `--env-file` an absolute path, as wrangler reads a relative one from `workers/now/`.

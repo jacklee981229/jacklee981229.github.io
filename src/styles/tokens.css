@@ -188,6 +188,29 @@
   --brief-open-ink: #166534;
   --brief-dev-ink: var(--brief-dev);
   --brief-fun-ink: #9A3412;
+  /* Jack's dashboard (/dashboard/, only he sees it): its page's top in slate with a soft light from above; its states
+     as words on its frames (fine, soon, now), each 4.5:1 or more on --surface; the frames, lighter than the page, with
+     a fine edge and a lit top line; the seven days' empty cells; each project's colour in Done's lanes, PDF Pages'
+     file colours and two more; and the ink of the count on Done's pills, on a project's colour. */
+  --dash-top-from: #334155;
+  --dash-top-to: #0F172A;
+  --dash-top-light: rgb(148 163 255 / 0.32);
+  --dash-ok: #166534;
+  --dash-soon: #B45309;
+  --dash-bad: var(--todo-late);
+  --dash-frame: rgb(255 255 255 / 0.72);
+  --dash-frame-edge: var(--rule);
+  --dash-frame-top: rgb(255 255 255 / 0.9);
+  --dash-cell-off: rgb(23 32 48 / 0.12);
+  --dash-project-1: var(--pdf-file-1);
+  --dash-project-2: var(--pdf-file-3);
+  --dash-project-3: var(--pdf-file-4);
+  --dash-project-4: var(--pdf-file-2);
+  --dash-project-5: var(--pdf-file-5);
+  --dash-project-6: var(--pdf-file-6);
+  --dash-project-7: #0E7490;
+  --dash-project-8: #4D7C0F;
+  --dash-pill-ink: #FFFFFF;
   /* The guestbook's notes, on paper in six colours whatever the theme, with dark ink. */
   --note-1: #FDE68A;
   --note-2: #FBCFE8;
@@ -534,6 +557,17 @@
   --pdf-file-6: #FBBF24;
   --pdf-sheet: #F4F4F4;
   --pdf-sheet-ink: #3F3F46;
+  /* The dashboard in the dark: the states in their bright ends, frames a faint white over the black. */
+  --dash-ok: #4ADE80;
+  --dash-soon: #FBBF24;
+  --dash-frame: linear-gradient(180deg, rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.02));
+  --dash-frame-edge: rgb(255 255 255 / 0.1);
+  --dash-frame-top: rgb(255 255 255 / 0.1);
+  --dash-cell-off: rgb(255 255 255 / 0.14);
+  --dash-top-light: rgb(148 163 255 / 0.2);
+  --dash-project-7: #22D3EE;
+  --dash-project-8: #A3E635;
+  --dash-pill-ink: #0B0D12;
   /* No fade in the dark: the page is one colour. */
   --paper-end: var(--paper);
   --visited-near: #E31A1C;

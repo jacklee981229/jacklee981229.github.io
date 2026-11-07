@@ -8,6 +8,7 @@ import { page } from './page.js';
 import { LIMITS } from '../../src/lib/drafts.js';
 import { MOST_SCORES, readScore } from './scores.js';
 import { readTodos } from './todos.js';
+import { dashboardPush, dashboardRead } from './dashboard.js';
 import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, bytesToBase64, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidied, toBase64 } from './now-editor.js';
 import { pictureBytes, steamPictures } from './pictures.js';
 import { pictureFile, readNow } from '../../src/lib/now.js';
@@ -239,8 +240,10 @@ async function answer(request, env, method, pathname, origin) {
     // The brief's maker reads the scores with its own read-only token; the page reads them with Jack's pass.
     if (method === 'GET' && pathname === '/api/brief/scores' && (await rightPassword(request.headers.get('Authorization')?.replace(/^Bearer\s+/i, ''), env.BRIEF_READ_TOKEN))) return await scoresList(env);
     if (method === 'PUT' && pathname === '/api/todos') return await todosPush(request, env);
+    if (method === 'PUT' && pathname === '/api/dashboard') return await dashboardPush(request, env, PRIVATE);
     if (!(await signedIn(request.headers.get('Authorization'), env.SESSION_SECRET))) return json({ error: 'Please log in.' }, 401);
     if (method === 'GET' && pathname === '/api/todos') return await todosList(env);
+    if (method === 'GET' && pathname === '/api/dashboard') return await dashboardRead(env, PRIVATE);
     if (method === 'GET' && pathname === '/api/brief/scores') return await scoresList(env);
     if (method === 'POST' && pathname === '/api/brief/score') return await scoreSave(request, env);
     if (method === 'GET' && pathname === '/api/now') return await load(env);

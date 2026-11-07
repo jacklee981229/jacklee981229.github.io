@@ -39,3 +39,11 @@ CREATE TABLE IF NOT EXISTS todo_list (
   list TEXT NOT NULL,
   pushed_at INTEGER NOT NULL
 );
+
+-- Jack's dashboard (dashboard.js): the latest snapshot of his personal projects, pushed whole from his laptop every 15
+-- minutes: one row, the snapshot as JSON and when the laptop made it, in milliseconds. Only a newer push replaces it.
+CREATE TABLE IF NOT EXISTS dashboard (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  snapshot TEXT NOT NULL,
+  made_at INTEGER NOT NULL
+);

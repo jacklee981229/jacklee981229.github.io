@@ -9,6 +9,7 @@ import Footer from '../components/Footer.astro';
 import BackToTop from '../components/BackToTop.astro';
 import MusicPlayer from '../components/MusicPlayer.astro';
 import SearchDialog from '../components/SearchDialog.astro';
+import { LEVEL_KEY, PASS_KEY } from '../lib/now-command.js';
 import NightSky from '../components/NightSky.astro';
 import Splash from '../components/Splash.astro';
 import { shareLabel, sharePath } from '../lib/share.js';
@@ -100,6 +101,17 @@ const structured = Astro.url.pathname === '/' && {
         scheme.content = t;
         document.head.appendChild(scheme);
       })();
+    </script>
+    <script is:inline define:vars={{ passKey: PASS_KEY, levelKey: LEVEL_KEY }}>
+      // In Jack's logged-in browser the menu shows his Dashboard, in the last state read, before the page paints, so
+      // the menu doesn't shift once it's there (Header.astro, src/lib/dashboard-nav.ts).
+      try {
+        if (localStorage.getItem(passKey)) {
+          document.documentElement.setAttribute('data-signed-in', '');
+          var kept = JSON.parse(localStorage.getItem(levelKey) || 'null');
+          if (kept && kept.level) document.documentElement.dataset.dash = kept.level;
+        }
+      } catch (e) {}
     </script>
     <script is:inline>
       // The welcome (Splash.astro) greets a visit that starts on the home page, once per tab.

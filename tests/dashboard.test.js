@@ -1,0 +1,259 @@
+// Jack's dashboard page's rules (src/lib/dashboard.js): Malaysia's times and days, days left, the overdue backup, what
+// needs him and what's fine. Test snapshots only.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { attention, backupDue, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextBackup, nextUp, projectColours, todoRows, whenWords, worst } from '../src/lib/dashboard.js';
+
+const at = (iso) => Date.parse(iso);
+const HOUR = 3600_000;
+// Sat 7 Nov 2026, 16:00 in Malaysia.
+const NOW = at('2026-11-07T16:00:00+08:00');
+const app = (over = {}) => ({ app: 'Expenses', signed_at: '2026-11-07T15:01:47+08:00', runs_out_at: '2026-11-14T15:01:47+08:00', failures: 0, last_error: '', last_failure_at: null, waiting_build_at: null, ...over });
+const snap = (over = {}) => ({
+  version: 1,
+  made_at: '2026-11-07T15:55:00+08:00',
+  sideload: { apps: [app()] },
+  deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'success', at: '2026-11-07T08:07:58+08:00', url: 'https://github.com/test/test/actions/runs/1' }] },
+  backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: '', last_error_at: null },
+  repos: { repos: [{ name: 'test-a', uncommitted: 0, unpushed: 0 }, { name: 'test-b', uncommitted: 0, unpushed: 0 }] },
+  done: { since: '2026-10-26', items: [] },
+  ...over,
+});
+
+test('times read on Malaysia’s clock, whatever the browser’s zone', () => {
+  assert.equal(whenWords(at('2026-11-07T13:02:00+08:00'), NOW), 'Today, 13:02');
+  assert.equal(whenWords(at('2026-11-06T23:31:00+08:00'), NOW), 'Yesterday, 23:31');
+  assert.equal(whenWords(at('2026-11-08T09:05:00+08:00'), NOW), 'Tomorrow, 09:05');
+  assert.equal(whenWords(at('2026-11-01T22:04:00+08:00'), NOW), 'Sun 1 Nov, 22:04');
+  // 16:30 UTC is already the next day in Malaysia.
+  assert.equal(whenWords(at('2026-11-07T16:30:00Z'), NOW), 'Tomorrow, 00:30');
+});
+
+test('days left turn 2 exactly when the laptop adds its reminder, 48 hours before', () => {
+  const out = at('2026-11-14T15:01:47+08:00');
+  assert.equal(daysLeft(out, out - 48 * HOUR - 1000), 3);
+  assert.equal(daysLeft(out, out - 48 * HOUR), 2);
+  assert.equal(daysLeft(out, out - 24 * HOUR - 1000), 2);
+  assert.equal(daysLeft(out, out - 24 * HOUR), 1);
+  assert.equal(daysLeft(out, out - 1000), 1);
+  assert.equal(daysLeft(out, out), 0);
+});
+
+test('a sideload with 3 days left is fine, 2 is amber, 1 or none is red', () => {
+  const out = at('2026-11-14T15:01:47+08:00');
+  const needs = (now) => attention(snap(), [], now).filter((n) => n.key.startsWith('sideload'));
+  assert.deepEqual(needs(out - 49 * HOUR), []);
+  assert.equal(goodRows(snap(), [], out - 49 * HOUR)[0].state, '3 days left');
+  assert.deepEqual(needs(out - 47 * HOUR).map((n) => [n.level, n.fig, n.unit, n.cells, n.lines[0]]), [['soon', 2, 'days left', 2, 'Runs out Sat 14 Nov, 15:01']]);
+  assert.deepEqual(needs(out - 2 * HOUR).map((n) => [n.level, n.fig, n.unit, n.lines[0]]), [['act', 1, 'day left', 'Runs out today, 15:01']]);
+  assert.deepEqual(needs(out + HOUR).map((n) => [n.level, n.fig, n.lines[0]]), [['act', 0, 'Ran out today, 15:01']]);
+});
+
+test('failed refreshes and a build waiting', () => {
+  const needs = attention(snap({ sideload: { apps: [app({ failures: 3, last_error: 'Device not found', last_failure_at: '2026-11-07T03:00:00+08:00', waiting_build_at: '2026-11-07T08:41:00+08:00' })] } }), [], NOW);
+  assert.deepEqual(needs.map((n) => [n.level, n.title, n.fig ?? n.icon, n.err]), [
+    ['act', 'Auto-refresh is failing', 3, 'Device not found'],
+    ['soon', 'New Expenses build waiting', 'phone', undefined],
+  ]);
+  assert.equal(needs[0].lines[0], 'Last try today, 03:00');
+});
+
+test('the KB backup is overdue an hour after a Sunday 22:00 run that hasn’t succeeded', () => {
+  const last = '2026-11-01T22:04:00+08:00';
+  const backup = (now) => attention(snap({ backup: { last_success_at: last, last_error: '', last_error_at: null } }), [], now).find((n) => n.key === 'backup');
+  assert.equal(backup(at('2026-11-08T22:59:00+08:00')), undefined);
+  const late = backup(at('2026-11-08T23:00:00+08:00'));
+  assert.deepEqual([late.level, late.title, late.fig, late.unit, late.lines[0]], ['act', 'KB backup is overdue', 7, 'days since the last', 'Missed today, 22:00']);
+  // While the laptop is off it keeps counting.
+  assert.equal(backup(at('2026-11-12T09:00:00+08:00')).fig, 10);
+  assert.equal(backupDue(at('2026-11-08T23:00:00+08:00')), at('2026-11-08T22:00:00+08:00'));
+  assert.equal(backupDue(at('2026-11-08T22:30:00+08:00')), at('2026-11-01T22:00:00+08:00'));
+});
+
+test('a backup that ran late, at the next login, is fine until the following Sunday', () => {
+  const s = snap({ backup: { last_success_at: '2026-11-09T08:00:00+08:00', last_error: '', last_error_at: null } });
+  const now = at('2026-11-09T09:00:00+08:00');
+  assert.equal(attention(s, [], now).find((n) => n.key === 'backup'), undefined);
+  assert.deepEqual(goodRows(s, [], now).find((r) => r.name === 'KB backup'), { name: 'KB backup', sub: 'Last today, 08:00', state: 'Done', when: 'Next Sun 15 Nov, 22:00' });
+  assert.equal(nextBackup(at('2026-11-01T22:04:00+08:00')), at('2026-11-08T22:00:00+08:00'));
+});
+
+test('a backup that failed, or never ran, needs Jack', () => {
+  const failed = attention(snap({ backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: 'python.exe not found', last_error_at: '2026-11-07T09:00:00+08:00' } }), [], NOW).find((n) => n.key === 'backup');
+  assert.deepEqual([failed.title, failed.err, failed.lines[0]], ['KB backup failed', 'python.exe not found', 'Today, 09:00']);
+  const never = attention(snap({ backup: { last_success_at: null, last_error: '', last_error_at: null } }), [], NOW).find((n) => n.key === 'backup');
+  assert.equal(never.title, 'KB backup is overdue');
+});
+
+test('the line under the title, and the laptop counted off after an hour', () => {
+  const made = at('2026-11-07T15:00:00+08:00');
+  assert.deepEqual(lede(made, made + 20_000), { offline: false, text: 'Updated just now' });
+  assert.deepEqual(lede(made, made + 60_000), { offline: false, text: 'Updated 1 minute ago' });
+  assert.deepEqual(lede(made, made + 59 * 60_000), { offline: false, text: 'Updated 59 minutes ago' });
+  assert.deepEqual(lede(made, made + HOUR), { offline: true, text: 'Last update today, 15:00' });
+});
+
+test('failed deploys, late to-dos, unread sources and repos, most urgent first', () => {
+  const s = snap({
+    deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'failure', at: '2026-11-07T08:55:00+08:00', url: 'https://github.com/test/test/actions/runs/2' }] },
+    backup: { error: "Can't read the KB backup log: FileNotFoundError" },
+    repos: { repos: [{ name: 'test-a', uncommitted: 5, unpushed: 0 }, { name: 'test-b', uncommitted: 1, unpushed: 2 }, { name: 'test-c', uncommitted: 0, unpushed: 0 }] },
+  });
+  const todos = [
+    { id: '1', project: 'test-site', text: 'Test: late one', notes: '', on: '2026-11-05' },
+    { id: '2', project: 'test-site', text: 'Test: today', notes: '', on: '2026-11-07' },
+  ];
+  const needs = attention(s, todos, NOW);
+  assert.deepEqual(needs.map((n) => [n.level, n.title]), [
+    ['act', 'test-site: Test deploy failed'],
+    ['soon', 'A to-do is past its day'],
+    ['soon', "Can't read the KB backup log"],
+    ['fyi', 'Not committed or pushed'],
+  ]);
+  assert.equal(worst(needs), 'act');
+  assert.deepEqual(needs[0].link, { href: 'https://github.com/test/test/actions/runs/2', text: 'Open the run' });
+  assert.deepEqual([needs[1].fig, needs[1].unit, needs[1].lines], [2, 'days late', ['Test: late one']]);
+  assert.equal(needs[2].err, 'FileNotFoundError');
+  assert.deepEqual(needs[3].rows, [{ name: 'test-a', facts: ['5 files not committed'] }, { name: 'test-b', facts: ['1 file not committed', '2 commits not pushed'] }]);
+  assert.deepEqual(goodRows(s, todos, NOW).map((r) => [r.name, r.state]), [['Expenses sideload', '7 days left'], ['Other repos', '1 clean']]);
+});
+
+test('a quiet day: all clear, and what is fine', () => {
+  assert.deepEqual(attention(snap(), [], NOW), []);
+  assert.equal(worst([]), 'calm');
+  assert.equal(nextUp(snap(), NOW), 'Next: the Expenses sideload runs out Sat 14 Nov, 15:01');
+  const running = snap({ deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'running', at: '2026-11-07T15:58:00+08:00', url: 'https://github.com/test/test/actions/runs/3' }] } });
+  assert.deepEqual(goodRows(running, [], NOW).map((r) => [r.name, r.state, r.when]), [
+    ['Expenses sideload', '7 days left', 'Runs out Sat 14 Nov, 15:01'],
+    ['Test deploy', 'Running', 'Since today, 15:58'],
+    ['KB backup', 'Done', 'Next tomorrow, 22:00'],
+    ['Repos', 'All 2 clean', ''],
+    ['To-do', 'None past its day', ''],
+  ]);
+  // A deploy's row opens its run; the others link nowhere.
+  assert.deepEqual(goodRows(running, [], NOW).map((r) => r.href), [undefined, 'https://github.com/test/test/actions/runs/3', undefined, undefined, undefined]);
+  // To-dos that couldn't be had say nothing either way.
+  assert.equal(goodRows(snap(), null, NOW).some((r) => r.name === 'To-do'), false);
+});
+
+test('to-do rows: due first, then days to come, then the rest as the laptop sent them', () => {
+  const rows = todoRows([
+    { id: '1', project: 'a', text: 'none 1', notes: '' },
+    { id: '2', project: 'a', text: 'later', notes: '', on: '2026-11-09' },
+    { id: '3', project: 'b', text: 'today', notes: '', on: '2026-11-07' },
+    { id: '4', project: 'b', text: 'none 2', notes: '', on: '' },
+    { id: '5', project: 'a', text: 'late', notes: '', on: '2026-11-05' },
+  ], '2026-11-07');
+  assert.deepEqual(rows.map((r) => [r.text, r.day?.text ?? '', r.day?.kind ?? '']), [
+    ['late', '2 days ago', 'late'], ['today', 'Today', 'today'], ['later', 'Mon 9 Nov', 'later'], ['none 1', '', ''], ['none 2', '', ''],
+  ]);
+});
+
+test('Done’s weeks run Monday to Sunday in Malaysia', () => {
+  const items = [
+    { day: '2026-11-02', at: '2026-11-02T10:00:00+08:00', project: 'b', kind: 'commit', text: 'Test - Monday' },
+    { day: '2026-11-07', at: '2026-11-07T10:00:00+08:00', project: 'a', kind: 'todo', text: 'Test today' },
+    { day: '2026-11-01', at: '2026-11-01T10:00:00+08:00', project: 'a', kind: 'commit', text: 'Test - last Sunday' },
+  ];
+  const week = doneWeek(items, 'this', NOW);
+  assert.deepEqual(week.map((d) => d.label), ['Mon 2', 'Tue 3', 'Wed 4', 'Thu 5', 'Fri 6', 'Today', 'Sun 8']);
+  assert.deepEqual(week.map((d) => d.items.length), [1, 0, 0, 0, 0, 1, 0]);
+  assert.deepEqual([week[5].today, week[6].future], [true, true]);
+  const last = doneWeek(items, 'last', NOW);
+  assert.deepEqual([last[0].day, last[6].day, last[6].items[0].text], ['2026-10-26', '2026-11-01', 'Test - last Sunday']);
+  // Sunday night, 23:30 in Malaysia, is still the same week.
+  assert.equal(doneWeek(items, 'this', at('2026-11-08T23:30:00+08:00'))[6].label, 'Today');
+  assert.deepEqual([...projectColours(items)], [['a', 1], ['b', 2]]);
+});
+
+test('Done’s lanes: a project each, the busiest first; past seven, the rest share one', () => {
+  const thing = (day, project) => ({ day, at: `${day}T10:00:00+08:00`, project, kind: 'commit', text: 'Test - thing' });
+  const items = [
+    thing('2026-11-02', 'b'), thing('2026-11-06', 'b'), thing('2026-11-06', 'b'),
+    thing('2026-11-06', 'a'), thing('2026-11-07', 'a'), thing('2026-11-07', 'c'),
+    thing('2026-11-01', 'z'), // last week's: not this week's lanes
+  ];
+  const lanes = doneLanes(doneWeek(items, 'this', NOW));
+  assert.deepEqual(lanes.map((l) => [l.key, l.name, l.total]), [['p:b', 'b', 3], ['p:a', 'a', 2], ['p:c', 'c', 1]]);
+  assert.deepEqual(lanes[0].days.map((d) => d.length), [1, 0, 0, 0, 2, 0, 0]);
+  assert.deepEqual(doneLanes(doneWeek(items, 'this', NOW).map((d) => ({ ...d, items: [] }))), []);
+
+  const many = (n) => Array.from({ length: n }, (_, i) => thing('2026-11-05', `p${i}`));
+  // Seven projects: seven lanes, no "1 more project".
+  assert.equal(doneLanes(doneWeek(many(7), 'this', NOW)).length, 7);
+  const nine = doneLanes(doneWeek([...many(9), thing('2026-11-06', 'p8'), thing('2026-11-06', 'p8')], 'this', NOW));
+  assert.deepEqual(nine.map((l) => l.name), ['p8', 'p0', 'p1', 'p2', 'p3', 'p4', '3 more projects']);
+  assert.deepEqual([nine[6].projects, nine[6].total, nine[6].days[3].length], [['p5', 'p6', 'p7'], 3, 3]);
+});
+
+test('Jack’s dragged order sorts the lanes, but the busiest still pick who gets one', () => {
+  const thing = (day, project) => ({ day, at: `${day}T10:00:00+08:00`, project, kind: 'commit', text: 'Test - thing' });
+  const items = [thing('2026-11-02', 'b'), thing('2026-11-06', 'b'), thing('2026-11-06', 'b'), thing('2026-11-06', 'a'), thing('2026-11-07', 'a'), thing('2026-11-07', 'c')];
+  const names = (order) => doneLanes(doneWeek(items, 'this', NOW), order).map((l) => l.name);
+  assert.deepEqual(names([]), ['b', 'a', 'c']);
+  // Ordered ones first in their order (one not here this week skipped), the rest after them, busiest first.
+  assert.deepEqual(names(['c', 'gone', 'a']), ['c', 'a', 'b']);
+  assert.deepEqual(names(['c']), ['c', 'b', 'a']);
+
+  // Nine projects: the six busiest keep their lanes whatever the order; p7, ordered first, stays in the shared one.
+  const many = [...Array.from({ length: 9 }, (_, i) => thing('2026-11-05', `p${i}`)), thing('2026-11-06', 'p8'), thing('2026-11-06', 'p8')];
+  const nine = doneLanes(doneWeek(many, 'this', NOW), ['p7', 'p3', 'p0']);
+  assert.deepEqual(nine.map((l) => l.name), ['p3', 'p0', 'p8', 'p1', 'p2', 'p4', '3 more projects']);
+  assert.deepEqual(nine[6].projects, ['p5', 'p6', 'p7']);
+});
+
+test('moving a lane: the new order, with the other week’s projects kept by their neighbours', () => {
+  // Nothing ordered yet: the shown lanes as drawn, the moved one at its new place.
+  assert.deepEqual(laneOrder([], ['b', 'a', 'c'], 'c', 0), ['c', 'b', 'a']);
+  assert.deepEqual(laneOrder([], ['b', 'a', 'c'], 'b', 2), ['a', 'c', 'b']);
+  assert.deepEqual(laneOrder([], ['b', 'a', 'c'], 'a', 1), ['b', 'a', 'c']);
+  // x and y aren't shown this week: moving c above b leaves x after a and y first, as they were.
+  assert.deepEqual(laneOrder(['y', 'b', 'a', 'x'], ['b', 'a', 'c'], 'c', 0), ['y', 'c', 'b', 'a', 'x']);
+  // To the bottom: right after the last shown one, c, which joins the order at its end, as it was drawn last.
+  assert.deepEqual(laneOrder(['y', 'b', 'a', 'x'], ['b', 'a', 'c'], 'b', 2), ['y', 'a', 'x', 'c', 'b']);
+  assert.deepEqual(laneOrder(['b', 'a', 'x'], ['b', 'a'], 'b', 1), ['a', 'b', 'x']);
+  // A place past either end lands at that end; a lone lane stays put.
+  assert.deepEqual(laneOrder([], ['b', 'a'], 'a', 9), ['b', 'a']);
+  assert.deepEqual(laneOrder([], ['b', 'a'], 'a', -3), ['a', 'b']);
+  assert.deepEqual(laneOrder(['x'], ['b'], 'b', 0), ['b', 'x']);
+});
+
+test('what some done things hold, to-dos first, a missing kind left out', () => {
+  const thing = (kind) => ({ day: '2026-11-07', at: '', project: 'a', kind, text: 'Test' });
+  assert.deepEqual(doneCounts([thing('commit'), thing('todo'), thing('commit')]), ['1 to-do', '2 commits']);
+  assert.deepEqual(doneCounts([thing('todo')]), ['1 to-do']);
+  assert.deepEqual(doneCounts([]), []);
+});
+
+test('done things by module: the name taken off, a commit naming two in each, the rest last, unnamed', () => {
+  const thing = (kind, text) => ({ day: '2026-11-06', at: '', project: 'a', kind, text });
+  const groups = doneModules([
+    thing('commit', 'Docs - close polish batch 4 plan'),
+    thing('todo', 'Plan: Polish batch 4: a name, the folded card'),
+    thing('commit', 'Analysis - change stickers, month-end pace; Ledger - remember folded card'),
+    thing('commit', 'Scan - learn retyped kinds; drop shop arrow'),
+    thing('todo', 'Measure the PageSpeed scores (28 Oct)'),
+    thing('commit', 'Expenses - design polish: solid sheets'),
+    thing('commit', 'Plan - week bars finished'),
+    thing('commit', 'docs - tidy'),
+    thing('commit', 'Trade journal - screenshot trade log'),
+    thing('todo', 'Plan: Total card: week bars'),
+    thing('commit', 'Scan - kinds - grouped'),
+    thing('commit', 'A very long sentence with no module - in it at all'),
+  ]);
+  assert.deepEqual(groups.map((g) => [g.name, g.items.map((i) => `${i.kind}:${i.text}`)]), [
+    ['Docs', ['commit:close polish batch 4 plan', 'commit:tidy']],
+    // A to-do's label groups with the commits of the same name, the to-do first.
+    ['Plan', ['todo:Polish batch 4: a name, the folded card', 'todo:Total card: week bars', 'commit:week bars finished']],
+    ['Analysis', ['commit:change stickers, month-end pace']],
+    ['Ledger', ['commit:remember folded card']],
+    // "; " not followed by a module is part of the line.
+    // The first " - " or ": " ends the module, not a later one.
+    ['Scan', ['commit:learn retyped kinds; drop shop arrow', 'commit:kinds - grouped']],
+    // " - " wins over a ": " later in the line.
+    ['Expenses', ['commit:design polish: solid sheets']],
+    ['Trade journal', ['commit:screenshot trade log']],
+    ['', ['todo:Measure the PageSpeed scores (28 Oct)', 'commit:A very long sentence with no module - in it at all']],
+  ]);
+  assert.deepEqual(doneModules([]), []);
+});

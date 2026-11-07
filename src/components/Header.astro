@@ -11,10 +11,18 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
     <a class="brand" href="/"><Fragment set:html={logoSvg('menu', 'width="28" height="28" aria-hidden="true"')} />{SITE.title}</a>
     <nav class="nav" aria-label="Main" data-edge-fade="x">
       <span class="nav-pill" aria-hidden="true"></span>
-      {NAV.map((item) => (
-        <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined} style={'accent' in item ? `--accent: var(--accent-${item.accent})` : undefined}>
-          <Icon name={item.icon} /><span>{item.label}</span>
-        </a>
+      {NAV.map((item, i) => (
+        <>
+          <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined} style={'accent' in item ? `--accent: var(--accent-${item.accent})` : undefined}>
+            <Icon name={item.icon} /><span>{item.label}</span>
+          </a>
+          {/* Jack's dashboard, after Home, only once this browser is logged in (src/lib/dashboard-nav.ts). */}
+          {i === 0 && (
+            <a class="dash-link" href="/dashboard/" aria-current={isCurrent('/dashboard/') ? 'page' : undefined}>
+              <Icon name="sliders" /><span>Dashboard</span>
+            </a>
+          )}
+        </>
       ))}
     </nav>
     <div class="tools">
@@ -32,6 +40,12 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
 
 <script>
   import { labelThemeButtons, switchTheme } from '../lib/theme';
+
+  // The Dashboard link's colour, read only in Jack's logged-in browser (loaded then, so visitors never fetch it); the
+  // dashboard page sets it itself as it draws.
+  if (document.documentElement.hasAttribute('data-signed-in') && !location.pathname.startsWith('/dashboard/')) {
+    import('../lib/dashboard-nav').then((m) => m.refreshLevel());
+  }
 
   // On a phone the menu row slides sideways: it starts with the current page's word in the middle of what shows.
   const current = document.querySelector<HTMLElement>('.nav [aria-current]');
@@ -102,6 +116,13 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
   /* Each part's icon in its own colour (--accent, from the menu in site.ts); Home's follows the words. */
   .nav a :global(.icon) { flex: none; width: 18px; height: 18px; color: var(--accent, currentColor); stroke-width: 2.2; }
   .nav a:hover { color: var(--ink); }
+  /* Logged in only (data-signed-in, set in Base.astro's head); its icon in the dashboard's most urgent state's colour
+     (data-dash), plain like Home's until that's known. */
+  .nav .dash-link { display: none; }
+  :global([data-signed-in]) .nav .dash-link { display: inline-flex; }
+  :global([data-dash='act']) .nav .dash-link { --accent: var(--dash-bad); }
+  :global([data-dash='soon']) .nav .dash-link { --accent: var(--dash-soon); }
+  :global([data-dash='fyi']) .nav .dash-link, :global([data-dash='calm']) .nav .dash-link { --accent: var(--focus); }
   /* The line under the current page is a background: drawn as an inset shadow, it left a faint line down the
      link's right edge on 150% screens. */
   .nav a[aria-current='page'] { color: var(--ink); background: linear-gradient(var(--focus), var(--focus)) bottom / 100% 2px no-repeat; }
@@ -129,5 +150,11 @@ const isCurrent = (href: string) => (href === '/' ? path === '/' : path.startsWi
     .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
     .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: var(--hairline) solid var(--rule); scrollbar-width: none; }
     .nav a { padding-block: 0.875rem; white-space: nowrap; }
+  }
+  /* The same, sooner, with Jack's Dashboard in the menu: below 1150px it pushed the buttons off the window. */
+  @media (min-width: 930px) and (max-width: 1149px) {
+    :global([data-signed-in]) .row { flex-wrap: wrap; gap: 0 var(--space-4); min-height: 3.5rem; }
+    :global([data-signed-in]) .nav { order: 3; width: 100%; gap: 1.25rem; overflow-x: auto; border-top: var(--hairline) solid var(--rule); scrollbar-width: none; }
+    :global([data-signed-in]) .nav a { padding-block: 0.875rem; white-space: nowrap; }
   }
 </style>

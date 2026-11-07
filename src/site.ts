@@ -18,8 +18,9 @@ export const SITE = {
   // The guestbook's notes live in a Cloudflare Worker of Jack's (workers/guestbook): the guestbook page and the home
   // page's Guestbook card read them from here, and new notes are posted here.
   guestbook: 'https://jacks-space-guestbook.jacklee981229.workers.dev',
-  // Jack's Now editor (workers/now): the palette's /now changes Now through it.
-  nowEditor: 'https://jacks-space-now.jacklee981229.workers.dev',
+  // Jack's Now editor (workers/now): the palette's /now changes Now through it. A build on the laptop may point at a
+  // local copy of it instead (PUBLIC_NOW_EDITOR=http://127.0.0.1:<its port>), to try a change before it's deployed.
+  nowEditor: (import.meta.env.PUBLIC_NOW_EDITOR as string | undefined) || 'https://jacks-space-now.jacklee981229.workers.dev',
   // The media repo (jacklee981229/media, its own GitHub Pages site at this address): the travel posts' photos, one
   // folder per trip, and the Projects page's video. Local previews serve it from C:\repos\Jack\media (astro.config.mjs).
   media: '/media/',

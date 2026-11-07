@@ -13,3 +13,6 @@ ANTHROPIC_API_KEY=
 BRIEF_READ_TOKEN=
 # A long random string the to-do widget on Jack's laptop pushes his to-dos with (TODO_PUSH_TOKEN in its .env).
 TODO_PUSH_TOKEN=
+# A long random string the dashboard's collector on Jack's laptop pushes its snapshot with (DASHBOARD_PUSH_TOKEN in
+# C:\repos\Jack\dashboard\.env).
+DASHBOARD_PUSH_TOKEN=
