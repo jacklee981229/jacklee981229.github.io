@@ -2,6 +2,7 @@
 // (C:\repos\Jack\dashboard, collect.py, whose docstring is the format), kept in the Worker's D1 database (schema.sql,
 // dashboard) for his eyes only: the page /dashboard/ (src/lib/dashboard.js). The push and its checks live here, apart
 // from the Worker, so they can be tested.
+import { KINDS } from '../../src/lib/dashboard.js';
 import { rightPassword } from './now-editor.js';
 
 /** The most characters a push may hold: a snapshot is about 30 KB; this leaves room for a busy fortnight. */
@@ -9,7 +10,10 @@ export const LONGEST_PUSH = 500_000;
 /** How far ahead of the Worker's clock a snapshot may be dated: a laptop clock that runs fast, not a date to come. */
 export const CLOCK_SLACK_MS = 5 * 60 * 1000;
 // Lists are capped so one row stays well under D1's 2 MB, and words cut, not refused, as with the to-dos.
-const MOST = { apps: 20, runs: 100, repos: 100, done: 2000 };
+const MOST = { apps: 20, runs: 100, repos: 100, done: 2000, reminders: 20 };
+/** The kinds a repo can be, the page's list (the laptop's table, collect.py's KINDS, uses these keys); one the Worker
+ *  doesn't know yet is kept as other, so a new kind on the laptop never stops its push. */
+const KIND_KEYS = KINDS.map((k) => k.key);
 const LONGEST_TEXT = 300;
 
 /** @param {unknown} data @param {number} status @param {Record<string, string>} headers */
@@ -35,6 +39,8 @@ function text(v, what, empty = true) {
   need(typeof v === 'string' && (empty || v.trim() !== ''), `${what} must be words.`);
   return /** @type {string} */ (v).trim().slice(0, LONGEST_TEXT);
 }
+/** Words that may be left out (null or missing): only there when given. @param {unknown} v @param {string} what */
+const maybeText = (v, what) => (v === undefined || v === null ? {} : { [what]: text(v, what, false) });
 /** @param {unknown} v @param {string} what */
 function count(v, what) {
   need(Number.isSafeInteger(v) && /** @type {number} */ (v) >= 0, `${what} must be a whole number.`);
@@ -66,6 +72,8 @@ const sideload = (v) => ({
     last_error: text(a.last_error, 'last_error'),
     last_failure_at: maybeTime(a.last_failure_at, 'last_failure_at'),
     waiting_build_at: maybeTime(a.waiting_build_at, 'waiting_build_at'),
+    // The repo whose card shows the signing; newer laptops send it.
+    ...maybeText(a.project, 'project'),
   })),
 });
 
@@ -82,11 +90,25 @@ const backup = (v) => ({
   last_success_at: maybeTime(v.last_success_at, 'last_success_at'),
   last_error: text(v.last_error, 'last_error'),
   last_error_at: maybeTime(v.last_error_at, 'last_error_at'),
+  ...maybeText(v.project, 'project'),
 });
 
 const repos = (v) => ({
-  repos: list(v.repos, 'repos.repos', MOST.repos).map((r) => ({ name: text(r?.name, 'A repo', false), uncommitted: count(r.uncommitted, 'uncommitted'), unpushed: count(r.unpushed, 'unpushed') })),
+  repos: list(v.repos, 'repos.repos', MOST.repos).map((r) => ({ name: text(r?.name, 'A repo', false), uncommitted: count(r.uncommitted, 'uncommitted'), unpushed: count(r.unpushed, 'unpushed'), ...kind(r.kind) })),
 });
+/** A repo's kind, when the laptop sends one. @param {unknown} v */
+function kind(v) {
+  if (v === undefined) return {};
+  need(typeof v === 'string', 'A kind must be words.');
+  return { kind: KIND_KEYS.includes(/** @type {string} */ (v)) ? v : 'other' };
+}
+
+/** The to-dos the laptop put on Jack's list as reminders (a sideload to re-sign), so the page shows them under
+ *  Reminders and not as to-dos. Newer laptops send them; none from an older one. @param {unknown} v */
+function reminders(v) {
+  if (v === undefined) return {};
+  return { reminders: list(v, 'reminders', MOST.reminders).map((r) => ({ app: text(r?.app, 'A reminder app', false), project: text(r.project, 'A reminder project', false), text: text(r.text, 'A reminder', false) })) };
+}
 
 const done = (v) => {
   need(typeof v.since === 'string' && DAY.test(v.since), 'done.since must be YYYY-MM-DD.');
@@ -122,6 +144,7 @@ export function readDashboard(raw, now = Date.now()) {
       backup: part(body.backup, 'backup', backup),
       repos: part(body.repos, 'repos', repos),
       done: part(body.done, 'done', done),
+      ...reminders(body.reminders),
     };
     return { snapshot, madeAt };
   } catch (error) {

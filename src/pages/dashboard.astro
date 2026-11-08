@@ -1,6 +1,6 @@
 ---
-// Jack's dashboard: what needs him, what's fine, his open to-dos and what he did these two weeks, for his personal
-// projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
+// Jack's dashboard: what needs him, his reminders, today's to-dos, his projects by kind, his other to-dos and what he
+// did these two weeks, for his personal projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
 // (the snapshot his laptop pushes, workers/now/dashboard.js, and the to-dos, workers/now/todos.js), so the built page
 // holds nothing private. The rules are src/lib/dashboard.js. Kept out of search engines and the sitemap.
 // Its look is its own, apart from the site's (T8, Jack: "脱离jackspace的框架…直接全部做成渐变玻璃样式"): dark frosted
@@ -11,7 +11,7 @@ import Switch from '../components/Switch.astro';
 import { ICONS } from '../lib/icons.js';
 import { flowStyle } from '../lib/flow.js';
 
-const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip'] as const;
+const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip', 'globe', 'monitor', 'mods', 'gear', 'folder', 'bang', 'arc'] as const;
 ---
 <Base title="Dashboard" description="Jack's dashboard." noindex look="dashboard">
   <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -23,41 +23,57 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     <p class="glass gate" data-gate>Loading<span class="waiting-dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
 
     <div class="board" data-board hidden>
-      <div class="lanes">
+      <div class="lanes" data-top>
         <div class="side" data-side="left">
           <section class="glass frame needs" data-needs aria-labelledby="needs-h">
-            <h2 class="sec-h" id="needs-h">Needs you <span class="count" data-count></span></h2>
+            <div class="needs-head">
+              <h2 class="sec-h" id="needs-h"><span data-title>Needs you</span> <span class="count" data-count></span></h2>
+              <p class="clear-line" data-clear hidden>Nothing is broken or running out.</p>
+            </div>
             <div data-list></div>
           </section>
         </div>
         <div class="side" data-side="right">
-          <section class="glass frame good" data-good aria-labelledby="good-h">
-            <h2 class="sec-h" id="good-h">All good <span class="count" data-count></span></h2>
-            <ul class="rows" data-list></ul>
+          <section class="glass frame reminders" data-reminders aria-labelledby="rem-h">
+            <h2 class="sec-h" id="rem-h">Reminders <span class="count" data-count></span></h2>
+            <div class="rem-list" data-list></div>
+          </section>
+          <section class="glass frame today" data-today aria-labelledby="today-h">
+            <div class="head">
+              <h2 class="sec-h" id="today-h">Today <span class="count" data-count></span></h2>
+              <span class="head-date" data-date></span>
+            </div>
+            <div class="today-list" data-list></div>
           </section>
         </div>
       </div>
-      <section class="glass frame todo" data-todo aria-labelledby="todo-h">
-        <div class="todo-top">
-          <h2 class="sec-h" id="todo-h">To-do <span class="count" data-count></span></h2>
-          <span class="pick" data-pick hidden>
-            <select data-filter aria-label="Project"></select>
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-chevron-down" /></svg>
-          </span>
-        </div>
-        <div class="todo-scroll" data-edge-fade="y"><ul class="rows" data-list></ul></div>
+      <section class="glass frame projects" data-projects aria-labelledby="projects-h">
+        <h2 class="sec-h" id="projects-h">Projects <span class="count" data-count></span></h2>
+        <div data-list></div>
       </section>
-      <section class="glass frame done" aria-labelledby="done-h">
-        <div class="done-top">
-          <h2 class="sec-h" id="done-h">Done</h2>
-          <Switch name="week" label="Which week" choices={[{ value: 'this', label: 'This week' }, { value: 'last', label: 'Last week' }]} />
-        </div>
-        <div class="done-body">
-          <div class="week-lanes" data-lanes></div>
-          <p class="visually-hidden" id="grip-hint">Up and down arrows move it.</p>
-          <p class="visually-hidden" aria-live="polite" data-said></p>
-        </div>
-      </section>
+      <div class="lanes bottom">
+        <section class="glass frame done" aria-labelledby="done-h">
+          <div class="done-top">
+            <h2 class="sec-h" id="done-h">Done</h2>
+            <Switch name="week" label="Which week" choices={[{ value: 'this', label: 'This week' }, { value: 'last', label: 'Last week' }]} />
+          </div>
+          <div class="done-body">
+            <div class="week-lanes" data-lanes></div>
+            <p class="visually-hidden" id="grip-hint">Up and down arrows move it.</p>
+            <p class="visually-hidden" aria-live="polite" data-said></p>
+          </div>
+        </section>
+        <section class="glass frame todo" data-todo aria-labelledby="todo-h">
+          <div class="todo-top">
+            <h2 class="sec-h" id="todo-h">To-do <span class="count" data-count></span></h2>
+            <span class="pick" data-pick hidden>
+              <select data-filter aria-label="Project"></select>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-chevron-down" /></svg>
+            </span>
+          </div>
+          <div class="todo-scroll" data-edge-fade="y"><ul class="rows" data-list></ul></div>
+        </section>
+      </div>
     </div>
   </div>
   <svg class="sprite" aria-hidden="true" focusable="false">
@@ -67,7 +83,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 
 <script>
   import { draftCall, draftPass } from '../lib/drafts-api';
-  import { attention, dayOf, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextUp, todoRows, weekColours, worst, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
+  import { KINDS, SIGN_DAYS, attention, dayName, dayOf, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, worst, type Card, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
   import { sayWaiting } from '../lib/waiting.js';
   import { showLevel } from '../lib/dashboard-nav';
   import { newTab } from '../lib/links.js';
@@ -76,9 +92,14 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   const gate = $<HTMLElement>('[data-gate]');
   const board = $<HTMLElement>('[data-board]');
   const top = $<HTMLElement>('[data-lede]');
+  const lanesTop = $<HTMLElement>('[data-top]');
   const needs = $<HTMLElement>('[data-needs]');
-  const good = $<HTMLElement>('[data-good]');
+  const reminders = $<HTMLElement>('[data-reminders]');
+  const today = $<HTMLElement>('[data-today]');
+  const projects = $<HTMLElement>('[data-projects]');
   const todo = $<HTMLElement>('[data-todo]');
+  const bottom = $<HTMLElement>('.lanes.bottom');
+  const doneFrame = $<HTMLElement>('.frame.done');
   const left = $<HTMLElement>('[data-side="left"]');
   const right = $<HTMLElement>('[data-side="right"]');
   const lanesBox = $<HTMLElement>('[data-lanes]');
@@ -134,72 +155,250 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     $<HTMLElement>('[data-count]', section).textContent = count === null ? '' : String(count);
     $<HTMLElement>('[data-list]', section).replaceChildren(...nodes);
   };
+  // Entrances: a card plays its own once, the first time it scrolls into view (the CSS's .wait and .play). The minute's
+  // redraw builds new nodes, so the played ones are remembered by key and drawn as they end; with less motion asked
+  // for, nothing waits. Cards seen together start one after another (--n), a few at most.
+  const played = new Set<string>();
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const watcher = new IntersectionObserver((entries) => {
+    let n = 0;
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const node = entry.target as HTMLElement;
+      watcher.unobserve(node);
+      played.add(node.dataset.key ?? '');
+      node.style.setProperty('--n', String(Math.min(n++, 5)));
+      node.classList.replace('wait', 'play');
+    }
+  }, { threshold: 0.35 });
+  function entrance(node: HTMLElement, key: string) {
+    if (still.matches || played.has(key)) return node;
+    node.dataset.key = key;
+    node.classList.add('wait');
+    watcher.observe(node);
+    return node;
+  }
+  /** A link to a run on GitHub, in a new tab. */
+  function runLink(node: HTMLAnchorElement, href: string) {
+    Object.assign(node, { href, target: newTab().target, rel: newTab().rel });
+    node.setAttribute('aria-describedby', 'new-tab');
+    return node;
+  }
+  /** A kind's mark: its icon in its colour on a small glass square, softly lit by that colour; none for a project
+   *  that isn't a repo (Jack, General). */
+  function kindMark(key: string | undefined, big = false) {
+    const kind = KINDS.find((k) => k.key === key);
+    if (!kind) return [];
+    const mark = el('span', `kind${big ? ' big' : ''}`);
+    mark.style.setProperty('--k', `var(--dg-kind-${kind.key})`);
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', kind.name);
+    mark.title = kind.name;
+    mark.append(icon(kind.icon));
+    return [mark];
+  }
 
-  function needRow(n: Need) {
+  function needRow(n: Need, kinds: Map<string, string>) {
     const row = el('article', `need ${n.level}`);
     const fig = el('div', 'fig-col');
     if (n.fig !== undefined) {
       fig.append(el('p', 'fig', String(n.fig)), el('p', 'unit', n.unit));
     } else fig.append(icon(n.icon ?? 'close'));
     const body = el('div', 'body');
-    body.append(el('h3', 't', n.title), ...n.lines.map((line) => el('p', 'sub', line)));
+    const head = el('div', 't-row');
+    head.append(...kindMark(n.project ? kinds.get(n.project) : undefined), el('h3', 't', n.title));
+    body.append(head, ...n.lines.map((line) => el('p', 'sub', line)));
     if (n.cells !== undefined) {
       const cells = el('span', 'cells');
       // The seven days of a signing; the ones left are lit, at the right end.
-      for (let i = 0; i < 7; i++) cells.append(el('i', i >= 7 - (n.cells ?? 0) ? 'on' : ''));
+      for (let i = 0; i < SIGN_DAYS; i++) cells.append(el('i', i >= SIGN_DAYS - (n.cells ?? 0) ? 'on' : ''));
       body.append(cells);
     }
     if (n.err) body.append(el('p', 'err', `Error: ${n.err}`));
-    if (n.rows) {
-      const mini = el('ul', 'mini');
-      for (const r of n.rows) {
-        const li = el('li');
-        const facts = el('span', 'facts');
-        facts.append(...r.facts.map((f) => el('span', '', f)));
-        li.append(el('b', '', r.name), facts);
-        mini.append(li);
-      }
-      body.append(mini);
-    }
-    if (n.link) {
-      const a = el('a', 'go run-link', n.link.text);
-      a.href = n.link.href;
-      Object.assign(a, { target: newTab().target, rel: newTab().rel });
-      a.setAttribute('aria-describedby', 'new-tab');
-      body.append(a);
-    }
+    if (n.link) body.append(runLink(el('a', 'go run-link', n.link.text), n.link.href));
     row.append(fig, body);
-    return row;
+    return entrance(row, `need:${n.title}`);
+  }
+
+  /** Needs you on the left and Reminders over Today on the right; with nothing to say, Needs you shrinks to the All
+   *  clear strip above both (C's) and Today takes the left. Each side's last section stretches to end level with the
+   *  other (the CSS). Moved only when the place changes. */
+  function placeTop(calm: boolean) {
+    const want: [HTMLElement, HTMLElement[]][] = calm ? [[left, [today]], [right, [reminders]]] : [[left, [needs]], [right, [reminders, today]]];
+    if (calm && needs.nextElementSibling !== lanesTop) board.insertBefore(needs, lanesTop);
+    for (const [side, sections] of want) {
+      if (sections.some((s, i) => side.children[i] !== s) || side.children.length !== sections.length) side.replaceChildren(...sections);
+    }
   }
 
   function drawNeeds(now: number) {
-    const list = attention(snapshot, todos, now);
-    needs.className = `glass frame needs lv-${worst(list)}`;
-    // The menu's Dashboard link shows what this shows.
-    showLevel(worst(list));
-    if (list.length) return fill(needs, list.length, ...list.map(needRow));
-    const calm = el('article', 'need calm');
-    calm.append(el('p', 'all-clear', 'All clear'), el('p', 'sub', nextUp(snapshot, now)));
-    fill(needs, null, calm);
+    const list = attention(snapshot, now);
+    const calm = !list.length;
+    needs.className = `glass frame needs lv-${worst(list)}${calm ? ' strip' : ''}`;
+    // The menu's Dashboard link: this colour, or amber for a to-do past its day.
+    showLevel(pageLevel(snapshot, todos, now));
+    $<HTMLElement>('[data-title]', needs).textContent = calm ? 'All clear' : 'Needs you';
+    $<HTMLElement>('[data-clear]', needs).hidden = !calm;
+    const kinds = kindsOf(snapshot);
+    fill(needs, calm ? null : list.length, ...list.map((n) => needRow(n, kinds)));
+    placeTop(calm);
   }
 
-  function drawGood(now: number) {
-    const rows = goodRows(snapshot, todos, now);
-    fill(good, rows.length, ...rows.map((r) => {
-      const li = el('li', r.running ? 'running' : '');
-      const what = el(r.href ? 'a' : 'span', r.href ? 'what go' : 'what', r.name);
-      if (r.href) {
-        Object.assign(what, { href: r.href, target: newTab().target, rel: newTab().rel });
-        what.setAttribute('aria-describedby', 'new-tab');
-      }
-      li.append(what, el('span', 'state', r.state));
-      if (r.sub || r.when) li.append(el('span', 'sub', r.sub), el('span', 'when', r.when));
-      return li;
+  /** A ring of the signing's seven days, from the top clockwise, the days left lit (B's). */
+  function ring(lit: number) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('aria-hidden', 'true');
+    const point = (deg: number) => [50 + 44 * Math.cos(((deg - 90) * Math.PI) / 180), 50 + 44 * Math.sin(((deg - 90) * Math.PI) / 180)].map((v) => v.toFixed(2)).join(' ');
+    const step = 360 / SIGN_DAYS;
+    for (let i = 0; i < SIGN_DAYS; i++) {
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      // A small gap between the days: each arc starts and ends 4.5 degrees in from its share.
+      arc.setAttribute('d', `M ${point(i * step + 4.5)} A 44 44 0 0 1 ${point((i + 1) * step - 4.5)}`);
+      if (i < lit) arc.classList.add('on');
+      arc.style.setProperty('--i', String(i));
+      svg.append(arc);
+    }
+    return svg;
+  }
+
+  function drawReminders(now: number) {
+    const rings = reminderRings(snapshot, now);
+    const level = rings.some((r) => r.level === 'act') ? 'act' : rings.some((r) => r.level === 'soon') ? 'soon' : 'ok';
+    reminders.className = `glass frame reminders${rings.length ? ` lv-${level}` : ''}`;
+    if (!rings.length) return fill(reminders, null, el('p', 'note', snapshot.sideload?.error ?? 'Nothing to re-sign.'));
+    const kinds = kindsOf(snapshot);
+    fill(reminders, rings.length, ...rings.map((r) => {
+      const row = el('article', `ring-rem ${r.level}`);
+      const wrap = el('div', 'ring-wrap');
+      const mid = el('div', 'ring-mid');
+      mid.append(el('b', '', String(r.left)), el('span', '', r.left === 1 ? 'day left' : 'days left'));
+      wrap.append(ring(r.lit), mid);
+      const body = el('div', 'body');
+      const head = el('div', 't-row');
+      head.append(...kindMark(kinds.get(r.project)), el('h3', 't', r.title));
+      body.append(head, el('p', 'sub', r.runsOut), el('p', 'sub', r.signed));
+      row.append(wrap, body);
+      return entrance(row, `ring:${r.app}`);
     }));
   }
 
-  /** The project filter, as the desktop widget's: All projects, then each project with an open to-do in the widget's
-   *  order (A-Z, General last), as the laptop sent them. */
+  /** Today: each to-do whose day has come in a well of its own, its notes in full, its kind and project; the late
+   *  ones first, their day in red. */
+  function drawToday(now: number) {
+    $<HTMLElement>('[data-date]', today).textContent = dayName(dayOf(now));
+    if (!todos) return fill(today, null, el('p', 'note', todoError || "Couldn't get the to-dos."));
+    const rows = splitTodos(todos, snapshot.reminders ?? [], dayOf(now)).today;
+    if (!rows.length) return fill(today, 0, el('p', 'note', 'Nothing for today.'));
+    const kinds = kindsOf(snapshot);
+    fill(today, rows.length, ...rows.map((t) => {
+      const card = el('article', `td${t.day.kind === 'late' ? ' late' : ''}`);
+      const head = el('div', 'td-top');
+      head.append(el('h3', 'td-t', t.text), el('span', `day ${t.day.kind === 'late' ? 'late' : ''}`, t.day.text));
+      const foot = el('div', 'td-foot');
+      foot.append(...kindMark(kinds.get(t.project)), el('span', 'tag', t.project));
+      card.append(head, ...(t.notes ? [el('p', 'td-n', t.notes)] : []), foot);
+      return entrance(card, `td:${t.project}:${t.text}`);
+    }));
+  }
+
+  const MARKS = { act: 'close', soon: 'bang', run: 'arc', fyi: 'branch', ok: 'check' } as const;
+  const SAYS = { act: 'Needs you', soon: 'Soon', run: 'Running', fyi: 'Not committed or pushed', ok: 'Fine' } as const;
+  /** A card's state in its top corner: a soft disc in the state's colour with its sign. */
+  function glyph(state: Card['state']) {
+    const mark = el('span', `glyph ${state}`);
+    mark.setAttribute('role', 'img');
+    mark.setAttribute('aria-label', SAYS[state]);
+    const sign = icon(MARKS[state]);
+    if (state === 'run') sign.classList.add('spin');
+    mark.append(sign);
+    return mark;
+  }
+  /** A check's state as a glowing pill: Passed, Running, Failed, days left, with the card's sign for that state (a
+   *  tick, a mark, a cross) in a slot that turns before the sign pops in, on the card's entrance. */
+  function pill(state: Card['state'], word: string, sign = '') {
+    const node = el('span', `pill ${state}`);
+    if (state === 'run') {
+      const turning = icon('arc');
+      turning.classList.add('spin');
+      node.append(turning);
+    } else {
+      const slot = el('span', 'sign');
+      slot.append(icon(sign || MARKS[state]));
+      node.append(slot);
+    }
+    node.append(word);
+    return node;
+  }
+  /** This week's done things a day, Monday to Sunday, as seven small bars in the kind's colour. */
+  function weekBars(week: number[]) {
+    const bars = el('span', 'wk');
+    bars.setAttribute('aria-hidden', 'true');
+    const most = Math.max(1, ...week);
+    for (const [i, n] of week.entries()) {
+      const bar = el('i', n ? 'on' : '');
+      // A done day grows from 6px to 24px with what was done; a day with none is a flat dash.
+      if (n) bar.style.height = `${6 + 18 * (n / most)}px`;
+      bar.style.setProperty('--i', String(i));
+      bars.append(bar);
+    }
+    return bars;
+  }
+  function tile(card: Card) {
+    const lit = card.state === 'act' || card.state === 'soon';
+    const node = el('article', `tile${lit ? ` lit lv-${card.state}` : ''}`);
+    node.style.setProperty('--k', `var(--dg-kind-${card.kind})`);
+    const head = el('div', 'tile-h');
+    head.append(el('h4', '', card.name), glyph(card.state));
+    node.append(head);
+    for (const check of card.checks) {
+      const row = el('div', 'st');
+      row.append(check.href ? runLink(el('a', 'st-n go', check.name), check.href) : el('span', 'st-n', check.name), pill(check.state, check.word));
+      if (check.when) row.append(el('span', 'st-w', check.when));
+      node.append(row);
+    }
+    if (card.repo.length) {
+      const row = el('div', 'st repo');
+      const facts = el('span', 'repo-pills');
+      facts.append(...card.repo.map((fact) => pill('fyi', fact, 'branch')));
+      row.append(el('span', 'st-n', 'Repo'), facts);
+      node.append(row);
+    }
+    const week = el('div', 'week');
+    week.append(weekBars(card.week), el('span', '', `${card.done} this week`));
+    if (card.todos) week.append(el('span', '', card.todos === 1 ? '1 to-do' : `${card.todos} to-dos`));
+    node.append(week);
+    // The pills' signs pop one after another down the card, after the corner's.
+    node.querySelectorAll<HTMLElement>('.pill').forEach((p, i) => p.style.setProperty('--at', String(i + 1)));
+    return entrance(node, `tile:${card.name}`);
+  }
+
+  /** Projects (A's shelves): a shelf a kind, its mark, name and count on the left, a card for each project with
+   *  something to say, the quiet ones named in one line. */
+  function drawProjects(now: number) {
+    const own = todos ? splitTodos(todos, snapshot.reminders ?? [], dayOf(now)).own : null;
+    const shelves = projectShelves(snapshot, own, now);
+    if (!shelves.length) return fill(projects, null, el('p', 'note', snapshot.repos?.error ?? 'No projects yet.'));
+    fill(projects, shelves.reduce((sum, s) => sum + s.count, 0), ...shelves.map((shelf) => {
+      const row = el('div', 'shelf');
+      const head = el('div', 'shelf-h');
+      const words = el('div');
+      words.append(el('h3', '', shelf.name), el('span', 'n', shelf.count === 1 ? '1 project' : `${shelf.count} projects`));
+      head.append(...kindMark(shelf.key, true), words);
+      const tiles = el('div', 'tiles');
+      tiles.append(...shelf.cards.map(tile));
+      if (shelf.quiet.length) {
+        const quiet = el('p', 'quiet');
+        quiet.append(el('b', '', `${shelf.quiet.length} quiet:`), ' ', ...shelf.quiet.flatMap((name, i) => [...(i ? [', '] : []), el('span', '', name)]));
+        tiles.append(quiet);
+      }
+      row.append(head, tiles);
+      return row;
+    }));
+  }
+
+  /** The project filter, as the desktop widget's: All projects, then each project with an open to-do here in the
+   *  widget's order (A-Z, General last), as the laptop sent them. */
   function drawFilter(projects: string[]) {
     if (!projects.includes(filter.value)) filter.value = '';
     pickBox.hidden = !projects.length;
@@ -211,15 +410,17 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     filter.dataset.projects = projects.join('\n');
   }
 
+  /** To-do: the open to-dos not in Today or Reminders; the filter picks a project among these only. */
   function drawTodos(now: number) {
     if (!todos) {
       pickBox.hidden = true;
       return fill(todo, null, el('li', 'note', todoError || "Couldn't get the to-dos."));
     }
-    drawFilter(todoProjects);
-    const shown = filter.value ? todos.filter((t) => t.project === filter.value) : todos;
+    const rest = splitTodos(todos, snapshot.reminders ?? [], dayOf(now)).rest;
+    drawFilter(todoProjects.filter((p) => rest.some((t) => t.project === p)));
+    const shown = filter.value ? rest.filter((t) => t.project === filter.value) : rest;
     const rows = todoRows(shown, dayOf(now));
-    if (!rows.length) return fill(todo, 0, el('li', 'note', 'Nothing to do.'));
+    if (!rows.length) return fill(todo, 0, el('li', 'note', 'Nothing else to do.'));
     fill(todo, rows.length, ...rows.map((r) => {
       const li = el('li');
       li.append(el('span', 'what', r.text), el('span', `day ${r.day?.kind === 'late' ? 'late' : ''}`, r.day?.text ?? ''));
@@ -227,16 +428,6 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
       if (!filter.value) li.append(el('span', 'tag', r.project));
       return li;
     }));
-  }
-
-  /** To-do goes under the shorter lane, and its list then takes the height that ends both lanes level, so no blank
-   *  is left under either (Jack: no white space under All good; the CSS stretches it); in one column, after All good.
-   *  The two are compared by what they hold, as the one To-do isn't under is stretched to the lane's end. Moved only
-   *  when its place changes, as a move scrolls its list back to the top. */
-  function placeTodos() {
-    const held = (frame: HTMLElement) => [...frame.children].reduce((sum, child) => sum + (child as HTMLElement).offsetHeight, 0);
-    const place = matchMedia('(max-width: 899px)').matches || held(needs) >= held(good) ? right : left;
-    if (todo.parentElement !== place) place.append(todo);
   }
 
   /** Some done things under a heading with what they hold, by module (doneModules): each module's name over its
@@ -348,6 +539,12 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     lanesBox.replaceChildren(...nodes);
   }
 
+  /** To-do ends level with Done: its list takes Done's height with no lane open, kept while one is open, so opening a
+   *  lane doesn't stretch To-do into an empty pane (the CSS reads --done-h). */
+  function levelTodo() {
+    if (!openLane) bottom.style.setProperty('--done-h', `${doneFrame.offsetHeight}px`);
+  }
+
   /** Done drawn again after a lane moved, each lane gliding from where it was on screen to its new place, so the one
    *  let go settles into its slot and the others close up. `lifted` keeps that one raised until it lands. */
   function redrawMoving(lifted = '') {
@@ -390,6 +587,8 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     // The minute's redraw waits while a lane is held: Done redrawn would drop it from the hand, and the sections
     // above changing height would move Done under it.
     if (!snapshot || drag) return;
+    // The nodes about to be replaced stop being watched; the new ones that haven't played yet are watched instead.
+    watcher.disconnect();
     const now = Date.now();
     const active = document.activeElement instanceof HTMLButtonElement && lanesBox.contains(document.activeElement) ? document.activeElement : null;
     const focused = active ? [active.dataset.lane ?? '', active.dataset.day ?? '', active.dataset.grip ?? ''] as const : null;
@@ -397,10 +596,11 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     top.hidden = false;
     top.replaceChildren(...(line.offline ? [el('span', 'offline', 'Laptop offline')] : []), line.text);
     drawNeeds(now);
-    drawGood(now);
+    drawReminders(now);
+    drawToday(now);
+    drawProjects(now);
     drawTodos(now);
     drawDone(now);
-    placeTodos();
     if (focused) refocus(...focused);
   }
 
@@ -534,10 +734,13 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   });
   // "x minutes ago" and the days left move with the clock; coming back to the tab asks for the latest.
   setInterval(draw, 60_000);
+  // A login in the palette (SearchDialog) draws the board at once.
+  document.addEventListener('now-login', () => load());
+  // Done's height changes with its lanes, the window and late fonts alike.
+  new ResizeObserver(levelTodo).observe(doneFrame);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && snapshot && Date.now() - loadedAt > 60_000) load();
   });
-  addEventListener('resize', () => { if (snapshot) placeTodos(); });
 
   load();
 </script>
@@ -575,26 +778,28 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .gate[hidden], .board[hidden] { display: none; }
   .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-  /* Needs you on the left and wider, All good on the right; To-do goes under the shorter one, Done runs full width.
-     The two lanes end level: each lane's last section stretches to the lane's end, To-do's list taking the height. */
+  /* The board's rows (A's layout): Needs you, wider, beside Reminders over Today, or the All clear strip over Today
+     beside Reminders; Projects across; Done, wider, beside the other to-dos. Two sides end level: each side's last
+     section stretches to the row's end, and To-do's list takes Done's height. */
+  .board { display: grid; gap: var(--space-5); }
   .lanes { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-5); }
   .side { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
   .side > :global(.frame:last-child) { flex: 1 0 auto; }
-  .done { margin-top: var(--space-5); }
 
   /* Each section a pane; one with a state is lit from its top in that state's colour: Needs you in its most urgent
-     one, All good in green. The light fades out by the first rows, so their words keep 4.5:1. To-do and Done stay
-     unlit. */
+     one (green as the All clear strip), Reminders in its most urgent signing's. The light fades out by the first
+     rows, so their words keep 4.5:1. Today, Projects, To-do and Done stay unlit. */
   .frame { --lit: transparent; position: relative; isolation: isolate; overflow: hidden; min-width: 0; padding: var(--space-5) var(--space-5) var(--space-2); }
-  .frame.needs, .frame.good { border-top-color: color-mix(in srgb, var(--lit) 70%, transparent); }
-  .needs::before, .good::before { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+  .frame.needs, .frame.reminders { border-top-color: color-mix(in srgb, var(--lit) 70%, transparent); }
+  .needs::before, .reminders::before { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none;
     background: linear-gradient(180deg, color-mix(in srgb, var(--lit) 36%, transparent), color-mix(in srgb, var(--lit) 8%, transparent) 7rem, transparent 12rem); }
   .needs.lv-act { --lit: var(--dash-bad); }
   .needs.lv-soon { --lit: var(--dash-soon); }
-  .needs.lv-fyi { --lit: var(--dg-fyi); }
-  .needs.lv-calm, .good { --lit: var(--dash-ok); }
+  .needs.lv-calm, .reminders.lv-ok { --lit: var(--dash-ok); }
+  .reminders.lv-soon { --lit: var(--dash-soon); }
+  .reminders.lv-act { --lit: var(--dash-bad); }
   .sec-h { display: flex; gap: var(--space-3); align-items: baseline; margin: 0; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); font-size: var(--text-lg); font-weight: 900; letter-spacing: -0.01em; }
-  .needs > .sec-h, .good > .sec-h { color: color-mix(in srgb, var(--lit) 55%, var(--ink)); }
+  .needs .sec-h, .reminders:is(.lv-ok, .lv-soon, .lv-act) > .sec-h { color: color-mix(in srgb, var(--lit) 55%, var(--ink)); }
   .count { color: var(--muted); font-size: var(--text-ui); font-weight: 700; font-variant-numeric: tabular-nums; }
   /* Global: the notes are written by the script, which scoped styles don't reach. */
   .board :global(.note) { margin: 0; padding: var(--space-4) 0; color: var(--muted); }
@@ -604,19 +809,10 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .rows :global(li) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-4); align-items: baseline; padding: 14px 0; border-top: var(--hairline) solid var(--rule); }
   .rows :global(li:first-child) { border-top: 0; }
   .rows :global(.what) { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
-  .rows :global(.sub) { grid-column: 1; color: var(--muted); font-size: var(--text-sm); }
-  .rows :global(.when) { grid-column: 2; grid-row: 2; justify-self: end; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
-  .rows :global(.state) { justify-self: end; color: var(--dash-ok); font-size: var(--text-sm); font-weight: 800; white-space: nowrap; }
-  .good :global(.what::before) { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 50%; background: var(--dash-ok); box-shadow: 0 0 8px var(--dash-ok); translate: 0 -2px; }
-  /* A deploy's name opens its run: in the row's ink until hovered, so the list stays calm. */
-  .good :global(a.what) { color: var(--ink); transition: color var(--motion-quick) var(--ease-out), transform var(--motion-soft) var(--ease-release); }
-  @media (hover: hover) { .good :global(a.what:hover) { color: var(--dash-ok); } }
-  .good :global(.running .state) { color: var(--muted); }
-  .good :global(.running .what::before) { background: var(--muted); box-shadow: none; }
   /* To-do rows as /todo's: the day at the right, red once passed, the project's tag under the words. */
   .todo :global(.day) { color: var(--muted); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
   .todo :global(.day.late) { color: var(--todo-late); }
-  .todo :global(.tag) { justify-self: start; padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+  .todo :global(.tag) { justify-self: start; }
   .todo :global(li.note) { display: block; }
   /* The project filter at the header's right, as in the desktop widget; set into the glass like a well. */
   .todo-top, .done-top { display: flex; gap: var(--space-3); align-items: center; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
@@ -626,17 +822,16 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .pick select { appearance: none; min-width: 0; max-width: 14rem; padding: 0.3125rem 2.25rem 0.3125rem var(--space-4); border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink); font: inherit; font-size: var(--text-sm); font-weight: 700; text-overflow: ellipsis; cursor: pointer; }
   .pick select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   .pick .icon { position: absolute; top: 50%; right: var(--space-3); width: 14px; height: 14px; translate: 0 -50%; color: var(--muted); stroke-width: 2.5; pointer-events: none; }
-  /* A long list scrolls in its own box, its edges fading (data-edge-fade). Its height is the room left in its lane,
-     at least about four rows: it adds no more than that to the lane, then grows into what the other lane leaves. */
-  .todo { display: flex; flex-direction: column; }
-  .todo-scroll { flex: 1 1 0; min-height: 15rem; overflow-y: auto; }
+  /* A long list scrolls in its own box, its edges fading (data-edge-fade). The pane is as tall as Done with no lane
+     open (levelTodo), and at least about four rows; its list takes what the header leaves. */
+  .lanes.bottom { align-items: start; }
+  .todo { display: flex; flex-direction: column; height: var(--done-h); min-height: 21rem; }
+  .todo-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; }
 
   /* Needs you: a big number (or an icon) in the state's colour with a soft light behind it, then the words. */
   .needs :global(.need) { --c: var(--dash-bad); display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-1) var(--space-5); align-items: center; min-width: 0; padding: 18px 0; border-top: var(--hairline) solid var(--rule); isolation: isolate; }
   .needs :global(.need:first-child) { border-top: 0; }
   .needs :global(.need.soon) { --c: var(--dash-soon); }
-  .needs :global(.need.fyi) { --c: var(--dg-fyi); }
-  .needs :global(.need.calm) { --c: var(--dash-ok); position: relative; grid-template-columns: minmax(0, 1fr); }
   .needs :global(.fig-col) { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; color: var(--c); text-align: center; }
   .needs :global(.fig-col::before) { content: ''; position: absolute; z-index: -1; left: 50%; top: 50%; width: 6rem; height: 6rem; translate: -50% -50%; border-radius: 50%;
     background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 34%, transparent), transparent); }
@@ -647,18 +842,204 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .needs :global(.cells i) { width: 26px; height: 10px; border-radius: var(--radius-2xs); background: var(--dg-cell-off); }
   .needs :global(.cells i.on) { background: var(--c); box-shadow: 0 0 12px -2px var(--c); }
   .needs :global(.body) { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  .needs :global(.t) { margin: 0; font-size: var(--text-md); font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
   .needs :global(.need .sub) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
   .needs :global(.err) { margin: var(--space-2) 0 0; padding: var(--space-2) var(--space-3); border: var(--hairline) solid color-mix(in srgb, var(--c) 26%, transparent); border-radius: var(--radius-sm);
     background: color-mix(in srgb, var(--c) 12%, var(--dg-well)); color: var(--ink); font-size: var(--text-sm); overflow-wrap: anywhere; }
-  .needs :global(.mini) { display: grid; gap: var(--space-1); margin: var(--space-1) 0 0; padding: 0; list-style: none; }
-  .needs :global(.mini li) { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); }
-  .needs :global(.mini b) { font-weight: 700; overflow-wrap: anywhere; }
-  .needs :global(.mini .facts) { display: grid; justify-items: end; color: var(--muted); font-size: var(--text-sm); font-weight: 600; }
   /* A link in its row's colour, as Now's cards colour theirs, so it reads apart from the words. */
   .needs :global(.run-link) { align-self: flex-start; margin-top: var(--space-1); color: var(--c); font-weight: 750; }
-  .needs :global(.all-clear) { margin: 0; color: var(--c); font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
-  .needs :global(.need.calm .sub) { margin-top: var(--space-1); }
+
+  /* The All clear strip (C's): when nothing needs Jack, Needs you shrinks to one thin line lit green from its top,
+     All clear on the left and a short line on the right. */
+  .needs.strip { padding-bottom: var(--space-2); }
+  .needs-head { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); align-items: baseline; justify-content: space-between; }
+  .needs:not(.strip) .needs-head { display: block; }
+  .needs.strip .sec-h { padding-bottom: 14px; border-bottom: 0; }
+  .clear-line { margin: 0; padding-bottom: 14px; color: var(--muted); font-size: var(--text-ui); font-weight: 700; }
+  .clear-line[hidden], .needs.strip [data-list] { display: none; }
+
+  /* A title with its kind's mark before it (Needs you, Reminders). */
+  .board :global(.t-row) { display: flex; gap: 10px; align-items: flex-start; }
+  .board :global(.t-row .kind) { margin-top: 1px; }
+  .board :global(.t) { min-width: 0; margin: 0; font-size: var(--text-md); font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  /* A kind's mark: its icon in its colour on a small glass square, softly lit by that colour. */
+  .board :global(.kind) { --k: var(--dg-kind-other); display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border: var(--hairline) solid color-mix(in srgb, var(--k) 40%, transparent); border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--k) 16%, var(--dg-well)); color: var(--k); box-shadow: 0 0 14px -4px var(--k); }
+  .board :global(.kind .icon) { width: 15px; height: 15px; stroke-width: 2; }
+  .board :global(.kind.big) { width: 40px; height: 40px; border-radius: var(--radius-art); }
+  .board :global(.kind.big .icon) { width: 22px; height: 22px; }
+
+  /* Reminders (B's ring): the signing's seven days round a big number of days left, lit in the state's colour; the
+     title, when it runs out and when it was signed beside it. Stretched to end level with Today, it sits in the
+     middle of its pane. */
+  .reminders { display: flex; flex-direction: column; }
+  .rem-list { flex: 1; display: grid; align-content: center; }
+  .reminders :global(.ring-rem) { --c: var(--dash-ok); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-5); align-items: center; padding: 18px 0 14px; border-top: var(--hairline) solid var(--rule); }
+  .reminders :global(.ring-rem:first-child) { border-top: 0; }
+  .reminders :global(.ring-rem.soon) { --c: var(--dash-soon); }
+  .reminders :global(.ring-rem.act) { --c: var(--dash-bad); }
+  .reminders :global(.ring-wrap) { position: relative; width: 136px; height: 136px; }
+  .reminders :global(.ring-wrap svg) { display: block; width: 100%; height: 100%; overflow: visible; }
+  .reminders :global(.ring-wrap path) { fill: none; stroke: var(--dg-cell-off); stroke-width: 7; stroke-linecap: round; }
+  .reminders :global(.ring-wrap path.on) { stroke: var(--c); filter: drop-shadow(0 0 3px var(--c)); }
+  .reminders :global(.ring-mid) { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .reminders :global(.ring-mid b) { color: var(--c); font-size: 2.75rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .reminders :global(.ring-mid span) { color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
+  .reminders :global(.body) { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .reminders :global(.sub) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+
+  /* Today: each to-do in a well of its own, its notes in full; the late ones first, their day in red. */
+  .head { display: flex; gap: var(--space-3); align-items: baseline; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
+  .head .sec-h { padding-bottom: 0; border-bottom: 0; }
+  .head-date { color: var(--muted); font-size: var(--text-ui); font-weight: 700; white-space: nowrap; }
+  .today-list { display: grid; gap: 10px; padding: 14px 0 var(--space-3); }
+  .today :global(.td) { display: grid; gap: 6px; min-width: 0; padding: 14px var(--space-4); border: var(--hairline) solid var(--rule); border-radius: var(--radius-md); background: var(--dg-well); }
+  .today :global(.td-top) { display: flex; gap: var(--space-3); align-items: baseline; justify-content: space-between; }
+  .today :global(.td-t) { min-width: 0; margin: 0; font-size: 1.0625rem; font-weight: 800; overflow-wrap: anywhere; }
+  .today :global(.td-n) { margin: 0; color: var(--muted); font-size: var(--text-ui); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .today :global(.td-foot) { display: flex; gap: var(--space-2); align-items: center; min-width: 0; }
+  .today :global(.day) { color: var(--muted); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
+  .today :global(.day.late) { color: var(--todo-late); }
+  .today :global(.tag), .todo :global(.tag) { min-width: 0; padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Projects (A's shelves): a shelf a kind, its mark, name and count on the left; a card a project with something to
+     say, its checks as glowing state pills, its week as seven small bars in the kind's colour and a state mark at its
+     top right; a card in trouble lit from its top in that state's colour. The quiet projects are named in one line. */
+  .projects :global(.shelf) { display: grid; grid-template-columns: 13rem minmax(0, 1fr); gap: var(--space-4) var(--space-5); padding: 18px 0; border-top: var(--hairline) solid var(--rule); }
+  .projects :global(.shelf:first-child) { border-top: 0; }
+  .projects :global(.shelf-h) { display: flex; gap: var(--space-3); align-items: center; align-self: start; padding-top: 6px; }
+  .projects :global(.shelf-h h3) { margin: 0; font-size: 1.0625rem; font-weight: 900; line-height: 1.25; }
+  .projects :global(.shelf-h .n) { color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  .projects :global(.tiles) { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--space-3); }
+  /* Cards in a row as tall as each other, each one's week at its bottom. */
+  .projects :global(.tile) { --lit: transparent; position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 14px var(--space-4);
+    border: var(--hairline) solid var(--rule); border-radius: var(--radius-md); background: var(--dg-well); }
+  .projects :global(.tile.lv-act) { --lit: var(--dash-bad); }
+  .projects :global(.tile.lv-soon) { --lit: var(--dash-soon); }
+  .projects :global(.tile.lit) { border-top-color: color-mix(in srgb, var(--lit) 70%, transparent); }
+  .projects :global(.tile.lit::before) { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: linear-gradient(180deg, color-mix(in srgb, var(--lit) 30%, transparent), transparent 6rem); }
+  .projects :global(.tile-h) { display: flex; gap: 10px; align-items: center; }
+  .projects :global(.tile-h h4) { min-width: 0; margin: 0; overflow: hidden; font-size: var(--text-base); font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+  /* The card's state: a soft disc in the state's colour with its sign (a cross, a mark, a turning arc, a branch, a tick). */
+  .projects :global(.glyph) { --c: var(--dash-ok); display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; margin-left: auto; border-radius: 50%;
+    background: color-mix(in srgb, var(--c) 22%, transparent); color: var(--c); box-shadow: 0 0 12px -2px color-mix(in srgb, var(--c) 70%, transparent); }
+  .projects :global(.glyph .icon) { width: 13px; height: 13px; stroke-width: 3; }
+  .projects :global(.glyph.act), .projects :global(.pill.act) { --c: var(--dash-bad); }
+  .projects :global(.glyph.soon), .projects :global(.pill.soon) { --c: var(--dash-soon); }
+  .projects :global(.glyph.fyi), .projects :global(.pill.fyi) { --c: var(--dg-fyi); }
+  .projects :global(.glyph.run), .projects :global(.pill.run) { --c: var(--muted); }
+  /* A check: its name and when on the left, its state pill on the right. */
+  .projects :global(.st) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; align-items: center; }
+  .projects :global(.st-n) { min-width: 0; overflow: hidden; color: var(--ink); font-size: var(--text-sm); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; transition: color var(--motion-quick) var(--ease-out); }
+  @media (hover: hover) { .projects :global(a.st-n:hover) { color: var(--dash-ok); } }
+  .projects :global(.st-w) { grid-column: 1; color: var(--muted); font-size: 0.8125rem; }
+  .projects :global(.pill) { --c: var(--dash-ok); grid-row: 1 / span 2; grid-column: 2; display: inline-flex; gap: 6px; align-items: center; padding: 3px 10px; border: var(--hairline) solid color-mix(in srgb, var(--c) 45%, transparent);
+    border-radius: var(--radius-pill); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); font-size: 0.8125rem; font-weight: 800; white-space: nowrap; box-shadow: 0 0 14px -6px var(--c); }
+  .projects :global(.pill .icon) { width: 13px; height: 13px; stroke-width: 2.6; }
+  /* The repo row keeps its label whole; its pills wrap in the room left. */
+  .projects :global(.st.repo) { grid-template-columns: auto minmax(0, 1fr); }
+  .projects :global(.repo-pills) { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; grid-row: 1 / span 2; grid-column: 2; }
+  .projects :global(.repo-pills .pill) { grid-row: auto; grid-column: auto; }
+  .projects :global(.week) { display: flex; gap: 10px; align-items: end; margin-top: auto; padding-top: var(--space-1); }
+  .projects :global(.week span) { color: var(--muted); font-size: 0.8125rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* Bars of one width on every card, so the days line up down a shelf. */
+  .projects :global(.wk) { display: grid; grid-template-columns: repeat(7, 10px); gap: var(--space-1); align-items: end; flex: none; height: 24px; margin-right: auto; }
+  .projects :global(.wk i) { height: 4px; border-radius: var(--radius-2xs); background: var(--dg-cell-off); }
+  .projects :global(.wk i.on) { background: var(--k); box-shadow: 0 0 10px -2px var(--k); }
+  /* The quiet ones under the cards across the shelf, each name kept on one line. */
+  .projects :global(.quiet) { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--text-sm); }
+  .projects :global(.quiet:only-child) { padding-top: 6px; }
+  .projects :global(.quiet b) { color: var(--ink); font-weight: 750; }
+  .projects :global(.quiet span) { white-space: nowrap; }
+  /* Running: the arc turns slowly, the page's one moving mark besides the clouds; with less motion asked for, it holds. */
+  .board :global(.spin) { animation: dash-turn 1.6s linear infinite; transform-origin: 50% 50%; }
+  @keyframes dash-turn { to { transform: rotate(1turn); } }
+  @media (prefers-reduced-motion: reduce) { .board :global(.spin) { animation: none; } }
+
+  /* Entrances: a card plays once, the first time it scrolls into view (.wait until then, .play after; the script).
+     A project card rises in; its corner sign turns a moment, as if checking, then pops in with a ripple, a problem's
+     then hopping twice and its card's light coming on; its pills' signs follow one by one down the card, and its
+     week's bars grow. Reminders' ring lights day by day, then its number pops; a need's figure pops and hops; Today's
+     cards rise one after another, a late one's day hopping. Every one ends where the card already was (fill
+     backwards only), so the hovers below still move them. */
+  .board :global(:is(.wait, .play)) { --d: calc(var(--n, 0) * var(--motion-wait-step)); --t: calc(var(--d) + var(--motion-hold)); }
+  .board :global(:is(.tile, .td).wait) { opacity: 0; }
+  .board :global(:is(.tile, .td, .need).play) { animation: dash-rise var(--motion-soft) var(--ease-out) var(--d) backwards; }
+  .projects :global(.glyph) { position: relative; }
+  .projects :global(.pill .sign) { position: relative; display: inline-grid; place-items: center; width: 13px; height: 13px; }
+  /* The turning ring a sign waits in, and the ripple it pops with. */
+  .projects :global(:is(.glyph, .sign)::before) { content: ''; position: absolute; inset: -3px; border: 2px solid transparent; border-top-color: var(--c); border-right-color: var(--c); border-radius: 50%; opacity: 0; pointer-events: none; }
+  .projects :global(.sign::before) { inset: -2px; border-width: 1.5px; }
+  .projects :global(.glyph::after) { content: ''; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 2px var(--c); opacity: 0; pointer-events: none; }
+  .projects :global(.wait :is(.glyph:not(.run), .sign)::before) { opacity: 1; }
+  .projects :global(.wait :is(.glyph:not(.run), .sign) > .icon) { scale: 0; }
+  .projects :global(.play .glyph:not(.run)::before) { animation: dash-check var(--motion-hold) linear var(--d) backwards; }
+  .projects :global(.play .sign::before) { animation: dash-check calc(var(--motion-hold) + var(--at) * var(--motion-wait-step)) linear var(--d) backwards; }
+  .projects :global(.play .glyph:not(.run)::after) { animation: dash-ripple var(--motion-hold) var(--ease-out) var(--t) backwards; }
+  .projects :global(.play .glyph:not(.run) > .icon) { animation: dash-pop var(--motion-settle) var(--ease-out) var(--t) backwards; }
+  .projects :global(.play .glyph:is(.act, .soon) > .icon) { animation: dash-pop var(--motion-settle) var(--ease-out) var(--t) backwards, dash-hop var(--motion-hold) var(--ease-out) calc(var(--t) + var(--motion-settle)); }
+  .projects :global(.play .sign > .icon) { --at-t: calc(var(--t) + var(--at) * var(--motion-wait-step)); animation: dash-pop var(--motion-settle) var(--ease-out) var(--at-t) backwards; }
+  .projects :global(.play .pill:is(.act, .soon) .sign > .icon) { animation: dash-pop var(--motion-settle) var(--ease-out) var(--at-t) backwards, dash-hop var(--motion-hold) var(--ease-out) calc(var(--at-t) + var(--motion-settle)); }
+  .projects :global(.tile.wait.lit::before) { opacity: 0; }
+  .projects :global(.tile.play.lit::before) { animation: dash-light var(--motion-soft) var(--ease-out) var(--t) backwards; }
+  .projects :global(.wk i) { transform-origin: bottom; }
+  .projects :global(.wait .wk i) { scale: 1 0; }
+  .projects :global(.play .wk i) { animation: dash-grow var(--motion-settle) var(--ease-spring) calc(var(--d) + var(--motion-soft) + var(--i) * var(--motion-wait-step) / 3) backwards; }
+  .reminders :global(.wait path.on) { stroke: var(--dg-cell-off); filter: none; }
+  .reminders :global(.play path.on) { animation: dash-arc var(--motion-soft) var(--ease-out) calc(var(--d) + var(--motion-soft) + var(--i) * var(--motion-wait-step)) backwards; }
+  .reminders :global(.wait .ring-mid b) { scale: 0; }
+  .reminders :global(.play .ring-mid b) { --at-t: calc(var(--d) + var(--motion-soft) + 7 * var(--motion-wait-step)); animation: dash-pop var(--motion-settle) var(--ease-out) var(--at-t) backwards; }
+  .reminders :global(.play:is(.act, .soon) .ring-mid b) { animation: dash-pop var(--motion-settle) var(--ease-out) var(--at-t) backwards, dash-hop var(--motion-hold) var(--ease-out) calc(var(--at-t) + var(--motion-settle)); }
+  .needs :global(.wait .fig-col) { scale: 0; }
+  .needs :global(.play .fig-col) { animation: dash-pop var(--motion-settle) var(--ease-out) calc(var(--d) + var(--motion-soft)) backwards, dash-hop var(--motion-hold) var(--ease-out) calc(var(--d) + var(--motion-soft) + var(--motion-settle)); }
+  .today :global(.td.late.play .day) { animation: dash-hop var(--motion-hold) var(--ease-out) calc(var(--d) + var(--motion-soft)); }
+  @keyframes dash-rise { from { opacity: 0; translate: 0 14px; } }
+  @keyframes dash-check { from { opacity: 1; rotate: 0turn; } 85% { opacity: 1; } to { opacity: 0; rotate: 1.5turn; } }
+  @keyframes dash-pop { from { scale: 0; } 60% { scale: 1.3; } to { scale: 1; } }
+  @keyframes dash-ripple { from { opacity: 0; } 1% { opacity: 0.9; scale: 1; } to { opacity: 0; scale: 2.4; } }
+  @keyframes dash-hop { 20% { translate: 0 -0.32em; } 40% { translate: 0 0; } 60% { translate: 0 -0.16em; } 80% { translate: 0 0; } }
+  @keyframes dash-light { from { opacity: 0; } }
+  @keyframes dash-grow { from { scale: 1 0; } }
+  @keyframes dash-arc { from { stroke: var(--dg-cell-off); filter: none; } }
+
+  /* Hovers: a card lifts with its kind's light (a card in trouble, its state's), its corner sign answering (a nod
+     when fine, a shake in trouble) and its week's bars rising in a wave; a pill glows up and its sign nods; a kind's
+     mark hops; Reminders' lit days thicken one after another and its number swells; a need's figure swells. A
+     keyboard focus inside a card does the same as a hover. */
+  .projects :global(.tile) { --glow: var(--k); transition: translate var(--motion-soft) var(--ease-out), border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out); }
+  .projects :global(.tile.lit) { --glow: var(--lit); }
+  .projects :global(.wk i) { transition: translate var(--motion-soft) var(--ease-spring) calc(var(--i) * var(--motion-wait-step) / 3); }
+  .projects :global(.pill) { transition: scale var(--motion-soft) var(--ease-spring), box-shadow var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out); }
+  .projects :global(.quiet span) { transition: color var(--motion-quick) var(--ease-out); }
+  .today :global(.td) { transition: translate var(--motion-soft) var(--ease-out), border-color var(--motion-quick) var(--ease-out); }
+  .reminders :global(.ring-wrap path) { transition: stroke-width var(--motion-soft) var(--ease-out) calc(var(--i) * var(--motion-wait-step) / 2), filter var(--motion-soft) var(--ease-out) calc(var(--i) * var(--motion-wait-step) / 2); }
+  .board :global(:is(.ring-mid b, .fig-col)) { transition: scale var(--motion-soft) var(--ease-spring); }
+  .projects :global(.tile:has(:focus-visible)) { border-color: color-mix(in srgb, var(--glow) 55%, transparent); box-shadow: 0 12px 30px -16px var(--glow); }
+  @media (hover: hover) {
+    .projects :global(.tile:hover) { border-color: color-mix(in srgb, var(--glow) 55%, transparent); box-shadow: 0 12px 30px -16px var(--glow); }
+    .projects :global(.pill:hover) { background-color: color-mix(in srgb, var(--c) 26%, transparent); box-shadow: 0 0 18px -4px var(--c); }
+    .projects :global(.quiet span:hover) { color: var(--ink); }
+    .today :global(.td:hover) { border-color: color-mix(in srgb, var(--ink) 24%, transparent); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .projects :global(.tile:has(:focus-visible)) { translate: 0 -3px; }
+    .projects :global(.tile:has(:focus-visible) .wk i) { translate: 0 -3px; }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .projects :global(.tile:hover) { translate: 0 -3px; }
+    .projects :global(.tile:hover .wk i) { translate: 0 -3px; }
+    .projects :global(.tile:hover .glyph:not(.run)) { animation: dash-nod var(--motion-settle) var(--ease-out); }
+    .projects :global(.tile:hover .glyph:is(.act, .soon)) { animation: dash-shake var(--motion-hold) var(--ease-out); }
+    .projects :global(.pill:hover) { scale: 1.06; }
+    .projects :global(.pill:hover .sign) { animation: dash-nod var(--motion-settle) var(--ease-out); }
+    .today :global(.td:hover) { translate: 0 -2px; }
+    .board :global(:is(.shelf, .td, .need, .ring-rem):hover .kind) { animation: dash-jump var(--motion-settle) var(--ease-out); }
+    .reminders :global(.ring-rem:hover path.on) { stroke-width: 9.5; filter: drop-shadow(0 0 6px var(--c)); }
+    .reminders :global(.ring-rem:hover .ring-mid b) { scale: 1.12; }
+    .needs :global(.need:hover .fig-col) { scale: 1.08; }
+  }
+  @keyframes dash-nod { 40% { scale: 1.25; } }
+  @keyframes dash-shake { 15% { rotate: -14deg; } 30% { rotate: 14deg; } 45% { rotate: -9deg; } 60% { rotate: 9deg; } 75% { rotate: -4deg; } }
+  @keyframes dash-jump { 35% { translate: 0 -4px; } 70% { translate: 0 1px; } }
 
   /* Done (D10, the "project lanes"): This week | Last week at the header's right, as To-do's filter, then the week
      across and a lane a project down, in the order Jack dragged them to. A day's things in a lane are one pill in the
@@ -738,7 +1119,9 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   @media (max-width: 899px) {
     .lanes { grid-template-columns: minmax(0, 1fr); }
     /* One lane: nothing to end level with, so To-do's list keeps a height of its own. */
-    .todo-scroll { flex: none; max-height: 27rem; min-height: 0; }
+    .todo { height: auto; min-height: 0; }
+    .todo-scroll { flex: none; max-height: 27rem; }
+    .projects :global(.shelf) { grid-template-columns: minmax(0, 1fr); }
   }
   @media (max-width: 719px) {
     .top { padding: var(--space-5); }
@@ -749,6 +1132,9 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     .week-lanes :global(.day-h .n) { font-size: var(--text-base); }
     .week-lanes :global(.pill) { width: calc(26px + (100% - 26px) * var(--f)); min-width: 26px; height: 26px; padding: 0 6px; font-size: var(--text-xs); }
     .week-lanes :global(.lane-open) { padding-left: var(--space-2); }
+    /* The ring over its words, as there's no room beside it. */
+    .reminders :global(.ring-rem) { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: var(--space-3); text-align: center; }
+    .reminders :global(.t-row) { justify-content: center; }
   }
   @media (max-width: 560px) {
     .needs :global(.need) { grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--space-1) var(--space-4); }

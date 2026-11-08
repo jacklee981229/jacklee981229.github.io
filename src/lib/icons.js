@@ -81,4 +81,11 @@ export const ICONS = {
   'speed-1': '<path d="m9 6 6 6-6 6"/>',
   'speed-2': '<path d="m6 6 6 6-6 6M12.5 6l6 6-6 6"/>',
   'speed-3': '<path d="m3.5 6 6 6-6 6M9 6l6 6-6 6M14.5 6l6 6-6 6"/>',
+  // The dashboard's kinds of project and its cards' state marks.
+  monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  mods: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13.5v6M13.5 16.5h6"/>',
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  folder: '<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
+  bang: '<path d="M12 5v9M12 18.5v.5"/>',
+  arc: '<path d="M12 3a9 9 0 1 1-8.5 6"/>',
 };

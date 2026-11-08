@@ -2,7 +2,7 @@
 // the dashboard's most urgent state, red for something to do now, amber for soon, cyan when all is well.
 // Base.astro's head shows the link and the last state before the page paints; this reads the latest from the Worker.
 import { draftCall, draftPass } from './drafts-api';
-import { attention, worst, type Todo } from './dashboard.js';
+import { pageLevel, type Todo } from './dashboard.js';
 import { LEVEL_KEY } from './now-command.js';
 
 /** How long a read state stands before a page asks the Worker again (two calls), so moving between pages costs none. */
@@ -28,5 +28,5 @@ export async function refreshLevel() {
     try { localStorage.removeItem(LEVEL_KEY); } catch { /* nothing kept */ }
     return;
   }
-  showLevel(worst(attention(dash.value.snapshot, list.status === 'fulfilled' ? list.value.items : null, Date.now())));
+  showLevel(pageLevel(dash.value.snapshot, list.status === 'fulfilled' ? list.value.items : null, Date.now()));
 }

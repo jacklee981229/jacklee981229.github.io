@@ -1,6 +1,6 @@
-// Jack's dashboard (/dashboard/, src/pages/dashboard.astro): what needs him, what's fine, his to-dos and what he did,
-// from the snapshot his laptop pushes (C:\repos\Jack\dashboard, collect.py, whose docstring is its format) and the
-// to-dos the Worker already holds. The snapshot carries points in time only: everything that moves with the clock
+// Jack's dashboard (/dashboard/, src/pages/dashboard.astro): what needs him, his reminders, today's to-dos, his projects
+// by kind, the other to-dos and what he did, from the snapshot his laptop pushes (C:\repos\Jack\dashboard, collect.py,
+// whose docstring is its format) and the to-dos the Worker already holds. The snapshot carries points in time only: everything that moves with the clock
 // (days left, minutes ago, an overdue backup) is worked out here against the browser's clock, so it keeps moving while
 // the laptop is off. Times and days are Malaysia's, whatever the browser's time zone.
 import { dayWords, dueFirst, isDue } from './todo-days.js';
@@ -28,13 +28,19 @@ const addDays = (day, n) => new Date(Date.parse(day) + n * DAY).toISOString().sl
 /** @param {number} n @param {string} word */
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+/** A day as "Sun 1 Nov". @param {string} day YYYY-MM-DD */
+export function dayName(day) {
+  const date = new Date(Date.parse(day));
+  return `${WEEKDAYS[date.getUTCDay()]} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
+}
+
 /** "Today, 13:02", "Yesterday, 23:31", "Tomorrow, 15:01" or "Sun 1 Nov, 22:04". @param {number} ms @param {number} now */
 export function whenWords(ms, now) {
   const at = myt(ms);
   const time = `${String(at.getUTCHours()).padStart(2, '0')}:${String(at.getUTCMinutes()).padStart(2, '0')}`;
   const day = dayOf(ms);
   const today = dayOf(now);
-  const name = day === today ? 'Today' : day === addDays(today, -1) ? 'Yesterday' : day === addDays(today, 1) ? 'Tomorrow' : `${WEEKDAYS[at.getUTCDay()]} ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}`;
+  const name = day === today ? 'Today' : day === addDays(today, -1) ? 'Yesterday' : day === addDays(today, 1) ? 'Tomorrow' : dayName(day);
   return `${name}, ${time}`;
 }
 
@@ -76,76 +82,96 @@ function unread(error) {
 }
 
 /**
- * @typedef {{ level: 'act' | 'soon' | 'fyi', key: string, title: string, fig?: number, unit?: string,
- *   icon?: string, cells?: number, lines: string[], err?: string, link?: { href: string, text: string },
- *   rows?: { name: string, facts: string[] }[] }} Need
+ * The kinds a repo can be, in the order Projects shows them, each with its name and icon (its colour is the page's
+ * --dg-kind-<key>). The laptop's table (collect.py's KINDS) says which repo is which; in a snapshot from before it,
+ * every repo is Other.
+ */
+export const KINDS = [
+  { key: 'web', name: 'Websites', icon: 'globe' },
+  { key: 'mobile', name: 'Mobile App', icon: 'phone' },
+  { key: 'pc', name: 'PC app', icon: 'monitor' },
+  { key: 'mods', name: 'Claude mods', icon: 'mods' },
+  { key: 'behind', name: 'Behind the scenes', icon: 'gear' },
+  { key: 'other', name: 'Other', icon: 'folder' },
+];
+/** A signing lasts seven days (a free Apple ID); Reminders' ring has a day each. */
+export const SIGN_DAYS = 7;
+
+/** Each repo's kind, by name. A to-do's project that isn't a repo (Jack, General) has none. @param {any} snapshot */
+export function kindsOf(snapshot) {
+  return new Map((snapshot.repos?.repos ?? []).map((/** @type {any} */ r) => [String(r.name), KINDS.some((k) => k.key === r.kind) ? String(r.kind) : 'other']));
+}
+
+/** A signing's state by its days left: fine past 2, amber at 2, red at 1 or once it has run out. @param {number} left */
+const signLevel = (left) => (left <= 1 ? 'act' : left <= 2 ? 'soon' : 'ok');
+
+/**
+ * The KB backup's state: done (when it last ran), never finished, overdue (the days since the last, the run it
+ * missed), or failed after its last success.
+ * @param {any} backup @param {number} now
+ */
+function backupState(backup, now) {
+  const last = backup.last_success_at ? Date.parse(backup.last_success_at) : null;
+  const due = backupDue(now);
+  if (last === null) return { state: 'never', last: 0, since: 0, due };
+  if (last < due) return { state: 'overdue', last, since: Math.floor((now - last) / DAY), due };
+  return { state: backup.last_error ? 'failed' : 'done', last, since: 0, due };
+}
+
+/**
+ * @typedef {{ level: 'act' | 'soon', key: string, title: string, project?: string, fig?: number, unit?: string,
+ *   icon?: string, cells?: number, lines: string[], err?: string, link?: { href: string, text: string } }} Need
  * @typedef {{ id: string, project: string, text: string, notes: string, on?: string }} Todo
+ * @typedef {{ app: string, project: string, text: string }} Reminder
  */
 
 /**
  * What needs Jack, most urgent first. act (red): broken, or an app with a day or less left. soon (amber): wants
- * doing in a day or two, or a source the laptop couldn't read. fyi: worth knowing, no hurry. Each has a big number,
- * or an icon where there's no number to give.
- * @param {any} snapshot @param {Todo[] | null} todos null when they couldn't be had @param {number} now
+ * doing in a day or two, or a source the laptop couldn't read. Each has a big number, or an icon where there's no
+ * number to give, and the project it's about, for its kind's mark. Work not committed or pushed shows on its
+ * project's card instead, and to-dos past their day lead Today.
+ * @param {any} snapshot @param {number} now
  * @returns {Need[]}
  */
-export function attention(snapshot, todos, now) {
+export function attention(snapshot, now) {
   /** @type {Need[]} */
   const out = [];
   const errors = [];
   for (const name of ['sideload', 'deploys', 'backup', 'repos', 'done']) {
     const error = snapshot[name]?.error;
-    if (error) errors.push({ level: 'soon', key: `error-${name}`, title: unread(error).title, icon: 'bug', lines: [], err: unread(error).reason || undefined });
+    if (error) errors.push({ level: /** @type {const} */ ('soon'), key: `error-${name}`, title: unread(error).title, icon: 'bug', lines: [], err: unread(error).reason || undefined });
   }
 
   for (const app of snapshot.sideload?.apps ?? []) {
     const left = daysLeft(Date.parse(app.runs_out_at), now);
     const runsOut = whenIn(Date.parse(app.runs_out_at), now);
-    if (left <= 2) {
-      out.push({ level: left <= 1 ? 'act' : 'soon', key: `sideload-${app.app}`, title: `Re-sign ${app.app}`, fig: Math.max(0, left), unit: left === 1 ? 'day left' : 'days left', cells: Math.max(0, left), lines: [left > 0 ? `Runs out ${runsOut}` : `Ran out ${runsOut}`] });
+    const level = signLevel(left);
+    if (level !== 'ok') {
+      out.push({ level, key: `sideload-${app.app}`, title: `Re-sign ${app.app}`, project: app.project, fig: Math.max(0, left), unit: left === 1 ? 'day left' : 'days left', cells: Math.max(0, left), lines: [left > 0 ? `Runs out ${runsOut}` : `Ran out ${runsOut}`] });
     }
     if (app.failures > 0) {
-      out.push({ level: 'act', key: `refresh-${app.app}`, title: 'Auto-refresh is failing', fig: app.failures, unit: app.failures === 1 ? 'try failed' : 'tries failed', lines: app.last_failure_at ? [`Last try ${whenIn(Date.parse(app.last_failure_at), now)}`] : [], err: app.last_error || undefined });
+      out.push({ level: 'act', key: `refresh-${app.app}`, title: 'Auto-refresh is failing', project: app.project, fig: app.failures, unit: app.failures === 1 ? 'try failed' : 'tries failed', lines: app.last_failure_at ? [`Last try ${whenIn(Date.parse(app.last_failure_at), now)}`] : [], err: app.last_error || undefined });
     }
     if (app.waiting_build_at) {
-      out.push({ level: 'soon', key: `build-${app.app}`, title: `New ${app.app} build waiting`, icon: 'phone', lines: [`Built ${whenIn(Date.parse(app.waiting_build_at), now)}. The iPhone still has an older one.`] });
+      out.push({ level: 'soon', key: `build-${app.app}`, title: `New ${app.app} build waiting`, project: app.project, icon: 'phone', lines: [`Built ${whenIn(Date.parse(app.waiting_build_at), now)}. The iPhone still has an older one.`] });
     }
   }
 
   for (const run of snapshot.deploys?.runs ?? []) {
-    if (run.state === 'failure') out.push({ level: 'act', key: `deploy-${run.repo}-${run.workflow}`, title: `${run.repo}: ${run.workflow} failed`, icon: 'close', lines: [whenWords(Date.parse(run.at), now)], link: { href: run.url, text: 'Open the run' } });
+    if (run.state === 'failure') out.push({ level: 'act', key: `deploy-${run.repo}-${run.workflow}`, title: `${run.repo}: ${run.workflow} failed`, project: run.repo, icon: 'close', lines: [whenWords(Date.parse(run.at), now)], link: { href: run.url, text: 'Open the run' } });
   }
 
   const backup = snapshot.backup;
   if (backup && !backup.error) {
-    const last = backup.last_success_at ? Date.parse(backup.last_success_at) : null;
-    const due = backupDue(now);
-    if (last === null) {
-      out.push({ level: 'act', key: 'backup', title: 'KB backup is overdue', icon: 'close', lines: ['No backup has finished yet.'], err: backup.last_error || undefined });
-    } else if (last < due) {
-      const since = Math.floor((now - last) / DAY);
-      out.push({ level: 'act', key: 'backup', title: 'KB backup is overdue', fig: since, unit: since === 1 ? 'day since the last' : 'days since the last', lines: [`Missed ${whenIn(due, now)}`], err: backup.last_error || undefined });
-    } else if (backup.last_error) {
-      out.push({ level: 'act', key: 'backup', title: 'KB backup failed', icon: 'close', lines: backup.last_error_at ? [whenWords(Date.parse(backup.last_error_at), now)] : [], err: backup.last_error });
-    }
-  }
-
-  const today = dayOf(now);
-  const late = (todos ?? []).filter((t) => t.on && t.on < today);
-  if (late.length) {
-    const most = Math.max(...late.map((t) => Math.round((Date.parse(today) - Date.parse(/** @type {string} */ (t.on))) / DAY)));
-    out.push({ level: 'soon', key: 'todos', title: late.length === 1 ? 'A to-do is past its day' : `${late.length} to-dos are past their day`, fig: most, unit: most === 1 ? 'day late' : 'days late', lines: late.map((t) => t.text) });
+    const b = backupState(backup, now);
+    const base = { level: /** @type {const} */ ('act'), key: 'backup', project: backup.project, err: backup.last_error || undefined };
+    if (b.state === 'never') out.push({ ...base, title: 'KB backup is overdue', icon: 'close', lines: ['No backup has finished yet.'] });
+    else if (b.state === 'overdue') out.push({ ...base, title: 'KB backup is overdue', fig: b.since, unit: b.since === 1 ? 'day since the last' : 'days since the last', lines: [`Missed ${whenIn(b.due, now)}`] });
+    else if (b.state === 'failed') out.push({ ...base, title: 'KB backup failed', icon: 'close', lines: backup.last_error_at ? [whenWords(Date.parse(backup.last_error_at), now)] : [] });
   }
 
   out.push(...errors);
-
-  const dirty = (snapshot.repos?.repos ?? []).filter((r) => r.uncommitted || r.unpushed);
-  if (dirty.length) {
-    const rows = dirty.map((r) => ({ name: r.name, facts: [...(r.uncommitted ? [`${plural(r.uncommitted, 'file')} not committed`] : []), ...(r.unpushed ? [`${plural(r.unpushed, 'commit')} not pushed`] : [])] }));
-    out.push({ level: 'fyi', key: 'repos', title: 'Not committed or pushed', icon: 'branch', lines: [], rows });
-  }
-
-  const rank = { act: 0, soon: 1, fyi: 2 };
+  const rank = { act: 0, soon: 1 };
   // sort is stable: within a level, the order above.
   return out.sort((a, b) => rank[a.level] - rank[b.level]);
 }
@@ -154,43 +180,118 @@ export function attention(snapshot, todos, now) {
 export const worst = (needs) => (needs.length ? needs[0].level : 'calm');
 
 /**
- * The quiet line under "All clear": the next app to run out.
- * @param {any} snapshot @param {number} now
+ * Jack's open to-dos for the page. Today: those whose day has come, the late ones first (dueFirst), each with its
+ * notes and its day's words, red once passed; the rest go to To-do. The to-dos the laptop put on the list as
+ * reminders (re-sign an app: the snapshot's reminders, by project and words) are in neither: Reminders shows them.
+ * @param {Todo[]} items @param {Reminder[]} reminders @param {string} today
  */
-export function nextUp(snapshot, now) {
-  const apps = [...(snapshot.sideload?.apps ?? [])].sort((a, b) => Date.parse(a.runs_out_at) - Date.parse(b.runs_out_at));
-  return apps.length ? `Next: the ${apps[0].app} sideload runs out ${whenIn(Date.parse(apps[0].runs_out_at), now)}` : 'Nothing is due.';
+export function splitTodos(items, reminders, today) {
+  const own = items.filter((t) => !reminders.some((r) => r.project === t.project && r.text === t.text));
+  return {
+    today: dueFirst(own, today).map((t) => ({ text: t.text, notes: t.notes, project: t.project, day: dayWords(/** @type {string} */ (t.on), today) })),
+    rest: own.filter((t) => !isDue(t, today)),
+    own,
+  };
 }
 
 /**
- * What's fine, one row each: the thing and its detail, its state and its time.
+ * The dashboard's state, for the menu's button: Needs you's colour, or amber when only a to-do is past its day (late
+ * to-dos lead Today now, but the button still says so).
  * @param {any} snapshot @param {Todo[] | null} todos @param {number} now
- * @returns {{ name: string, sub: string, state: string, when: string, running?: boolean, href?: string }[]}
+ * @returns {'act' | 'soon' | 'calm'}
  */
-export function goodRows(snapshot, todos, now) {
+export function pageLevel(snapshot, todos, now) {
+  const level = worst(attention(snapshot, now));
+  const late = splitTodos(todos ?? [], snapshot.reminders ?? [], dayOf(now)).today.some((t) => t.day.kind === 'late');
+  return level === 'calm' && late ? 'soon' : level;
+}
+
+/**
+ * Reminders: each sideloaded app's signing (one per app, the install that runs out first, as the laptop's reminders
+ * go), soonest first: its days left, which light that many of the ring's seven days in its state's colour, when it
+ * runs out and when it was signed.
+ * @param {any} snapshot @param {number} now
+ */
+export function reminderRings(snapshot, now) {
+  const apps = [...(snapshot.sideload?.apps ?? [])].sort((a, b) => Date.parse(a.runs_out_at) - Date.parse(b.runs_out_at));
+  const seen = new Set();
   const out = [];
-  for (const app of snapshot.sideload?.apps ?? []) {
-    const left = daysLeft(Date.parse(app.runs_out_at), now);
-    if (left > 2) out.push({ name: `${app.app} sideload`, sub: `Signed ${whenIn(Date.parse(app.signed_at), now)}`, state: `${left} days left`, when: `Runs out ${whenIn(Date.parse(app.runs_out_at), now)}` });
+  for (const app of apps) {
+    if (seen.has(app.app)) continue;
+    seen.add(app.app);
+    const runsOut = Date.parse(app.runs_out_at);
+    const left = daysLeft(runsOut, now);
+    out.push({
+      app: String(app.app), project: app.project ? String(app.project) : '', title: `Re-sign ${app.app}`, left: Math.max(0, left), lit: Math.min(SIGN_DAYS, Math.max(0, left)),
+      level: signLevel(left), runsOut: `${left > 0 ? 'Runs out' : 'Ran out'} ${whenIn(runsOut, now)}`, signed: `Signed ${whenIn(Date.parse(app.signed_at), now)}`,
+    });
   }
-  for (const run of snapshot.deploys?.runs ?? []) {
-    if (run.state === 'success') out.push({ name: run.workflow, sub: run.repo, state: 'Passed', when: whenWords(Date.parse(run.at), now), href: run.url });
-    if (run.state === 'running') out.push({ name: run.workflow, sub: run.repo, state: 'Running', when: `Since ${whenIn(Date.parse(run.at), now)}`, running: true, href: run.url });
-  }
-  const backup = snapshot.backup;
-  if (backup && !backup.error && backup.last_success_at && !backup.last_error) {
-    const last = Date.parse(backup.last_success_at);
-    if (last >= backupDue(now)) out.push({ name: 'KB backup', sub: `Last ${whenIn(last, now)}`, state: 'Done', when: `Next ${whenIn(nextBackup(last), now)}` });
-  }
-  const repos = snapshot.repos?.repos;
-  if (repos) {
-    const clean = repos.filter((r) => !r.uncommitted && !r.unpushed).length;
-    if (clean === repos.length) out.push({ name: 'Repos', sub: '', state: `All ${clean} clean`, when: '' });
-    else if (clean) out.push({ name: 'Other repos', sub: '', state: `${clean} clean`, when: '' });
-  }
-  const today = dayOf(now);
-  if (todos && !todos.some((t) => t.on && t.on < today)) out.push({ name: 'To-do', sub: '', state: 'None past its day', when: '' });
   return out;
+}
+
+/** A card's states, the worst first: red, amber, running, work not committed or pushed, fine. */
+const RANK = { act: 0, soon: 1, run: 2, fyi: 3, ok: 4 };
+
+/**
+ * @typedef {{ name: string, state: 'act' | 'soon' | 'run' | 'ok', word: string, when: string, href?: string }} Check
+ * @typedef {{ name: string, kind: string, state: 'act' | 'soon' | 'run' | 'fyi' | 'ok', checks: Check[], repo: string[],
+ *   week: number[], done: number, todos: number }} Card
+ */
+
+/**
+ * Projects: a shelf a kind, in KINDS' order, the empty ones left out. A project with anything to say gets a card: its
+ * checks as state pills (its app's signing, its deploys, the KB backup), its work not committed or pushed, its done
+ * things each day this week (Monday to Sunday) and its open to-dos; its state is its worst. The cards in trouble come
+ * first; the projects with nothing to say are only named, as the shelf's quiet ones. A project a check names that
+ * isn't among the repos (the repos couldn't be read) is Other.
+ * @param {any} snapshot @param {Todo[] | null} todos Jack's own (splitTodos' own), null when they couldn't be had
+ * @param {number} now
+ * @returns {{ key: string, name: string, icon: string, count: number, cards: Card[], quiet: string[] }[]}
+ */
+export function projectShelves(snapshot, todos, now) {
+  const kinds = kindsOf(snapshot);
+  const runs = snapshot.deploys?.runs ?? [];
+  const apps = snapshot.sideload?.apps ?? [];
+  const backup = snapshot.backup && !snapshot.backup.error ? snapshot.backup : null;
+  for (const name of [...runs.map((/** @type {any} */ r) => r.repo), ...apps.map((/** @type {any} */ a) => a.project), backup?.project]) {
+    if (name && !kinds.has(name)) kinds.set(name, 'other');
+  }
+  const week = doneWeek(snapshot.done?.items ?? [], 'this', now);
+  const repos = new Map((snapshot.repos?.repos ?? []).map((/** @type {any} */ r) => [r.name, r]));
+  /** @type {Card[]} */
+  const cards = [...kinds].map(([name, kind]) => {
+    /** @type {Check[]} */
+    const checks = [];
+    for (const app of apps.filter((/** @type {any} */ a) => a.project === name)) {
+      const runsOut = Date.parse(app.runs_out_at);
+      const left = daysLeft(runsOut, now);
+      checks.push({ name: 'Sideload', state: signLevel(left), word: left > 0 ? plural(left, 'day') + ' left' : 'Ran out', when: left > 0 ? `Runs out ${whenIn(runsOut, now)}` : whenWords(runsOut, now) });
+      if (app.failures > 0) checks.push({ name: 'Auto-refresh', state: 'act', word: `${app.failures} ${app.failures === 1 ? 'try' : 'tries'} failed`, when: app.last_failure_at ? `Last try ${whenIn(Date.parse(app.last_failure_at), now)}` : '' });
+      if (app.waiting_build_at) checks.push({ name: 'New build', state: 'soon', word: 'Waiting', when: `Built ${whenIn(Date.parse(app.waiting_build_at), now)}` });
+    }
+    for (const run of runs.filter((/** @type {any} */ r) => r.repo === name)) {
+      const at = Date.parse(run.at);
+      if (run.state === 'running') checks.push({ name: run.workflow, state: 'run', word: 'Running', when: `Since ${whenIn(at, now)}`, href: run.url });
+      else checks.push({ name: run.workflow, state: run.state === 'success' ? 'ok' : 'act', word: run.state === 'success' ? 'Passed' : 'Failed', when: whenWords(at, now), href: run.url });
+    }
+    if (backup?.project === name) {
+      const b = backupState(backup, now);
+      if (b.state === 'done') checks.push({ name: 'KB backup', state: 'ok', word: 'Done', when: `Next ${whenIn(nextBackup(b.last), now)}` });
+      else if (b.state === 'failed') checks.push({ name: 'KB backup', state: 'act', word: 'Failed', when: backup.last_error_at ? whenWords(Date.parse(backup.last_error_at), now) : '' });
+      else checks.push({ name: 'KB backup', state: 'act', word: 'Overdue', when: b.state === 'never' ? 'None has finished yet' : `Missed ${whenIn(b.due, now)}` });
+    }
+    const repo = repos.get(name);
+    const facts = [...(repo?.uncommitted ? [`${repo.uncommitted} not committed`] : []), ...(repo?.unpushed ? [`${repo.unpushed} not pushed`] : [])];
+    const days = week.map((d) => d.items.filter((i) => i.project === name).length);
+    const states = [...checks.map((c) => c.state), ...(facts.length ? /** @type {const} */ (['fyi']) : [])].sort((a, b) => RANK[a] - RANK[b]);
+    return { name, kind, state: states[0] ?? 'ok', checks, repo: facts, week: days, done: days.reduce((sum, n) => sum + n, 0), todos: (todos ?? []).filter((t) => t.project === name).length };
+  });
+  return KINDS.map((k) => {
+    const mine = cards.filter((c) => c.kind === k.key);
+    const loud = mine.filter((c) => c.checks.length || c.repo.length || c.todos || c.done);
+    // sort is stable: within a state, the repos' order (by name).
+    return { ...k, count: mine.length, cards: loud.sort((a, b) => RANK[a.state] - RANK[b.state]), quiet: mine.filter((c) => !loud.includes(c)).map((c) => c.name) };
+  }).filter((shelf) => shelf.count);
 }
 
 /**

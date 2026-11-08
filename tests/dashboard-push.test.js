@@ -115,3 +115,39 @@ test('only the known fields are kept', () => {
   assert.equal('extra' in snapshot, false);
   assert.deepEqual(snapshot.repos.repos[0], { name: 'test-site', uncommitted: 0, unpushed: 1 });
 });
+
+test('a newer laptop’s kinds, projects and reminders are kept; an older one’s snapshot still is', () => {
+  const app = good.sideload.apps[0];
+  const reminder = { app: 'Expenses', project: 'test-app', text: ' 重新 sideload Expenses（11-14 15:01 到期） ' };
+  const { snapshot } = readDashboard(raw({
+    sideload: { apps: [{ ...app, project: 'test-app' }, { ...app, app: 'Other', project: null }] },
+    backup: { last_success_at: null, last_error: '', last_error_at: null, project: 'test-kb' },
+    repos: { repos: [{ name: 'test-site', uncommitted: 0, unpushed: 0, kind: 'web' }, { name: 'test-new', uncommitted: 0, unpushed: 0, kind: 'robots' }] },
+    reminders: [reminder],
+  }), NOW);
+  assert.deepEqual(snapshot.sideload.apps.map((a) => a.project), ['test-app', undefined]);
+  assert.equal('project' in snapshot.sideload.apps[1], false);
+  assert.equal(snapshot.backup.project, 'test-kb');
+  // A kind the Worker doesn't know yet is kept as other, so the push isn't refused.
+  assert.deepEqual(snapshot.repos.repos.map((r) => r.kind), ['web', 'other']);
+  assert.deepEqual(snapshot.reminders, [{ ...reminder, text: '重新 sideload Expenses（11-14 15:01 到期）' }]);
+
+  const old = readDashboard(raw(), NOW).snapshot;
+  assert.equal('reminders' in old, false);
+  assert.equal('kind' in old.repos.repos[0], false);
+  assert.equal('project' in old.sideload.apps[0], false);
+});
+
+test('new fields that do not look right are refused', () => {
+  const app = good.sideload.apps[0];
+  for (const over of [
+    { repos: { repos: [{ name: 'test-site', uncommitted: 0, unpushed: 0, kind: 3 }] } },
+    { sideload: { apps: [{ ...app, project: '' }] } },
+    { reminders: 'none' },
+    { reminders: [{ app: 'Expenses', project: 'test-app', text: '' }] },
+    { reminders: [null] },
+    { reminders: Array.from({ length: 21 }, () => ({ app: 'a', project: 'b', text: 'c' })) },
+  ]) {
+    assert.ok('error' in readDashboard(raw(over), NOW), JSON.stringify(over).slice(0, 120));
+  }
+});

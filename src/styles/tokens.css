@@ -780,6 +780,13 @@
   --dg-cell-off: rgb(255 255 255 / 0.12);
   --dg-today: rgb(255 255 255 / 0.04);
   --dg-fyi: #A9B4C8;
+  /* The kinds of project (KINDS in src/lib/dashboard.js), kept apart from the three state colours. */
+  --dg-kind-web: #22D3EE;
+  --dg-kind-mobile: #C084FC;
+  --dg-kind-pc: #60A5FA;
+  --dg-kind-mods: #F472B6;
+  --dg-kind-behind: #94A3B8;
+  --dg-kind-other: #D6DCE6;
   --dg-title: 4rem;
   --paper: var(--dg-ground);
   /* Quiet words a step lighter than the dark theme's grey: they sit on lit glass, not on black. */

@@ -1,8 +1,8 @@
 // Jack's dashboard page's rules (src/lib/dashboard.js): Malaysia's times and days, days left, the overdue backup, what
-// needs him and what's fine. Test snapshots only.
+// needs him, Reminders, Today, the projects by kind. Test snapshots only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attention, backupDue, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, goodRows, laneOrder, lede, nextBackup, nextUp, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
+import { attention, backupDue, dayName, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, nextBackup, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
 
 const at = (iso) => Date.parse(iso);
 const HOUR = 3600_000;
@@ -27,6 +27,7 @@ test('times read on Malaysia’s clock, whatever the browser’s zone', () => {
   assert.equal(whenWords(at('2026-11-01T22:04:00+08:00'), NOW), 'Sun 1 Nov, 22:04');
   // 16:30 UTC is already the next day in Malaysia.
   assert.equal(whenWords(at('2026-11-07T16:30:00Z'), NOW), 'Tomorrow, 00:30');
+  assert.equal(dayName('2026-11-08'), 'Sun 8 Nov');
 });
 
 test('days left turn 2 exactly when the laptop adds its reminder, 48 hours before', () => {
@@ -41,16 +42,16 @@ test('days left turn 2 exactly when the laptop adds its reminder, 48 hours befor
 
 test('a sideload with 3 days left is fine, 2 is amber, 1 or none is red', () => {
   const out = at('2026-11-14T15:01:47+08:00');
-  const needs = (now) => attention(snap(), [], now).filter((n) => n.key.startsWith('sideload'));
+  const needs = (now) => attention(snap(), now).filter((n) => n.key.startsWith('sideload'));
   assert.deepEqual(needs(out - 49 * HOUR), []);
-  assert.equal(goodRows(snap(), [], out - 49 * HOUR)[0].state, '3 days left');
+  assert.deepEqual(reminderRings(snap(), out - 49 * HOUR).map((r) => [r.left, r.lit, r.level]), [[3, 3, 'ok']]);
   assert.deepEqual(needs(out - 47 * HOUR).map((n) => [n.level, n.fig, n.unit, n.cells, n.lines[0]]), [['soon', 2, 'days left', 2, 'Runs out Sat 14 Nov, 15:01']]);
   assert.deepEqual(needs(out - 2 * HOUR).map((n) => [n.level, n.fig, n.unit, n.lines[0]]), [['act', 1, 'day left', 'Runs out today, 15:01']]);
   assert.deepEqual(needs(out + HOUR).map((n) => [n.level, n.fig, n.lines[0]]), [['act', 0, 'Ran out today, 15:01']]);
 });
 
 test('failed refreshes and a build waiting', () => {
-  const needs = attention(snap({ sideload: { apps: [app({ failures: 3, last_error: 'Device not found', last_failure_at: '2026-11-07T03:00:00+08:00', waiting_build_at: '2026-11-07T08:41:00+08:00' })] } }), [], NOW);
+  const needs = attention(snap({ sideload: { apps: [app({ failures: 3, last_error: 'Device not found', last_failure_at: '2026-11-07T03:00:00+08:00', waiting_build_at: '2026-11-07T08:41:00+08:00' })] } }), NOW);
   assert.deepEqual(needs.map((n) => [n.level, n.title, n.fig ?? n.icon, n.err]), [
     ['act', 'Auto-refresh is failing', 3, 'Device not found'],
     ['soon', 'New Expenses build waiting', 'phone', undefined],
@@ -60,7 +61,7 @@ test('failed refreshes and a build waiting', () => {
 
 test('the KB backup is overdue an hour after a Sunday 22:00 run that hasn’t succeeded', () => {
   const last = '2026-11-01T22:04:00+08:00';
-  const backup = (now) => attention(snap({ backup: { last_success_at: last, last_error: '', last_error_at: null } }), [], now).find((n) => n.key === 'backup');
+  const backup = (now) => attention(snap({ backup: { last_success_at: last, last_error: '', last_error_at: null } }), now).find((n) => n.key === 'backup');
   assert.equal(backup(at('2026-11-08T22:59:00+08:00')), undefined);
   const late = backup(at('2026-11-08T23:00:00+08:00'));
   assert.deepEqual([late.level, late.title, late.fig, late.unit, late.lines[0]], ['act', 'KB backup is overdue', 7, 'days since the last', 'Missed today, 22:00']);
@@ -71,17 +72,19 @@ test('the KB backup is overdue an hour after a Sunday 22:00 run that hasn’t su
 });
 
 test('a backup that ran late, at the next login, is fine until the following Sunday', () => {
-  const s = snap({ backup: { last_success_at: '2026-11-09T08:00:00+08:00', last_error: '', last_error_at: null } });
+  const s = snap({ backup: { last_success_at: '2026-11-09T08:00:00+08:00', last_error: '', last_error_at: null, project: 'test-kb' } });
   const now = at('2026-11-09T09:00:00+08:00');
-  assert.equal(attention(s, [], now).find((n) => n.key === 'backup'), undefined);
-  assert.deepEqual(goodRows(s, [], now).find((r) => r.name === 'KB backup'), { name: 'KB backup', sub: 'Last today, 08:00', state: 'Done', when: 'Next Sun 15 Nov, 22:00' });
+  assert.equal(attention(s, now).find((n) => n.key === 'backup'), undefined);
+  // Its card is claude-kb's (here test-kb's): Other, as the repos don't name it.
+  const card = projectShelves(s, [], now).find((shelf) => shelf.key === 'other')?.cards.find((c) => c.name === 'test-kb');
+  assert.deepEqual(card?.checks, [{ name: 'KB backup', state: 'ok', word: 'Done', when: 'Next Sun 15 Nov, 22:00' }]);
   assert.equal(nextBackup(at('2026-11-01T22:04:00+08:00')), at('2026-11-08T22:00:00+08:00'));
 });
 
 test('a backup that failed, or never ran, needs Jack', () => {
-  const failed = attention(snap({ backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: 'python.exe not found', last_error_at: '2026-11-07T09:00:00+08:00' } }), [], NOW).find((n) => n.key === 'backup');
+  const failed = attention(snap({ backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: 'python.exe not found', last_error_at: '2026-11-07T09:00:00+08:00' } }), NOW).find((n) => n.key === 'backup');
   assert.deepEqual([failed.title, failed.err, failed.lines[0]], ['KB backup failed', 'python.exe not found', 'Today, 09:00']);
-  const never = attention(snap({ backup: { last_success_at: null, last_error: '', last_error_at: null } }), [], NOW).find((n) => n.key === 'backup');
+  const never = attention(snap({ backup: { last_success_at: null, last_error: '', last_error_at: null } }), NOW).find((n) => n.key === 'backup');
   assert.equal(never.title, 'KB backup is overdue');
 });
 
@@ -93,47 +96,128 @@ test('the line under the title, and the laptop counted off after an hour', () =>
   assert.deepEqual(lede(made, made + HOUR), { offline: true, text: 'Last update today, 15:00' });
 });
 
-test('failed deploys, late to-dos, unread sources and repos, most urgent first', () => {
+test('failed deploys and unread sources, most urgent first; repos and late to-dos are elsewhere now', () => {
   const s = snap({
     deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'failure', at: '2026-11-07T08:55:00+08:00', url: 'https://github.com/test/test/actions/runs/2' }] },
     backup: { error: "Can't read the KB backup log: FileNotFoundError" },
-    repos: { repos: [{ name: 'test-a', uncommitted: 5, unpushed: 0 }, { name: 'test-b', uncommitted: 1, unpushed: 2 }, { name: 'test-c', uncommitted: 0, unpushed: 0 }] },
+    repos: { repos: [{ name: 'test-a', uncommitted: 5, unpushed: 0 }, { name: 'test-b', uncommitted: 1, unpushed: 2 }] },
   });
-  const todos = [
-    { id: '1', project: 'test-site', text: 'Test: late one', notes: '', on: '2026-11-05' },
-    { id: '2', project: 'test-site', text: 'Test: today', notes: '', on: '2026-11-07' },
-  ];
-  const needs = attention(s, todos, NOW);
-  assert.deepEqual(needs.map((n) => [n.level, n.title]), [
-    ['act', 'test-site: Test deploy failed'],
-    ['soon', 'A to-do is past its day'],
-    ['soon', "Can't read the KB backup log"],
-    ['fyi', 'Not committed or pushed'],
+  const needs = attention(s, NOW);
+  assert.deepEqual(needs.map((n) => [n.level, n.title, n.project]), [
+    ['act', 'test-site: Test deploy failed', 'test-site'],
+    ['soon', "Can't read the KB backup log", undefined],
   ]);
   assert.equal(worst(needs), 'act');
   assert.deepEqual(needs[0].link, { href: 'https://github.com/test/test/actions/runs/2', text: 'Open the run' });
-  assert.deepEqual([needs[1].fig, needs[1].unit, needs[1].lines], [2, 'days late', ['Test: late one']]);
-  assert.equal(needs[2].err, 'FileNotFoundError');
-  assert.deepEqual(needs[3].rows, [{ name: 'test-a', facts: ['5 files not committed'] }, { name: 'test-b', facts: ['1 file not committed', '2 commits not pushed'] }]);
-  assert.deepEqual(goodRows(s, todos, NOW).map((r) => [r.name, r.state]), [['Expenses sideload', '7 days left'], ['Other repos', '1 clean']]);
+  assert.equal(needs[1].err, 'FileNotFoundError');
+  // A signing names its app's repo, for the kind's mark.
+  const out = at('2026-11-14T15:01:47+08:00');
+  assert.deepEqual(attention(snap({ sideload: { apps: [app({ project: 'test-app' })] } }), out - 2 * HOUR).filter((n) => n.key.startsWith('sideload')).map((n) => n.project), ['test-app']);
 });
 
-test('a quiet day: all clear, and what is fine', () => {
-  assert.deepEqual(attention(snap(), [], NOW), []);
+test('a quiet day: all clear, and the menu’s button amber only for a late to-do of Jack’s own', () => {
+  assert.deepEqual(attention(snap(), NOW), []);
   assert.equal(worst([]), 'calm');
-  assert.equal(nextUp(snap(), NOW), 'Next: the Expenses sideload runs out Sat 14 Nov, 15:01');
-  const running = snap({ deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'running', at: '2026-11-07T15:58:00+08:00', url: 'https://github.com/test/test/actions/runs/3' }] } });
-  assert.deepEqual(goodRows(running, [], NOW).map((r) => [r.name, r.state, r.when]), [
-    ['Expenses sideload', '7 days left', 'Runs out Sat 14 Nov, 15:01'],
-    ['Test deploy', 'Running', 'Since today, 15:58'],
-    ['KB backup', 'Done', 'Next tomorrow, 22:00'],
-    ['Repos', 'All 2 clean', ''],
-    ['To-do', 'None past its day', ''],
+  const reminder = { app: 'Expenses', project: 'test-app', text: 'Test: re-sign' };
+  const late = (text, project = 'test-site') => [{ id: '1', project, text, notes: '', on: '2026-11-05' }];
+  assert.equal(pageLevel(snap(), [], NOW), 'calm');
+  assert.equal(pageLevel(snap(), null, NOW), 'calm');
+  assert.equal(pageLevel(snap(), late('Test: late'), NOW), 'soon');
+  assert.equal(pageLevel(snap({ reminders: [reminder] }), late('Test: re-sign', 'test-app'), NOW), 'calm');
+  const broken = snap({ deploys: { runs: [{ repo: 'test-site', workflow: 'Test deploy', state: 'failure', at: '2026-11-07T08:55:00+08:00', url: 'https://github.com/test/test/actions/runs/2' }] } });
+  assert.equal(pageLevel(broken, late('Test: late'), NOW), 'act');
+});
+
+test('Today: late ones first, then today’s, with their notes; the laptop’s reminder to-dos in neither list', () => {
+  const items = [
+    { id: '1', project: 'test-a', text: 'Test: none', notes: '' },
+    { id: '2', project: 'test-a', text: 'Test: later', notes: '', on: '2026-11-09' },
+    { id: '3', project: 'test-b', text: 'Test: today', notes: 'Line one\nline two', on: '2026-11-07' },
+    { id: '4', project: 'test-app', text: 'Test: re-sign', notes: '', on: '2026-11-06' },
+    { id: '5', project: 'test-a', text: 'Test: late', notes: '', on: '2026-11-05' },
+    // Same words under another project: Jack's own, not the reminder.
+    { id: '6', project: 'test-b', text: 'Test: re-sign', notes: '', on: '' },
+  ];
+  const split = splitTodos(items, [{ app: 'Expenses', project: 'test-app', text: 'Test: re-sign' }], '2026-11-07');
+  assert.deepEqual(split.today, [
+    { text: 'Test: late', notes: '', project: 'test-a', day: { text: '2 days ago', kind: 'late' } },
+    { text: 'Test: today', notes: 'Line one\nline two', project: 'test-b', day: { text: 'Today', kind: 'today' } },
   ]);
-  // A deploy's row opens its run; the others link nowhere.
-  assert.deepEqual(goodRows(running, [], NOW).map((r) => r.href), [undefined, 'https://github.com/test/test/actions/runs/3', undefined, undefined, undefined]);
-  // To-dos that couldn't be had say nothing either way.
-  assert.equal(goodRows(snap(), null, NOW).some((r) => r.name === 'To-do'), false);
+  assert.deepEqual(split.rest.map((t) => t.id), ['1', '2', '6']);
+  assert.deepEqual(split.own.map((t) => t.id), ['1', '2', '3', '5', '6']);
+  assert.deepEqual(splitTodos(items, [], '2026-11-07').today.map((t) => t.text), ['Test: late', 'Test: re-sign', 'Test: today']);
+  assert.deepEqual(splitTodos([], [], '2026-11-07'), { today: [], rest: [], own: [] });
+});
+
+test('Reminders: one ring an app, soonest first, lit for the days left in the signing’s colour', () => {
+  const second = app({ app: 'Other', signed_at: '2026-11-01T09:00:00+08:00', runs_out_at: '2026-11-08T09:00:00+08:00', project: 'test-other' });
+  // A second install of Expenses that runs out later says nothing more.
+  const rings = reminderRings(snap({ sideload: { apps: [app({ project: 'test-app' }), second, app({ runs_out_at: '2026-11-15T09:00:00+08:00' })] } }), NOW);
+  assert.deepEqual(rings, [
+    { app: 'Other', project: 'test-other', title: 'Re-sign Other', left: 1, lit: 1, level: 'act', runsOut: 'Runs out tomorrow, 09:00', signed: 'Signed Sun 1 Nov, 09:00' },
+    { app: 'Expenses', project: 'test-app', title: 'Re-sign Expenses', left: 7, lit: 7, level: 'ok', runsOut: 'Runs out Sat 14 Nov, 15:01', signed: 'Signed today, 15:01' },
+  ]);
+  const gone = reminderRings(snap(), at('2026-11-15T09:00:00+08:00'))[0];
+  assert.deepEqual([gone.left, gone.lit, gone.level, gone.runsOut, gone.project], [0, 0, 'act', 'Ran out yesterday, 15:01', '']);
+  assert.equal(reminderRings(snap(), at('2026-11-12T16:00:00+08:00'))[0].level, 'soon');
+  assert.deepEqual(reminderRings(snap({ sideload: { error: "Can't read Sideloadly: x" } }), NOW), []);
+});
+
+test('Projects: a shelf a kind in order, a card each for the projects with something to say, the rest quiet', () => {
+  const s = snap({
+    sideload: { apps: [app({ project: 'test-app', failures: 2, last_failure_at: '2026-11-07T03:00:00+08:00' })] },
+    deploys: { runs: [
+      { repo: 'test-site', workflow: 'Test deploy', state: 'success', at: '2026-11-07T08:07:00+08:00', url: 'https://github.com/test/test/actions/runs/1' },
+      { repo: 'test-site', workflow: 'Test brief', state: 'running', at: '2026-11-07T15:58:00+08:00', url: 'https://github.com/test/test/actions/runs/3' },
+    ] },
+    backup: { last_success_at: '2026-10-25T22:04:00+08:00', last_error: '', last_error_at: null, project: 'test-kb' },
+    repos: { repos: [
+      { name: 'test-app', uncommitted: 0, unpushed: 0, kind: 'mobile' },
+      { name: 'test-kb', uncommitted: 0, unpushed: 0, kind: 'behind' },
+      { name: 'test-quiet', uncommitted: 0, unpushed: 0, kind: 'behind' },
+      { name: 'test-site', uncommitted: 5, unpushed: 2, kind: 'web' },
+      { name: 'test-widget', uncommitted: 0, unpushed: 0, kind: 'pc' },
+    ] },
+    // Mon 2 to Sat 7 Nov is this week; Sun 1 Nov is last week's.
+    done: { since: '2026-10-26', items: [
+      { day: '2026-11-07', at: '2026-11-07T10:00:00+08:00', project: 'test-widget', kind: 'commit', text: 'Test' },
+      { day: '2026-11-07', at: '2026-11-07T09:00:00+08:00', project: 'test-widget', kind: 'todo', text: 'Test' },
+      { day: '2026-11-02', at: '2026-11-02T09:00:00+08:00', project: 'test-widget', kind: 'commit', text: 'Test' },
+      { day: '2026-11-01', at: '2026-11-01T09:00:00+08:00', project: 'test-quiet', kind: 'commit', text: 'Test' },
+    ] },
+  });
+  const shelves = projectShelves(s, [{ id: '1', project: 'test-app', text: 'Test', notes: '' }], NOW);
+  assert.deepEqual(shelves.map((sh) => [sh.key, sh.name, sh.icon, sh.count, sh.cards.map((c) => [c.name, c.state]), sh.quiet]), [
+    ['web', 'Websites', 'globe', 1, [['test-site', 'run']], []],
+    ['mobile', 'Mobile App', 'phone', 1, [['test-app', 'act']], []],
+    ['pc', 'PC app', 'monitor', 1, [['test-widget', 'ok']], []],
+    ['behind', 'Behind the scenes', 'gear', 2, [['test-kb', 'act']], ['test-quiet']],
+  ]);
+  const card = (name) => shelves.flatMap((sh) => sh.cards).find((c) => c.name === name);
+  assert.deepEqual(card('test-site').checks.map((c) => [c.name, c.state, c.word, c.when, c.href]), [
+    ['Test deploy', 'ok', 'Passed', 'Today, 08:07', 'https://github.com/test/test/actions/runs/1'],
+    ['Test brief', 'run', 'Running', 'Since today, 15:58', 'https://github.com/test/test/actions/runs/3'],
+  ]);
+  assert.deepEqual(card('test-site').repo, ['5 not committed', '2 not pushed']);
+  assert.deepEqual(card('test-app').checks.map((c) => [c.name, c.state, c.word, c.when]), [
+    ['Sideload', 'ok', '7 days left', 'Runs out Sat 14 Nov, 15:01'],
+    ['Auto-refresh', 'act', '2 tries failed', 'Last try today, 03:00'],
+  ]);
+  assert.equal(card('test-app').todos, 1);
+  assert.deepEqual(card('test-kb').checks, [{ name: 'KB backup', state: 'act', word: 'Overdue', when: 'Missed Sun 1 Nov, 22:00' }]);
+  assert.deepEqual([card('test-widget').week, card('test-widget').done], [[1, 0, 0, 0, 0, 2, 0], 3]);
+  // Work not committed or pushed alone is the card's quiet grey.
+  const dirty = projectShelves(snap({ deploys: { runs: [] }, repos: { repos: [{ name: 'test-a', uncommitted: 1, unpushed: 0, kind: 'pc' }] } }), [], NOW);
+  assert.deepEqual(dirty[0].cards.map((c) => [c.name, c.state]), [['test-a', 'fyi']]);
+});
+
+test('Projects from an older snapshot, or with the repos unread, still have a shelf', () => {
+  // Before kinds: every repo is Other.
+  assert.deepEqual(projectShelves(snap(), [], NOW).map((sh) => [sh.key, sh.count, sh.quiet]), [['other', 3, ['test-a', 'test-b']]]);
+  assert.deepEqual([...kindsOf(snap({ repos: { repos: [{ name: 'test-a', uncommitted: 0, unpushed: 0, kind: 'mods' }, { name: 'test-b', uncommitted: 0, unpushed: 0, kind: 'robots' }] } }))], [['test-a', 'mods'], ['test-b', 'other']]);
+  const unread = projectShelves(snap({ repos: { error: "Can't read the repos: test" } }), null, NOW);
+  assert.deepEqual(unread.map((sh) => [sh.key, sh.cards.map((c) => c.name)]), [['other', ['test-site']]]);
+  assert.deepEqual(projectShelves(snap({ sideload: { error: 'x' }, deploys: { error: 'x' }, backup: { error: 'x' }, repos: { error: 'x' } }), null, NOW), []);
 });
 
 test('to-do rows: due first, then days to come, then the rest as the laptop sent them', () => {

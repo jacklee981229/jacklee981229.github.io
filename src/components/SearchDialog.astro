@@ -124,6 +124,8 @@ const used = [...new Set([...items.map((i) => i.icon), 'sun', 'moon', 'star', 'd
       delete document.documentElement.dataset.dash;
       try { localStorage.removeItem(LEVEL_KEY); } catch { /* nothing kept */ }
       if (value) import('../lib/dashboard-nav').then((m) => m.refreshLevel());
+      // A page that shows what the login opens (the dashboard) asks for it at once, with no reload.
+      if (value) document.dispatchEvent(new Event('now-login'));
     },
   };
   let asking = false;
