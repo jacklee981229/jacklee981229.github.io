@@ -438,3 +438,161 @@ export function doneCounts(items) {
   if (commits) out.push(plural(commits, 'commit'));
   return out;
 }
+
+/**
+ * The calendar's things on a day, apart from what was done: each with its icon, words and tone. bad (red) and soon
+ * (amber) are the same as Needs you's act and soon; plan (green) is still to come and fine so far; past (grey)
+ * happened and is fine (a deploy passed or running, a backup done, a signing).
+ * @typedef {'bad' | 'soon' | 'plan' | 'past'} Tone
+ * @typedef {{ day: string, at: number | null, icon: string, title: string, project: string, tone: Tone, word: string }} CalEvent
+ * @typedef {{ project: string, kind: string, items: DoneItem[] }} DoneGroup
+ */
+
+const TONE_RANK = { bad: 0, soon: 1, plan: 2, past: 3 };
+/** A signing's level as the calendar's tone. @param {'act' | 'soon' | 'ok'} level @returns {Tone} */
+const toneOf = (level) => (level === 'act' ? 'bad' : level === 'soon' ? 'soon' : 'plan');
+
+/**
+ * Every dated thing the snapshot and Jack's own to-dos hold (splitTodos' own: the re-sign to-dos aren't listed
+ * twice, the run-out day already is), by Malaysia's day: each sideloaded app's signing and run-out (one per app, as
+ * Reminders), a failed auto-refresh, a new build waiting, each workflow's last run, the KB backup's last success, a
+ * failure or missed run after it and the next run, and the to-dos with a day. A day's things to see come first (to
+ * come, soon or wrong), then the fine past (D10: what needs Jack before the routine), each part in time order with
+ * the to-dos (no time) last; the day's list and its hover card both read this order.
+ * @param {any} snapshot @param {Todo[] | null} todos @param {number} now
+ * @returns {CalEvent[]}
+ */
+export function calendarEvents(snapshot, todos, now) {
+  /** @type {CalEvent[]} */
+  const out = [];
+  /** @param {number} at @param {Omit<CalEvent, 'day' | 'at'>} rest */
+  const timed = (at, rest) => out.push({ day: dayOf(at), at, ...rest });
+  const firsts = new Set(reminderRings(snapshot, now).map((r) => r.app));
+  for (const app of [...(snapshot.sideload?.apps ?? [])].sort((a, b) => Date.parse(a.runs_out_at) - Date.parse(b.runs_out_at))) {
+    const project = app.project ? String(app.project) : '';
+    if (firsts.delete(app.app)) {
+      const runsOut = Date.parse(app.runs_out_at);
+      const left = daysLeft(runsOut, now);
+      timed(Date.parse(app.signed_at), { icon: 'phone', title: `Signed ${app.app}`, project, tone: 'past', word: 'Signed' });
+      timed(runsOut, { icon: 'phone', title: `${app.app} runs out`, project, tone: toneOf(signLevel(left)), word: left > 0 ? `${plural(left, 'day')} left` : 'Ran out' });
+    }
+    // A failure with no time is still red in Needs you, so it goes on today, when it is known to be failing.
+    if (app.failures > 0) timed(app.last_failure_at ? Date.parse(app.last_failure_at) : now, { icon: 'close', title: 'Auto-refresh failed', project, tone: 'bad', word: app.failures === 1 ? '1 try failed' : `${app.failures} tries failed` });
+    if (app.waiting_build_at) timed(Date.parse(app.waiting_build_at), { icon: 'phone', title: `New ${app.app} build`, project, tone: 'soon', word: 'Waiting' });
+  }
+  for (const run of snapshot.deploys?.runs ?? []) {
+    const [icon, tone, word] = run.state === 'failure' ? ['close', 'bad', 'Failed'] : run.state === 'running' ? ['arc', 'past', 'Running'] : ['check', 'past', 'Passed'];
+    timed(Date.parse(run.at), { icon, title: run.workflow, project: run.repo, tone: /** @type {Tone} */ (tone), word });
+  }
+  const backup = snapshot.backup && !snapshot.backup.error ? snapshot.backup : null;
+  if (backup) {
+    const b = backupState(backup, now);
+    const project = backup.project ? String(backup.project) : '';
+    if (b.state !== 'never') timed(b.last, { icon: 'gear', title: 'KB backup', project, tone: 'past', word: 'Done' });
+    if (b.state === 'failed') timed(backup.last_error_at ? Date.parse(backup.last_error_at) : now, { icon: 'gear', title: 'KB backup', project, tone: 'bad', word: 'Failed' });
+    if (b.state === 'overdue') timed(b.due, { icon: 'gear', title: 'KB backup', project, tone: 'bad', word: 'Missed' });
+    // The next weekly run: after the last success, or once one was missed (or none has finished), after that run.
+    timed(nextBackup(b.state === 'done' || b.state === 'failed' ? b.last : b.due), { icon: 'gear', title: 'KB backup', project, tone: 'plan', word: 'Next run' });
+  }
+  const today = dayOf(now);
+  for (const t of todos ?? []) {
+    if (!t.on) continue;
+    // Late in days, not "2 days ago": the day's own heading already says how long ago it was.
+    const late = Math.round((Date.parse(today) - Date.parse(t.on)) / DAY);
+    out.push({ day: t.on, at: null, icon: 'list', title: t.text, project: t.project, tone: late > 0 ? 'bad' : 'plan', word: late > 0 ? `${plural(late, 'day')} late` : 'To-do' });
+  }
+  const time = (/** @type {CalEvent} */ e) => e.at ?? Number.MAX_SAFE_INTEGER;
+  const routine = (/** @type {CalEvent} */ e) => Number(e.tone === 'past');
+  return out.sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : routine(a) - routine(b) || time(a) - time(b)));
+}
+
+/**
+ * Each day's done things by project, the busiest first (then by name), each with its kind for its colour; a project
+ * that isn't a repo (Jack, General) is Other.
+ * @param {DoneItem[]} items @param {Map<string, string>} kinds @returns {Map<string, DoneGroup[]>}
+ */
+export function doneByDay(items, kinds) {
+  /** @type {Map<string, Map<string, DoneItem[]>>} */
+  const days = new Map();
+  for (const item of items) {
+    if (!days.has(item.day)) days.set(item.day, new Map());
+    const day = /** @type {Map<string, DoneItem[]>} */ (days.get(item.day));
+    day.set(item.project, [...(day.get(item.project) ?? []), item]);
+  }
+  return new Map([...days].map(([day, projects]) => [day, [...projects]
+    .map(([project, list]) => ({ project, kind: kinds.get(project) ?? 'other', items: list }))
+    .sort((a, b) => b.items.length - a.items.length || a.project.localeCompare(b.project))]));
+}
+
+/**
+ * A month as the calendar draws it: always six weeks, Monday to Sunday, from the week holding its 1st, so the grid
+ * keeps its height from month to month (February 2027, exactly four weeks, gets the two after it too).
+ * @param {string} month YYYY-MM @returns {string[]} 42 days
+ */
+export function monthGrid(month) {
+  const first = `${month}-01`;
+  const start = addDays(first, -((new Date(Date.parse(first)).getUTCDay() + 6) % 7));
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+}
+
+/** The month n months on from one, YYYY-MM. @param {string} month @param {number} n */
+export const shiftMonth = (month, n) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1 + n, 1)).toISOString().slice(0, 7);
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** "November 2026". @param {string} month YYYY-MM */
+export const monthName = (month) => `${MONTH_NAMES[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
+
+/** How far a day is from today: Today, Tomorrow, Yesterday, In 3 days, 3 days ago. @param {string} day @param {string} today */
+export function dayAway(day, today) {
+  const n = Math.round((Date.parse(day) - Date.parse(today)) / DAY);
+  if (n === 0) return 'Today';
+  if (n === 1) return 'Tomorrow';
+  if (n === -1) return 'Yesterday';
+  return n > 0 ? `In ${n} days` : `${-n} days ago`;
+}
+
+/** What a source's error names: "Can't read GitHub: …" is GitHub. @param {string} error */
+const sourceName = (error) => unread(error).title.replace(/^Can't read /, '');
+
+/**
+ * The calendar: every day's things and done things, the first day Done reaches back to (nothing before it was
+ * kept), and the sources it couldn't read, so an empty day there isn't taken for a quiet one.
+ * @param {any} snapshot @param {Todo[] | null} todos Jack's own (splitTodos' own), null when they couldn't be had
+ * @param {number} now
+ * @returns {{ events: Map<string, CalEvent[]>, done: Map<string, DoneGroup[]>, since: string, unread: string[] }}
+ */
+export function calendar(snapshot, todos, now) {
+  /** @type {Map<string, CalEvent[]>} */
+  const events = new Map();
+  for (const e of calendarEvents(snapshot, todos, now)) events.set(e.day, [...(events.get(e.day) ?? []), e]);
+  const doneError = snapshot.done?.error;
+  const done = doneByDay(doneError ? [] : snapshot.done?.items ?? [], kindsOf(snapshot));
+  const unreadNames = ['sideload', 'deploys', 'backup', 'done'].flatMap((name) => (snapshot[name]?.error ? [sourceName(snapshot[name].error)] : []));
+  return { events, done, since: doneError ? '' : String(snapshot.done?.since ?? ''), unread: [...unreadNames, ...(todos ? [] : ['the to-dos'])] };
+}
+
+/** The line under the calendar for the sources it couldn't read, or ''. @param {string[]} names */
+export function calendarGap(names) {
+  if (!names.length) return '';
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  return `Couldn't read ${list}, so ${names.length === 1 ? 'its' : 'their'} days aren't shown.`;
+}
+
+/**
+ * A day's state for its dot in the small month: its worst thing's tone, past for a day with only done things, or ''
+ * for a day with nothing.
+ * @param {CalEvent[]} events @param {DoneGroup[]} done @returns {Tone | ''}
+ */
+export function dayTone(events, done) {
+  const worstFirst = [...events].sort((a, b) => TONE_RANK[a.tone] - TONE_RANK[b.tone]);
+  return worstFirst[0]?.tone ?? (done.length ? 'past' : '');
+}
+
+/**
+ * The projects a day's hover card names: all of them up to six, else the five busiest and "N more projects", as a
+ * line for "1 more project" would hide a name for nothing.
+ * @param {DoneGroup[]} groups @returns {{ shown: DoneGroup[], more: number }}
+ */
+export function cardProjects(groups) {
+  return groups.length <= 6 ? { shown: groups, more: 0 } : { shown: groups.slice(0, 5), more: groups.length - 5 };
+}

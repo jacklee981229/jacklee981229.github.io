@@ -1,6 +1,6 @@
 ---
-// Jack's dashboard: what needs him, his reminders, today's to-dos, his projects by kind, his other to-dos and what he
-// did these two weeks, for his personal projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
+// Jack's dashboard: what needs him, his reminders, today's to-dos, a calendar of everything dated, his projects by
+// kind, his other to-dos and what he did these two weeks, for his personal projects. It all comes from his Now editor Worker after the page loads, with the pass the palette's "/login" keeps
 // (the snapshot his laptop pushes, workers/now/dashboard.js, and the to-dos, workers/now/todos.js), so the built page
 // holds nothing private. The rules are src/lib/dashboard.js. Kept out of search engines and the sitemap.
 // Its look is its own, apart from the site's (T8, Jack: "脱离jackspace的框架…直接全部做成渐变玻璃样式"): dark frosted
@@ -11,7 +11,7 @@ import Switch from '../components/Switch.astro';
 import { ICONS } from '../lib/icons.js';
 import { flowStyle } from '../lib/flow.js';
 
-const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip', 'globe', 'monitor', 'mods', 'gear', 'folder', 'bang', 'arc'] as const;
+const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-down', 'grip', 'globe', 'monitor', 'mods', 'gear', 'folder', 'bang', 'arc', 'expand', 'shrink', 'list'] as const;
 ---
 <Base title="Dashboard" description="Jack's dashboard." noindex look="dashboard">
   <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -44,6 +44,19 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
               <span class="head-date" data-date></span>
             </div>
             <div class="today-list" data-list></div>
+          </section>
+          <section class="glass frame cal" data-cal aria-labelledby="cal-h">
+            <div class="cal-top">
+              <h2 class="sec-h" id="cal-h">Calendar <span class="range" data-range></span></h2>
+              <div class="cal-nav">
+                <button type="button" class="cal-btn" data-month="-1" aria-label="Earlier month"><svg class="icon prev" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-chevron-down" /></svg></button>
+                <button type="button" class="cal-btn word" data-month="0" hidden>Today</button>
+                <button type="button" class="cal-btn" data-month="1" aria-label="Later month"><svg class="icon next" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-chevron-down" /></svg></button>
+                <button type="button" class="cal-btn" data-size aria-expanded="false" aria-label="Make it big"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#di-expand" /></svg></button>
+              </div>
+            </div>
+            <div class="cal-body" data-cal-body></div>
+            <p class="cal-gap" data-cal-gap hidden></p>
           </section>
         </div>
       </div>
@@ -83,10 +96,12 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
 
 <script>
   import { draftCall, draftPass } from '../lib/drafts-api';
-  import { KINDS, SIGN_DAYS, attention, dayName, dayOf, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, worst, type Card, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
+  import { KINDS, SIGN_DAYS, attention, calendar, calendarGap, cardProjects, dayAway, dayName, dayOf, dayTone, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, monthGrid, monthName, pageLevel, projectShelves, reminderRings, shiftMonth, splitTodos, todoRows, weekColours, worst, type CalEvent, type Card, type DoneGroup, type Need, type Todo, type DoneItem } from '../lib/dashboard.js';
   import { sayWaiting } from '../lib/waiting.js';
   import { showLevel } from '../lib/dashboard-nav';
   import { newTab } from '../lib/links.js';
+  import { motionMs } from '../lib/motion.js';
+  import { edgeFade } from '../lib/edge-fade.js';
 
   const $ = <T extends Element>(s: string, root: ParentNode = document) => root.querySelector<T>(s)!;
   const gate = $<HTMLElement>('[data-gate]');
@@ -108,6 +123,12 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   const pickBox = $<HTMLElement>('[data-pick]');
   const filter = $<HTMLSelectElement>('[data-filter]');
   const todoScroll = $<HTMLElement>('.todo-scroll');
+  const cal = $<HTMLElement>('[data-cal]');
+  const calBody = $<HTMLElement>('[data-cal-body]');
+  const calRange = $<HTMLElement>('[data-range]', cal);
+  const calGap = $<HTMLElement>('[data-cal-gap]');
+  const calToday = $<HTMLButtonElement>('[data-month="0"]', cal);
+  const calSize = $<HTMLButtonElement>('[data-size]', cal);
 
   let snapshot: any = null;
   let todos: Todo[] | null = null;
@@ -118,6 +139,14 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   // The Done lane that's open (its key), and the day open in it, or '' for its whole week.
   let openLane = '';
   let openDay = '';
+  // Whether nothing needs Jack (the All clear strip), as the top was last placed.
+  let calm = false;
+  // The calendar: big (A's month under the top panes) or small (in the right column), the month on show and the day
+  // chosen in the big one; kept through the minute's redraw and a return to the tab, small on each visit (D8).
+  let calBig = false;
+  let calMonth = '';
+  let calSel = '';
+  let calData: ReturnType<typeof calendar> | null = null;
 
   // The order Jack dragged Done's lanes to, by project, for both weeks (laneOrder).
   // shortcut: kept in this browser only, as Jack reads the dashboard on this laptop (D11); keep it in the Worker if
@@ -221,19 +250,24 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   }
 
   /** Needs you on the left and Reminders over Today on the right; with nothing to say, Needs you shrinks to the All
-   *  clear strip above both (C's) and Today takes the left. Each side's last section stretches to end level with the
-   *  other (the CSS). Moved only when the place changes. */
-  function placeTop(calm: boolean) {
-    const want: [HTMLElement, HTMLElement[]][] = calm ? [[left, [today]], [right, [reminders]]] : [[left, [needs]], [right, [reminders, today]]];
+   *  clear strip above both (C's) and Today takes the left. The small calendar is last on the right (D6), so it never
+   *  pushes Today down; the big one is a row of its own under the top panes. Each side's last section stretches to
+   *  end level with the other (the CSS). Moved only when the place changes. */
+  function placeTop() {
+    const mine = calBig ? [] : [cal];
+    const want: [HTMLElement, HTMLElement[]][] = calm ? [[left, [today]], [right, [reminders, ...mine]]] : [[left, [needs]], [right, [reminders, today, ...mine]]];
     if (calm && needs.nextElementSibling !== lanesTop) board.insertBefore(needs, lanesTop);
+    // Only the panes out of place move: a pane taken out and put back plays its entrance again (the calendar growing
+    // would replay Reminders' ring).
     for (const [side, sections] of want) {
-      if (sections.some((s, i) => side.children[i] !== s) || side.children.length !== sections.length) side.replaceChildren(...sections);
+      sections.forEach((s, i) => { if (side.children[i] !== s) side.insertBefore(s, side.children[i] ?? null); });
     }
+    if (calBig && lanesTop.nextElementSibling !== cal) lanesTop.after(cal);
   }
 
   function drawNeeds(now: number) {
     const list = attention(snapshot, now);
-    const calm = !list.length;
+    calm = !list.length;
     needs.className = `glass frame needs lv-${worst(list)}${calm ? ' strip' : ''}`;
     // The menu's Dashboard link: this colour, or amber for a to-do past its day.
     showLevel(pageLevel(snapshot, todos, now));
@@ -241,7 +275,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     $<HTMLElement>('[data-clear]', needs).hidden = !calm;
     const kinds = kindsOf(snapshot);
     fill(needs, calm ? null : list.length, ...list.map((n) => needRow(n, kinds)));
-    placeTop(calm);
+    placeTop();
   }
 
   /** A ring of the signing's seven days, from the top clockwise, the days left lit (B's). */
@@ -539,6 +573,307 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     lanesBox.replaceChildren(...nodes);
   }
 
+  // The calendar (A + C, D5): a small month whose days' dots say what's on them, a hover card a day, and A's big
+  // month with the chosen day in full beside it.
+  const TONE_SAYS = { bad: 'something wrong', soon: 'something soon', plan: 'something to come', past: 'things done' } as const;
+  const hm = (ms: number) => new Date(ms + 8 * 3600_000).toISOString().slice(11, 16);
+  const eventsOn = (day: string): CalEvent[] => calData?.events.get(day) ?? [];
+  const doneOn = (day: string): DoneGroup[] => calData?.done.get(day) ?? [];
+  const doneTotal = (day: string) => doneOn(day).reduce((sum, g) => sum + g.items.length, 0);
+  /** A kind's dot, in Projects' colour for it (not Done's project colours: a month holds more projects than a week). */
+  function kindDot(kind: string) {
+    const dot = el('i', 'kdot');
+    dot.style.setProperty('--k', `var(--dg-kind-${kind})`);
+    return dot;
+  }
+  function disc(e: CalEvent) {
+    const node = el('span', 'disc');
+    node.append(icon(e.icon));
+    return node;
+  }
+  const unkept = (day: string) => !!calData?.since && day < calData.since;
+  /** A day with nothing: before Done's first day nothing was kept, ahead nothing is planned. */
+  function nothing(day: string, today: string) {
+    return el('p', 'note', unkept(day) ? 'Nothing kept this far back.' : day > today ? 'Nothing planned.' : 'Nothing on this day.');
+  }
+  /** A day before Done's first one that has other things still says its done things weren't kept, so it doesn't
+   *  read as a day with nothing done. */
+  const doneUnkept = (day: string) => (unkept(day) && !doneOn(day).length ? [el('p', 'note', 'Done: nothing kept this far back.')] : []);
+
+  /** A day with something Jack should see (to come, soon or wrong) is lit in its worst one's colour (D10); a day of
+   *  only the fine past or done things stays quiet. */
+  const lit = (tone: string) => (tone && tone !== 'past' ? ` lit t-${tone}` : '');
+
+  /** The small month (C's): a button a day, its dot in the colour of its worst thing, a day to see lit in it. */
+  function smallMonth(today: string) {
+    const grid = el('div', 'mini');
+    for (const w of ['M', 'T', 'W', 'T', 'F', 'S', 'S']) grid.append(el('span', 'wd', w));
+    for (const day of monthGrid(calMonth)) {
+      const tone = dayTone(eventsOn(day), doneOn(day));
+      const button = el('button', `m-d${day.slice(0, 7) !== calMonth ? ' out' : ''}${day === today ? ' is-today' : ''}${lit(tone)}`);
+      button.type = 'button';
+      button.dataset.mini = day;
+      button.setAttribute('aria-label', `${dayName(day)}${tone ? `: ${TONE_SAYS[tone]}` : ''}`);
+      if (day === today) button.setAttribute('aria-current', 'date');
+      button.append(el('span', 'n', String(Number(day.slice(8)))), el('i', `pip ${tone}`));
+      grid.append(button);
+    }
+    return grid;
+  }
+
+  /** The big month (A's): a cell a day, the things to come and the problems as chips in their colours, the cell lit
+   *  from its top in the worst one's; the fine past ones as grey icons by the date, the done things as a glowing strip
+   *  in their kinds' colours, longer the more was done, with the count at the top right, all stepping back; the
+   *  chosen day in full beside it (under it on a phone). */
+  function bigMonth(today: string) {
+    const wrap = el('div', 'big-wrap');
+    const grid = el('div', 'grid');
+    for (const w of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) grid.append(el('span', 'wd', w));
+    const days = monthGrid(calMonth);
+    const most = Math.max(1, ...days.map(doneTotal));
+    for (const day of days) {
+      const events = eventsOn(day);
+      const loud = events.filter((e) => e.tone !== 'past');
+      const total = doneTotal(day);
+      const tone = dayTone(events, doneOn(day));
+      const cell = el('button', `cell${day.slice(0, 7) !== calMonth ? ' out' : ''}${day === today ? ' is-today' : ''}${day === calSel ? ' sel' : ''}${lit(tone)}`);
+      cell.type = 'button';
+      cell.dataset.cell = day;
+      cell.setAttribute('aria-pressed', String(day === calSel));
+      cell.setAttribute('aria-label', dayName(day));
+      if (day === today) cell.setAttribute('aria-current', 'date');
+      const top = el('span', 'c-top');
+      const quiet = el('span', 'quiet-icons');
+      quiet.append(...events.filter((e) => e.tone === 'past').map((e) => icon(e.icon)));
+      top.append(el('span', 'num', String(Number(day.slice(8)))), quiet, ...(total ? [el('span', 'tot', String(total))] : []));
+      // On a phone the cell keeps only its date and the small month's dot.
+      top.append(el('i', `pip ${tone}`));
+      const chips = el('span', 'chips');
+      for (const e of loud.slice(0, 2)) {
+        const chip = el('span', `chip t-${e.tone}`);
+        chip.append(icon(e.icon), el('span', '', e.title));
+        chips.append(chip);
+      }
+      if (loud.length > 2) chips.append(el('span', 'more', `+${loud.length - 2} more`));
+      cell.append(top, chips);
+      if (total) {
+        const strip = el('span', 'strip');
+        strip.style.setProperty('--w', Math.max(0.16, total / most).toFixed(3));
+        for (const g of doneOn(day)) {
+          const bit = el('i');
+          bit.style.setProperty('--k', `var(--dg-kind-${g.kind})`);
+          bit.style.flexGrow = String(g.items.length);
+          strip.append(bit);
+        }
+        cell.append(strip);
+      }
+      grid.append(cell);
+    }
+    const panel = el('aside', 'cal-day');
+    panel.dataset.edgeFade = 'y';
+    panel.dataset.day = calSel;
+    panel.setAttribute('aria-live', 'polite');
+    panel.append(...dayInFull(calSel, today));
+    wrap.append(grid, panel);
+    return wrap;
+  }
+
+  /** A day in full: its things, then what was done, a group a project, the busiest first, each by module as Done's
+   *  open lanes are (doneGroup). */
+  function dayInFull(day: string, today: string): Node[] {
+    const head = el('div', 'day-head');
+    head.append(el('h3', '', dayName(day)), el('span', 'rel', dayAway(day, today)));
+    const events = eventsOn(day);
+    const groups = doneOn(day);
+    if (!events.length && !groups.length) return [head, nothing(day, today)];
+    const out: Node[] = [head];
+    if (events.length) {
+      const list = el('ul', 'evs');
+      for (const e of events) {
+        const row = el('li', `ev t-${e.tone}`);
+        const words = el('div');
+        const sub = el('p', 'ev-s');
+        sub.append(el('span', '', e.at === null ? 'Any time' : hm(e.at)), ...(e.project ? [el('span', 'tag', e.project)] : []));
+        words.append(el('p', 'ev-t', e.title), sub);
+        row.append(disc(e), words, el('span', 'ev-w', e.word));
+        list.append(row);
+      }
+      out.push(list, ...doneUnkept(day));
+    }
+    if (groups.length) {
+      const sum = el('p', 'dsum', 'Done');
+      sum.append(el('span', '', String(doneTotal(day))));
+      out.push(sum);
+      for (const g of groups) {
+        const group = doneGroup(g.project, g.items, false);
+        group.querySelector('h3')?.prepend(kindDot(g.kind));
+        out.push(group);
+      }
+    }
+    return out;
+  }
+
+  function drawCalendar(now: number) {
+    const today = dayOf(now);
+    if (!calMonth) {
+      calMonth = today.slice(0, 7);
+      calSel = today;
+    }
+    calData = calendar(snapshot, todos ? splitTodos(todos, snapshot.reminders ?? [], today).own : null, now);
+    const focused = document.activeElement instanceof HTMLElement && calBody.contains(document.activeElement) ? document.activeElement.dataset.mini ?? document.activeElement.dataset.cell : undefined;
+    cal.classList.toggle('big', calBig);
+    calRange.textContent = monthName(calMonth);
+    calToday.hidden = !calBig;
+    calSize.setAttribute('aria-expanded', String(calBig));
+    calSize.setAttribute('aria-label', calBig ? 'Make it small' : 'Make it big');
+    calSize.replaceChildren(icon(calBig ? 'shrink' : 'expand'));
+    // The minute's redraw keeps the chosen day's list where it was scrolled to; another day starts at its top.
+    const old = calBody.querySelector<HTMLElement>('.cal-day');
+    const scrolled = old?.dataset.day === calSel ? old.scrollTop : 0;
+    calBody.replaceChildren(calBig ? bigMonth(today) : smallMonth(today));
+    const panel = calBody.querySelector<HTMLElement>('.cal-day');
+    if (panel) {
+      panel.scrollTop = scrolled;
+      edgeFade(panel, 'y');
+    }
+    const gap = calendarGap(calData.unread);
+    calGap.hidden = !gap;
+    calGap.textContent = gap;
+    if (focused) calBody.querySelector<HTMLElement>(`[data-mini="${focused}"], [data-cell="${focused}"]`)?.focus({ preventScroll: true });
+    // A card that was open stays open on its day, with what it holds now.
+    if (card.day && !calBig) placeCard(card.day, false);
+    else if (calBig) hideCard();
+  }
+
+  // The hover card, as a wiki link's: it opens once the pointer has rested on a day for --motion-hold (D9), then
+  // follows the pointer from day to day at once, and goes when it leaves the days. A keyboard focus opens it at
+  // once; a touch, with no hover, opens it with a tap, and a second tap on that day makes the month big (D7). It sits
+  // outside every pane, which would cut it off.
+  const pop = el('div', 'cal-pop');
+  pop.id = 'cal-pop';
+  pop.setAttribute('role', 'tooltip');
+  pop.hidden = true;
+  document.body.append(pop);
+  const HOLD = motionMs(document.documentElement, '--motion-hold', 800);
+  // A short grace on leaving a day, so crossing the gap to the next one doesn't close the card.
+  const LEAVE = motionMs(document.documentElement, '--motion-quick', 160);
+  const card = { day: '', waiting: '', openTimer: 0, closeTimer: 0 };
+  let lastPointer = 'mouse';
+  const phone = matchMedia('(max-width: 719px)');
+  /** The day being rested on shows its wait (the CSS's .waiting), until its card opens or the pointer leaves. */
+  function markWaiting(day: string) {
+    for (const b of calBody.querySelectorAll('.m-d.waiting')) b.classList.remove('waiting');
+    if (day) calBody.querySelector(`[data-mini="${day}"]`)?.classList.add('waiting');
+  }
+
+  function cardContent(day: string, today: string): Node[] {
+    const head = el('div', 'pop-head');
+    head.append(el('b', '', dayName(day)), el('span', '', dayAway(day, today)));
+    const events = eventsOn(day);
+    const groups = doneOn(day);
+    if (!events.length && !groups.length) return [head, nothing(day, today)];
+    const out: Node[] = [head];
+    if (events.length) {
+      const list = el('ul');
+      for (const e of events) {
+        const row = el('li', `pe t-${e.tone}`);
+        row.append(disc(e), el('span', 'pt', e.title), el('span', 'pw', e.at === null ? e.word : hm(e.at)));
+        list.append(row);
+      }
+      out.push(list, ...doneUnkept(day));
+    }
+    if (groups.length) {
+      const sum = el('p', 'dsum', 'Done');
+      sum.append(el('span', '', String(doneTotal(day))));
+      out.push(sum);
+      const { shown, more } = cardProjects(groups);
+      for (const g of shown) {
+        const row = el('div', 'pp');
+        row.append(kindDot(g.kind), el('span', 'pn', g.project), el('span', 'pc', String(g.items.length)));
+        out.push(row);
+      }
+      if (more) out.push(el('p', 'more', `${more} more projects`));
+    }
+    return out;
+  }
+
+  /** The card for a day, under its date, or above it near the window's bottom; kept inside the window's sides. */
+  function placeCard(day: string, fresh: boolean) {
+    const button = calBody.querySelector<HTMLElement>(`[data-mini="${day}"]`);
+    if (!button) return hideCard();
+    clearTimeout(card.openTimer);
+    clearTimeout(card.closeTimer);
+    card.waiting = '';
+    markWaiting('');
+    for (const b of calBody.querySelectorAll('[aria-describedby="cal-pop"]')) b.removeAttribute('aria-describedby');
+    button.setAttribute('aria-describedby', 'cal-pop');
+    card.day = day;
+    pop.replaceChildren(...cardContent(day, dayOf(Date.now())));
+    pop.hidden = false;
+    const gutter = 16;
+    // Kept within the board's sides, so it never hangs out over the bare sky; the window's on a narrow one.
+    const box = board.getBoundingClientRect();
+    const [from, to] = box.width >= pop.offsetWidth + 2 * gutter ? [box.left, box.right] : [gutter, innerWidth - gutter];
+    // On a phone the card would cover the month it was tapped on: it goes under the whole month instead.
+    const r = phone.matches ? calBody.querySelector('.mini')?.getBoundingClientRect() ?? button.getBoundingClientRect() : button.getBoundingClientRect();
+    const mid = phone.matches ? box.left + box.width / 2 : button.getBoundingClientRect().left + button.offsetWidth / 2;
+    const x = Math.max(from, Math.min(mid - pop.offsetWidth / 2, to - pop.offsetWidth));
+    let y = r.bottom + 8;
+    if (y + pop.offsetHeight > innerHeight - gutter) y = r.top - 8 - pop.offsetHeight;
+    pop.style.left = `${x}px`;
+    pop.style.top = `${Math.max(gutter, y)}px`;
+    if (fresh) {
+      pop.classList.remove('show');
+      void pop.offsetWidth;
+      pop.classList.add('show');
+    }
+  }
+  function showCard(day: string) {
+    placeCard(day, pop.hidden);
+  }
+  function hideCard() {
+    clearTimeout(card.openTimer);
+    clearTimeout(card.closeTimer);
+    card.day = card.waiting = '';
+    markWaiting('');
+    pop.hidden = true;
+    for (const b of calBody.querySelectorAll('[aria-describedby="cal-pop"]')) b.removeAttribute('aria-describedby');
+  }
+
+  /** Big or small: the calendar grows in place into its row under the top panes, the panes below moving down with
+   *  it (a view transition; at once with less motion asked for or none to be had), then the page glides to it.
+   *  Shrinking runs the other way, quicker (surfaces close quicker than they open). */
+  function resize(big: boolean, day = '') {
+    hideCard();
+    if (day) {
+      calSel = day;
+      calMonth = day.slice(0, 7);
+    }
+    const go = () => {
+      calBig = big;
+      placeTop();
+      drawCalendar(Date.now());
+      // A day picked with the keys keeps the keys there: on its cell in the big month.
+      if (day && lastPointer === 'key') calBody.querySelector<HTMLElement>(`[data-cell="${day}"]`)?.focus({ preventScroll: true });
+    };
+    const glide = () => cal.scrollIntoView({ behavior: still.matches ? 'instant' : 'smooth', block: big ? 'start' : 'nearest' });
+    if (!document.startViewTransition || still.matches) {
+      go();
+      glide();
+      return;
+    }
+    // The panes that move get a name for the transition only, so they slide to their place instead of fading. The top
+    // panes only change height, and stay with the page: a named pane leaves bare sky where it was while it moves.
+    const moving: [HTMLElement, string][] = [[cal, 'dash-cal'], [projects, 'dash-projects'], [bottom, 'dash-bottom']];
+    for (const [node, name] of moving) node.style.viewTransitionName = name;
+    document.documentElement.classList.toggle('cal-shrinking', !big);
+    document.startViewTransition(go).finished.finally(() => {
+      for (const [node] of moving) node.style.viewTransitionName = '';
+      document.documentElement.classList.remove('cal-shrinking');
+      glide();
+    });
+  }
+
   /** To-do ends level with Done: its list takes Done's height with no lane open, kept while one is open, so opening a
    *  lane doesn't stretch To-do into an empty pane (the CSS reads --done-h). */
   function levelTodo() {
@@ -598,6 +933,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     drawNeeds(now);
     drawReminders(now);
     drawToday(now);
+    drawCalendar(now);
     drawProjects(now);
     drawTodos(now);
     drawDone(now);
@@ -732,6 +1068,74 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     drawTodos(Date.now());
     todoScroll.scrollTop = 0;
   });
+  cal.querySelector('.cal-nav')?.addEventListener('click', (event) => {
+    const button = (event.target as Element).closest<HTMLButtonElement>('button');
+    if (!button) return;
+    if (button.dataset.size !== undefined) return resize(!calBig);
+    const n = Number(button.dataset.month);
+    if (n === 0) {
+      calSel = dayOf(Date.now());
+      calMonth = calSel.slice(0, 7);
+    } else calMonth = shiftMonth(calMonth, n);
+    hideCard();
+    drawCalendar(Date.now());
+  });
+  calBody.addEventListener('click', (event) => {
+    const day = (event.target as Element).closest<HTMLElement>('[data-mini]')?.dataset.mini;
+    if (day) {
+      // A touch has no hover: its first tap shows the day's card, a second on that day makes the month big there.
+      if (lastPointer === 'touch' && card.day !== day) return showCard(day);
+      return resize(true, day);
+    }
+    const cell = (event.target as Element).closest<HTMLElement>('[data-cell]')?.dataset.cell;
+    if (!cell) return;
+    calSel = cell;
+    // A day of the month before or after turns the month to it.
+    calMonth = cell.slice(0, 7);
+    drawCalendar(Date.now());
+    calBody.querySelector('.cal-day')?.classList.add('opening');
+  });
+  document.addEventListener('pointerdown', (event) => {
+    lastPointer = event.pointerType;
+    if (!(event.target as Element).closest?.('[data-mini]')) hideCard();
+  }, true);
+  document.addEventListener('keydown', () => { lastPointer = 'key'; }, true);
+  calBody.addEventListener('pointerover', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    const day = (event.target as Element).closest<HTMLElement>('[data-mini]')?.dataset.mini;
+    if (!day) return;
+    clearTimeout(card.closeTimer);
+    if (!pop.hidden) return showCard(day);
+    if (card.waiting === day) return;
+    clearTimeout(card.openTimer);
+    card.waiting = day;
+    markWaiting(day);
+    card.openTimer = window.setTimeout(() => showCard(day), HOLD);
+  });
+  calBody.addEventListener('pointerout', (event) => {
+    if (event.pointerType !== 'mouse' || !(event.target as Element).closest('[data-mini]')) return;
+    if ((event.relatedTarget as Element | null)?.closest?.('[data-mini]')) return;
+    clearTimeout(card.openTimer);
+    card.waiting = '';
+    markWaiting('');
+    card.closeTimer = window.setTimeout(hideCard, LEAVE);
+  });
+  calBody.addEventListener('focusin', (event) => {
+    const button = (event.target as Element).closest<HTMLElement>('[data-mini]');
+    if (button?.matches(':focus-visible')) showCard(button.dataset.mini ?? '');
+  });
+  calBody.addEventListener('focusout', (event) => {
+    if ((event.target as Element).closest('[data-mini]') && !(event.relatedTarget as Element | null)?.closest?.('[data-mini]') && lastPointer === 'key') hideCard();
+  });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hideCard(); });
+  // A scroll takes the day from under the pointer, so its card goes; one opened by a keyboard focus stays with its day,
+  // as focusing a day can scroll it into view.
+  addEventListener('scroll', () => {
+    if (pop.hidden) return;
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && focused.dataset.mini === card.day && focused.matches(':focus-visible')) placeCard(card.day, false);
+    else hideCard();
+  }, { passive: true });
   // "x minutes ago" and the days left move with the clock; coming back to the tab asks for the latest.
   setInterval(draw, 60_000);
   // A login in the palette (SearchDialog) draws the board at once.
@@ -886,6 +1290,161 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .reminders :global(.ring-mid span) { color: var(--muted); font-size: var(--text-xs); font-weight: 650; }
   .reminders :global(.body) { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .reminders :global(.sub) { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+
+  /* Calendar (A + C): small, the last pane on the right, a month of dates with a dot under each day that has
+     something, in its worst thing's colour (red wrong, amber soon, green to come, grey only done or fine); stretched
+     to end level with the left, the month sits in the middle of its pane. Big, a row of its own under the top panes:
+     A's month grid with the chosen day in full beside it. Six weeks always, so changing month never jumps. */
+  .cal { display: flex; flex-direction: column; scroll-margin-top: calc(var(--space-5) + 4rem); }
+  .cal-top { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
+  .cal-top .sec-h { padding-bottom: 0; border-bottom: 0; }
+  .cal .range { color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .cal.big .range { font-size: var(--text-ui); }
+  .cal-nav { display: inline-flex; gap: 6px; align-items: center; }
+  .cal-btn { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0; border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink);
+    font: inherit; font-size: var(--text-sm); font-weight: 750; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out), scale var(--motion-soft) var(--ease-release); }
+  .cal-btn.word { padding: 0 12px; }
+  .cal-btn[hidden] { display: none; }
+  .cal-btn .icon { width: 16px; height: 16px; stroke-width: 2.4; }
+  .cal-btn .prev { rotate: 90deg; }
+  .cal-btn .next { rotate: -90deg; }
+  .cal-btn:active { scale: 0.95; transition-duration: var(--motion-press); }
+  .cal-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (hover: hover) { .cal-btn:hover { border-color: color-mix(in srgb, var(--ink) 32%, transparent); background-color: color-mix(in srgb, var(--ink) 6%, var(--dg-well)); } }
+  .cal-body { flex: 1; display: grid; align-content: center; padding: var(--space-3) 0 var(--space-2); }
+  .cal.big .cal-body { display: block; padding-top: var(--space-4); }
+  .cal-gap { margin: 0; padding: var(--space-2) 0 var(--space-3); color: var(--muted); font-size: var(--text-sm); }
+  .cal-gap[hidden] { display: none; }
+  .cal :global(.wd) { padding-bottom: var(--space-1); color: var(--muted); font-size: var(--text-xs); font-weight: 750; text-align: center; }
+  .cal :global(.mini) { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px 0; }
+  .cal :global(.m-d) { display: grid; justify-items: center; gap: 2px; padding: 7px 0 5px; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink); font: inherit; font-size: var(--text-ui); font-weight: 750;
+    font-variant-numeric: tabular-nums; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color var(--motion-quick) var(--ease-out); }
+  .cal :global(.m-d.out) { color: var(--dg-dim); }
+  .cal :global(.m-d.is-today .n) { padding: 0 7px; border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); }
+  .cal :global(.m-d:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; }
+  .cal :global(.m-d[aria-describedby]) { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+  @media (hover: hover) { .cal :global(.m-d:hover) { background: color-mix(in srgb, var(--ink) 7%, transparent); } }
+  /* The wait before a day's card (--motion-hold) shows: its square fills and its dot swells until the card opens. */
+  .cal :global(.m-d.waiting) { background: color-mix(in srgb, var(--ink) 13%, transparent); transition: background-color var(--motion-hold) linear; }
+  .cal :global(.pip) { transition: scale var(--motion-quick) var(--ease-out); }
+  @media (prefers-reduced-motion: no-preference) { .cal :global(.m-d.waiting .pip) { scale: 1.8; transition: scale var(--motion-hold) var(--ease-out); } }
+  .cal :global(.pip) { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+  .cal :global(.pip.bad) { background: var(--dash-bad); }
+  .cal :global(.pip.soon) { background: var(--dash-soon); }
+  .cal :global(.pip.plan) { background: var(--dash-ok); }
+  .cal :global(.pip.past) { width: 4px; height: 4px; background: var(--dg-dim); opacity: 0.5; }
+  /* A day to see (D10: what needs Jack before the routine) is tinted in its worst thing's colour, its number and dot
+     too. The tint sits on a well, as a lone 20% red over the cyan cloud read grey; the hover, the wait and an open
+     card mix their white into that well, twice the other days' amounts as the tint over it takes about half, so they
+     show as plainly and still ease. The number is its colour lifted toward white, which keeps 4.5:1 on the tint (the
+     plain colour fell to 3.5:1). A day of another month fades, as the big month's do. */
+  .cal :global(.m-d.lit) { background-color: var(--dg-well); background-image: linear-gradient(color-mix(in srgb, var(--c) 28%, transparent), color-mix(in srgb, var(--c) 28%, transparent)); color: color-mix(in srgb, var(--c) 60%, var(--ink)); }
+  .cal :global(.m-d.lit[aria-describedby]) { background-color: color-mix(in srgb, var(--ink) 18%, var(--dg-well)); }
+  @media (hover: hover) { .cal :global(.m-d.lit:hover) { background-color: color-mix(in srgb, var(--ink) 14%, var(--dg-well)); } }
+  .cal :global(.m-d.lit.waiting) { background-color: color-mix(in srgb, var(--ink) 26%, var(--dg-well)); }
+  .cal :global(.m-d.lit.out) { opacity: 0.42; }
+  .cal :global(.m-d.lit .pip) { width: 6px; height: 6px; background: var(--c); }
+  /* The big month's cells: a well a day, lifted a little under the pointer; the chosen one ringed. */
+  .cal :global(.big-wrap) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem); gap: var(--space-4); align-items: start; }
+  .cal :global(.grid) { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .cal :global(.grid .wd) { font-size: var(--text-sm); }
+  .cal :global(.cell) { position: relative; display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; min-height: 6.75rem; padding: var(--space-2); border: var(--hairline) solid var(--rule); border-radius: var(--radius-md);
+    background: var(--dg-well); color: var(--ink); font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: border-color var(--motion-quick) var(--ease-out), box-shadow var(--motion-quick) var(--ease-out), translate var(--motion-soft) var(--ease-out); }
+  .cal :global(.cell.out) { opacity: 0.42; }
+  .cal :global(.cell.is-today) { background: linear-gradient(color-mix(in srgb, var(--ink) 7%, transparent), color-mix(in srgb, var(--ink) 7%, transparent)) var(--dg-well); }
+  .cal :global(.cell.sel) { border-color: transparent; box-shadow: 0 0 0 2px var(--ink); }
+  /* A day to see (D10) is lit from its top in its worst thing's colour, as the page's panes are; after .sel, so the
+     chosen day keeps its coloured top line inside the ring. */
+  .cal :global(.cell.lit) { border-top-color: color-mix(in srgb, var(--c) 70%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 30%, transparent), transparent 4.5rem), var(--dg-well); }
+  .cal :global(.cell:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (hover: hover) { .cal :global(.cell:not(.sel):hover) { border-color: color-mix(in srgb, var(--ink) 30%, transparent); } }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) { .cal :global(.cell:hover) { translate: 0 -2px; } }
+  @media (prefers-reduced-motion: no-preference) { .cal :global(.cell:focus-visible) { translate: 0 -2px; } }
+  .cal :global(.c-top) { display: flex; gap: var(--space-1); align-items: center; min-width: 0; }
+  .cal :global(.num) { font-size: var(--text-ui); font-weight: 850; font-variant-numeric: tabular-nums; }
+  .cal :global(.is-today .num) { padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--ink); color: var(--paper); }
+  /* The routine steps back (D10): the fine past's icons and the done count in the quietest grey, not faded, so the
+     count keeps 4.5:1 (half opacity left it near 3:1); the done strip fades, as the count says the same. */
+  .cal :global(.quiet-icons) { display: inline-flex; gap: 2px; min-width: 0; overflow: hidden; color: var(--dg-dim); }
+  .cal :global(.quiet-icons .icon) { width: 14px; height: 14px; stroke-width: 2.2; }
+  .cal :global(.tot) { margin-left: auto; color: var(--dg-dim); font-size: var(--text-xs); font-weight: 750; font-variant-numeric: tabular-nums; }
+  /* A lit cell's light raises its ground, so its quiet marks take the lighter grey to keep 4.5:1. */
+  .cal :global(.cell.lit :is(.tot, .quiet-icons)) { color: var(--muted); }
+  .cal :global(.cell .pip) { display: none; }
+  .cal :global(.chips) { display: grid; gap: 3px; min-width: 0; }
+  /* A chip's ground is dark, not clear: its cell is lit in the same colour from the top, which would swallow it. */
+  .cal :global(.chip) { display: flex; gap: var(--space-1); align-items: start; min-width: 0; padding: 1px 6px; border-radius: var(--radius-sm); background: color-mix(in srgb, var(--c) 16%, var(--dg-ground)); color: var(--c); font-size: var(--text-xs); font-weight: 750; }
+  .cal :global(.chip .icon) { width: 12px; height: 12px; margin-top: 2px; stroke-width: 2.4; }
+  .cal :global(.chip span) { display: -webkit-box; min-width: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.3; overflow-wrap: normal; }
+  .cal :global(.chips .more) { color: var(--muted); font-size: var(--text-xs); font-weight: 750; }
+  /* A day's done things: a glowing strip, a piece a project in its kind's colour, as long as the day was busy. */
+  .cal :global(.strip) { display: flex; gap: 2px; width: calc(var(--w) * 100%); height: 8px; margin-top: auto; opacity: 0.45; }
+  .cal :global(.strip i) { min-width: 3px; border-radius: var(--radius-pill); background: var(--k); box-shadow: 0 0 10px -2px var(--k); }
+  /* The chosen day in full, scrolling in its own box beside the month. */
+  .cal :global(.cal-day) { min-width: 0; max-height: 44rem; padding: var(--space-4); overflow-y: auto; border: var(--hairline) solid var(--rule); border-radius: var(--radius-md); background: var(--dg-well); }
+  @media (prefers-reduced-motion: no-preference) { .cal :global(.cal-day.opening) { animation: dash-lane-open var(--motion-soft) var(--ease-out); } }
+  .cal :global(.day-head) { display: flex; gap: var(--space-3); align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: var(--hairline) solid var(--rule); }
+  .cal :global(.day-head h3) { margin: 0; font-size: var(--text-md); font-weight: 900; letter-spacing: -0.01em; }
+  .cal :global(.day-head .rel), :global(.cal-pop .pop-head span) { color: var(--muted); font-size: var(--text-sm); font-weight: 700; white-space: nowrap; }
+  /* A day's things: a disc with its icon in its tone's colour, its name, its time and project, its state. */
+  .cal :global(.evs) { margin: 0; padding: var(--space-1) 0; list-style: none; }
+  .cal :global(.ev) { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: 10px 0; border-top: var(--hairline) solid var(--rule); }
+  .cal :global(.ev:first-child) { border-top: 0; }
+  :global(:is(.cal, .cal-pop) .disc) { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c);
+    box-shadow: 0 0 14px -4px color-mix(in srgb, var(--c) 80%, transparent); }
+  :global(:is(.cal, .cal-pop) .disc .icon) { width: 15px; height: 15px; stroke-width: 2.2; }
+  .cal :global(.ev-t) { margin: 0; font-weight: 750; overflow-wrap: anywhere; }
+  .cal :global(.ev-s) { display: flex; flex-wrap: wrap; gap: 2px var(--space-2); align-items: center; margin: 2px 0 0; color: var(--muted); font-size: 0.8125rem; }
+  .cal :global(.ev-w) { padding: 2px 10px; border: var(--hairline) solid color-mix(in srgb, var(--c) 45%, transparent); border-radius: var(--radius-pill); background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c);
+    font-size: 0.8125rem; font-weight: 800; white-space: nowrap; }
+  .cal :global(.tag) { padding: 1px var(--space-2); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; white-space: nowrap; }
+  :global(:is(.cal, .cal-pop) .dsum) { display: flex; gap: 10px; align-items: baseline; margin: var(--space-3) 0 6px; font-weight: 900; }
+  :global(:is(.cal, .cal-pop) .dsum span) { color: var(--muted); font-size: var(--text-ui); font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(:is(.cal, .cal-pop) .kdot) { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--k); box-shadow: 0 0 8px color-mix(in srgb, var(--k) 70%, transparent); }
+  .cal :global(.group) { margin-bottom: var(--space-3); }
+  .cal :global(.group h3) { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); align-items: center; margin: 0 0 6px; font-size: var(--text-base); font-weight: 800; }
+  .cal :global(.group h3 span) { color: var(--muted); font-size: var(--text-sm); font-weight: 650; }
+  .cal :global(.module) { padding-bottom: var(--space-2); }
+  .cal :global(.module h4) { margin: 0 0 var(--space-1); font-size: var(--text-sm); font-weight: 800; }
+  .cal :global(.done-list) { margin: 0; padding: 0; list-style: none; }
+  .cal :global(.done-list li) { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--space-2); align-items: start; margin-bottom: var(--space-1); font-size: var(--text-sm); overflow-wrap: anywhere; }
+  .cal :global(.done-list .icon) { width: 14px; height: 14px; margin-top: 3px; color: var(--muted); stroke-width: 2; }
+  .cal :global(.todo-done) { font-weight: 650; }
+  /* The hover card: over every pane, a darker glass so its words read on any of them. */
+  :global(.cal-pop) { position: fixed; z-index: 60; width: min(20rem, calc(100vw - 32px)); padding: var(--space-3) 14px; border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-md);
+    background: var(--dg-pop); box-shadow: inset 0 1px 0 var(--dg-glass-top), var(--dg-pop-shadow); color: var(--ink); pointer-events: none;
+    backdrop-filter: blur(var(--dg-bar-blur)) saturate(150%); -webkit-backdrop-filter: blur(var(--dg-bar-blur)) saturate(150%); }
+  :global(.cal-pop[hidden]) { display: none; }
+  @media (prefers-reduced-motion: no-preference) { :global(.cal-pop.show) { animation: dash-pop-in var(--motion-soft) var(--ease-out); } }
+  @keyframes dash-pop-in { from { opacity: 0; translate: 0 4px; } }
+  :global(.cal-pop .pop-head) { display: flex; gap: var(--space-3); align-items: baseline; justify-content: space-between; padding-bottom: var(--space-2); border-bottom: var(--hairline) solid var(--rule); }
+  :global(.cal-pop .pop-head b) { font-size: var(--text-base); font-weight: 900; }
+  :global(.cal-pop ul) { margin: 0; padding: 2px 0 0; list-style: none; }
+  :global(.cal-pop .pe) { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: var(--space-2); align-items: center; padding: 5px 0; font-size: var(--text-sm); font-weight: 700; }
+  :global(.cal-pop .pe .disc) { width: 22px; height: 22px; }
+  :global(.cal-pop .pe .disc .icon) { width: 12px; height: 12px; }
+  :global(.cal-pop .pt) { min-width: 0; overflow-wrap: anywhere; }
+  :global(.cal-pop .pw) { color: var(--c); font-size: var(--text-xs); font-weight: 800; white-space: nowrap; }
+  :global(.cal-pop .dsum) { margin: 6px 0 2px; font-size: var(--text-sm); }
+  :global(.cal-pop .pp) { display: flex; gap: var(--space-2); align-items: center; padding: 2px 0; font-size: 0.8125rem; font-weight: 700; }
+  :global(.cal-pop .pp .kdot) { width: 8px; height: 8px; }
+  :global(.cal-pop .pn) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  :global(.cal-pop .pc) { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  :global(.cal-pop .more) { margin: 2px 0 0; color: var(--muted); font-size: var(--text-xs); font-weight: 750; }
+  :global(.cal-pop .note) { margin: 0; padding: var(--space-2) 0 0; color: var(--muted); font-size: var(--text-sm); }
+  /* Tones last, so they win over each piece's own colour. */
+  :global(:is(.cal, .cal-pop) .t-bad) { --c: var(--dash-bad); }
+  :global(:is(.cal, .cal-pop) .t-soon) { --c: var(--dash-soon); }
+  :global(:is(.cal, .cal-pop) .t-plan) { --c: var(--dash-ok); }
+  :global(:is(.cal, .cal-pop) .t-past) { --c: var(--dg-dim); }
+  /* Growing and shrinking (resize in the script): the pane's box morphs from its place to its new one, over the panes
+     it passes, quicker shrinking. Its two pictures keep their own size, pinned to its top left and cut to the box, so
+     the month is uncovered as the box grows rather than stretched with it. */
+  :global(::view-transition-group(dash-cal)) { z-index: 1; overflow: clip; border-radius: var(--radius-xl); }
+  :global(::view-transition-old(dash-cal)), :global(::view-transition-new(dash-cal)) { width: auto; height: auto; object-fit: none; object-position: left top; inset: 0 auto auto 0; }
+  :global(html.cal-shrinking::view-transition-group(*)) { animation-duration: var(--motion-soft); }
 
   /* Today: each to-do in a well of its own, its notes in full; the late ones first, their day in red. */
   .head { display: flex; gap: var(--space-3); align-items: baseline; justify-content: space-between; padding-bottom: var(--space-3); border-bottom: var(--hairline) solid var(--rule); }
@@ -1122,6 +1681,9 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     .todo { height: auto; min-height: 0; }
     .todo-scroll { flex: none; max-height: 27rem; }
     .projects :global(.shelf) { grid-template-columns: minmax(0, 1fr); }
+    /* The chosen day under the month. */
+    .cal :global(.big-wrap) { grid-template-columns: minmax(0, 1fr); }
+    .cal :global(.cal-day) { max-height: none; }
   }
   @media (max-width: 719px) {
     .top { padding: var(--space-5); }
@@ -1135,6 +1697,13 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     /* The ring over its words, as there's no room beside it. */
     .reminders :global(.ring-rem) { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: var(--space-3); text-align: center; }
     .reminders :global(.t-row) { justify-content: center; }
+    /* A phone's big month keeps only each day's date and its dot; the day's things are under it. */
+    .cal :global(.grid) { gap: 3px; }
+    .cal :global(.cell) { min-height: 3.25rem; padding: 6px 2px; border-radius: var(--radius-sm); }
+    .cal :global(.cell .c-top) { flex-direction: column; gap: 4px; }
+    .cal :global(:is(.chips, .quiet-icons, .tot, .strip)) { display: none; }
+    .cal :global(.cell .pip) { display: block; }
+    .cal :global(.num) { font-size: 0.8125rem; }
   }
   @media (max-width: 560px) {
     .needs :global(.need) { grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--space-1) var(--space-4); }

@@ -780,6 +780,11 @@
   --dg-cell-off: rgb(255 255 255 / 0.12);
   --dg-today: rgb(255 255 255 / 0.04);
   --dg-fyi: #A9B4C8;
+  /* The quietest marks: the calendar's past things, its days outside the month. */
+  --dg-dim: #8D96A8;
+  /* The calendar's hover card, over the panes: a darker glass, so its words read on any of them. */
+  --dg-pop: rgb(13 15 26 / 0.9);
+  --dg-pop-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.7);
   /* The kinds of project (KINDS in src/lib/dashboard.js), kept apart from the three state colours. */
   --dg-kind-web: #22D3EE;
   --dg-kind-mobile: #C084FC;

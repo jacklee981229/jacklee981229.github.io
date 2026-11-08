@@ -5,7 +5,8 @@
 import { KINDS } from '../../src/lib/dashboard.js';
 import { rightPassword } from './now-editor.js';
 
-/** The most characters a push may hold: a snapshot is about 30 KB; this leaves room for a busy fortnight. */
+/** The most characters a push may hold: a snapshot with two months of Done (the calendar's) is about 55 KB; this
+ *  leaves room for a busy pair of months. */
 export const LONGEST_PUSH = 500_000;
 /** How far ahead of the Worker's clock a snapshot may be dated: a laptop clock that runs fast, not a date to come. */
 export const CLOCK_SLACK_MS = 5 * 60 * 1000;

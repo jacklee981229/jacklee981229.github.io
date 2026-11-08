@@ -1,8 +1,8 @@
 // Jack's dashboard page's rules (src/lib/dashboard.js): Malaysia's times and days, days left, the overdue backup, what
-// needs him, Reminders, Today, the projects by kind. Test snapshots only.
+// needs him, Reminders, Today, the projects by kind, the calendar. Test snapshots only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attention, backupDue, dayName, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, nextBackup, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
+import { attention, backupDue, calendar, calendarEvents, calendarGap, cardProjects, dayAway, dayName, dayTone, doneByDay, monthGrid, monthName, shiftMonth, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, nextBackup, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
 
 const at = (iso) => Date.parse(iso);
 const HOUR = 3600_000;
@@ -356,4 +356,139 @@ test('done things by module: the name taken off, a commit naming two in each, th
     ['', ['todo:Measure the PageSpeed scores (28 Oct)', 'commit:A very long sentence with no module - in it at all']],
   ]);
   assert.deepEqual(doneModules([]), []);
+});
+
+const cal = (snapshot, todos = [], now = NOW) => calendarEvents(snapshot, todos, now).map((e) => [e.day, e.title, e.tone, e.word]);
+
+test('the calendar puts each thing on its Malaysian day, around midnight too', () => {
+  const runs = [
+    { repo: 'test-site', workflow: 'Before midnight', state: 'success', at: '2026-11-06T15:59:00Z', url: 'https://github.com/t/t/actions/runs/1' },
+    { repo: 'test-site', workflow: 'After midnight', state: 'success', at: '2026-11-06T16:00:00Z', url: 'https://github.com/t/t/actions/runs/2' },
+  ];
+  const days = calendarEvents(snap({ sideload: { apps: [] }, deploys: { runs }, backup: { error: "Can't read the KB backup log: test" } }), [], NOW);
+  assert.deepEqual(days.map((e) => [e.day, e.title]), [['2026-11-06', 'Before midnight'], ['2026-11-07', 'After midnight']]);
+});
+
+test('the calendar: signing, run-out, deploys, the backup and the next run, the to-dos with a day', () => {
+  const todos = [
+    { id: '1', project: 'test-a', text: 'Test late', notes: '', on: '2026-11-05' },
+    { id: '2', project: 'test-a', text: 'Test today', notes: '', on: '2026-11-07' },
+    { id: '3', project: 'test-b', text: 'Test later', notes: '', on: '2026-11-20' },
+    { id: '4', project: 'test-b', text: 'Test no day', notes: '', on: '' },
+  ];
+  const runs = [
+    { repo: 'test-site', workflow: 'Test deploy', state: 'failure', at: '2026-11-07T08:00:00+08:00', url: 'https://github.com/t/t/actions/runs/1' },
+    { repo: 'test-site', workflow: 'Test brief', state: 'running', at: '2026-11-07T15:58:00+08:00', url: 'https://github.com/t/t/actions/runs/2' },
+    { repo: 'test-app', workflow: 'Test build', state: 'success', at: '2026-11-06T23:00:00+08:00', url: 'https://github.com/t/t/actions/runs/3' },
+  ];
+  assert.deepEqual(cal(snap({ deploys: { runs } }), todos), [
+    ['2026-11-01', 'KB backup', 'past', 'Done'],
+    ['2026-11-05', 'Test late', 'bad', '2 days late'],
+    ['2026-11-06', 'Test build', 'past', 'Passed'],
+    ['2026-11-07', 'Test deploy', 'bad', 'Failed'],
+    ['2026-11-07', 'Test today', 'plan', 'To-do'],
+    ['2026-11-07', 'Signed Expenses', 'past', 'Signed'],
+    ['2026-11-07', 'Test brief', 'past', 'Running'],
+    ['2026-11-08', 'KB backup', 'plan', 'Next run'],
+    ['2026-11-14', 'Expenses runs out', 'plan', '7 days left'],
+    ['2026-11-20', 'Test later', 'plan', 'To-do'],
+  ]);
+});
+
+test('the calendar’s red and amber are Needs you’s: run-out days, a failed refresh, a new build, a missed backup', () => {
+  const soon = app({ runs_out_at: '2026-11-09T15:00:00+08:00', failures: 2, last_failure_at: '2026-11-07T09:00:00+08:00', waiting_build_at: '2026-11-06T20:00:00+08:00' });
+  // The backup's last success was before last Sunday's run: missed, and the next is the Sunday after.
+  const late = snap({ sideload: { apps: [soon] }, deploys: { runs: [] }, backup: { last_success_at: '2026-10-25T22:04:00+08:00', last_error: '', last_error_at: null } });
+  assert.deepEqual(cal(late).filter((e) => e[2] !== 'past'), [
+    ['2026-11-01', 'KB backup', 'bad', 'Missed'],
+    ['2026-11-06', 'New Expenses build', 'soon', 'Waiting'],
+    ['2026-11-07', 'Auto-refresh failed', 'bad', '2 tries failed'],
+    ['2026-11-08', 'KB backup', 'plan', 'Next run'],
+    ['2026-11-09', 'Expenses runs out', 'soon', '2 days left'],
+  ]);
+  assert.deepEqual(attention(late, NOW).map((n) => [n.key, n.level]), [['refresh-Expenses', 'act'], ['backup', 'act'], ['sideload-Expenses', 'soon'], ['build-Expenses', 'soon']]);
+  const gone = snap({ sideload: { apps: [app({ runs_out_at: '2026-11-07T12:00:00+08:00' })] } });
+  assert.deepEqual(cal(gone).find((e) => e[1] === 'Expenses runs out'), ['2026-11-07', 'Expenses runs out', 'bad', 'Ran out']);
+  const one = snap({ sideload: { apps: [app({ runs_out_at: '2026-11-08T12:00:00+08:00' })] } });
+  assert.deepEqual(cal(one).find((e) => e[1] === 'Expenses runs out'), ['2026-11-08', 'Expenses runs out', 'bad', '1 day left']);
+  const failed = snap({ backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: 'test', last_error_at: '2026-11-03T09:00:00+08:00' } });
+  assert.deepEqual(cal(failed).filter((e) => e[1] === 'KB backup'), [['2026-11-01', 'KB backup', 'past', 'Done'], ['2026-11-03', 'KB backup', 'bad', 'Failed'], ['2026-11-08', 'KB backup', 'plan', 'Next run']]);
+  // A failure with no time is red in Needs you, so it is on today here.
+  const untimed = snap({ sideload: { apps: [app({ failures: 1 })] }, backup: { last_success_at: '2026-11-01T22:04:00+08:00', last_error: 'test', last_error_at: null } });
+  assert.deepEqual(cal(untimed).filter((e) => e[2] === 'bad'), [['2026-11-07', 'Auto-refresh failed', 'bad', '1 try failed'], ['2026-11-07', 'KB backup', 'bad', 'Failed']]);
+  assert.deepEqual(attention(untimed, NOW).map((n) => n.level), ['act', 'act']);
+});
+
+test('a day lists what Jack should see first, whatever its time, then the fine past; each part by time, to-dos last', () => {
+  const failing = app({ failures: 1, last_failure_at: '2026-11-07T07:00:00+08:00', waiting_build_at: '2026-11-07T12:00:00+08:00' });
+  const runs = [
+    { repo: 'test-site', workflow: 'Test passed', state: 'success', at: '2026-11-07T08:00:00+08:00', url: 'https://github.com/t/t/actions/runs/1' },
+    { repo: 'test-site', workflow: 'Test failed', state: 'failure', at: '2026-11-07T15:30:00+08:00', url: 'https://github.com/t/t/actions/runs/2' },
+    { repo: 'test-site', workflow: 'Test running', state: 'running', at: '2026-11-07T15:58:00+08:00', url: 'https://github.com/t/t/actions/runs/3' },
+  ];
+  const todos = [{ id: '1', project: 'test-a', text: 'Test today', notes: '', on: '2026-11-07' }];
+  const s = snap({ sideload: { apps: [failing] }, deploys: { runs } });
+  const order = [
+    ['Auto-refresh failed', 'bad'], ['New Expenses build', 'soon'], ['Test failed', 'bad'], ['Test today', 'plan'],
+    ['Test passed', 'past'], ['Signed Expenses', 'past'], ['Test running', 'past'],
+  ];
+  assert.deepEqual(cal(s, todos).filter((e) => e[0] === '2026-11-07').map((e) => [e[1], e[2]]), order);
+  // The day's list and its hover card read the calendar's days, so they get the same order.
+  assert.deepEqual(calendar(s, todos, NOW).events.get('2026-11-07')?.map((e) => [e.title, e.tone]), order);
+});
+
+test('the re-sign to-do the laptop added isn’t listed again, and two installs of one app are one signing', () => {
+  const reminder = { app: 'Expenses', project: 'expenses-tracker', text: '重新 sideload Expenses（11-14 15:01 到期）' };
+  const todos = [{ id: '1', project: 'expenses-tracker', text: reminder.text, notes: '', on: '2026-11-13' }];
+  const s = snap({ reminders: [reminder], sideload: { apps: [app(), app({ runs_out_at: '2026-11-16T15:01:47+08:00' })] } });
+  const own = splitTodos(todos, s.reminders, '2026-11-07').own;
+  assert.deepEqual(cal(s, own).filter((e) => e[1].includes('Expenses') || e[1].includes('sideload')).map((e) => e[0]), ['2026-11-07', '2026-11-14']);
+});
+
+test('a month is always six weeks from the Monday of its 1st, across years and a four-week February', () => {
+  const nov = monthGrid('2026-11');
+  assert.deepEqual([nov.length, nov[0], nov[41]], [42, '2026-10-26', '2026-12-06']);
+  const jan = monthGrid('2027-01');
+  assert.deepEqual([jan[0], jan[41]], ['2026-12-28', '2027-02-07']);
+  // 1 Feb 2027 is a Monday and February has exactly 28 days: two weeks of March after it.
+  const feb = monthGrid('2027-02');
+  assert.deepEqual([feb.length, feb[0], feb[27], feb[41]], [42, '2027-02-01', '2027-02-28', '2027-03-14']);
+  assert.deepEqual([shiftMonth('2026-12', 1), shiftMonth('2027-01', -1), shiftMonth('2026-11', -13)], ['2027-01', '2026-12', '2025-10']);
+  assert.equal(monthName('2027-02'), 'February 2027');
+  assert.deepEqual(['2026-11-07', '2026-11-08', '2026-11-06', '2026-11-12', '2026-10-31'].map((d) => dayAway(d, '2026-11-07')), ['Today', 'Tomorrow', 'Yesterday', 'In 5 days', '7 days ago']);
+});
+
+test('a day’s done things by project, the busiest first; a project that isn’t a repo is Other', () => {
+  const thing = (day, project) => ({ day, at: `${day}T10:00:00+08:00`, project, kind: 'commit', text: 'Test - x' });
+  const days = doneByDay([thing('2026-11-07', 'test-b'), thing('2026-11-07', 'Jack'), thing('2026-11-07', 'test-b'), thing('2026-11-07', 'test-a'), thing('2026-11-06', 'test-a')], new Map([['test-a', 'web'], ['test-b', 'pc']]));
+  assert.deepEqual(days.get('2026-11-07')?.map((g) => [g.project, g.kind, g.items.length]), [['test-b', 'pc', 2], ['Jack', 'other', 1], ['test-a', 'web', 1]]);
+  assert.deepEqual(days.get('2026-11-06')?.map((g) => g.project), ['test-a']);
+});
+
+test('a day’s dot is its worst thing, grey for only done things, none for nothing; nothing before Done’s first day', () => {
+  const thing = { day: '2026-10-26', at: '2026-10-26T10:00:00+08:00', project: 'test-a', kind: 'commit', text: 'Test - x' };
+  const c = calendar(snap({ done: { since: '2026-10-26', items: [thing] } }), [{ id: '1', project: 'test-a', text: 'Test late', notes: '', on: '2026-11-05' }], NOW);
+  const tone = (day) => dayTone(c.events.get(day) ?? [], c.done.get(day) ?? []);
+  assert.deepEqual(['2026-11-05', '2026-11-14', '2026-11-08', '2026-11-01', '2026-10-26', '2026-10-25', '2026-11-02'].map(tone), ['bad', 'plan', 'plan', 'past', 'past', '', '']);
+  assert.equal(c.since, '2026-10-26');
+  const ev = (tone) => ({ day: 'x', at: 1, icon: 'x', title: 'x', project: '', tone, word: '' });
+  assert.equal(dayTone([ev('past'), ev('soon'), ev('plan')], []), 'soon');
+});
+
+test('the calendar says which sources it couldn’t read', () => {
+  assert.deepEqual(calendar(snap(), [], NOW).unread, []);
+  const broken = snap({ deploys: { error: "Can't read GitHub: gh isn't installed" }, done: { error: "Can't read what was done: test" } });
+  const c = calendar(broken, null, NOW);
+  assert.deepEqual(c.unread, ['GitHub', 'what was done', 'the to-dos']);
+  assert.equal(c.since, '');
+  assert.equal(calendarGap(c.unread), "Couldn't read GitHub, what was done and the to-dos, so their days aren't shown.");
+  assert.equal(calendarGap(['Sideloadly']), "Couldn't read Sideloadly, so its days aren't shown.");
+  assert.equal(calendarGap([]), '');
+});
+
+test('a hover card names up to six projects, else five and never “1 more project”', () => {
+  const groups = (n) => Array.from({ length: n }, (_, i) => ({ project: `test-${i}`, kind: 'other', items: [] }));
+  assert.deepEqual([cardProjects(groups(6)).shown.length, cardProjects(groups(6)).more], [6, 0]);
+  assert.deepEqual([cardProjects(groups(7)).shown.length, cardProjects(groups(7)).more], [5, 2]);
+  assert.deepEqual(cardProjects([]), { shown: [], more: 0 });
 });
