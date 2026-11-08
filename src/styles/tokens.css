@@ -785,6 +785,8 @@
   /* The calendar's hover card, over the panes: a darker glass, so its words read on any of them. */
   --dg-pop: rgb(13 15 26 / 0.9);
   --dg-pop-shadow: 0 18px 40px -12px rgb(0 0 0 / 0.7);
+  /* The thumb of a pane's scrolling list: the glass's white, strong enough to find on any pane. */
+  --dg-scroll: rgb(255 255 255 / 0.4);
   /* The kinds of project (KINDS in src/lib/dashboard.js), kept apart from the three state colours. */
   --dg-kind-web: #22D3EE;
   --dg-kind-mobile: #C084FC;

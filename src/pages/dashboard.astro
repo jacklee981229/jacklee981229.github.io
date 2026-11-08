@@ -1231,6 +1231,15 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .lanes.bottom { align-items: start; }
   .todo { display: flex; flex-direction: column; height: var(--done-h); min-height: 21rem; }
   .todo-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; }
+  /* The panes' own scrolling lists (To-do, the calendar's chosen day): a slim pill of the glass's white, no arrows or
+     track. The site's scrollbar-color, inherited from <html>, would make Chrome ignore the -webkit- parts, so it's
+     set back to auto here; Firefox, which has no -webkit- parts, gets a thin bar in the same white. Scrollbars can't
+     ease, so the thumb doesn't change under the pointer. */
+  .todo-scroll, .cal :global(.cal-day) { scrollbar-color: auto; scrollbar-width: auto; }
+  .todo-scroll::-webkit-scrollbar, .cal :global(.cal-day::-webkit-scrollbar) { width: 12px; background: transparent; }
+  .todo-scroll::-webkit-scrollbar-thumb, .cal :global(.cal-day::-webkit-scrollbar-thumb) { min-height: 40px; border: 3px solid transparent; border-radius: var(--radius-pill); background: var(--dg-scroll) padding-box; }
+  .todo-scroll::-webkit-scrollbar-corner, .cal :global(.cal-day::-webkit-scrollbar-corner) { background: transparent; }
+  @supports not selector(::-webkit-scrollbar) { .todo-scroll, .cal :global(.cal-day) { scrollbar-width: thin; scrollbar-color: var(--dg-scroll) transparent; } }
 
   /* Needs you: a big number (or an icon) in the state's colour with a soft light behind it, then the words. */
   .needs :global(.need) { --c: var(--dash-bad); display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--space-1) var(--space-5); align-items: center; min-width: 0; padding: 18px 0; border-top: var(--hairline) solid var(--rule); isolation: isolate; }
