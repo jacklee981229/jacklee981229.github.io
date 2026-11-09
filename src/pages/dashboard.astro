@@ -32,18 +32,18 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
             </div>
             <div data-list></div>
           </section>
-        </div>
-        <div class="side" data-side="right">
-          <section class="glass frame reminders" data-reminders aria-labelledby="rem-h">
-            <h2 class="sec-h" id="rem-h">Reminders <span class="count" data-count></span></h2>
-            <div class="rem-list" data-list></div>
-          </section>
           <section class="glass frame today" data-today aria-labelledby="today-h">
             <div class="head">
               <h2 class="sec-h" id="today-h">Today <span class="count" data-count></span></h2>
               <span class="head-date" data-date></span>
             </div>
             <div class="today-list" data-list></div>
+          </section>
+        </div>
+        <div class="side" data-side="right">
+          <section class="glass frame reminders" data-reminders aria-labelledby="rem-h">
+            <h2 class="sec-h" id="rem-h">Reminders <span class="count" data-count></span></h2>
+            <div class="rem-list" data-list></div>
           </section>
           <section class="glass frame cal" data-cal aria-labelledby="cal-h">
             <div class="cal-top">
@@ -249,13 +249,13 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     return entrance(row, `need:${n.title}`);
   }
 
-  /** Needs you on the left and Reminders over Today on the right; with nothing to say, Needs you shrinks to the All
-   *  clear strip above both (C's) and Today takes the left. The small calendar is last on the right (D6), so it never
-   *  pushes Today down; the big one is a row of its own under the top panes. Each side's last section stretches to
-   *  end level with the other (the CSS). Moved only when the place changes. */
+  /** Needs you over Today on the left, so a short Needs you doesn't leave the wide side empty; Reminders and the small
+   *  calendar on the right. With nothing to say, Needs you shrinks to the All clear strip above both (C's). The big
+   *  calendar is a row of its own under the top panes. Each side's last section stretches to end level with the other
+   *  (the CSS). Moved only when the place changes. */
   function placeTop() {
     const mine = calBig ? [] : [cal];
-    const want: [HTMLElement, HTMLElement[]][] = calm ? [[left, [today]], [right, [reminders, ...mine]]] : [[left, [needs]], [right, [reminders, today, ...mine]]];
+    const want: [HTMLElement, HTMLElement[]][] = [[left, calm ? [today] : [needs, today]], [right, [reminders, ...mine]]];
     if (calm && needs.nextElementSibling !== lanesTop) board.insertBefore(needs, lanesTop);
     // Only the panes out of place move: a pane taken out and put back plays its entrance again (the calendar growing
     // would replay Reminders' ring).
@@ -1213,8 +1213,8 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .gate[hidden], .board[hidden] { display: none; }
   .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-  /* The board's rows (A's layout): Needs you, wider, beside Reminders over Today, or the All clear strip over Today
-     beside Reminders; Projects across; Done, wider, beside the other to-dos. Two sides end level: each side's last
+  /* The board's rows (A's layout): Needs you over Today, wider, beside Reminders over the calendar, or the All clear
+     strip over both; Projects across; Done, wider, beside the other to-dos. Two sides end level: each side's last
      section stretches to the row's end, and To-do's list takes Done's height. */
   .board { display: grid; gap: var(--space-5); }
   .lanes { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-5); }
@@ -1313,8 +1313,8 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .board :global(.kind.big .icon) { width: 22px; height: 22px; }
 
   /* Reminders (B's ring): the signing's seven days round a big number of days left, lit in the state's colour; the
-     title, when it runs out and when it was signed beside it. Stretched to end level with Today, it sits in the
-     middle of its pane. */
+     title, when it runs out and when it was signed beside it. Stretched to end level with the left (the big
+     calendar out of its side), it sits in the middle of its pane. */
   .reminders { display: flex; flex-direction: column; }
   .rem-list { flex: 1; display: grid; align-content: center; }
   .reminders :global(.ring-rem) { --c: var(--dash-ok); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-5); align-items: center; padding: 18px 0 14px; border-top: var(--hairline) solid var(--rule); }
