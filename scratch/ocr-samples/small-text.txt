@@ -1,0 +1,5 @@
+Item	Qty	Price	Note
+USB-C cable 1m	3	RM 19.90	White
+Phone stand	1	RM 35.00	Aluminium
+Screen protector	2	RM 12.50	Matte finish
+Power bank 10000mAh	1	RM 89.00	Fast charge

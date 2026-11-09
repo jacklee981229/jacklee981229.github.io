@@ -1,0 +1,5 @@
+Why small tools matter
+
+A small tool does one job and does it well. It opens fast, it asks for nothing, and it gets out of the way.
+
+The best ones fit in a single page: drop a file in, press one button, and take the result with you.

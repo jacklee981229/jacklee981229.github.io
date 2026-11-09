@@ -4,5 +4,8 @@ dist/
 .env
 npm-debug.log*
 docs/design-ideas.md
+docs/guestbook-words.sql
+scratch/prototypes/
+scratch/seed-token-draft.sql
 .wrangler/
 .dev.vars

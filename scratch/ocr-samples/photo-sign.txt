@@ -1,0 +1,2 @@
+出口 EXIT
+请走楼梯 Please use the stairs

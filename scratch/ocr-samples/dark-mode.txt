@@ -1,0 +1,4 @@
+// Read the file and count its words
+const text = await file.text();
+const words = text.split(' ').length;
+console.log('Words:', words);
