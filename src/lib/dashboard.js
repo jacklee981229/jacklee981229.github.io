@@ -96,6 +96,11 @@ export const KINDS = [
 ];
 /** A signing lasts seven days (a free Apple ID); Reminders' ring has a day each. */
 export const SIGN_DAYS = 7;
+/** An expiry (an API key) turns amber this many days before its day, which is also its ring's days once lit: renewing
+ *  one means logging in to GitHub or the Console, so a month is room enough. */
+export const EXPIRY_DAYS = 30;
+/** And red from this many days. */
+const EXPIRY_ACT = 7;
 
 /** Each repo's kind, by name. A to-do's project that isn't a repo (Jack, General) has none. @param {any} snapshot */
 export function kindsOf(snapshot) {
@@ -104,6 +109,37 @@ export function kindsOf(snapshot) {
 
 /** A signing's state by its days left: fine past 2, amber at 2, red at 1 or once it has run out. @param {number} left */
 const signLevel = (left) => (left <= 1 ? 'act' : left <= 2 ? 'soon' : 'ok');
+
+/** An expiry's state by its days left: fine past EXPIRY_DAYS, amber within them, red within a week or once it has
+ *  run out. @param {number} left */
+const expiryLevel = (left) => (left <= EXPIRY_ACT ? 'act' : left <= EXPIRY_DAYS ? 'soon' : 'ok');
+
+/**
+ * Each expiry in the laptop's list, soonest first: the moment it runs out (its day's 0:00, Malaysia), its days left
+ * and state, and its words ("Expires Tue 12 Oct 2027", the year only when it isn't this one's).
+ * @param {any} snapshot @param {number} now
+ */
+function expiryStates(snapshot, now) {
+  const items = [...(snapshot.expiries?.items ?? [])].sort((a, b) => (a.expires_on < b.expires_on ? -1 : a.expires_on > b.expires_on ? 1 : 0));
+  return items.map((/** @type {any} */ e) => {
+    const at = Date.parse(`${e.expires_on}T00:00:00+08:00`);
+    const left = daysLeft(at, now);
+    const year = e.expires_on.slice(0, 4) === dayOf(now).slice(0, 4) ? '' : ` ${e.expires_on.slice(0, 4)}`;
+    return {
+      title: String(e.title), project: e.project ? String(e.project) : '', how: e.how ? String(e.how) : '', at, day: String(e.expires_on),
+      left: Math.max(0, left), level: expiryLevel(left), when: `${left > 0 ? 'Expires' : 'Expired'} ${dayName(e.expires_on)}${year}`,
+    };
+  });
+}
+
+/**
+ * Reminders' expiries (D3 B): a quiet row while far off; once lit, a ring of EXPIRY_DAYS days like a signing's,
+ * the days left lit, with how to renew it.
+ * @param {any} snapshot @param {number} now
+ */
+export function expiryRows(snapshot, now) {
+  return expiryStates(snapshot, now).map((e) => ({ ...e, ring: e.level !== 'ok', lit: Math.min(EXPIRY_DAYS, e.left) }));
+}
 
 /**
  * The KB backup's state: done (when it last ran), never finished, overdue (the days since the last, the run it
@@ -126,8 +162,8 @@ function backupState(backup, now) {
  */
 
 /**
- * What needs Jack, most urgent first. act (red): broken, or an app with a day or less left. soon (amber): wants
- * doing in a day or two, or a source the laptop couldn't read. Each has a big number, or an icon where there's no
+ * What needs Jack, most urgent first. act (red): broken, an app with a day or less left, or an expiry within a week.
+ * soon (amber): wants doing in a day or two, an expiry within EXPIRY_DAYS, or a source the laptop couldn't read. Each has a big number, or an icon where there's no
  * number to give, and the project it's about, for its kind's mark. Work not committed or pushed shows on its
  * project's card instead, and to-dos past their day lead Today.
  * @param {any} snapshot @param {number} now
@@ -137,7 +173,7 @@ export function attention(snapshot, now) {
   /** @type {Need[]} */
   const out = [];
   const errors = [];
-  for (const name of ['sideload', 'deploys', 'backup', 'repos', 'done']) {
+  for (const name of ['sideload', 'deploys', 'backup', 'repos', 'done', 'expiries']) {
     const error = snapshot[name]?.error;
     if (error) errors.push({ level: /** @type {const} */ ('soon'), key: `error-${name}`, title: unread(error).title, icon: 'bug', lines: [], err: unread(error).reason || undefined });
   }
@@ -168,6 +204,10 @@ export function attention(snapshot, now) {
     if (b.state === 'never') out.push({ ...base, title: 'KB backup is overdue', icon: 'close', lines: ['No backup has finished yet.'] });
     else if (b.state === 'overdue') out.push({ ...base, title: 'KB backup is overdue', fig: b.since, unit: b.since === 1 ? 'day since the last' : 'days since the last', lines: [`Missed ${whenIn(b.due, now)}`] });
     else if (b.state === 'failed') out.push({ ...base, title: 'KB backup failed', icon: 'close', lines: backup.last_error_at ? [whenWords(Date.parse(backup.last_error_at), now)] : [] });
+  }
+
+  for (const e of expiryStates(snapshot, now)) {
+    if (e.level !== 'ok') out.push({ level: e.level, key: `expiry-${e.title}`, title: e.title, project: e.project || undefined, fig: e.left, unit: e.left === 1 ? 'day left' : 'days left', lines: [e.when, ...(e.how ? [e.how] : [])] });
   }
 
   out.push(...errors);
@@ -456,7 +496,7 @@ const toneOf = (level) => (level === 'act' ? 'bad' : level === 'soon' ? 'soon' :
  * Every dated thing the snapshot and Jack's own to-dos hold (splitTodos' own: the re-sign to-dos aren't listed
  * twice, the run-out day already is), by Malaysia's day: each sideloaded app's signing and run-out (one per app, as
  * Reminders), a failed auto-refresh, a new build waiting, each workflow's last run, the KB backup's last success, a
- * failure or missed run after it and the next run, and the to-dos with a day. A day's things to see come first (to
+ * failure or missed run after it and the next run, each expiry's day, and the to-dos with a day. A day's things to see come first (to
  * come, soon or wrong), then the fine past (D10: what needs Jack before the routine), each part in time order with
  * the to-dos (no time) last; the day's list and its hover card both read this order.
  * @param {any} snapshot @param {Todo[] | null} todos @param {number} now
@@ -493,6 +533,9 @@ export function calendarEvents(snapshot, todos, now) {
     if (b.state === 'overdue') timed(b.due, { icon: 'gear', title: 'KB backup', project, tone: 'bad', word: 'Missed' });
     // The next weekly run: after the last success, or once one was missed (or none has finished), after that run.
     timed(nextBackup(b.state === 'done' || b.state === 'failed' ? b.last : b.due), { icon: 'gear', title: 'KB backup', project, tone: 'plan', word: 'Next run' });
+  }
+  for (const e of expiryStates(snapshot, now)) {
+    timed(e.at, { icon: 'key', title: e.title, project: e.project, tone: toneOf(e.level), word: e.left > 0 ? `${plural(e.left, 'day')} left` : 'Expired' });
   }
   const today = dayOf(now);
   for (const t of todos ?? []) {

@@ -138,9 +138,28 @@ test('a newer laptop’s kinds, projects and reminders are kept; an older one’
   assert.equal('project' in old.sideload.apps[0], false);
 });
 
+test('a newer laptop’s expiries are kept, or its word that it could not read them; an older one has none', () => {
+  const key = { title: ' Renew the Now editor’s keys ', expires_on: '2027-10-12', project: 'jacks-space', how: 'In jacks-space: npx wrangler secret put', extra: 'x' };
+  const { snapshot } = readDashboard(raw({ expiries: { items: [key, { title: 'Domain', expires_on: '2027-03-01', project: null }] } }), NOW);
+  assert.deepEqual(snapshot.expiries, { items: [
+    { title: 'Renew the Now editor’s keys', expires_on: '2027-10-12', project: 'jacks-space', how: 'In jacks-space: npx wrangler secret put' },
+    { title: 'Domain', expires_on: '2027-03-01' },
+  ] });
+  const unread = readDashboard(raw({ expiries: { error: "Can't read the expiry list: row 2 in expiries.json needs a title" } }), NOW).snapshot;
+  assert.deepEqual(unread.expiries, { error: "Can't read the expiry list: row 2 in expiries.json needs a title" });
+  assert.equal('expiries' in readDashboard(raw(), NOW).snapshot, false);
+});
+
 test('new fields that do not look right are refused', () => {
   const app = good.sideload.apps[0];
+  const day = { title: 'Key', expires_on: '2027-10-12' };
   for (const over of [
+    { expiries: [day] },
+    { expiries: { items: [{ ...day, title: ' ' }] } },
+    { expiries: { items: [{ ...day, expires_on: '2027-02-30' }] } },
+    { expiries: { items: [{ ...day, expires_on: '12 Oct 2027' }] } },
+    { expiries: { items: [{ ...day, how: 5 }] } },
+    { expiries: { items: Array.from({ length: 21 }, () => day) } },
     { repos: { repos: [{ name: 'test-site', uncommitted: 0, unpushed: 0, kind: 3 }] } },
     { sideload: { apps: [{ ...app, project: '' }] } },
     { reminders: 'none' },

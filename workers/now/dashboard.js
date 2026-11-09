@@ -11,7 +11,7 @@ export const LONGEST_PUSH = 500_000;
 /** How far ahead of the Worker's clock a snapshot may be dated: a laptop clock that runs fast, not a date to come. */
 export const CLOCK_SLACK_MS = 5 * 60 * 1000;
 // Lists are capped so one row stays well under D1's 2 MB, and words cut, not refused, as with the to-dos.
-const MOST = { apps: 20, runs: 100, repos: 100, done: 2000, reminders: 20 };
+const MOST = { apps: 20, runs: 100, repos: 100, done: 2000, reminders: 20, expiries: 20 };
 /** The kinds a repo can be, the page's list (the laptop's table, collect.py's KINDS, uses these keys); one the Worker
  *  doesn't know yet is kept as other, so a new kind on the laptop never stops its push. */
 const KIND_KEYS = KINDS.map((k) => k.key);
@@ -111,6 +111,29 @@ function reminders(v) {
   return { reminders: list(v, 'reminders', MOST.reminders).map((r) => ({ app: text(r?.app, 'A reminder app', false), project: text(r.project, 'A reminder project', false), text: text(r.text, 'A reminder', false) })) };
 }
 
+/** A real day as YYYY-MM-DD: Date.parse rolls 30 Feb over into March, so the day must come back as it went in.
+ *  @param {unknown} v @param {string} what */
+function realDay(v, what) {
+  need(typeof v === 'string' && DAY.test(v) && !Number.isNaN(Date.parse(v)) && new Date(Date.parse(v)).toISOString().slice(0, 10) === v, `${what} must be YYYY-MM-DD.`);
+  return /** @type {string} */ (v);
+}
+
+/** What Jack must renew by a day (an API key), from his list on the laptop. Newer laptops send it; none from an older
+ *  one, and a list the laptop couldn't read comes as its error. @param {unknown} v */
+function expiries(v) {
+  if (v === undefined) return {};
+  return {
+    expiries: part(v, 'expiries', (e) => ({
+      items: list(e.items, 'expiries.items', MOST.expiries).map((x) => ({
+        title: text(x?.title, 'An expiry', false),
+        expires_on: realDay(x.expires_on, 'expires_on'),
+        ...maybeText(x.project, 'project'),
+        ...maybeText(x.how, 'how'),
+      })),
+    })),
+  };
+}
+
 const done = (v) => {
   need(typeof v.since === 'string' && DAY.test(v.since), 'done.since must be YYYY-MM-DD.');
   return {
@@ -146,6 +169,7 @@ export function readDashboard(raw, now = Date.now()) {
       repos: part(body.repos, 'repos', repos),
       done: part(body.done, 'done', done),
       ...reminders(body.reminders),
+      ...expiries(body.expiries),
     };
     return { snapshot, madeAt };
   } catch (error) {

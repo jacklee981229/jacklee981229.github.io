@@ -2,10 +2,11 @@
 // needs him, Reminders, Today, the projects by kind, the calendar. Test snapshots only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { attention, backupDue, calendar, calendarEvents, calendarGap, cardProjects, dayAway, dayName, dayTone, doneByDay, monthGrid, monthName, shiftMonth, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, nextBackup, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
+import { attention, backupDue, expiryRows, calendar, calendarEvents, calendarGap, cardProjects, dayAway, dayName, dayTone, doneByDay, monthGrid, monthName, shiftMonth, daysLeft, doneCounts, doneLanes, doneModules, doneWeek, kindsOf, laneOrder, lede, nextBackup, pageLevel, projectShelves, reminderRings, splitTodos, todoRows, weekColours, whenWords, worst } from '../src/lib/dashboard.js';
 
 const at = (iso) => Date.parse(iso);
 const HOUR = 3600_000;
+const DAY = 24 * HOUR;
 // Sat 7 Nov 2026, 16:00 in Malaysia.
 const NOW = at('2026-11-07T16:00:00+08:00');
 const app = (over = {}) => ({ app: 'Expenses', signed_at: '2026-11-07T15:01:47+08:00', runs_out_at: '2026-11-14T15:01:47+08:00', failures: 0, last_error: '', last_failure_at: null, waiting_build_at: null, ...over });
@@ -161,6 +162,44 @@ test('Reminders: one ring an app, soonest first, lit for the days left in the si
   assert.deepEqual([gone.left, gone.lit, gone.level, gone.runsOut, gone.project], [0, 0, 'act', 'Ran out yesterday, 15:01', '']);
   assert.equal(reminderRings(snap(), at('2026-11-12T16:00:00+08:00'))[0].level, 'soon');
   assert.deepEqual(reminderRings(snap({ sideload: { error: "Can't read Sideloadly: x" } }), NOW), []);
+});
+
+test('Reminders’ expiries: soonest first, a quiet row while far off, a ring of 30 days once amber at 30 and red at 7', () => {
+  const key = { title: 'Renew the Now editor’s keys', expires_on: '2027-10-12', project: 'jacks-space', how: 'In jacks-space: npx wrangler secret put' };
+  const s = snap({ expiries: { items: [key, { title: 'Test domain', expires_on: '2026-11-20' }] } });
+  assert.deepEqual(expiryRows(s, at('2026-11-09T13:00:00+08:00')).map((r) => [r.title, r.left, r.level, r.ring, r.lit, r.when, r.project, r.how]), [
+    ['Test domain', 11, 'soon', true, 11, 'Expires Fri 20 Nov', '', ''],
+    ['Renew the Now editor’s keys', 337, 'ok', false, 30, 'Expires Tue 12 Oct 2027', 'jacks-space', 'In jacks-space: npx wrangler secret put'],
+  ]);
+  const one = snap({ expiries: { items: [key] } });
+  // The day's 0:00 in Malaysia is when it runs out: 30 days left lights it from that moment, 7 turns it red.
+  const out = at('2027-10-12T00:00:00+08:00');
+  const state = (now) => expiryRows(one, now).map((r) => [r.left, r.level, r.ring])[0];
+  assert.deepEqual(state(out - 30 * DAY - 1000), [31, 'ok', false]);
+  assert.deepEqual(state(out - 30 * DAY), [30, 'soon', true]);
+  assert.deepEqual(state(out - 7 * DAY - 1000), [8, 'soon', true]);
+  assert.deepEqual(state(out - 7 * DAY), [7, 'act', true]);
+  assert.deepEqual(state(out - 1000), [1, 'act', true]);
+  assert.deepEqual(state(out), [0, 'act', true]);
+  assert.equal(expiryRows(one, out + DAY)[0].when, 'Expired Tue 12 Oct');
+  assert.deepEqual(expiryRows(snap(), NOW), []);
+  assert.deepEqual(expiryRows(snap({ expiries: { error: "Can't read the expiry list: x" } }), NOW), []);
+});
+
+test('an expiry needs Jack once lit, with how to renew it; a list the laptop could not read says so', () => {
+  const key = { title: 'Renew the Now editor’s keys', expires_on: '2027-10-12', project: 'jacks-space', how: 'In jacks-space: npx wrangler secret put' };
+  const needs = (now) => attention(snap({ expiries: { items: [key] } }), now).filter((n) => n.key.startsWith('expiry'));
+  assert.deepEqual(needs(at('2026-11-09T13:00:00+08:00')), []);
+  assert.deepEqual(needs(at('2027-09-22T09:00:00+08:00')), [
+    { level: 'soon', key: 'expiry-Renew the Now editor’s keys', title: 'Renew the Now editor’s keys', project: 'jacks-space', fig: 20, unit: 'days left', lines: ['Expires Tue 12 Oct', 'In jacks-space: npx wrangler secret put'] },
+  ]);
+  assert.deepEqual(needs(at('2027-10-11T09:00:00+08:00')).map((n) => [n.level, n.fig, n.unit]), [['act', 1, 'day left']]);
+  assert.equal(pageLevel(snap({ sideload: { apps: [] }, backup: { last_success_at: '2027-09-19T22:04:00+08:00', last_error: '', last_error_at: null }, expiries: { items: [key] } }), [], at('2027-09-22T09:00:00+08:00')), 'soon');
+  const unread = attention(snap({ expiries: { error: "Can't read the expiry list: row 2 in expiries.json needs a title" } }), NOW).find((n) => n.key === 'error-expiries');
+  assert.equal(unread?.level, 'soon');
+  // On the calendar on its day, green while far off.
+  const day = calendarEvents(snap({ expiries: { items: [key] } }), [], at('2026-11-09T13:00:00+08:00')).find((e) => e.icon === 'key');
+  assert.deepEqual(day, { day: '2027-10-12', at: at('2027-10-12T00:00:00+08:00'), icon: 'key', title: 'Renew the Now editor’s keys', project: 'jacks-space', tone: 'plan', word: '337 days left' });
 });
 
 test('Projects: a shelf a kind in order, a card each for the projects with something to say, the rest quiet', () => {

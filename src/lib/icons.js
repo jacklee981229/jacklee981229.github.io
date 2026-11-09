@@ -88,4 +88,5 @@ export const ICONS = {
   folder: '<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>',
   bang: '<path d="M12 5v9M12 18.5v.5"/>',
   arc: '<path d="M12 3a9 9 0 1 1-8.5 6"/>',
+  key: '<circle cx="8" cy="15" r="4.5"/><path d="M11.2 11.8 20 3M16.5 6.5l2.5 2.5M14 9l2 2"/>',
 };
