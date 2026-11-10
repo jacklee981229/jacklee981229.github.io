@@ -13,7 +13,7 @@ export const SITE = {
   surprise: false as boolean,
   license: { name: 'CC BY-NC-SA 4.0', url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/' },
   // GoatCounter counts page views, without cookies. Every page's script reports its view here, and the build reads
-  // the Lab pages' public counts from here to rank Most Popular.
+  // the public counts from here for the Build Log and Writing Islands.
   goatcounter: 'https://jacklee981229.goatcounter.com',
   // The guestbook's notes live in a Cloudflare Worker of Jack's (workers/guestbook): the guestbook page and the home
   // page's Guestbook card read them from here, and new notes are posted here.

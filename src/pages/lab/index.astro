@@ -2,13 +2,13 @@
 import Base from '../../layouts/Base.astro';
 import PageTop from '../../components/PageTop.astro';
 import LabItemCard from '../../components/LabItemCard.astro';
-import { GROUPS, TOOLS, WORLDS, isListed } from '../../lib/lab/tools.js';
-import { experimentPosts, popularLabItems } from '../../lib/collections';
+import { GROUPS, STARRED, TOOLS, WORLDS, isListed, toolBySlug } from '../../lib/lab/tools.js';
+import { experimentPosts } from '../../lib/collections';
 import { SITE } from '../../site';
 
 const INTRO = 'Tiny useful things, random things, and things I built because I felt like it.';
 const experiments = await experimentPosts();
-const popular = await popularLabItems();
+const starred = STARRED.map(toolBySlug);
 ---
 <Base title="Jack's Lab" description={INTRO}>
   <div class="wrap page">
@@ -21,14 +21,12 @@ const popular = await popularLabItems();
       </nav>
     </PageTop>
 
-    {popular.length > 0 && (
-      <section id="popular" aria-labelledby="popular-title">
-        <h2 id="popular-title">Most Popular</h2>
-        <ul class="cards">
-          {popular.map((item) => <LabItemCard {...item} flow={false} />)}
-        </ul>
-      </section>
-    )}
+    <section id="starred" aria-labelledby="starred-title">
+      <h2 id="starred-title">Starred</h2>
+      <ul class="cards">
+        {starred.map((tool) => <LabItemCard tool={tool} flow={false} />)}
+      </ul>
+    </section>
 
     <section id="tools" aria-labelledby="tools-title">
       <h2 id="tools-title">Tools</h2>

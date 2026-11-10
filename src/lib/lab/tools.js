@@ -43,6 +43,9 @@ export const TOOLS = [
  */
 export const EXPERIMENTS = ['2048', 'catch-the-cat', 'snake', 'blocks'];
 
+/** The tools Jack picked for Starred, at the top of the Lab home, in this order. */
+export const STARRED = ['exact-time', 'speed-test', 'markdown-preview', 'image-editor'];
+
 /**
  * Effects: things with no use at all, to look at and play with. Most follow the mouse; Key Jam answers the keyboard,
  * with sounds. All play on one page, the Effects tool's (/lab/effects/?e=<slug> opens one), each from its code in

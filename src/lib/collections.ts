@@ -3,7 +3,6 @@ import { getCollection, getEntry, type CollectionEntry } from 'astro:content';
 import type { ImageMetadata } from 'astro';
 import { lastUpdated, listed, published, tagCounts } from './posts.js';
 import { excerpt, slugify } from './text.js';
-import { mostPopular, pageVisits } from './lab/popular.js';
 import { EXPERIMENTS, TOOLS, WORLDS, isListed, toolUrl, worldUrl } from './lab/tools.js';
 import { nowFile } from './now-file.js';
 import { briefDays } from './brief-file.js';
@@ -58,31 +57,6 @@ export type LabItem =
   | { tool: (typeof TOOLS)[number]; post?: never; world?: never }
   | { post: Post; tool?: never; world?: never }
   | { world: (typeof WORLDS)[number]; tool?: never; post?: never };
-
-type CountedItem = { path: string; item: LabItem; kind: 'Tool' | 'Game' | 'World'; name: string };
-
-// Asked once per build (or dev session) and kept, so the counter isn't asked again for every page drawn.
-let counted: Promise<{ items: CountedItem[]; visits: Map<string, number> | null }> | undefined;
-
-/** Every ready Lab item in the Lab's order, with GoatCounter's visits to each (null when there are no counts). */
-function labVisits() {
-  return (counted ??= (async () => {
-    const items: CountedItem[] = [
-      ...TOOLS.filter((t) => t.status === 'ready' && isListed(t)).map((tool) => ({ path: toolUrl(tool.slug), item: { tool } as LabItem, kind: 'Tool' as const, name: tool.name })),
-      ...(await experimentPosts()).map((post) => ({ path: postUrl(post), item: { post } as LabItem, kind: 'Game' as const, name: post.data.title })),
-      ...WORLDS.filter(isListed).map((world) => ({ path: worldUrl(world.slug), item: { world } as LabItem, kind: 'World' as const, name: world.name })),
-    ];
-    const visits = await pageVisits(items.map((i) => i.path), SITE.goatcounter);
-    if (!visits) console.warn('Most Popular: GoatCounter gave no counts, so the Lab is built without a ranking.');
-    return { items, visits };
-  })());
-}
-
-/** The Lab's Most Popular: its four most visited ready tools (the Effects page among them), games and worlds (lab/popular.js); none while there's no ranking. */
-export async function popularLabItems(): Promise<LabItem[]> {
-  const { items, visits } = await labVisits();
-  return mostPopular(items, visits).map((i) => i.item);
-}
 
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/content/posts/*/*.{png,jpg,jpeg,webp,gif,avif}', { eager: true });
 

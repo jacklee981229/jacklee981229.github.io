@@ -130,7 +130,7 @@ const structured = Astro.url.pathname === '/' && {
     <script is:inline define:vars={{ liveHost: Astro.site?.hostname, goatcounter: SITE.goatcounter }}>
       // The visitor counter, only on the live site so local previews never add to it.
       if (location.hostname === liveHost) {
-        // GoatCounter (no cookies): its numbers feed Site info, each post's views and the Lab's Most Popular. One fixed version with its fingerprint, so
+        // GoatCounter (no cookies): its numbers feed Site info, each post's views and the Build Log. One fixed version with its fingerprint, so
         // the browser refuses the script if the file ever differs from the one checked on 1 Oct 2026.
         var views = document.createElement('script');
         views.async = true;

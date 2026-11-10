@@ -1,5 +1,6 @@
 # Makes the day's Morning Brief (scripts/brief/make-brief.mjs) by about 08:00 in Malaysia, commits it, and starts the
 # deploy. A push made with the workflow's own token doesn't start other workflows, so it starts deploy.yml itself.
+# That is the site's one daily build (the Build Log's visits are read then); a day with no new brief has none.
 name: Morning Brief
 
 on:

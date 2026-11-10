@@ -1,11 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { EFFECTS, effectUrl, EXPERIMENTS, GROUPS, isListed, moreLabItems, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
+import { EFFECTS, effectUrl, EXPERIMENTS, GROUPS, isListed, moreLabItems, STARRED, TOOLS, toolBySlug, toolUrl, WORLDS, worldUrl } from '../src/lib/lab/tools.js';
 import { RESERVED_SLUGS } from '../src/lib/posts.js';
 
 const ROOT = new URL('../', import.meta.url);
 const icons = readFileSync(new URL('src/lib/icons.js', ROOT), 'utf8');
+
+test("Starred holds only ready, listed tools, each once", () => {
+  assert.equal(new Set(STARRED).size, STARRED.length);
+  for (const slug of STARRED) {
+    const tool = toolBySlug(slug);
+    assert.ok(tool.status === 'ready' && isListed(tool), slug);
+  }
+});
 
 test('every tool has a unique, web-safe address and a unique name', () => {
   assert.equal(new Set(TOOLS.map((t) => t.slug)).size, TOOLS.length);

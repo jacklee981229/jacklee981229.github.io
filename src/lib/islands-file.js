@@ -1,5 +1,5 @@
 // Reading what Writing Islands grows from, while the site is built: the posts that are listed (their parts,
-// dates and topics) and each one's visits (GoatCounter's public counter, as the Lab's Most Popular reads it). No
+// dates and topics) and each one's visits (GoatCounter's public counter, lab/popular.js). No
 // counter just means no visits known, and every post a little green: never a failed build.
 import { listedPosts, postUrl } from './collections';
 import { isoDay } from './dates.js';

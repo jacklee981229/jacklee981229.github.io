@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countedPath, mostPopular, pageVisits, parseCount } from '../src/lib/lab/popular.js';
+import { countedPath, pageVisits, parseCount } from '../src/lib/lab/popular.js';
 
 const BASE = 'https://example.goatcounter.com';
 // A stand-in for GoatCounter: answers each counter address from `pages` ({ path: status or count text }).
@@ -12,7 +12,6 @@ const counter = (pages, asked = []) => async (url) => {
   if (typeof answer === 'number') return { status: answer, ok: false };
   return { status: 200, ok: true, json: async () => ({ count: answer }) };
 };
-const items = (...paths) => paths.map((path) => ({ path }));
 
 test("GoatCounter's formatted counts become numbers", () => {
   assert.equal(parseCount('7'), 7);
@@ -35,21 +34,7 @@ test('visits come from the public counter; a page nobody visited counts as 0', a
   assert.deepEqual(asked, [`${BASE}/counter/%2Flab%2Fcount-words.json`, `${BASE}/counter/%2Flab%2Fgame%2F2048.json`]);
 });
 
-test('no ranking when the counter is switched off or out of reach', async () => {
+test('no visits when the counter is switched off or out of reach', async () => {
   assert.equal(await pageVisits(['/lab/a/', '/lab/b/'], BASE, counter({ '/lab/a': '5', '/lab/b': 403 })), null);
   assert.equal(await pageVisits(['/lab/a/'], BASE, async () => { throw new Error('offline'); }), null);
-  assert.deepEqual(mostPopular(items('/a/', '/b/', '/c/', '/d/'), null), []);
-});
-
-test('the four most visited, most visited first, ties in the Lab\'s own order', () => {
-  const lab = items('/a/', '/b/', '/c/', '/d/', '/e/', '/f/');
-  const visits = new Map([['/a/', 3], ['/b/', 9], ['/c/', 3], ['/d/', 0], ['/e/', 12], ['/f/', 1]]);
-  assert.deepEqual(mostPopular(lab, visits).map((i) => i.path), ['/e/', '/b/', '/a/', '/c/']);
-  assert.deepEqual(mostPopular(lab, visits, 2).map((i) => i.path), ['/e/', '/b/']);
-});
-
-test('nothing until four items have been visited at all', () => {
-  const lab = items('/a/', '/b/', '/c/', '/d/', '/e/');
-  assert.deepEqual(mostPopular(lab, new Map([['/a/', 5], ['/b/', 2], ['/c/', 1]])), []);
-  assert.equal(mostPopular(lab, new Map([['/a/', 5], ['/b/', 2], ['/c/', 1], ['/e/', 1]])).length, 4);
 });
