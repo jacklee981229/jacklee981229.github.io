@@ -1,5 +1,6 @@
 ---
 import PreviewTool from '../../components/PreviewTool.astro';
+import Switch from '../../components/Switch.astro';
 import ToolShell from '../../components/ToolShell.astro';
 
 // The box starts with the site's own address, so a code shows on arrival.
@@ -7,6 +8,7 @@ const SAMPLE = new URL(Astro.site!).origin;
 ---
 <ToolShell slug="qr-code" stays="Your text stays in your browser.">
   <PreviewTool label="Link or message" sample={SAMPLE} hint="Your QR code shows here." view="qr-view">
+    <Switch slot="switch" name="qr-look" label="How the code looks" choices={[{ value: 'styled', label: 'Styled' }, { value: 'plain', label: 'Plain' }]} />
     <button slot="actions" type="button" class="button" data-download="png" disabled>Download PNG</button>
     <button slot="actions" type="button" class="button" data-download="svg" disabled>Download SVG</button>
   </PreviewTool>
@@ -20,14 +22,17 @@ const SAMPLE = new URL(Astro.site!).origin;
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-download]')];
   const tokens = getComputedStyle(document.documentElement);
   const colour = (name: string) => tokens.getPropertyValue(name).trim();
-  const colours = { ink: colour('--qr-ink'), paper: colour('--qr-paper'), frame: colour('--qr-frame') };
+  const styled = { ink: colour('--qr-ink'), paper: colour('--qr-paper'), frame: colour('--qr-frame') };
+  const plain = { ink: colour('--qr-plain-ink'), paper: colour('--qr-paper'), frame: colour('--qr-paper') };
   type Squares = Extract<NonNullable<ReturnType<typeof qrSquares>>, { dark: boolean[][] }>;
-  /** The code on show, for the downloads; none while the box is empty or too long. */
-  let shown: { text: string; squares: Squares } | null = null;
+  /** The code on show and its colours, for the downloads; none while the box is empty or too long. */
+  let shown: { text: string; squares: Squares; colours: typeof styled } | null = null;
+  const isPlain = () => document.querySelector<HTMLInputElement>('input[name="qr-look"]:checked')?.value === 'plain';
 
-  setupPreview((text, view) => {
-    const squares = qrSquares(text);
-    shown = squares && 'dark' in squares ? { text, squares } : null;
+  const { run } = setupPreview((text, view) => {
+    const squares = qrSquares(text, isPlain());
+    const colours = isPlain() ? plain : styled;
+    shown = squares && 'dark' in squares ? { text, squares, colours } : null;
     for (const button of buttons) button.disabled = !shown;
     if (!squares) return view.replaceChildren();
     if ('over' in squares) {
@@ -41,6 +46,7 @@ const SAMPLE = new URL(Astro.site!).origin;
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', 'QR code of the link or message');
   });
+  for (const choice of document.querySelectorAll('input[name="qr-look"]')) choice.addEventListener('change', run);
 
   const save = (blob: Blob, name: string) => {
     const link = document.createElement('a');
@@ -52,7 +58,7 @@ const SAMPLE = new URL(Astro.site!).origin;
   for (const button of buttons) {
     button.addEventListener('click', () => {
       if (!shown) return;
-      const { text, squares } = shown;
+      const { text, squares, colours } = shown;
       if (button.dataset.download === 'svg') return save(new Blob([qrSvg(squares, colours)], { type: 'image/svg+xml' }), qrFileName(text, 'svg'));
       const { width, height, scale, data } = qrPixels(squares, colours);
       const canvas = document.createElement('canvas');
@@ -60,13 +66,15 @@ const SAMPLE = new URL(Astro.site!).origin;
       canvas.height = height;
       const pen = canvas.getContext('2d')!;
       pen.putImageData(new ImageData(data, width, height), 0, 0);
+      const toPng = () => canvas.toBlob((blob) => blob && save(blob, qrFileName(text, 'png')), 'image/png');
+      if (!squares.logo) return toPng();
       // The logo over its clear tile, drawn from the same SVG as the page's, at the PNG's own size.
-      const box = qrLogoBox(squares);
+      const box = qrLogoBox({ logo: squares.logo });
       const logo = new Image();
       logo.onload = () => {
         pen.drawImage(logo, (box.x + FRAME) * scale, (box.y + FRAME) * scale, box.width * scale, box.width * scale);
         URL.revokeObjectURL(logo.src);
-        canvas.toBlob((blob) => blob && save(blob, qrFileName(text, 'png')), 'image/png');
+        toPng();
       };
       logo.src = URL.createObjectURL(new Blob([logoSvg('qr-png', 'width="512" height="512"')], { type: 'image/svg+xml' }));
     });

@@ -296,6 +296,8 @@
   --qr-ink: #D9480F;
   --qr-paper: #FFFFFF;
   --qr-frame: #F26B1D;
+  /* A plain code's squares, on --qr-paper. */
+  --qr-plain-ink: #000000;
   /* Compare Text: lines added (green) and removed (red), and in them the changed words, deeper; each line also has
      its + or −, so colour isn't the only sign. The text on them keeps at least 4.5:1. */
   --diff-add: #E2F5E8;

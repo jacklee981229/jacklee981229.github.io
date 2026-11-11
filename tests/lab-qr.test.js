@@ -112,6 +112,23 @@ test('the SVG draws exactly the dark squares, on the panel in the card, with the
   assert.deepEqual(drawn, dark);
 });
 
+test('a plain code is black on white, keeps every square, and scans back', () => {
+  const text = 'https://jacklee981229.github.io';
+  const squares = qrSquares(text, true);
+  assert.equal(squares.logo, null);
+  const plain = { ink: '#000000', paper: '#FFFFFF', frame: '#FFFFFF' };
+  const { data, width, height, scale } = qrPixels(squares, plain);
+  assert.equal(width, squares.size * scale, 'no frame round it');
+  const colours = new Set();
+  for (let i = 0; i < data.length; i += 4) colours.add(data.slice(i, i + 4).join(','));
+  assert.deepEqual([...colours].sort(), ['0,0,0,255', '255,255,255,255'], 'only black and white, square corners');
+  const found = jsQR(data, width, height, { inversionAttempts: 'dontInvert' });
+  assert.equal(Buffer.from(found.binaryData).toString('utf8'), text);
+  const svg = qrSvg(squares, plain);
+  assert.match(svg, new RegExp(`viewBox="0 0 ${squares.size} ${squares.size}"`));
+  assert.doesNotMatch(svg, /rx=|viewBox="0 0 100 100"/, 'no round corners, no logo');
+});
+
 test('a download is named from its text', () => {
   assert.equal(qrFileName('https://jacklee981229.github.io', 'png'), 'qr-jacklee981229-github-io.png');
   assert.equal(qrFileName('HTTP://WWW.Example.com/Path?a=1', 'svg'), 'qr-example-com-path-a-1.svg');

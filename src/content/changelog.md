@@ -151,3 +151,4 @@
 - 2026-11-05 improved: Gave Now a picture of the game I'm playing
 - 2026-11-07 fix: Kept the menu's buttons on screen in mid-size windows
 - 2026-11-10 improved: Swapped the Lab's Most Popular for my own Starred picks
+- 2026-11-11 improved: Gave the QR Code Generator a plain black-and-white look

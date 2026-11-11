@@ -1,6 +1,6 @@
 // QR Code Generator: a link or message turned into a QR code's squares (by uqr), and the squares drawn as an SVG file and
 // as the pixels of a PNG: an orange card, a white panel inside it with the border scanners count on, and the site's logo
-// in the middle; kept apart from the page so the tests can read every drawn code back.
+// in the middle, or a plain black-and-white code; kept apart from the page so the tests can read every drawn code back.
 import { encode } from 'uqr';
 import { logoSvg } from '../logo.js';
 
@@ -19,9 +19,9 @@ const CARD_ROUND = 4;
 const PANEL_ROUND = 2.5;
 
 /**
- * @typedef {{ size: number, dark: boolean[][], logo: { at: number, tile: number } }} Squares
+ * @typedef {{ size: number, dark: boolean[][], logo: { at: number, tile: number } | null }} Squares
  * A code's squares, its border included: `dark[y][x]` is true for a dark one. `logo` is the square tile in the middle
- * kept clear for the logo: its first row and column, and how many squares across.
+ * kept clear for the logo: its first row and column, and how many squares across; null for a plain code.
  * @typedef {{ ink: string, paper: string, frame: string }} Colours  the dark squares', the panel's and the card's, as
  * #RRGGBB
  */
@@ -39,10 +39,11 @@ const fits = (text) => {
 
 /**
  * A link or message's code: its squares; `{ over }` when it's too long for one code, with how many characters too
- * many; null when there's nothing to encode.
- * @param {string} text @returns {Squares | { over: number } | null}
+ * many; null when there's nothing to encode. A plain code keeps every square and has no logo (`logo` null), and is
+ * drawn in black on white with no card.
+ * @param {string} text @param {boolean} [plain] @returns {Squares | { over: number } | null}
  */
-export function qrSquares(text) {
+export function qrSquares(text, plain = false) {
   if (!text) return null;
   if (!fits(text)) {
     // The longest start of the text that still fits, found by halves. Characters as people count them, so a Chinese
@@ -58,6 +59,7 @@ export function qrSquares(text) {
     return { over: chars.length - lo };
   }
   const { size, data } = encode(text, { ecc: LEVEL, border: BORDER });
+  if (plain) return { size, dark: data, logo: null };
   // Whole squares, centred: every code is an odd number of squares across, so the tile is the odd number nearest its
   // share, sitting on the middle square with none half covered.
   const inner = size - 2 * BORDER;
@@ -67,9 +69,12 @@ export function qrSquares(text) {
   return { size, dark, logo: { at, tile } };
 }
 
+/** The card's frame round a code, in squares: none for a plain one. @param {Squares} squares */
+const frameOf =({ logo }) => (logo ? FRAME : 0);
+
 /**
  * The logo's place inside its tile, in squares from the code's corner: a margin of white all round.
- * @param {Squares} squares @returns {{ x: number, y: number, width: number }}
+ * @param {{ logo: { at: number, tile: number } }} squares @returns {{ x: number, y: number, width: number }}
  */
 export function qrLogoBox({ logo: { at, tile } }) {
   const pad = tile * 0.12;
@@ -95,6 +100,12 @@ export function qrSvg(squares, { ink, paper, frame }) {
       x = end;
     }
   });
+  if (!squares.logo) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 ${size} ${size}">`
+      + `<rect width="${size}" height="${size}" fill="${paper}"/>`
+      + `<path d="${path}" fill="${ink}" shape-rendering="crispEdges"/>`
+      + '</svg>';
+  }
   const card = size + 2 * FRAME;
   const box = qrLogoBox(squares);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="${-FRAME} ${-FRAME} ${card} ${card}">`
@@ -123,23 +134,28 @@ const inRounded = (x, y, side, round) => {
  * @param {Squares} squares @param {Colours} colours @param {number} [least]
  * @returns {{ width: number, height: number, scale: number, data: Uint8ClampedArray<ArrayBuffer> }}
  */
-export function qrPixels({ size, dark }, { ink, paper, frame }, least = 1024) {
-  const card = size + 2 * FRAME;
+export function qrPixels(squares, { ink, paper, frame }, least = 1024) {
+  const { size, dark } = squares;
+  // A plain code is a square of paper with no frame or round corners.
+  const rim = frameOf(squares);
+  const cardRound = rim ? CARD_ROUND : 0;
+  const panelRound = rim ? PANEL_ROUND : 0;
+  const card = size + 2 * rim;
   const scale = Math.ceil(least / card);
   const width = card * scale;
   const data = new Uint8ClampedArray(width * width * 4);
   const on = rgb(ink);
   const off = rgb(paper);
-  const edge = rgb(frame);
+  const edge = rim ? rgb(frame) : off;
   for (let y = 0; y < width; y++) {
     for (let x = 0; x < width; x++) {
       // The pixel's middle, in squares from the card's corner.
       const sx = (x + 0.5) / scale;
       const sy = (y + 0.5) / scale;
-      if (!inRounded(sx, sy, card, CARD_ROUND)) continue;
-      const cx = Math.floor(sx) - FRAME;
-      const cy = Math.floor(sy) - FRAME;
-      const panel = inRounded(sx - FRAME, sy - FRAME, size, PANEL_ROUND);
+      if (!inRounded(sx, sy, card, cardRound)) continue;
+      const cx = Math.floor(sx) - rim;
+      const cy = Math.floor(sy) - rim;
+      const panel = inRounded(sx - rim, sy - rim, size, panelRound);
       const [r, g, b] = !panel ? edge : dark[cy][cx] ? on : off;
       const i = (y * width + x) * 4;
       data[i] = r;
