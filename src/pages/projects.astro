@@ -15,13 +15,13 @@ import cover from '../assets/projects/cover.webp';
 
 const LEAD = 'Things I built with Claude Code, from this site to the little tools on my desktop.';
 /** The video's length in seconds, for the cover and the controls before it has loaded. */
-const LENGTH = 38.98;
+const LENGTH = 45.17;
 
 /** Where the video's closing starts, so the last chapter ends there; copied from showcase-video with the projects'
     `at` (src/lib/projects.ts). */
-const CLOSING = 35.97;
+const CLOSING = 42.17;
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-/** The length as people read it: 38.98 s is 0:39. */
+/** The length as people read it: 45.17 s is 0:45. */
 const total = clock(Math.round(LENGTH));
 /** A stretch of the progress bar, as left and width in % of the video. */
 const span = (from: number, to: number) => `left: ${(from / LENGTH) * 100}%; width: calc(${((to - from) / LENGTH) * 100}% - 3px)`;
@@ -219,6 +219,7 @@ const stretchStyle = (s: (typeof stretches)[number]) => `${span(s.from, s.to)}${
   .project { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--radius-xl); background: var(--base); color: var(--on-colour); }
   .wide { grid-column: 1 / -1; flex-direction: row; }
   .text { --from: var(--kind-text-from); --to: var(--kind-text-to); --base: var(--kind-text-base); }
+  .image { --from: var(--kind-image-from); --to: var(--kind-image-to); --base: var(--kind-image-base); }
   .preview { --from: var(--kind-preview-from); --to: var(--kind-preview-to); --base: var(--kind-preview-base); }
   .misc { --from: var(--kind-misc-from); --to: var(--kind-misc-to); --base: var(--kind-misc-base); }
   .effect { --from: var(--kind-effect-from); --to: var(--kind-effect-to); --base: var(--kind-effect-base); }

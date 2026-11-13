@@ -152,3 +152,4 @@
 - 2026-11-07 fix: Kept the menu's buttons on screen in mid-size windows
 - 2026-11-10 improved: Swapped the Lab's Most Popular for my own Starred picks
 - 2026-11-11 improved: Gave the QR Code Generator a plain black-and-white look
+- 2026-11-13 new: Added Jack's Cost, my spending app, to Projects and the video
