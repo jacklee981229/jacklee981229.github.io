@@ -860,7 +860,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     }
   }
   function showCard(day: string) {
-    placeCard(day, pop.hidden);
+    placeCard(day, !!pop.hidden);
   }
   function hideCard() {
     clearTimeout(card.openTimer);

@@ -42,7 +42,8 @@ export async function sharePicture(page, css, host) {
   const lab = page.label.startsWith('Lab');
   const c = paletteFor(css);
   const accent = (page.accent && c[`lane-${page.accent}`]) || (lab ? c['lane-games'] : c.focus);
-  const tree = el('div', { width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 80px 60px 92px', background: c.paper, color: c.ink, fontFamily: 'Schibsted Grotesk', position: 'relative' }, [
+  // border-box: satori 0.63 adds the padding to the width and height otherwise, so the footer falls off the bottom.
+  const tree = el('div', { width: WIDTH, height: HEIGHT, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '64px 80px 60px 92px', background: c.paper, color: c.ink, fontFamily: 'Schibsted Grotesk', position: 'relative' }, [
     // A stripe down the left in the section's colour.
     el('div', { position: 'absolute', left: 0, top: 0, bottom: 0, width: 12, background: accent }, []),
     el('div', { display: 'flex', alignItems: 'center', gap: 16, fontFamily: 'IBM Plex Mono', fontSize: 28, color: c.muted }, [

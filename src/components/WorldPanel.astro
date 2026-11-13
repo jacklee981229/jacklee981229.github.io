@@ -27,7 +27,7 @@ import Icon from './Icon.astro';
     const panel = root.querySelector<HTMLElement>('.panel');
     if (!toggle || !panel) continue;
     const show = (open: boolean) => { panel.hidden = !open; toggle.setAttribute('aria-expanded', String(open)); };
-    toggle.addEventListener('click', () => show(panel.hidden));
+    toggle.addEventListener('click', () => show(!!panel.hidden));
     document.addEventListener('pointerdown', (e) => { if (!panel.hidden && !root.contains(e.target as Node)) show(false); });
     root.addEventListener('focusout', (e) => { if (!panel.hidden && e.relatedTarget && !root.contains(e.relatedTarget as Node)) show(false); });
     root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { show(false); toggle.focus(); } });

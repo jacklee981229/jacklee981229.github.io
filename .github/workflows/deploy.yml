@@ -29,8 +29,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          # The same Node as Jack's PC, so the site builds the same way here.
-          node-version: 20.18.0
+          # The same Node as Jack's laptop, so the site builds the same way here.
+          node-version: 26.13.1
           cache: npm
       - run: npm ci
       - run: npm test

@@ -124,7 +124,7 @@ import { TASKS } from '../../lib/lab/pdf-pages.js';
 
   function removeFile(id: string) {
     for (const p of pages) if (p.file === id && p.thumb) URL.revokeObjectURL(p.thumb);
-    sources.find((s) => s.id === id)?.opened.view.destroy();
+    sources.find((s) => s.id === id)?.opened.view.loadingTask.destroy();
     sources = sources.filter((s) => s.id !== id);
     pages = pages.filter((p) => p.file !== id);
     undo = null;

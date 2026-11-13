@@ -45,7 +45,7 @@ export async function openPdf(file: File): Promise<Opened | { error: 'password' 
   let view: PDFDocumentProxy;
   try {
     // pdf.js takes its copy over to its worker, which empties the one it's given.
-    view = await pdfjs.getDocument({ data: bytes.slice(), password: '', isEvalSupported: false }).promise;
+    view = await pdfjs.getDocument({ data: bytes.slice(), password: '' }).promise;
   } catch (e) {
     return { error: (e as Error)?.name === 'PasswordException' ? 'password' : 'broken' };
   }
@@ -70,8 +70,6 @@ const draw = (view: PDFDocumentProxy, n: number, size: (w: number, h: number) =>
 
 /** Page `n`'s text (from 1), line by line; empty when it has none, as a scanned page. */
 export const readText = (opened: Opened, n: number) => inTurn(async () => {
-  // The same page count fix as drawNow's, for the same reason.
-  (await load())[1].PagesMapper.instance.pagesNumber = opened.view.numPages;
   const page = await opened.view.getPage(n);
   const text = pageText((await page.getTextContent()).items);
   page.cleanup();
@@ -80,10 +78,6 @@ export const readText = (opened: Opened, n: number) => inTurn(async () => {
 
 /** A page drawn into a canvas, white behind it, turned by `turn` more than its own turn. */
 async function drawNow(view: PDFDocumentProxy, n: number, size: (w: number, h: number) => number, turn: number) {
-  // shortcut: pdf.js 5.4 keeps one page count for every open PDF, the last one opened's, and turns away page 5 of
-  // a 5-page PDF when a 4-page one was opened after it; so each drawing sets it to its own PDF's first (they run one
-  // at a time). Drop this when a pdf.js that keeps it per PDF can be used here (the newer ones need Node 22).
-  (await load())[1].PagesMapper.instance.pagesNumber = view.numPages;
   const page = await view.getPage(n);
   const plain = page.getViewport({ scale: 1, rotation: (page.rotate + turn) % 360 });
   const viewport = page.getViewport({ scale: size(plain.width, plain.height), rotation: (page.rotate + turn) % 360 });

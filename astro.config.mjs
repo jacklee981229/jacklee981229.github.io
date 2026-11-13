@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import { codeTitleFromMeta, rehypeCodeFrame } from './src/lib/code-frame.js';
 import { rehypeExternalLinks } from './src/lib/links.js';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -80,6 +81,8 @@ export default defineConfig({
   site,
   // Old Hexo links all end in a slash (/11/, /archives/), so every page URL does.
   trailingSlash: 'always',
+  // Astro 7's default ('jsx') drops the space between two inline tags on separate lines, joining words across them.
+  compressHTML: true,
   integrations: [siteChecks],
   build: { format: 'directory' },
   vite: {
@@ -96,7 +99,9 @@ export default defineConfig({
       themes: { light: 'github-light-default', dark: 'github-dark-default' },
       transformers: [codeTitleFromMeta],
     },
-    rehypePlugins: [rehypeCodeFrame, [rehypeExternalLinks, { site }]],
+    // The remark/rehype processor, not Astro 7's default (Sätteri): the code frames and external links are rehype
+    // plugins.
+    processor: unified({ rehypePlugins: [rehypeCodeFrame, [rehypeExternalLinks, { site }]] }),
   },
   redirects: {
     // Archives was folded into Writing (4 Oct 2026), which lists every post; its old addresses (the old site had pages

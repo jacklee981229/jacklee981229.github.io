@@ -22,7 +22,7 @@ My personal site: things I build, play and love. It's live at **https://jacklee9
 
 ## Run it
 
-It needs Node 20.18. Package versions are pinned to ones that run on it, so don't upgrade them.
+It needs Node 26.
 
 | Command | Does |
 |---|---|

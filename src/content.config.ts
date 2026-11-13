@@ -1,4 +1,5 @@
-import { defineCollection, z } from 'astro:content';
+import { defineCollection } from 'astro:content';
+import { z } from 'astro/zod';
 import { glob } from 'astro/loaders';
 import { byStars, validStars } from './lib/shelves.js';
 import { TOPIC_IDS } from './lib/topics.js';
