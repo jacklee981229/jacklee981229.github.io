@@ -7,7 +7,7 @@ import { draftRoute } from './drafts.js';
 import { page } from './page.js';
 import { LIMITS } from '../../src/lib/drafts.js';
 import { MOST_SCORES, readScore } from './scores.js';
-import { readTodos } from './todos.js';
+import { isHeld, readHold, readTodos } from './todos.js';
 import { dashboardPush, dashboardRead } from './dashboard.js';
 import { COMMIT_MESSAGE, LONGEST, TIDY_SCHEMA, TIDY_SYSTEM, allowedOrigin, bytesToBase64, fromBase64, joinNow, makePass, rightPassword, signedIn, splitNow, tidied, toBase64 } from './now-editor.js';
 import { pictureBytes, steamPictures } from './pictures.js';
@@ -200,13 +200,37 @@ async function todosPush(request, env) {
   const { meta } = await env.DB.prepare('INSERT INTO todo_list (id, list, pushed_at) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET list = excluded.list, pushed_at = excluded.pushed_at WHERE excluded.pushed_at > todo_list.pushed_at')
     .bind(JSON.stringify({ projects, items }), pushedAt)
     .run();
+  // A hold ends once its to-do is ticked or given another day in the widget.
+  if (meta.changes > 0) {
+    const stale = (await holds(env)).filter((h) => !items.some((i) => isHeld(i, [h])));
+    if (stale.length) await env.DB.batch(stale.map((h) => env.DB.prepare('DELETE FROM todo_holds WHERE id = ?').bind(h.id)));
+  }
   return json({ kept: meta.changes > 0, count: items.length });
 }
 
-/** Jack's open to-dos as last pushed: none before the first push. @param {any} env */
+/** The to-dos Jack held on the dashboard, each with the day it had then. @param {any} env */
+async function holds(env) {
+  const { results } = await env.DB.prepare('SELECT id, on_day FROM todo_holds').all();
+  return results.map((r) => ({ id: String(r.id), on: String(r.on_day) }));
+}
+
+/** Jack's open to-dos as last pushed, each one he held marked: none before the first push. @param {any} env */
 async function todosList(env) {
   const row = await env.DB.prepare('SELECT list, pushed_at FROM todo_list WHERE id = 1').first();
-  return json(row ? { pushedAt: row.pushed_at, ...JSON.parse(String(row.list)) } : { pushedAt: null, projects: [], items: [] });
+  if (!row) return json({ pushedAt: null, projects: [], items: [] });
+  const list = JSON.parse(String(row.list));
+  const held = await holds(env);
+  return json({ pushedAt: row.pushed_at, projects: list.projects, items: list.items.map((/** @type {any} */ i) => (isHeld(i, held) ? { ...i, held: true } : i)) });
+}
+
+/** Jack holds a to-do on the dashboard, or lets it go (todos.js, readHold). @param {Request} request @param {any} env */
+async function todoHold(request, env) {
+  const read = readHold(await readBody(request));
+  if ('error' in read) return json({ error: read.error }, 400);
+  const { id, on, held } = read.hold;
+  if (held) await env.DB.prepare('INSERT INTO todo_holds (id, on_day) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET on_day = excluded.on_day').bind(id, on).run();
+  else await env.DB.prepare('DELETE FROM todo_holds WHERE id = ?').bind(id).run();
+  return json({ id, held });
 }
 
 /** @param {Request} request @param {number} [longest] the most characters taken */
@@ -243,6 +267,7 @@ async function answer(request, env, method, pathname, origin) {
     if (method === 'PUT' && pathname === '/api/dashboard') return await dashboardPush(request, env, PRIVATE);
     if (!(await signedIn(request.headers.get('Authorization'), env.SESSION_SECRET))) return json({ error: 'Please log in.' }, 401);
     if (method === 'GET' && pathname === '/api/todos') return await todosList(env);
+    if (method === 'POST' && pathname === '/api/todos/hold') return await todoHold(request, env);
     if (method === 'GET' && pathname === '/api/dashboard') return await dashboardRead(env, PRIVATE);
     if (method === 'GET' && pathname === '/api/brief/scores') return await scoresList(env);
     if (method === 'POST' && pathname === '/api/brief/score') return await scoreSave(request, env);

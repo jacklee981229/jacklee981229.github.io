@@ -46,7 +46,8 @@ it on: `/todo` puts those whose day has come under Today, and `/brief/` lists on
 
 The dashboard's collector on the laptop (`C:\repos\Jack\dashboard`, its `collect.py`) pushes a snapshot of Jack's
 personal projects here every 15 minutes, which the page `/dashboard/` shows to a browser that did `/login`; the
-palette's `/dashboard` opens it. Once, before first use:
+palette's `/dashboard` opens it. Its Hold on a late to-do is kept here too (the table `todo_holds`), until the to-do
+gets another day or is ticked; the widget never hears of it. Once, before first use:
 
 1. Make the table: `npx wrangler d1 execute jacks-space-now --remote --file workers/now/schema.sql --config workers/now/wrangler.toml`
    (safe to run again).

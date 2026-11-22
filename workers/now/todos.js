@@ -46,3 +46,18 @@ export function readTodos(body, now = Date.now()) {
   if (projects.some((p) => !items.some((i) => i.project === p))) return { error: 'A project has no to-dos.' };
   return { list: { pushedAt, projects, items } };
 }
+
+/**
+ * Jack holding a to-do on the dashboard, or letting it go: its id and the day it had when he held it. A hold lasts
+ * only while the to-do keeps that day (isHeld), so giving it a new day in the widget brings it back to Today.
+ * @param {any} body
+ * @returns {{ hold: { id: string, on: string, held: boolean } } | { error: string }}
+ */
+export function readHold(body) {
+  const id = typeof body?.id === 'string' && /^[0-9a-f]{32}$/.test(body.id) ? body.id : null;
+  if (!id || !isDay(body?.on) || typeof body?.held !== 'boolean') return { error: "A hold doesn't look right." };
+  return { hold: { id, on: body.on, held: body.held } };
+}
+
+/** @param {{ id: string, on?: string }} item @param {{ id: string, on: string }[]} holds */
+export const isHeld = (item, holds) => holds.some((h) => h.id === item.id && h.on === item.on);

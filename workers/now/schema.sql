@@ -40,6 +40,13 @@ CREATE TABLE IF NOT EXISTS todo_list (
   pushed_at INTEGER NOT NULL
 );
 
+-- The to-dos Jack held on the dashboard (todos.js, readHold), kept out of Today: each one's id and the day it had then.
+-- A hold lasts while the to-do keeps that day; a push with the to-do ticked or on another day removes it.
+CREATE TABLE IF NOT EXISTS todo_holds (
+  id TEXT PRIMARY KEY,
+  on_day TEXT NOT NULL
+);
+
 -- Jack's dashboard (dashboard.js): the latest snapshot of his personal projects, pushed whole from his laptop every 15
 -- minutes: one row, the snapshot as JSON and when the laptop made it, in milliseconds. Only a newer push replaces it.
 CREATE TABLE IF NOT EXISTS dashboard (

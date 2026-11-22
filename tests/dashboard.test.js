@@ -141,13 +141,28 @@ test('Today: late ones first, then today’s, with their notes; the laptop’s r
   ];
   const split = splitTodos(items, [{ app: 'Expenses', project: 'test-app', text: 'Test: re-sign' }], '2026-11-07');
   assert.deepEqual(split.today, [
-    { text: 'Test: late', notes: '', project: 'test-a', day: { text: '2 days ago', kind: 'late' } },
-    { text: 'Test: today', notes: 'Line one\nline two', project: 'test-b', day: { text: 'Today', kind: 'today' } },
+    { id: '5', on: '2026-11-05', text: 'Test: late', notes: '', project: 'test-a', day: { text: '2 days ago', kind: 'late' } },
+    { id: '3', on: '2026-11-07', text: 'Test: today', notes: 'Line one\nline two', project: 'test-b', day: { text: 'Today', kind: 'today' } },
   ]);
   assert.deepEqual(split.rest.map((t) => t.id), ['1', '2', '6']);
   assert.deepEqual(split.own.map((t) => t.id), ['1', '2', '3', '5', '6']);
   assert.deepEqual(splitTodos(items, [], '2026-11-07').today.map((t) => t.text), ['Test: late', 'Test: re-sign', 'Test: today']);
   assert.deepEqual(splitTodos([], [], '2026-11-07'), { today: [], rest: [], own: [] });
+});
+
+test('a held to-do leaves Today for To-do, last there and without its day, and the page is no longer amber for it', () => {
+  const items = [
+    { id: '1', project: 'test-a', text: 'Test: none', notes: '' },
+    { id: '2', project: 'test-a', text: 'Test: held', notes: '', on: '2026-11-01', held: true },
+    { id: '3', project: 'test-b', text: 'Test: late', notes: '', on: '2026-11-05' },
+  ];
+  const split = splitTodos(items, [], '2026-11-07');
+  assert.deepEqual(split.today.map((t) => t.id), ['3']);
+  assert.deepEqual(split.rest.map((t) => t.id), ['1', '2']);
+  assert.deepEqual(todoRows(split.rest, '2026-11-07').map((r) => [r.text, r.held, r.day, r.on]), [['Test: none', false, null, ''], ['Test: held', true, null, '2026-11-01']]);
+  const calm = { reminders: [] };
+  assert.equal(pageLevel(calm, [items[1]], NOW), 'calm');
+  assert.equal(pageLevel(calm, [{ ...items[1], held: false }], NOW), 'soon');
 });
 
 test('Reminders: one ring an app, soonest first, lit for the days left in the signing’s colour', () => {

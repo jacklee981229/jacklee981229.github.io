@@ -157,7 +157,7 @@ function backupState(backup, now) {
 /**
  * @typedef {{ level: 'act' | 'soon', key: string, title: string, project?: string, fig?: number, unit?: string,
  *   icon?: string, cells?: number, lines: string[], err?: string, link?: { href: string, text: string } }} Need
- * @typedef {{ id: string, project: string, text: string, notes: string, on?: string }} Todo
+ * @typedef {{ id: string, project: string, text: string, notes: string, on?: string, held?: boolean }} Todo
  * @typedef {{ app: string, project: string, text: string }} Reminder
  */
 
@@ -221,15 +221,16 @@ export const worst = (needs) => (needs.length ? needs[0].level : 'calm');
 
 /**
  * Jack's open to-dos for the page. Today: those whose day has come, the late ones first (dueFirst), each with its
- * notes and its day's words, red once passed; the rest go to To-do. The to-dos the laptop put on the list as
- * reminders (re-sign an app: the snapshot's reminders, by project and words) are in neither: Reminders shows them.
+ * notes and its day's words, red once passed; the rest go to To-do, with those he held (the Worker marks them) even
+ * when their day has come. The to-dos the laptop put on the list as reminders (re-sign an app: the snapshot's
+ * reminders, by project and words) are in neither: Reminders shows them.
  * @param {Todo[]} items @param {Reminder[]} reminders @param {string} today
  */
 export function splitTodos(items, reminders, today) {
   const own = items.filter((t) => !reminders.some((r) => r.project === t.project && r.text === t.text));
   return {
-    today: dueFirst(own, today).map((t) => ({ text: t.text, notes: t.notes, project: t.project, day: dayWords(/** @type {string} */ (t.on), today) })),
-    rest: own.filter((t) => !isDue(t, today)),
+    today: dueFirst(own.filter((t) => !t.held), today).map((t) => ({ id: t.id, on: /** @type {string} */ (t.on), text: t.text, notes: t.notes, project: t.project, day: dayWords(/** @type {string} */ (t.on), today) })),
+    rest: own.filter((t) => t.held || !isDue(t, today)),
     own,
   };
 }
@@ -336,15 +337,18 @@ export function projectShelves(snapshot, todos, now) {
 
 /**
  * The open to-dos as rows: those whose day has come first (the earliest first), then those with a day still to come
- * (the soonest first), then the rest in the laptop's order; each with its day's words, red once passed.
+ * (the soonest first), then the rest in the laptop's order, then those Jack held; each with its day's words, red once
+ * passed, but a held one without its day.
  * @param {Todo[]} items @param {string} today
- * @returns {{ text: string, project: string, day: { text: string, kind: 'late' | 'today' | 'later' } | null }[]}
+ * @returns {{ id: string, on: string, text: string, project: string, held: boolean, day: { text: string, kind: 'late' | 'today' | 'later' } | null }[]}
  */
 export function todoRows(items, today) {
-  const due = dueFirst(items, today);
-  const coming = items.filter((i) => i.on && !isDue(i, today)).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : 0));
-  const rest = items.filter((i) => !i.on);
-  return [...due, ...coming, ...rest].map((i) => ({ text: i.text, project: i.project, day: i.on ? dayWords(i.on, today) : null }));
+  const open = items.filter((i) => !i.held);
+  const due = dueFirst(open, today);
+  const coming = open.filter((i) => i.on && !isDue(i, today)).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : 0));
+  const rest = open.filter((i) => !i.on);
+  const held = items.filter((i) => i.held);
+  return [...due, ...coming, ...rest, ...held].map((i) => ({ id: i.id, on: i.on ?? '', text: i.text, project: i.project, held: !!i.held, day: i.on && !i.held ? dayWords(i.on, today) : null }));
 }
 
 /**

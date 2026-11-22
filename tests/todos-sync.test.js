@@ -1,7 +1,7 @@
 // Jack's to-dos as the Now editor checks a push from his laptop (workers/now/todos.js). Test to-dos only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLOCK_SLACK_MS, LONGEST_NOTES, LONGEST_TEXT, MOST_TODOS, readTodos } from '../workers/now/todos.js';
+import { CLOCK_SLACK_MS, LONGEST_NOTES, LONGEST_TEXT, MOST_TODOS, isHeld, readHold, readTodos } from '../workers/now/todos.js';
 
 const NOW = Date.UTC(2026, 10, 6, 4);
 const id = (n) => n.toString(16).padStart(32, '0');
@@ -68,4 +68,20 @@ test('too many to-dos are refused; the most, all at full length in Chinese, stay
   assert.ok('error' in readTodos({ pushedAt: NOW, projects: ['General'], items: many(MOST_TODOS + 1, 'Test', '') }, NOW));
   const { list } = readTodos({ pushedAt: NOW, projects: ['General'], items: many(MOST_TODOS, '字'.repeat(LONGEST_TEXT), '字'.repeat(LONGEST_NOTES)) }, NOW);
   assert.ok(new TextEncoder().encode(JSON.stringify(list)).length < 1_000_000);
+});
+
+test('a hold needs a to-do id, its day and whether it is held', () => {
+  assert.deepEqual(readHold({ id: id(2), on: '2026-11-07', held: true }), { hold: { id: id(2), on: '2026-11-07', held: true } });
+  assert.deepEqual(readHold({ id: id(2), on: '2026-11-07', held: false }).hold.held, false);
+  for (const bad of [null, {}, { id: 'x', on: '2026-11-07', held: true }, { id: id(2), on: '', held: true }, { id: id(2), on: '2026-02-31', held: true }, { id: id(2), on: '2026-11-07', held: 'yes' }]) {
+    assert.ok('error' in readHold(bad), JSON.stringify(bad));
+  }
+});
+
+test('a hold lasts only while its to-do keeps the day it was held on', () => {
+  const holds = [{ id: id(2), on: '2026-11-07' }];
+  assert.equal(isHeld({ id: id(2), on: '2026-11-07' }, holds), true);
+  assert.equal(isHeld({ id: id(2), on: '2026-11-09' }, holds), false);
+  assert.equal(isHeld({ id: id(2), on: '' }, holds), false);
+  assert.equal(isHeld({ id: id(1), on: '2026-11-07' }, holds), false);
 });

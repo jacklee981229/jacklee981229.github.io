@@ -349,7 +349,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   }
 
   /** Today: each to-do whose day has come in a well of its own, its notes in full, its kind and project; the late
-   *  ones first, their day in red. */
+   *  ones first, their day in red, each with Hold. */
   function drawToday(now: number) {
     $<HTMLElement>('[data-date]', today).textContent = dayName(dayOf(now));
     if (!todos) return fill(today, null, el('p', 'note', todoError || "Couldn't get the to-dos."));
@@ -361,7 +361,7 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
       const head = el('div', 'td-top');
       head.append(el('h3', 'td-t', t.text), el('span', `day ${t.day.kind === 'late' ? 'late' : ''}`, t.day.text));
       const foot = el('div', 'td-foot');
-      foot.append(...kindMark(kinds.get(t.project)), el('span', 'tag', t.project));
+      foot.append(...kindMark(kinds.get(t.project)), el('span', 'tag', t.project), ...(t.day.kind === 'late' ? [holdButton(t, true)] : []));
       card.append(head, ...(t.notes ? [el('p', 'td-n', t.notes)] : []), foot);
       return entrance(card, `td:${t.project}:${t.text}`);
     }));
@@ -475,6 +475,29 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     filter.dataset.projects = projects.join('\n');
   }
 
+  /** Hold keeps a to-do out of Today until its day changes in the widget (the Worker's todo_holds); Unhold brings it
+   *  back. Only the dashboard knows: the widget still shows its day. */
+  function holdButton(t: { id: string, on: string, text: string }, held: boolean) {
+    const button = el('button', 'hold-btn', held ? 'Hold' : 'Unhold');
+    button.type = 'button';
+    button.setAttribute('aria-label', `${held ? 'Hold' : 'Unhold'}: ${t.text}`);
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await draftCall('/api/todos/hold', { json: { id: t.id, on: t.on, held } });
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Try again';
+        button.title = (error as Error).message;
+        return;
+      }
+      const item = todos?.find((i) => i.id === t.id);
+      if (item) item.held = held;
+      draw();
+    });
+    return button;
+  }
+
   /** To-do: the open to-dos not in Today or Reminders; the filter picks a project among these only. */
   function drawTodos(now: number) {
     if (!todos) {
@@ -488,9 +511,10 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
     if (!rows.length) return fill(todo, 0, el('li', 'note', 'Nothing else to do.'));
     fill(todo, rows.length, ...rows.map((r) => {
       const li = el('li');
-      li.append(el('span', 'what', r.text), el('span', `day ${r.day?.kind === 'late' ? 'late' : ''}`, r.day?.text ?? ''));
+      li.append(el('span', 'what', r.text), el('span', `day ${r.day?.kind === 'late' ? 'late' : ''}`, r.held ? 'Held' : r.day?.text ?? ''));
       // One project's list needs no tag on every row, as in the widget.
       if (!filter.value) li.append(el('span', 'tag', r.project));
+      if (r.held) li.append(holdButton(r, false));
       return li;
     }));
   }
@@ -1353,17 +1377,18 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .cal .range { color: var(--muted); font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
   .cal.big .range { font-size: var(--text-ui); }
   .cal-nav { display: inline-flex; gap: 6px; align-items: center; }
-  .cal-btn { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0; border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink);
+  /* Hold and Unhold, made by the script, are the calendar's word buttons too. */
+  .cal-btn, .board :global(.hold-btn) { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0; border: var(--hairline) solid var(--dg-glass-edge); border-radius: var(--radius-pill); background: var(--dg-well); color: var(--ink);
     font: inherit; font-size: var(--text-sm); font-weight: 750; cursor: pointer; -webkit-tap-highlight-color: transparent;
     transition: border-color var(--motion-quick) var(--ease-out), background-color var(--motion-quick) var(--ease-out), scale var(--motion-soft) var(--ease-release); }
-  .cal-btn.word { padding: 0 12px; }
+  .cal-btn.word, .board :global(.hold-btn) { padding: 0 12px; }
   .cal-btn[hidden] { display: none; }
   .cal-btn .icon { width: 16px; height: 16px; stroke-width: 2.4; }
   .cal-btn .prev { rotate: 90deg; }
   .cal-btn .next { rotate: -90deg; }
-  .cal-btn:active { scale: 0.95; transition-duration: var(--motion-press); }
-  .cal-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  @media (hover: hover) { .cal-btn:hover { border-color: color-mix(in srgb, var(--ink) 32%, transparent); background-color: color-mix(in srgb, var(--ink) 6%, var(--dg-well)); } }
+  .cal-btn:active, .board :global(.hold-btn:active) { scale: 0.95; transition-duration: var(--motion-press); }
+  .cal-btn:focus-visible, .board :global(.hold-btn:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+  @media (hover: hover) { .cal-btn:hover, .board :global(.hold-btn:hover) { border-color: color-mix(in srgb, var(--ink) 32%, transparent); background-color: color-mix(in srgb, var(--ink) 6%, var(--dg-well)); } }
   .cal-body { flex: 1; display: grid; align-content: center; padding: var(--space-3) 0 var(--space-2); }
   .cal.big .cal-body { display: block; padding-top: var(--space-4); }
   .cal-gap { margin: 0; padding: var(--space-2) 0 var(--space-3); color: var(--muted); font-size: var(--text-sm); }
@@ -1508,6 +1533,9 @@ const icons = ['phone', 'close', 'branch', 'bug', 'check', 'commit', 'chevron-do
   .today :global(.td-t) { min-width: 0; margin: 0; font-size: 1.0625rem; font-weight: 800; overflow-wrap: anywhere; }
   .today :global(.td-n) { margin: 0; color: var(--muted); font-size: var(--text-ui); white-space: pre-wrap; overflow-wrap: anywhere; }
   .today :global(.td-foot) { display: flex; gap: var(--space-2); align-items: center; min-width: 0; }
+  .board :global(.hold-btn) { flex: none; height: 30px; margin-left: auto; }
+  .board :global(.hold-btn:disabled) { opacity: 0.6; cursor: default; }
+  .todo :global(.hold-btn) { grid-column: 2; justify-self: end; }
   .today :global(.day) { color: var(--muted); font-size: var(--text-sm); font-weight: 750; white-space: nowrap; }
   .today :global(.day.late) { color: var(--todo-late); }
   .today :global(.tag), .todo :global(.tag) { min-width: 0; padding: 2px var(--space-3); border-radius: var(--radius-pill); background: var(--wash); color: var(--muted); font-size: var(--text-xs); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
